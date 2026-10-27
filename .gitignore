@@ -1,0 +1,18 @@
+# 凭据与运行时状态（绝不入库）
+compshare/credentials.env
+.compshare/
+share/
+logs/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 归档产物
+reports/archive/
+
+# 分享链接 token
+.share_token
+.htpasswd
