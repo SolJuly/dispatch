@@ -16,3 +16,18 @@ reports/archive/
 # 分享链接 token
 .share_token
 .htpasswd
+
+# P1 运行态（job 产物与汇总）
+reports/p1/jobs/
+reports/p1/status.json
+
+# 媒体产物与生成页（可由脚本重生成，不入库）
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.mp4
+*.gif
+reports/architecture.svg
+reports/architecture.html
+reports/lab/gallery*.html

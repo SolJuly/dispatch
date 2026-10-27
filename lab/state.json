@@ -1,0 +1,2116 @@
+{
+  "groups": {
+    "4090@cn-wlcb-01": {
+      "id": "4090@cn-wlcb-01",
+      "gpu": "4090",
+      "zone": "cn-wlcb-01",
+      "region": "cn-wlcb",
+      "image": "ComfyUI_v0.3.40",
+      "started": 1793004324,
+      "workloads": {
+        "sd15_base": {
+          "status": "failed",
+          "reason": "ERR:Warning: Permanently added '[117.50.178.82]:23' (ED25519) to the list of known hosts.\nConnection to 117.50.178.82 closed by remote host.",
+          "wall_s": 3.4
+        },
+        "sd15_fast": {
+          "cell": "4090@cn-wlcb-01/sd15_fast",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 12.0,
+          "runs": [
+            {
+              "seconds": 7.67,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_fast_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_fast_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 3258,
+            "util_peak_pct": 29,
+            "samples": 9
+          },
+          "artifacts": [
+            {
+              "file": "4090_sd15_fast_00001_.png",
+              "size": 341592,
+              "sha256_16": "eef1626f263f9fe1",
+              "width": 512,
+              "height": 512
+            },
+            {
+              "file": "4090_sd15_fast_00002_.png",
+              "size": 322161,
+              "sha256_16": "8800c6eb050a1cae",
+              "width": 512,
+              "height": 512
+            }
+          ],
+          "t_cold_s": 7.67,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sd15",
+            "width": 512,
+            "height": 512,
+            "steps": 8,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 22.2
+        },
+        "sd15_big": {
+          "cell": "4090@cn-wlcb-01/sd15_big",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_big_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_big_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 4122,
+            "util_peak_pct": 97,
+            "samples": 3
+          },
+          "artifacts": [
+            {
+              "file": "4090_sd15_big_00001_.png",
+              "size": 890263,
+              "sha256_16": "c23bd2d95b9a7666",
+              "width": 768,
+              "height": 768
+            },
+            {
+              "file": "4090_sd15_big_00002_.png",
+              "size": 940938,
+              "sha256_16": "2d5fa1b2b8dbe7a9",
+              "width": 768,
+              "height": 768
+            }
+          ],
+          "t_cold_s": 1.51,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sd15",
+            "width": 768,
+            "height": 768,
+            "steps": 20,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 3.9
+        },
+        "sdxl_base": {
+          "cell": "4090@cn-wlcb-01/sdxl_base",
+          "model": "sdxl",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 16.56,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sdxl_base_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 3.01,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sdxl_base_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 9434,
+            "util_peak_pct": 98,
+            "samples": 19
+          },
+          "artifacts": [
+            {
+              "file": "4090_sdxl_base_00001_.png",
+              "size": 1430773,
+              "sha256_16": "e318678935234802",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "4090_sdxl_base_00002_.png",
+              "size": 1568013,
+              "sha256_16": "b31cc8959e395ac6",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 16.56,
+          "t_warm_s": 3.01,
+          "spec": {
+            "model": "sdxl",
+            "width": 1024,
+            "height": 1024,
+            "steps": 20,
+            "cfg": 5.0,
+            "sampler": "dpmpp_2m",
+            "scheduler": "karras"
+          },
+          "wall_s": 20.4
+        },
+        "sdxl_fast": {
+          "cell": "4090@cn-wlcb-01/sdxl_fast",
+          "model": "sdxl",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sdxl_fast_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.58,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sdxl_fast_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 9914,
+            "util_peak_pct": 98,
+            "samples": 3
+          },
+          "artifacts": [
+            {
+              "file": "4090_sdxl_fast_00001_.png",
+              "size": 1196084,
+              "sha256_16": "787215046ab98812",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "4090_sdxl_fast_00002_.png",
+              "size": 1454458,
+              "sha256_16": "ea3f7d917edea130",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 1.51,
+          "t_warm_s": 1.58,
+          "spec": {
+            "model": "sdxl",
+            "width": 1024,
+            "height": 1024,
+            "steps": 8,
+            "cfg": 5.0,
+            "sampler": "dpmpp_2m",
+            "scheduler": "karras"
+          },
+          "wall_s": 3.9
+        },
+        "flux_base": {
+          "cell": "4090@cn-wlcb-01/flux_base",
+          "model": "flux",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 60.17,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_flux_base_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 15.03,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_flux_base_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 23580,
+            "util_peak_pct": 100,
+            "samples": 73
+          },
+          "artifacts": [
+            {
+              "file": "4090_flux_base_00001_.png",
+              "size": 1567043,
+              "sha256_16": "b358a79ea3bfdf73",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "4090_flux_base_00002_.png",
+              "size": 1508305,
+              "sha256_16": "02c10a23ea5a6284",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 60.17,
+          "t_warm_s": 15.03,
+          "spec": {
+            "model": "flux",
+            "width": 1024,
+            "height": 1024,
+            "steps": 20,
+            "cfg": 1.0,
+            "sampler": "euler",
+            "scheduler": "simple"
+          },
+          "wall_s": 76.4
+        },
+        "flux_fast": {
+          "cell": "4090@cn-wlcb-01/flux_fast",
+          "model": "flux",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 9.03,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_flux_fast_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 9.03,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_flux_fast_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 23580,
+            "util_peak_pct": 100,
+            "samples": 18
+          },
+          "artifacts": [
+            {
+              "file": "4090_flux_fast_00001_.png",
+              "size": 1440137,
+              "sha256_16": "861c9db889a3a65d",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "4090_flux_fast_00002_.png",
+              "size": 1336190,
+              "sha256_16": "ab8c2e941d17bd5d",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 9.03,
+          "t_warm_s": 9.03,
+          "spec": {
+            "model": "flux",
+            "width": 1024,
+            "height": 1024,
+            "steps": 10,
+            "cfg": 1.0,
+            "sampler": "euler",
+            "scheduler": "simple"
+          },
+          "wall_s": 19.4
+        },
+        "wan_i2v": {
+          "status": "skipped",
+          "reason": "没有起始图"
+        }
+      },
+      "uhost": "uhost-1wxvtzus59in",
+      "t_to_running_s": 72.1,
+      "env": {
+        "comfy_dir": "/root/ComfyUI",
+        "python": "/root/miniconda3/envs/comfyui/bin/python3.10",
+        "cmdline": "python main.py --listen 0.0.0.0 --port 8188"
+      },
+      "status": "ok",
+      "ended": 1793004576,
+      "wall_min": 4.2,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.151,
+      "attempts": 1
+    },
+    "V100S@cn-wlcb-01": {
+      "id": "V100S@cn-wlcb-01",
+      "gpu": "V100S",
+      "zone": "cn-wlcb-01",
+      "region": "cn-wlcb",
+      "image": "ComfyUI_v0.3.40",
+      "started": 1793005039,
+      "workloads": {
+        "sd15_base": {
+          "cell": "V100S@cn-wlcb-01/sd15_base",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 Tesla V100S-PCIE-32GB : cudaMallocAsync",
+          "vram_total_mib": 32494,
+          "nodes": 543,
+          "t_ready_s": 3.0,
+          "runs": [
+            {
+              "seconds": 10.53,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/v100s_sd15_base_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/v100s_sd15_base_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 3542,
+            "util_peak_pct": 97,
+            "samples": 12
+          },
+          "artifacts": [
+            {
+              "file": "v100s_sd15_base_00001_.png",
+              "size": 362389,
+              "sha256_16": "8d296fe57b4010a7",
+              "width": 512,
+              "height": 512
+            },
+            {
+              "file": "v100s_sd15_base_00002_.png",
+              "size": 341022,
+              "sha256_16": "b92598360f7038bd",
+              "width": 512,
+              "height": 512
+            }
+          ],
+          "t_cold_s": 10.53,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sd15",
+            "width": 512,
+            "height": 512,
+            "steps": 20,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 37.7
+        },
+        "sd15_fast": {
+          "cell": "V100S@cn-wlcb-01/sd15_fast",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 Tesla V100S-PCIE-32GB : cudaMallocAsync",
+          "vram_total_mib": 32494,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/v100s_sd15_fast_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/v100s_sd15_fast_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 3286,
+            "util_peak_pct": 96,
+            "samples": 3
+          },
+          "artifacts": [
+            {
+              "file": "v100s_sd15_fast_00001_.png",
+              "size": 341373,
+              "sha256_16": "a9a7dabbb09641ea",
+              "width": 512,
+              "height": 512
+            },
+            {
+              "file": "v100s_sd15_fast_00002_.png",
+              "size": 322335,
+              "sha256_16": "ca54464222567147",
+              "width": 512,
+              "height": 512
+            }
+          ],
+          "t_cold_s": 1.51,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sd15",
+            "width": 512,
+            "height": 512,
+            "steps": 8,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 3.9
+        },
+        "sd15_big": {
+          "cell": "V100S@cn-wlcb-01/sd15_big",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 Tesla V100S-PCIE-32GB : cudaMallocAsync",
+          "vram_total_mib": 32494,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 4.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/v100s_sd15_big_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 4.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/v100s_sd15_big_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 4630,
+            "util_peak_pct": 98,
+            "samples": 9
+          },
+          "artifacts": [
+            {
+              "file": "v100s_sd15_big_00001_.png",
+              "size": 889450,
+              "sha256_16": "49950ab8a84b18be",
+              "width": 768,
+              "height": 768
+            },
+            {
+              "file": "v100s_sd15_big_00002_.png",
+              "size": 940252,
+              "sha256_16": "2c581bef22033006",
+              "width": 768,
+              "height": 768
+            }
+          ],
+          "t_cold_s": 4.51,
+          "t_warm_s": 4.51,
+          "spec": {
+            "model": "sd15",
+            "width": 768,
+            "height": 768,
+            "steps": 20,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 10.0
+        },
+        "sdxl_base": {
+          "cell": "V100S@cn-wlcb-01/sdxl_base",
+          "model": "sdxl",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 Tesla V100S-PCIE-32GB : cudaMallocAsync",
+          "vram_total_mib": 32494,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 19.76,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/v100s_sdxl_base_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 7.52,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/v100s_sdxl_base_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 10838,
+            "util_peak_pct": 100,
+            "samples": 27
+          },
+          "artifacts": [
+            {
+              "file": "v100s_sdxl_base_00001_.png",
+              "size": 1425764,
+              "sha256_16": "e537d5e2300e3215",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "v100s_sdxl_base_00002_.png",
+              "size": 1566141,
+              "sha256_16": "6d6f76ae5ee5893f",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 19.76,
+          "t_warm_s": 7.52,
+          "spec": {
+            "model": "sdxl",
+            "width": 1024,
+            "height": 1024,
+            "steps": 20,
+            "cfg": 5.0,
+            "sampler": "dpmpp_2m",
+            "scheduler": "karras"
+          },
+          "wall_s": 28.5
+        },
+        "sdxl_fast": {
+          "cell": "V100S@cn-wlcb-01/sdxl_fast",
+          "model": "sdxl",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 Tesla V100S-PCIE-32GB : cudaMallocAsync",
+          "vram_total_mib": 32494,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 3.01,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/v100s_sdxl_fast_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 4.52,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/v100s_sdxl_fast_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 10710,
+            "util_peak_pct": 100,
+            "samples": 8
+          },
+          "artifacts": [
+            {
+              "file": "v100s_sdxl_fast_00001_.png",
+              "size": 1185556,
+              "sha256_16": "85f63f315746c56f",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "v100s_sdxl_fast_00002_.png",
+              "size": 1452041,
+              "sha256_16": "66113fd5eb6b2475",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 3.01,
+          "t_warm_s": 4.52,
+          "spec": {
+            "model": "sdxl",
+            "width": 1024,
+            "height": 1024,
+            "steps": 8,
+            "cfg": 5.0,
+            "sampler": "dpmpp_2m",
+            "scheduler": "karras"
+          },
+          "wall_s": 9.0
+        }
+      },
+      "uhost": "uhost-1wxw9ab0nh6s",
+      "t_to_running_s": 74.7,
+      "env": {
+        "comfy_dir": "/root/ComfyUI",
+        "python": "/root/miniconda3/envs/comfyui/bin/python3.10",
+        "cmdline": "python main.py --listen 0.0.0.0 --port 8188"
+      },
+      "status": "ok",
+      "ended": 1793005226,
+      "wall_min": 3.1,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.073,
+      "attempts": 2
+    },
+    "4090@cn-sh2-02": {
+      "id": "4090@cn-sh2-02",
+      "gpu": "4090",
+      "zone": "cn-sh2-02",
+      "region": "cn-sh2",
+      "image": "ComfyUI_v0.3.40",
+      "started": 1793005236,
+      "workloads": {
+        "sd15_base": {
+          "cell": "4090@cn-sh2-02/sd15_base",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 15.0,
+          "runs": [
+            {
+              "seconds": 9.27,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_base_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_base_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 3258,
+            "util_peak_pct": 54,
+            "samples": 11
+          },
+          "artifacts": [
+            {
+              "file": "4090_sd15_base_00001_.png",
+              "size": 363188,
+              "sha256_16": "d18119cf2647c7a0",
+              "width": 512,
+              "height": 512
+            },
+            {
+              "file": "4090_sd15_base_00002_.png",
+              "size": 341394,
+              "sha256_16": "978f2ef5bb214235",
+              "width": 512,
+              "height": 512
+            }
+          ],
+          "t_cold_s": 9.27,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sd15",
+            "width": 512,
+            "height": 512,
+            "steps": 20,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 44.4
+        },
+        "sd15_fast": {
+          "cell": "4090@cn-sh2-02/sd15_fast",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_fast_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_fast_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 3258,
+            "util_peak_pct": 53,
+            "samples": 3
+          },
+          "artifacts": [
+            {
+              "file": "4090_sd15_fast_00001_.png",
+              "size": 341481,
+              "sha256_16": "3a63fdf4084d167d",
+              "width": 512,
+              "height": 512
+            },
+            {
+              "file": "4090_sd15_fast_00002_.png",
+              "size": 322161,
+              "sha256_16": "8800c6eb050a1cae",
+              "width": 512,
+              "height": 512
+            }
+          ],
+          "t_cold_s": 1.51,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sd15",
+            "width": 512,
+            "height": 512,
+            "steps": 8,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 3.8
+        },
+        "sd15_big": {
+          "cell": "4090@cn-sh2-02/sd15_big",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_big_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_big_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 4122,
+            "util_peak_pct": 96,
+            "samples": 3
+          },
+          "artifacts": [
+            {
+              "file": "4090_sd15_big_00001_.png",
+              "size": 890263,
+              "sha256_16": "c23bd2d95b9a7666",
+              "width": 768,
+              "height": 768
+            },
+            {
+              "file": "4090_sd15_big_00002_.png",
+              "size": 940938,
+              "sha256_16": "2d5fa1b2b8dbe7a9",
+              "width": 768,
+              "height": 768
+            }
+          ],
+          "t_cold_s": 1.51,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sd15",
+            "width": 768,
+            "height": 768,
+            "steps": 20,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 4.0
+        },
+        "sdxl_base": {
+          "cell": "4090@cn-sh2-02/sdxl_base",
+          "model": "sdxl",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 16.55,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sdxl_base_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 3.01,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sdxl_base_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 9914,
+            "util_peak_pct": 98,
+            "samples": 19
+          },
+          "artifacts": [
+            {
+              "file": "4090_sdxl_base_00001_.png",
+              "size": 1430773,
+              "sha256_16": "e318678935234802",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "4090_sdxl_base_00002_.png",
+              "size": 1568013,
+              "sha256_16": "b31cc8959e395ac6",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 16.55,
+          "t_warm_s": 3.01,
+          "spec": {
+            "model": "sdxl",
+            "width": 1024,
+            "height": 1024,
+            "steps": 20,
+            "cfg": 5.0,
+            "sampler": "dpmpp_2m",
+            "scheduler": "karras"
+          },
+          "wall_s": 20.3
+        },
+        "sdxl_fast": {
+          "cell": "4090@cn-sh2-02/sdxl_fast",
+          "model": "sdxl",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sdxl_fast_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sdxl_fast_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 9914,
+            "util_peak_pct": 98,
+            "samples": 3
+          },
+          "artifacts": [
+            {
+              "file": "4090_sdxl_fast_00001_.png",
+              "size": 1196084,
+              "sha256_16": "787215046ab98812",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "4090_sdxl_fast_00002_.png",
+              "size": 1454458,
+              "sha256_16": "ea3f7d917edea130",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 1.51,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sdxl",
+            "width": 1024,
+            "height": 1024,
+            "steps": 8,
+            "cfg": 5.0,
+            "sampler": "dpmpp_2m",
+            "scheduler": "karras"
+          },
+          "wall_s": 3.7
+        },
+        "flux_base": {
+          "cell": "4090@cn-sh2-02/flux_base",
+          "model": "flux",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 61.71,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_flux_base_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 15.03,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_flux_base_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 23580,
+            "util_peak_pct": 100,
+            "samples": 75
+          },
+          "artifacts": [
+            {
+              "file": "4090_flux_base_00001_.png",
+              "size": 1567043,
+              "sha256_16": "b358a79ea3bfdf73",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "4090_flux_base_00002_.png",
+              "size": 1508305,
+              "sha256_16": "02c10a23ea5a6284",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 61.71,
+          "t_warm_s": 15.03,
+          "spec": {
+            "model": "flux",
+            "width": 1024,
+            "height": 1024,
+            "steps": 20,
+            "cfg": 1.0,
+            "sampler": "euler",
+            "scheduler": "simple"
+          },
+          "wall_s": 78.4
+        },
+        "flux_fast": {
+          "cell": "4090@cn-sh2-02/flux_fast",
+          "model": "flux",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 9.03,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_flux_fast_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 9.03,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_flux_fast_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 23644,
+            "util_peak_pct": 100,
+            "samples": 18
+          },
+          "artifacts": [
+            {
+              "file": "4090_flux_fast_00001_.png",
+              "size": 1440137,
+              "sha256_16": "861c9db889a3a65d",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "4090_flux_fast_00002_.png",
+              "size": 1336190,
+              "sha256_16": "ab8c2e941d17bd5d",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 9.03,
+          "t_warm_s": 9.03,
+          "spec": {
+            "model": "flux",
+            "width": 1024,
+            "height": 1024,
+            "steps": 10,
+            "cfg": 1.0,
+            "sampler": "euler",
+            "scheduler": "simple"
+          },
+          "wall_s": 19.2
+        },
+        "wan_i2v": {
+          "cell": "4090@cn-sh2-02/wan_i2v",
+          "model": "wan_i2v",
+          "config": null,
+          "status": "skipped",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "reason": "wan unet 不可见: Wan2.1_i2v_720p_scaled_fp8_e4m3_lightx2v.safetensors",
+          "wall_s": 0.7
+        }
+      },
+      "uhost": "uhost-1wxwdj7cwjic",
+      "t_to_running_s": 64.8,
+      "env": {
+        "comfy_dir": "/root/ComfyUI",
+        "python": "/root/miniconda3/envs/comfyui/bin/python3.10",
+        "cmdline": "python main.py --listen 0.0.0.0 --port 8188"
+      },
+      "status": "ok",
+      "ended": 1793005495,
+      "wall_min": 4.3,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.155,
+      "attempts": 1
+    },
+    "4090@cn-bj2-03": {
+      "id": "4090@cn-bj2-03",
+      "gpu": "4090",
+      "zone": "cn-bj2-03",
+      "region": "cn-bj2",
+      "image": "ComfyUI_v0.3.40",
+      "started": 1793005855,
+      "workloads": {
+        "sd15_base": {
+          "cell": "4090@cn-bj2-03/sd15_base",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24110,
+          "nodes": 543,
+          "t_ready_s": 18.0,
+          "runs": [
+            {
+              "seconds": 13.54,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_base_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_base_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 3262,
+            "util_peak_pct": 51,
+            "samples": 14
+          },
+          "artifacts": [
+            {
+              "file": "4090_sd15_base_00001_.png",
+              "size": 363188,
+              "sha256_16": "d18119cf2647c7a0",
+              "width": 512,
+              "height": 512
+            },
+            {
+              "file": "4090_sd15_base_00002_.png",
+              "size": 341394,
+              "sha256_16": "978f2ef5bb214235",
+              "width": 512,
+              "height": 512
+            }
+          ],
+          "t_cold_s": 13.54,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sd15",
+            "width": 512,
+            "height": 512,
+            "steps": 20,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 35.4
+        },
+        "sd15_fast": {
+          "cell": "4090@cn-bj2-03/sd15_fast",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24110,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_fast_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_fast_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 3262,
+            "util_peak_pct": 0,
+            "samples": 3
+          },
+          "artifacts": [
+            {
+              "file": "4090_sd15_fast_00001_.png",
+              "size": 341481,
+              "sha256_16": "3a63fdf4084d167d",
+              "width": 512,
+              "height": 512
+            },
+            {
+              "file": "4090_sd15_fast_00002_.png",
+              "size": 322161,
+              "sha256_16": "8800c6eb050a1cae",
+              "width": 512,
+              "height": 512
+            }
+          ],
+          "t_cold_s": 1.51,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sd15",
+            "width": 512,
+            "height": 512,
+            "steps": 8,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 5.0
+        },
+        "sd15_big": {
+          "cell": "4090@cn-bj2-03/sd15_big",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24110,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_big_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sd15_big_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 4126,
+            "util_peak_pct": 97,
+            "samples": 3
+          },
+          "artifacts": [
+            {
+              "file": "4090_sd15_big_00001_.png",
+              "size": 890263,
+              "sha256_16": "c23bd2d95b9a7666",
+              "width": 768,
+              "height": 768
+            },
+            {
+              "file": "4090_sd15_big_00002_.png",
+              "size": 940938,
+              "sha256_16": "2d5fa1b2b8dbe7a9",
+              "width": 768,
+              "height": 768
+            }
+          ],
+          "t_cold_s": 1.51,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sd15",
+            "width": 768,
+            "height": 768,
+            "steps": 20,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 4.9
+        },
+        "sdxl_base": {
+          "cell": "4090@cn-bj2-03/sdxl_base",
+          "model": "sdxl",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24110,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 15.15,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sdxl_base_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 3.01,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sdxl_base_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 9982,
+            "util_peak_pct": 100,
+            "samples": 17
+          },
+          "artifacts": [
+            {
+              "file": "4090_sdxl_base_00001_.png",
+              "size": 1430773,
+              "sha256_16": "e318678935234802",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "4090_sdxl_base_00002_.png",
+              "size": 1568013,
+              "sha256_16": "b31cc8959e395ac6",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 15.15,
+          "t_warm_s": 3.01,
+          "spec": {
+            "model": "sdxl",
+            "width": 1024,
+            "height": 1024,
+            "steps": 20,
+            "cfg": 5.0,
+            "sampler": "dpmpp_2m",
+            "scheduler": "karras"
+          },
+          "wall_s": 20.8
+        },
+        "sdxl_fast": {
+          "cell": "4090@cn-bj2-03/sdxl_fast",
+          "model": "sdxl",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24110,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sdxl_fast_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/4090_sdxl_fast_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 9918,
+            "util_peak_pct": 97,
+            "samples": 3
+          },
+          "artifacts": [
+            {
+              "file": "4090_sdxl_fast_00001_.png",
+              "size": 1196084,
+              "sha256_16": "787215046ab98812",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "4090_sdxl_fast_00002_.png",
+              "size": 1454458,
+              "sha256_16": "ea3f7d917edea130",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 1.51,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sdxl",
+            "width": 1024,
+            "height": 1024,
+            "steps": 8,
+            "cfg": 5.0,
+            "sampler": "dpmpp_2m",
+            "scheduler": "karras"
+          },
+          "wall_s": 4.9
+        },
+        "flux_base": {
+          "status": "failed",
+          "reason": "ERR:Warning: Permanently added '[cpod-1wxwqrk1syek.podtcp.compshare.cn]:24766' (ED25519) to the list of known hosts.\nConnection to cpod-1wxwqrk1syek.podtcp.compshare.cn closed by remote host.",
+          "wall_s": 126.7
+        },
+        "flux_fast": {
+          "status": "failed",
+          "reason": "ERR:ssh: connect to host cpod-1wxwqrk1syek.podtcp.compshare.cn port 24766: Connection refused",
+          "wall_s": 97.7
+        },
+        "wan_i2v": {
+          "cell": "4090@cn-bj2-03/wan_i2v",
+          "model": "wan_i2v",
+          "config": null,
+          "status": "skipped",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24110,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "reason": "wan unet 不可见: Wan2.1_i2v_720p_scaled_fp8_e4m3_lightx2v.safetensors",
+          "wall_s": 1.5
+        }
+      },
+      "uhost": "cpod-1wxwqrk1syek",
+      "t_to_running_s": 14.4,
+      "env": {
+        "comfy_dir": "/root/ComfyUI",
+        "python": "/root/miniconda3/envs/comfyui/bin/python3.10",
+        "cmdline": "python main.py --listen 0.0.0.0 --port 8188"
+      },
+      "status": "ok",
+      "ended": 1793006246,
+      "wall_min": 6.5,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.228,
+      "attempts": 1
+    },
+    "3090@cn-wlcb-01": {
+      "id": "3090@cn-wlcb-01",
+      "gpu": "3090",
+      "zone": "cn-wlcb-01",
+      "region": "cn-wlcb",
+      "image": "ComfyUI_v0.3.40",
+      "started": 1793007102,
+      "workloads": {
+        "sd15_base": {
+          "cell": "3090@cn-wlcb-01/sd15_base",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 3090 : cudaMallocAsync",
+          "vram_total_mib": 24125,
+          "nodes": 543,
+          "t_ready_s": 3.0,
+          "runs": [
+            {
+              "seconds": 10.55,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/3090_sd15_base_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/3090_sd15_base_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 2980,
+            "util_peak_pct": 87,
+            "samples": 12
+          },
+          "artifacts": [
+            {
+              "file": "3090_sd15_base_00001_.png",
+              "size": 362733,
+              "sha256_16": "27e7ca97beb8eb8c",
+              "width": 512,
+              "height": 512
+            },
+            {
+              "file": "3090_sd15_base_00002_.png",
+              "size": 341645,
+              "sha256_16": "58a65adebd06fae1",
+              "width": 512,
+              "height": 512
+            }
+          ],
+          "t_cold_s": 10.55,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sd15",
+            "width": 512,
+            "height": 512,
+            "steps": 20,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 35.2
+        },
+        "sd15_fast": {
+          "cell": "3090@cn-wlcb-01/sd15_fast",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 3090 : cudaMallocAsync",
+          "vram_total_mib": 24125,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/3090_sd15_fast_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 1.51,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/3090_sd15_fast_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 3204,
+            "util_peak_pct": 77,
+            "samples": 3
+          },
+          "artifacts": [
+            {
+              "file": "3090_sd15_fast_00001_.png",
+              "size": 341669,
+              "sha256_16": "2edec8fffc5a13b1",
+              "width": 512,
+              "height": 512
+            },
+            {
+              "file": "3090_sd15_fast_00002_.png",
+              "size": 322321,
+              "sha256_16": "a802297ccf9322d7",
+              "width": 512,
+              "height": 512
+            }
+          ],
+          "t_cold_s": 1.51,
+          "t_warm_s": 1.51,
+          "spec": {
+            "model": "sd15",
+            "width": 512,
+            "height": 512,
+            "steps": 8,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 3.9
+        },
+        "sd15_big": {
+          "cell": "3090@cn-wlcb-01/sd15_big",
+          "model": "sd15",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 3090 : cudaMallocAsync",
+          "vram_total_mib": 24125,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 3.01,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/3090_sd15_big_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 3.01,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/3090_sd15_big_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 4036,
+            "util_peak_pct": 100,
+            "samples": 6
+          },
+          "artifacts": [
+            {
+              "file": "3090_sd15_big_00001_.png",
+              "size": 890483,
+              "sha256_16": "ee1bc7c0fc0eeb5e",
+              "width": 768,
+              "height": 768
+            },
+            {
+              "file": "3090_sd15_big_00002_.png",
+              "size": 940862,
+              "sha256_16": "dd3bbca2c53aea49",
+              "width": 768,
+              "height": 768
+            }
+          ],
+          "t_cold_s": 3.01,
+          "t_warm_s": 3.01,
+          "spec": {
+            "model": "sd15",
+            "width": 768,
+            "height": 768,
+            "steps": 20,
+            "cfg": 7.0,
+            "sampler": "euler",
+            "scheduler": "normal"
+          },
+          "wall_s": 7.0
+        },
+        "sdxl_base": {
+          "cell": "3090@cn-wlcb-01/sdxl_base",
+          "model": "sdxl",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 3090 : cudaMallocAsync",
+          "vram_total_mib": 24125,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 16.94,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/3090_sdxl_base_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 6.01,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/3090_sdxl_base_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 9892,
+            "util_peak_pct": 100,
+            "samples": 23
+          },
+          "artifacts": [
+            {
+              "file": "3090_sdxl_base_00001_.png",
+              "size": 1432780,
+              "sha256_16": "5b5f7122627203fe",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "3090_sdxl_base_00002_.png",
+              "size": 1568891,
+              "sha256_16": "7de180a0b4d5db04",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 16.94,
+          "t_warm_s": 6.01,
+          "spec": {
+            "model": "sdxl",
+            "width": 1024,
+            "height": 1024,
+            "steps": 20,
+            "cfg": 5.0,
+            "sampler": "dpmpp_2m",
+            "scheduler": "karras"
+          },
+          "wall_s": 24.5
+        },
+        "sdxl_fast": {
+          "cell": "3090@cn-wlcb-01/sdxl_fast",
+          "model": "sdxl",
+          "config": null,
+          "status": "ok",
+          "comfyui_version": "0.3.40",
+          "torch": "2.4.0+cu124",
+          "device": "cuda:0 NVIDIA GeForce RTX 3090 : cudaMallocAsync",
+          "vram_total_mib": 24125,
+          "nodes": 543,
+          "t_ready_s": 0.0,
+          "runs": [
+            {
+              "seconds": 3.01,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/3090_sdxl_fast_00001_.png"
+              ],
+              "error": null,
+              "run": 0
+            },
+            {
+              "seconds": 3.01,
+              "status": "success",
+              "completed": true,
+              "files": [
+                "/root/ComfyUI/output/3090_sdxl_fast_00002_.png"
+              ],
+              "error": null,
+              "run": 1
+            }
+          ],
+          "vram": {
+            "vram_peak_mib": 9892,
+            "util_peak_pct": 100,
+            "samples": 6
+          },
+          "artifacts": [
+            {
+              "file": "3090_sdxl_fast_00001_.png",
+              "size": 1193422,
+              "sha256_16": "8e18ab0a8b556cd4",
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "file": "3090_sdxl_fast_00002_.png",
+              "size": 1455455,
+              "sha256_16": "e0b05812f1670608",
+              "width": 1024,
+              "height": 1024
+            }
+          ],
+          "t_cold_s": 3.01,
+          "t_warm_s": 3.01,
+          "spec": {
+            "model": "sdxl",
+            "width": 1024,
+            "height": 1024,
+            "steps": 8,
+            "cfg": 5.0,
+            "sampler": "dpmpp_2m",
+            "scheduler": "karras"
+          },
+          "wall_s": 7.4
+        }
+      },
+      "uhost": "uhost-1wxxhgbxtk1q",
+      "t_to_running_s": 68.4,
+      "env": {
+        "comfy_dir": "/root/ComfyUI",
+        "python": "/root/miniconda3/envs/comfyui/bin/python3.10",
+        "cmdline": "python main.py --listen 0.0.0.0 --port 8188"
+      },
+      "status": "ok",
+      "ended": 1793007269,
+      "wall_min": 2.8,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.055,
+      "attempts": 2
+    },
+    "4090_48G@cn-wlcb-01": {
+      "id": "4090_48G@cn-wlcb-01",
+      "gpu": "4090_48G",
+      "zone": "cn-wlcb-01",
+      "region": "cn-wlcb",
+      "image": "ComfyUI_v0.3.40",
+      "started": 1793008941,
+      "workloads": {
+        "sd15_base": {
+          "status": "failed",
+          "reason": "mport: command not found\n/root/lab/bench_remote.py: line 22: import: command not found\n/root/lab/bench_remote.py: line 24: API: command not found\n/root/lab/bench_remote.py: line 28: syntax error near unexpected token `('\n/root/lab/bench_remote.py: line 28: `def jget(path: str, timeout: float = 10):'",
+          "wall_s": 17.0
+        },
+        "sd15_fast": {
+          "status": "failed",
+          "reason": "mport: command not found\n/root/lab/bench_remote.py: line 22: import: command not found\n/root/lab/bench_remote.py: line 24: API: command not found\n/root/lab/bench_remote.py: line 28: syntax error near unexpected token `('\n/root/lab/bench_remote.py: line 28: `def jget(path: str, timeout: float = 10):'",
+          "wall_s": 17.1
+        },
+        "sd15_big": {
+          "status": "failed",
+          "reason": "mport: command not found\n/root/lab/bench_remote.py: line 22: import: command not found\n/root/lab/bench_remote.py: line 24: API: command not found\n/root/lab/bench_remote.py: line 28: syntax error near unexpected token `('\n/root/lab/bench_remote.py: line 28: `def jget(path: str, timeout: float = 10):'",
+          "wall_s": 17.1
+        },
+        "sdxl_base": {
+          "status": "failed",
+          "reason": "mport: command not found\n/root/lab/bench_remote.py: line 22: import: command not found\n/root/lab/bench_remote.py: line 24: API: command not found\n/root/lab/bench_remote.py: line 28: syntax error near unexpected token `('\n/root/lab/bench_remote.py: line 28: `def jget(path: str, timeout: float = 10):'",
+          "wall_s": 17.1
+        },
+        "sdxl_fast": {
+          "status": "failed",
+          "reason": "mport: command not found\n/root/lab/bench_remote.py: line 22: import: command not found\n/root/lab/bench_remote.py: line 24: API: command not found\n/root/lab/bench_remote.py: line 28: syntax error near unexpected token `('\n/root/lab/bench_remote.py: line 28: `def jget(path: str, timeout: float = 10):'",
+          "wall_s": 17.0
+        },
+        "flux_base": {
+          "status": "failed",
+          "reason": "mport: command not found\n/root/lab/bench_remote.py: line 22: import: command not found\n/root/lab/bench_remote.py: line 24: API: command not found\n/root/lab/bench_remote.py: line 28: syntax error near unexpected token `('\n/root/lab/bench_remote.py: line 28: `def jget(path: str, timeout: float = 10):'",
+          "wall_s": 17.2
+        },
+        "flux_fast": {
+          "status": "failed",
+          "reason": "mport: command not found\n/root/lab/bench_remote.py: line 22: import: command not found\n/root/lab/bench_remote.py: line 24: API: command not found\n/root/lab/bench_remote.py: line 28: syntax error near unexpected token `('\n/root/lab/bench_remote.py: line 28: `def jget(path: str, timeout: float = 10):'",
+          "wall_s": 17.1
+        }
+      },
+      "uhost": "uhost-1wxykufqln3g",
+      "t_to_running_s": 68.5,
+      "env": {
+        "comfy_dir": "/root",
+        "python": "/usr/bin/bash",
+        "cmdline": "bash -c pid=$(pgrep -f 'main.py' | head -1); echo PID=$pid; echo CWD=$(readlink /proc/$pid/cwd 2>/dev/null); echo EXE=$(readlink /proc/$pid/exe 2>/dev/null); echo CMD=$(tr '\\0' ' ' < /proc/$pid/cmdline 2>/dev/null)"
+      },
+      "status": "ok",
+      "ended": 1793009280,
+      "wall_min": 5.6,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.357,
+      "attempts": 1
+    },
+    "5090@cn-wlcb-01": {
+      "id": "5090@cn-wlcb-01",
+      "gpu": "5090",
+      "zone": "cn-wlcb-01",
+      "region": "cn-wlcb",
+      "image": "ComfyUI基础镜像纯净版0.36.0-5090",
+      "started": 1793030410,
+      "workloads": {},
+      "status": "failed",
+      "reason": "[ea840126-d44a-41eb-8836-7fd471c3302c] CreateCompShareInstance - 8433: Service error, please retry or contact technical support",
+      "ended": 1793030422,
+      "wall_min": 0.2,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.014,
+      "attempts": 2
+    }
+  }
+}

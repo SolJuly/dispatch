@@ -1,0 +1,50 @@
+[
+  {
+    "case": "A",
+    "title": "前台裸跑（无 nohup / 无重定向）",
+    "started": "23:31:35",
+    "lines_at_disconnect": 0,
+    "lines_25s_later": 0,
+    "kept_running": false,
+    "grew_by": 0,
+    "ps": "pids=0",
+    "ssh_was_alive": false,
+    "rc": 0
+  },
+  {
+    "case": "B",
+    "title": "nohup + &",
+    "started": "23:32:05",
+    "lines_at_disconnect": 0,
+    "lines_25s_later": 0,
+    "kept_running": false,
+    "grew_by": 0,
+    "ps": "pids=0",
+    "ssh_was_alive": false,
+    "rc": 0
+  },
+  {
+    "case": "C",
+    "title": "setsid nohup + &（csctl --detach 写法）",
+    "started": "23:32:36",
+    "lines_at_disconnect": 0,
+    "lines_25s_later": 0,
+    "kept_running": false,
+    "grew_by": 0,
+    "ps": "pids=0",
+    "ssh_was_alive": false,
+    "rc": 0
+  },
+  {
+    "case": "D",
+    "title": "ssh -tt 强制 pty + 前台裸跑",
+    "started": "23:33:06",
+    "lines_at_disconnect": 0,
+    "lines_25s_later": 0,
+    "kept_running": false,
+    "grew_by": 0,
+    "ps": "pids=0",
+    "ssh_was_alive": false,
+    "rc": 0
+  }
+]

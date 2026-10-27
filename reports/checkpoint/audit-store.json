@@ -1,0 +1,375 @@
+{
+  "instance": "uhost-1wya3h0lcmsv",
+  "name": "audit-store",
+  "state": "Running",
+  "collected": {
+    "GPU_NAME": "Failed to initialize NVML: Unknown Error",
+    "GPU_DRIVER": "Failed to initialize NVML: Unknown Error",
+    "GPU_MEM": "Failed to initialize NVML: Unknown Error",
+    "GPU_UTIL": "Failed to initialize NVML: Unknown Error",
+    "CUDA": "-",
+    "PYVER": "3.10.15",
+    "TORCH": "2.4.0+cu124",
+    "TORCH_CUDA": "False",
+    "AV_VER": "14.4.0",
+    "CV2_VER": "4.10.0",
+    "PIL_VER": "10.2.0",
+    "FFMPEG": "no",
+    "RSYNC": "no",
+    "COMFY_VER": "",
+    "COMFY_PROC": "87",
+    "COMFY_PPID": "35",
+    "PORT8188": "up",
+    "SHARED_MNT": "yes",
+    "SHARED_CAT": "57",
+    "SHARED_CKPT": "44",
+    "SHARED_UNET": "2",
+    "SHARED_VAE": "20",
+    "SDXL_FILE": "/model/comfyui/models/checkpoints/juggernautXL_juggernautX.safetensors",
+    "SVD_FILE": "",
+    "LOCAL_CKPT": "20",
+    "OUTPUTS": "1",
+    "OUTPUT_DIR": "yes",
+    "INPUT_DIR": "yes",
+    "WF_DIR": "yes",
+    "LOG_FILE": "yes",
+    "LOG_SIZE": "14141",
+    "LOG_PROMPT": "0",
+    "LOG_ERROR": "3",
+    "LOG_MTIME": "1793029216",
+    "DISK_PCT": "1",
+    "DISK_FREE": "76G",
+    "DATA_MNT": "/cloud/cloud-ssd1",
+    "DATA_PCT": "1",
+    "UPTIME_S": "208",
+    "NOW": "2026-10-26 23:40:53",
+    "_rc": 0
+  },
+  "checks": [
+    {
+      "cp": "CP0",
+      "name": "GPU 可见",
+      "ok": true,
+      "expect": "nvidia-smi 返回卡名",
+      "actual": "Failed to initialize NVML: Unknown Error",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP0",
+      "name": "驱动版本",
+      "ok": false,
+      "expect": "有版本号",
+      "actual": "Failed to initialize NVML: Unknown Error",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP0",
+      "name": "CUDA 版本",
+      "ok": false,
+      "expect": "有版本号",
+      "actual": "-",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP0",
+      "name": "ComfyUI 端口 8188",
+      "ok": true,
+      "expect": "up",
+      "actual": "up",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP0",
+      "name": "共享库 /model 已挂载",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP1",
+      "name": "torch 可用",
+      "ok": true,
+      "expect": "有版本",
+      "actual": "2.4.0+cu124",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP1",
+      "name": "CUDA 在 torch 里可用",
+      "ok": false,
+      "expect": "True",
+      "actual": "False",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP1",
+      "name": "ComfyUI 版本",
+      "ok": false,
+      "expect": "有版本",
+      "actual": "",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP1",
+      "name": "PyAV（视频编码）",
+      "ok": true,
+      "expect": "有版本",
+      "actual": "14.4.0",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP1",
+      "name": "PIL（图像）",
+      "ok": true,
+      "expect": "有版本",
+      "actual": "10.2.0",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP1",
+      "name": "ffmpeg",
+      "ok": false,
+      "expect": "yes（缺失则用 PyAV 编码）",
+      "actual": "no",
+      "note": "镜像已知不带",
+      "soft": true
+    },
+    {
+      "cp": "CP1",
+      "name": "rsync",
+      "ok": false,
+      "expect": "yes（缺失则用 tar 流）",
+      "actual": "no",
+      "note": "镜像已知不带",
+      "soft": true
+    },
+    {
+      "cp": "CP2",
+      "name": "共享库分类可见",
+      "ok": true,
+      "expect": ">0 个分类",
+      "actual": "57",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP2",
+      "name": "SDXL checkpoint 存在",
+      "ok": true,
+      "expect": "juggernaut* 命中一个",
+      "actual": "/model/comfyui/models/checkpoints/juggernautXL_juggernautX.safetensors",
+      "note": "",
+      "soft": true
+    },
+    {
+      "cp": "CP2",
+      "name": "SVD-XT 模型存在",
+      "ok": false,
+      "expect": "svd_xt* 命中一个",
+      "actual": "(未命中)",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP2",
+      "name": "diffusion_models 非空",
+      "ok": true,
+      "expect": ">0",
+      "actual": "2",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP3",
+      "name": "输入目录存在",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP3",
+      "name": "工作流目录存在",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP4",
+      "name": "ComfyUI 进程存在",
+      "ok": true,
+      "expect": "有 PID",
+      "actual": "87",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP4",
+      "name": "ComfyUI 的 PPID=1（脱离 SSH）",
+      "ok": false,
+      "expect": "1",
+      "actual": "35",
+      "note": "PPID≠1 说明挂在你 SSH 会话上，断开就死",
+      "soft": false
+    },
+    {
+      "cp": "CP4",
+      "name": "日志无异常栈",
+      "ok": false,
+      "expect": "0 次 Traceback/OOM",
+      "actual": "3",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP4",
+      "name": "日志有执行记录",
+      "ok": false,
+      "expect": "≥1 次 Prompt executed",
+      "actual": "0",
+      "note": "",
+      "soft": true
+    },
+    {
+      "cp": "CP4",
+      "name": "GPU 显存占用",
+      "ok": true,
+      "expect": "记录值",
+      "actual": "-",
+      "note": "",
+      "soft": true
+    },
+    {
+      "cp": "CP5",
+      "name": "输出目录存在",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP5",
+      "name": "输出目录非空",
+      "ok": true,
+      "expect": ">0 个文件",
+      "actual": "1",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP6",
+      "name": "系统盘余量",
+      "ok": true,
+      "expect": "<85%",
+      "actual": "1%（剩 76G）",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP6",
+      "name": "日志文件存在",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP6",
+      "name": "数据盘挂载",
+      "ok": true,
+      "expect": "有挂载点",
+      "actual": "/cloud/cloud-ssd1",
+      "note": "20G 数据盘，随实例删除",
+      "soft": true
+    },
+    {
+      "cp": "CP7",
+      "name": "采集时间",
+      "ok": true,
+      "expect": "有时间戳",
+      "actual": "2026-10-26 23:40:53",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP7",
+      "name": "系统已运行秒数",
+      "ok": true,
+      "expect": "≥0",
+      "actual": "208",
+      "note": "",
+      "soft": false
+    }
+  ],
+  "summary": {
+    "by_cp": {
+      "CP0": {
+        "total": 5,
+        "pass": 3,
+        "fail": 2,
+        "soft_fail": 0
+      },
+      "CP1": {
+        "total": 7,
+        "pass": 3,
+        "fail": 2,
+        "soft_fail": 2
+      },
+      "CP2": {
+        "total": 4,
+        "pass": 3,
+        "fail": 1,
+        "soft_fail": 0
+      },
+      "CP3": {
+        "total": 2,
+        "pass": 2,
+        "fail": 0,
+        "soft_fail": 0
+      },
+      "CP4": {
+        "total": 5,
+        "pass": 2,
+        "fail": 2,
+        "soft_fail": 1
+      },
+      "CP5": {
+        "total": 2,
+        "pass": 2,
+        "fail": 0,
+        "soft_fail": 0
+      },
+      "CP6": {
+        "total": 3,
+        "pass": 3,
+        "fail": 0,
+        "soft_fail": 0
+      },
+      "CP7": {
+        "total": 2,
+        "pass": 2,
+        "fail": 0,
+        "soft_fail": 0
+      }
+    },
+    "hard_fail": 7,
+    "total": 30,
+    "pass": 20
+  }
+}

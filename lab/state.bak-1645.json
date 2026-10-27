@@ -1,0 +1,262 @@
+{
+  "groups": {
+    "4090@cn-wlcb-01": {
+      "id": "4090@cn-wlcb-01",
+      "gpu": "4090",
+      "zone": "cn-wlcb-01",
+      "region": "cn-wlcb",
+      "image": "ComfyUI基础镜像纯净版0.36.0",
+      "started": 1793004173,
+      "workloads": {
+        "sd15_base": {
+          "status": "skipped",
+          "reason": "STOP"
+        },
+        "sd15_fast": {
+          "status": "skipped",
+          "reason": "STOP"
+        },
+        "sd15_big": {
+          "status": "skipped",
+          "reason": "STOP"
+        },
+        "sdxl_base": {
+          "status": "skipped",
+          "reason": "STOP"
+        },
+        "sdxl_fast": {
+          "status": "skipped",
+          "reason": "STOP"
+        },
+        "flux_base": {
+          "status": "skipped",
+          "reason": "STOP"
+        },
+        "flux_fast": {
+          "status": "skipped",
+          "reason": "STOP"
+        },
+        "wan_i2v": {
+          "status": "skipped",
+          "reason": "STOP"
+        }
+      },
+      "uhost": "uhost-1wxvqr7muj3g",
+      "t_to_running_s": 71.9,
+      "env": {
+        "comfy_dir": "/root/ComfyUI",
+        "python": "/root/miniconda3/bin/python3.10",
+        "cmdline": "python -u main.py --listen 0.0.0.0 --port 8188 --enable-manager"
+      },
+      "status": "ok",
+      "ended": 1793004250,
+      "wall_min": 1.3,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.046,
+      "attempts": 1
+    },
+    "4090@cn-bj2-03": {
+      "id": "4090@cn-bj2-03",
+      "gpu": "4090",
+      "zone": "cn-bj2-03",
+      "region": "cn-bj2",
+      "image": "ComfyUI基础镜像纯净版0.36.0",
+      "started": 1793002750,
+      "workloads": {},
+      "status": "retry",
+      "reason": "[ddcaf080-7fe6-4bed-a9d4-25a5323c5a35] CreateCompShareInstance - 226604: This GPU type is currently out of resources. Please refresh or try again later.",
+      "ended": 1793002755,
+      "wall_min": 0.1,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.003,
+      "attempts": 0
+    },
+    "V100S@cn-wlcb-01": {
+      "id": "V100S@cn-wlcb-01",
+      "gpu": "V100S",
+      "zone": "cn-wlcb-01",
+      "region": "cn-wlcb",
+      "image": "ComfyUI_v0.3.40",
+      "started": 1792995780,
+      "workloads": {},
+      "uhost": "uhost-1wxqr1muayam",
+      "t_to_running_s": 77.9,
+      "env": {
+        "comfy_dir": "/root/ComfyUI",
+        "python": "/root/miniconda3/envs/comfyui/bin/python3.10",
+        "cmdline": "python main.py --listen 0.0.0.0 --port 8188"
+      },
+      "status": "failed",
+      "reason": "RuntimeError: 上传 bench 脚本失败",
+      "ended": 1792995877,
+      "wall_min": 1.6,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.038,
+      "attempts": 2
+    },
+    "4090@cn-sh2-02": {
+      "id": "4090@cn-sh2-02",
+      "gpu": "4090",
+      "zone": "cn-sh2-02",
+      "region": "cn-sh2",
+      "image": "ComfyUI基础镜像纯净版0.36.0",
+      "started": 1793000060,
+      "workloads": {
+        "sd15_base": {
+          "status": "failed",
+          "reason": "ERR:Warning: Permanently added '[106.75.210.38]:23' (ED25519) to the list of known hosts.\nConnection to 106.75.210.38 closed by remote host.",
+          "wall_s": 5.1
+        },
+        "sd15_fast": {
+          "cell": "4090@cn-sh2-02/sd15_fast",
+          "model": "sd15",
+          "config": null,
+          "status": "skipped",
+          "comfyui_version": "0.36.0",
+          "torch": "2.10.0+cu130",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 993,
+          "t_ready_s": 21.0,
+          "reason": "checkpoint 不可见: ghostmix_v12.safetensors",
+          "wall_s": 23.3
+        },
+        "sd15_big": {
+          "cell": "4090@cn-sh2-02/sd15_big",
+          "model": "sd15",
+          "config": null,
+          "status": "skipped",
+          "comfyui_version": "0.36.0",
+          "torch": "2.10.0+cu130",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 993,
+          "t_ready_s": 0.0,
+          "reason": "checkpoint 不可见: ghostmix_v12.safetensors",
+          "wall_s": 1.0
+        },
+        "sdxl_base": {
+          "cell": "4090@cn-sh2-02/sdxl_base",
+          "model": "sdxl",
+          "config": null,
+          "status": "skipped",
+          "comfyui_version": "0.36.0",
+          "torch": "2.10.0+cu130",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 993,
+          "t_ready_s": 0.0,
+          "reason": "checkpoint 不可见: juggernautXL_juggernautX.safetensors",
+          "wall_s": 1.0
+        },
+        "sdxl_fast": {
+          "cell": "4090@cn-sh2-02/sdxl_fast",
+          "model": "sdxl",
+          "config": null,
+          "status": "skipped",
+          "comfyui_version": "0.36.0",
+          "torch": "2.10.0+cu130",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 993,
+          "t_ready_s": 0.0,
+          "reason": "checkpoint 不可见: juggernautXL_juggernautX.safetensors",
+          "wall_s": 0.9
+        },
+        "flux_base": {
+          "cell": "4090@cn-sh2-02/flux_base",
+          "model": "flux",
+          "config": null,
+          "status": "failed",
+          "comfyui_version": "0.36.0",
+          "torch": "2.10.0+cu130",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 993,
+          "t_ready_s": 0.0,
+          "reason": "TypeError: 'bool' object is not callable",
+          "wall_s": 74.0
+        },
+        "flux_fast": {
+          "cell": "4090@cn-sh2-02/flux_fast",
+          "model": "flux",
+          "config": null,
+          "status": "failed",
+          "comfyui_version": "0.36.0",
+          "torch": "2.10.0+cu130",
+          "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+          "vram_total_mib": 24083,
+          "nodes": 993,
+          "t_ready_s": 0.0,
+          "reason": "TypeError: 'bool' object is not callable",
+          "wall_s": 13.5
+        },
+        "wan_i2v": {
+          "status": "skipped",
+          "reason": "没有起始图"
+        }
+      },
+      "uhost": "uhost-1wxtaqhdwonq",
+      "t_to_running_s": 70.9,
+      "env": {
+        "comfy_dir": "/root/ComfyUI",
+        "python": "/root/miniconda3/bin/python3.10",
+        "cmdline": "python -u main.py --listen 0.0.0.0 --port 8188 --enable-manager"
+      },
+      "status": "ok",
+      "ended": 1793000269,
+      "wall_min": 3.5,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.124,
+      "attempts": 2
+    },
+    "4090_48G@cn-wlcb-01": {
+      "id": "4090_48G@cn-wlcb-01",
+      "gpu": "4090_48G",
+      "zone": "cn-wlcb-01",
+      "region": "cn-wlcb",
+      "image": "ComfyUI基础镜像纯净版0.36.0",
+      "started": 1792998762,
+      "workloads": {},
+      "status": "failed",
+      "reason": "[578cb756-9c50-4300-a076-c9d1b0955f5c] CreateCompShareInstance - 8333: cpu memory ratio not in 2:1 - 1:12",
+      "ended": 1792998764,
+      "wall_min": 0.0,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.002,
+      "attempts": 2
+    },
+    "5090@cn-wlcb-01": {
+      "id": "5090@cn-wlcb-01",
+      "gpu": "5090",
+      "zone": "cn-wlcb-01",
+      "region": "cn-wlcb",
+      "image": "ComfyUI基础镜像纯净版0.36.0-5090",
+      "started": 1792999875,
+      "workloads": {},
+      "status": "failed",
+      "reason": "[80ab7b97-5031-4040-8b9e-e0d139c2462e] CreateCompShareInstance - 8333: cpu memory ratio not in 2:1 - 1:12",
+      "ended": 1792999878,
+      "wall_min": 0.0,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.003,
+      "attempts": 2
+    },
+    "3090@cn-wlcb-01": {
+      "id": "3090@cn-wlcb-01",
+      "gpu": "3090",
+      "zone": "cn-wlcb-01",
+      "region": "cn-wlcb",
+      "image": "ComfyUI_v0.3.40",
+      "started": 1793002658,
+      "workloads": {},
+      "status": "retry",
+      "reason": "[5bb72f8b-90af-40c0-810e-03fc2c275a31] CreateCompShareInstance - 226604: This GPU type is currently out of resources. Please refresh or try again later.",
+      "ended": 1793002661,
+      "wall_min": 0.0,
+      "cost_actual": 0.0,
+      "cost_estimate": 0.001,
+      "attempts": 0
+    }
+  }
+}

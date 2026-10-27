@@ -1,0 +1,132 @@
+{
+  "ts": "2026-10-27 13:20:03",
+  "worst": "high",
+  "summary": {
+    "high": 1,
+    "medium": 1,
+    "info": 1,
+    "ok": 12
+  },
+  "checks": [
+    {
+      "id": "R08",
+      "name": "常驻服务掉线",
+      "level": "high",
+      "value": "cs-lab",
+      "detail": "常驻服务不在跑，页面/基准会停更",
+      "action": "systemctl restart cs-lab"
+    },
+    {
+      "id": "R12",
+      "name": "基准组失败残留",
+      "level": "medium",
+      "value": "8/41 组",
+      "detail": "4090@cn-bj2-03/flux_fast: ERR:ssh: connect to host cpod-1wxwqrk1sy；4090_48G@cn-wlcb-01/sd15_base: mport: command not found\n/root/lab/bench；4090_48G@cn-wlcb-01/sd15_fast: mport: command not found\n/root/lab/bench",
+      "action": "看 reports/lab/ 下的失败明细"
+    },
+    {
+      "id": "R15",
+      "name": "销毁前漏归档",
+      "level": "info",
+      "value": "15 台",
+      "detail": "15 台实例销毁前账本里没有 pull 记录（pull 自本次起才记账，历史无法追溯）",
+      "action": "销毁前先 `csctl pull <id> /root/ComfyUI/output`，或确认产物无用"
+    },
+    {
+      "id": "R01",
+      "name": "余额不足",
+      "level": "ok",
+      "value": "¥50.74",
+      "detail": "余额充足",
+      "action": ""
+    },
+    {
+      "id": "R02",
+      "name": "运行中实例无定时关机",
+      "level": "ok",
+      "value": "0 台",
+      "detail": "运行中的都有定时关机或没有实例",
+      "action": ""
+    },
+    {
+      "id": "R03",
+      "name": "孤儿 lab 实例",
+      "level": "ok",
+      "value": "0 台",
+      "detail": "没有 lab-* 实例",
+      "action": ""
+    },
+    {
+      "id": "R04",
+      "name": "当日花费超预算",
+      "level": "ok",
+      "value": "¥0.00",
+      "detail": "今日花费在预算内",
+      "action": ""
+    },
+    {
+      "id": "R05",
+      "name": "单价越过上限",
+      "level": "ok",
+      "value": "—",
+      "detail": "在跑实例单价都 ≤ ¥3/h",
+      "action": ""
+    },
+    {
+      "id": "R06",
+      "name": "主力卡无货",
+      "level": "ok",
+      "value": "4090 26 台",
+      "detail": "有货",
+      "action": ""
+    },
+    {
+      "id": "R07",
+      "name": "Running 但 SSH 不通",
+      "level": "ok",
+      "value": "—",
+      "detail": "没有运行中的实例",
+      "action": ""
+    },
+    {
+      "id": "R09",
+      "name": "定时任务缺失",
+      "level": "ok",
+      "value": "3/3",
+      "detail": "watch / arch / cost 定时任务齐全",
+      "action": ""
+    },
+    {
+      "id": "R10",
+      "name": "凭证权限过宽",
+      "level": "ok",
+      "value": "0o600",
+      "detail": "凭证权限 600",
+      "action": ""
+    },
+    {
+      "id": "R11",
+      "name": "控制机磁盘将满",
+      "level": "ok",
+      "value": "48%",
+      "detail": "剩 18.8GB",
+      "action": ""
+    },
+    {
+      "id": "R13",
+      "name": "视频黑帧",
+      "level": "ok",
+      "value": "3 条",
+      "detail": "最近视频首帧非黑",
+      "action": ""
+    },
+    {
+      "id": "R14",
+      "name": "模型库不可见",
+      "level": "ok",
+      "value": "—",
+      "detail": "本机不挂 UPFS（正常，实例侧才挂）",
+      "action": ""
+    }
+  ]
+}

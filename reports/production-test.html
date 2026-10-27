@@ -1,0 +1,38 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>出图 / 出片 测试记录</title>
+<style>body{margin:0;background:#0b0e12;color:#e8ebf2;font:16px/1.6 -apple-system,"PingFang SC",sans-serif;padding:14px}
+h1{font-size:20px;margin:4px 0 6px}h2{font-size:17px;margin:24px 0 8px;border-top:1px solid #222833;padding-top:12px}
+a{color:#6cb6ff}.meta{color:#8b93a7;font-size:13px;margin:6px 0 10px}
+img,video{width:100%;max-width:900px;border-radius:12px;border:1px solid #222833;background:#000;display:block;margin:8px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:1000px}
+.grid img{max-width:100%}
+code{background:#1b2230;padding:1px 5px;border-radius:5px}
+b{color:#ffd08a}</style></head><body>
+<h1>出图 ×2 / 出片 ×2 测试记录</h1>
+<div class="meta">2026-10-26 21:48–22:11 · 图片实例与视频实例分开 · 全部实例已销毁</div>
+
+<h2>① 出图：同 seed 连出两次（V100S · SDXL juggernaut · 1280×720 · 20 步 · seed 20261026）</h2>
+<div class="meta">两次均在 ComfyUI 重启后冷跑（避免节点缓存）：第 1 次 <b>12.13s</b>，第 2 次 <b>11.28s</b>；两次像素 md5 完全一致 <code>fe8e85d8…</code>（种子可复现）</div>
+<div class="grid">
+  <div><img src="image-test/dog_run1_dog_sdxl_r1_20261026_00002_.png" alt="run1"><div class="meta">第 1 次 · 12.13s</div></div>
+  <div><img src="image-test/dog_run2_dog_sdxl_r2_20261026_00002_.png" alt="run2"><div class="meta">第 2 次 · 11.28s</div></div>
+</div>
+
+<h2>② 出片：同一实例、同一模型同一参数，连出两段 5s（4090 · SVD-XT 链式 i2v · 832×480 · 97 帧 @19.4fps）</h2>
+<div class="meta">第 1 段 <b>124.2s</b>（39.1 + 27.5 + 27.1 + 27.6 四小段）· 第 2 段 <b>111.4s</b>（27.3 + 27.4 + 27.2 + 27.1）
+· 两段之间未销毁实例 · 每段时长 <b>5.000s</b></div>
+<video src="video-test/svd/shot1.mp4" controls loop muted playsinline poster="video-test/start_shot1.png"></video>
+<div class="meta">shot1 · 客厅沙发 · 0.95MB</div>
+<video src="video-test/svd/shot2.mp4" controls loop muted playsinline poster="video-test/start_shot2.png"></video>
+<div class="meta">shot2 · 厨房冰箱 · 0.63MB</div>
+
+<h2>③ 起因图（两段的起始帧，SDXL 生成）</h2>
+<div class="grid">
+  <div><img src="video-test/start_shot1.png" alt="shot1 still"><div class="meta">shot1 起始帧</div></div>
+  <div><img src="video-test/start_shot2.png" alt="shot2 still"><div class="meta">shot2 起始帧</div></div>
+</div>
+
+<h2>④ 备注：Wan2.1 i2v 试过但输出全黑</h2>
+<div class="meta">共享库里有 Wan2.1 i2v fp8 权重，缺 VAE 已补（243MB）。但 4 步 / 20 步、cfg 1 / 5、euler / uni_pc、加 <code>ModelSamplingSD3 shift=8</code> 全部输出纯黑帧（mean 0.0）。
+判断是 ComfyUI 0.3.40 与这批 fp8 `scaled_fp8_e4m3` 权重 + int8 umt5 文本编码器不兼容，需换更新的镜像（0.36.x）再验。本次交付改用已验证可用的 SVD-XT。</div>
+</body></html>

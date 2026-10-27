@@ -1,0 +1,705 @@
+{
+  "instance": "uhost-1wyd4os3p63w",
+  "name": "phase0-cp-adaptive",
+  "state": "Running",
+  "collected": {
+    "GPU_NAME": "NVIDIA GeForce RTX 4090",
+    "GPU_DRIVER": "595.80",
+    "GPU_MEM": "24564 MiB",
+    "GPU_UTIL": "0 %, 396 MiB",
+    "CUDA": "13.2",
+    "PY_PATH": "/root/miniconda3/bin/python3.10",
+    "LOG_PATH": "/root/ComfyUI/comfy.log",
+    "COMFY_PID": "99",
+    "PYVER": "3.10.15",
+    "TORCH": "2.10.0+cu130",
+    "TORCH_CUDA": "True",
+    "AV_VER": "17.1.0",
+    "CV2_VER": "4.12.0",
+    "PIL_VER": "11.0.0",
+    "FFMPEG": "no",
+    "RSYNC": "no",
+    "COMFY_VER": "0.36.0",
+    "COMFY_PROC": "99",
+    "COMFY_PPID": "1",
+    "PORT8188": "up",
+    "NVML_OK": "yes",
+    "COMFY_DEVICE": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+    "COMFY_ROOT_PPID": "1",
+    "SHARED_MNT": "yes",
+    "SHARED_CAT": "57",
+    "SHARED_CKPT": "44",
+    "SHARED_UNET": "2",
+    "SHARED_VAE": "20",
+    "SDXL_FILE": "/model/comfyui/models/checkpoints/juggernautXL_juggernautX.safetensors",
+    "SVD_FILE": "/model/comfyui/models/checkpoints/svd_xt.safetensors",
+    "LOCAL_CKPT": "0",
+    "OUTPUTS": "2",
+    "OUTPUT_DIR": "yes",
+    "INPUT_DIR": "yes",
+    "WF_DIR": "yes",
+    "LOG_FILE": "yes",
+    "LOG_SIZE": "10915",
+    "LOG_PROMPT": "0",
+    "LOG_STARTED": "yes",
+    "LOG_ERROR": "2",
+    "LOG_MTIME": "1793033529",
+    "DISK_PCT": "1",
+    "DISK_FREE": "76G",
+    "DATA_MNT": "",
+    "DATA_PCT": "",
+    "UPTIME_S": "312",
+    "NOW": "2026-10-27 00:55:50",
+    "_rc": 0
+  },
+  "paths": [
+    {
+      "key": "root",
+      "path": "/root",
+      "media": "overlay",
+      "desc": "脚本、配置",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "保留（镜像内）",
+      "terminate": "丢失",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "保留（镜像内）",
+      "terminate保留": "丢失"
+    },
+    {
+      "key": "comfy_output",
+      "path": "/root/ComfyUI/output",
+      "media": "overlay",
+      "desc": "出图/出片产物",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "保留",
+      "terminate": "丢失",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "保留",
+      "terminate保留": "丢失"
+    },
+    {
+      "key": "comfy_models",
+      "path": "/root/ComfyUI/models",
+      "media": "overlay",
+      "desc": "本地权重",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "保留",
+      "terminate": "丢失",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "保留",
+      "terminate保留": "丢失"
+    },
+    {
+      "key": "custom_nodes",
+      "path": "/root/ComfyUI/custom_nodes",
+      "media": "overlay",
+      "desc": "自定义节点",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "保留",
+      "terminate": "丢失",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "保留",
+      "terminate保留": "丢失"
+    },
+    {
+      "key": "workflows",
+      "path": "/root/ComfyUI/user/default/workflows",
+      "media": "overlay",
+      "desc": "工作流 JSON",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "保留",
+      "terminate": "丢失",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "保留",
+      "terminate保留": "丢失"
+    },
+    {
+      "key": "conda_env",
+      "path": "/root/miniconda3",
+      "media": "overlay",
+      "desc": "Python 环境",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "保留",
+      "terminate": "丢失",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "保留",
+      "terminate保留": "丢失"
+    },
+    {
+      "key": "tmp",
+      "path": "/tmp",
+      "media": "overlay",
+      "desc": "临时文件",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "保留",
+      "terminate": "丢失",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "保留",
+      "terminate保留": "丢失"
+    },
+    {
+      "key": "varlog",
+      "path": "/var/log",
+      "media": "overlay",
+      "desc": "系统日志",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "保留",
+      "terminate": "丢失",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "保留",
+      "terminate保留": "丢失"
+    },
+    {
+      "key": "etc",
+      "path": "/etc",
+      "media": "overlay",
+      "desc": "系统配置",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "保留",
+      "terminate": "丢失",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "保留",
+      "terminate保留": "丢失"
+    },
+    {
+      "key": "shared_model",
+      "path": "/model",
+      "media": "网络存储（UPFS 40T，只读）",
+      "desc": "共享模型库，唯一跨实例存活",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "保留",
+      "terminate": "保留",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "保留",
+      "terminate保留": "保留"
+    },
+    {
+      "key": "data_disk",
+      "path": "/cloud/cloud-ssd1",
+      "media": "独立数据盘（20G）",
+      "desc": "只跟本实例，存镜像带不走",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "丢失",
+      "terminate": "丢失",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "丢失",
+      "terminate保留": "丢失"
+    },
+    {
+      "key": "comfy_log",
+      "path": "/root/ComfyUI/comfyui_8188.log",
+      "media": "overlay",
+      "desc": "ComfyUI 运行日志",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "保留",
+      "terminate": "丢失",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "保留",
+      "terminate保留": "丢失",
+      "actual_path": "/root/ComfyUI/comfy.log"
+    },
+    {
+      "key": "output_png",
+      "path": "/root/ComfyUI/output",
+      "media": "overlay",
+      "desc": "产物文件（与 comfy_output 同目录，探针标签不同）",
+      "stop_start": "保留",
+      "reboot": "保留",
+      "save_image_new": "保留",
+      "terminate": "丢失",
+      "stop保留": "保留",
+      "reboot保留": "保留",
+      "saveimage保留": "保留",
+      "terminate保留": "丢失"
+    }
+  ],
+  "checks": [
+    {
+      "cp": "CP0",
+      "name": "GPU 可见",
+      "ok": true,
+      "expect": "nvidia-smi 返回卡名",
+      "actual": "NVIDIA GeForce RTX 4090",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "root",
+        "shared_model"
+      ]
+    },
+    {
+      "cp": "CP0",
+      "name": "驱动版本",
+      "ok": true,
+      "expect": "有版本号",
+      "actual": "595.80",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "root",
+        "shared_model"
+      ]
+    },
+    {
+      "cp": "CP0",
+      "name": "CUDA 版本",
+      "ok": true,
+      "expect": "有版本号",
+      "actual": "13.2",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "root",
+        "shared_model"
+      ]
+    },
+    {
+      "cp": "CP0",
+      "name": "NVML 可初始化",
+      "ok": true,
+      "expect": "yes（save-image 后可能失效）",
+      "actual": "yes",
+      "note": "实测：制作镜像后新进程 NVML 失败，需 stop/start 恢复",
+      "soft": false,
+      "paths": [
+        "root",
+        "shared_model"
+      ]
+    },
+    {
+      "cp": "CP0",
+      "name": "ComfyUI 服务端能看到 GPU",
+      "ok": true,
+      "expect": "含 cuda:<n> 卡名",
+      "actual": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMal",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "root",
+        "shared_model"
+      ]
+    },
+    {
+      "cp": "CP0",
+      "name": "ComfyUI 端口 8188",
+      "ok": true,
+      "expect": "up",
+      "actual": "up",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "root",
+        "shared_model"
+      ]
+    },
+    {
+      "cp": "CP0",
+      "name": "共享库 /model 已挂载",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "root",
+        "shared_model"
+      ]
+    },
+    {
+      "cp": "CP1",
+      "name": "torch 可用",
+      "ok": true,
+      "expect": "有版本",
+      "actual": "2.10.0+cu130",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "conda_env",
+        "tmp",
+        "etc"
+      ]
+    },
+    {
+      "cp": "CP1",
+      "name": "torch 里 CUDA 可用（SSH 会话）",
+      "ok": true,
+      "expect": "True",
+      "actual": "True",
+      "note": "实测 SSH 会话常为 False（NVML 不可见），推理走 ComfyUI HTTP",
+      "soft": true,
+      "paths": [
+        "conda_env",
+        "tmp",
+        "etc"
+      ]
+    },
+    {
+      "cp": "CP1",
+      "name": "ComfyUI 版本",
+      "ok": true,
+      "expect": "有版本",
+      "actual": "0.36.0",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "conda_env",
+        "tmp",
+        "etc"
+      ]
+    },
+    {
+      "cp": "CP1",
+      "name": "PyAV（视频编码）",
+      "ok": true,
+      "expect": "有版本",
+      "actual": "17.1.0",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "conda_env",
+        "tmp",
+        "etc"
+      ]
+    },
+    {
+      "cp": "CP1",
+      "name": "PIL（图像）",
+      "ok": true,
+      "expect": "有版本",
+      "actual": "11.0.0",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "conda_env",
+        "tmp",
+        "etc"
+      ]
+    },
+    {
+      "cp": "CP1",
+      "name": "ffmpeg",
+      "ok": false,
+      "expect": "yes（缺失则用 PyAV 编码）",
+      "actual": "no",
+      "note": "镜像已知不带",
+      "soft": true,
+      "paths": [
+        "conda_env",
+        "tmp",
+        "etc"
+      ]
+    },
+    {
+      "cp": "CP1",
+      "name": "rsync",
+      "ok": false,
+      "expect": "yes（缺失则用 tar 流）",
+      "actual": "no",
+      "note": "镜像已知不带",
+      "soft": true,
+      "paths": [
+        "conda_env",
+        "tmp",
+        "etc"
+      ]
+    },
+    {
+      "cp": "CP2",
+      "name": "共享库分类可见",
+      "ok": true,
+      "expect": ">0 个分类",
+      "actual": "57",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "shared_model",
+        "comfy_models"
+      ]
+    },
+    {
+      "cp": "CP2",
+      "name": "SDXL checkpoint 存在",
+      "ok": true,
+      "expect": "juggernaut* 命中一个",
+      "actual": "nts/juggernautXL_juggernautX.safetensors",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "shared_model",
+        "comfy_models"
+      ]
+    },
+    {
+      "cp": "CP3",
+      "name": "输入目录存在",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "root",
+        "workflows"
+      ]
+    },
+    {
+      "cp": "CP3",
+      "name": "工作流目录存在",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "root",
+        "workflows"
+      ]
+    },
+    {
+      "cp": "CP4",
+      "name": "ComfyUI 进程存在",
+      "ok": true,
+      "expect": "有 PID",
+      "actual": "99",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "comfy_log",
+        "root"
+      ]
+    },
+    {
+      "cp": "CP4",
+      "name": "启动链根已脱离 SSH（PPID=1）",
+      "ok": true,
+      "expect": "1",
+      "actual": "1",
+      "note": "从 ComfyUI 主进程向上追启动链根；链上出现 sshd 即判定挂 SSH",
+      "soft": false,
+      "paths": [
+        "comfy_log",
+        "root"
+      ]
+    },
+    {
+      "cp": "CP4",
+      "name": "ComfyUI 启动完成",
+      "ok": true,
+      "expect": "日志出现 Starting server",
+      "actual": "yes",
+      "note": "以启动完成标志为准，比'零异常栈'更能代表服务可用",
+      "soft": false,
+      "paths": [
+        "comfy_log",
+        "root"
+      ]
+    },
+    {
+      "cp": "CP4",
+      "name": "日志无异常栈",
+      "ok": false,
+      "expect": "0 次致命异常",
+      "actual": "2",
+      "note": "已排除 [WARNING] 与 ComfyUI-Manager 取网失败（受限网络必然发生）",
+      "soft": true,
+      "paths": [
+        "comfy_log",
+        "root"
+      ]
+    },
+    {
+      "cp": "CP4",
+      "name": "日志有执行记录",
+      "ok": false,
+      "expect": "≥1 次 Prompt executed",
+      "actual": "0",
+      "note": "",
+      "soft": true,
+      "paths": [
+        "comfy_log",
+        "root"
+      ]
+    },
+    {
+      "cp": "CP4",
+      "name": "GPU 显存占用",
+      "ok": true,
+      "expect": "记录值",
+      "actual": "396 MiB",
+      "note": "",
+      "soft": true,
+      "paths": [
+        "comfy_log",
+        "root"
+      ]
+    },
+    {
+      "cp": "CP5",
+      "name": "输出目录存在",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "comfy_output",
+        "output_png"
+      ]
+    },
+    {
+      "cp": "CP5",
+      "name": "输出目录非空",
+      "ok": true,
+      "expect": ">0 个文件",
+      "actual": "2",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "comfy_output",
+        "output_png"
+      ]
+    },
+    {
+      "cp": "CP6",
+      "name": "系统盘余量",
+      "ok": true,
+      "expect": "<85%",
+      "actual": "1%（剩 76G）",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "varlog",
+        "data_disk"
+      ]
+    },
+    {
+      "cp": "CP6",
+      "name": "日志文件存在",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "varlog",
+        "data_disk"
+      ]
+    },
+    {
+      "cp": "CP6",
+      "name": "数据盘挂载",
+      "ok": false,
+      "expect": "有挂载点",
+      "actual": "",
+      "note": "20G 数据盘，随实例删除",
+      "soft": true,
+      "paths": [
+        "varlog",
+        "data_disk"
+      ]
+    },
+    {
+      "cp": "CP7",
+      "name": "采集时间",
+      "ok": true,
+      "expect": "有时间戳",
+      "actual": "2026-10-27 00:55:50",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "root"
+      ]
+    },
+    {
+      "cp": "CP7",
+      "name": "系统已运行秒数",
+      "ok": true,
+      "expect": "≥0",
+      "actual": "312",
+      "note": "",
+      "soft": false,
+      "paths": [
+        "root"
+      ]
+    }
+  ],
+  "summary": {
+    "by_cp": {
+      "CP0": {
+        "total": 7,
+        "pass": 7,
+        "fail": 0,
+        "soft_fail": 0
+      },
+      "CP1": {
+        "total": 7,
+        "pass": 5,
+        "fail": 0,
+        "soft_fail": 2
+      },
+      "CP2": {
+        "total": 2,
+        "pass": 2,
+        "fail": 0,
+        "soft_fail": 0
+      },
+      "CP3": {
+        "total": 2,
+        "pass": 2,
+        "fail": 0,
+        "soft_fail": 0
+      },
+      "CP4": {
+        "total": 6,
+        "pass": 4,
+        "fail": 0,
+        "soft_fail": 2
+      },
+      "CP5": {
+        "total": 2,
+        "pass": 2,
+        "fail": 0,
+        "soft_fail": 0
+      },
+      "CP6": {
+        "total": 3,
+        "pass": 2,
+        "fail": 0,
+        "soft_fail": 1
+      },
+      "CP7": {
+        "total": 2,
+        "pass": 2,
+        "fail": 0,
+        "soft_fail": 0
+      }
+    },
+    "hard_fail": 0,
+    "total": 31,
+    "pass": 26
+  }
+}

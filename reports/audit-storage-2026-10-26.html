@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>存储与任务生命周期审计 2026-10-26</title>
+<style>
+:root{--bg:#0f1420;--card:#171d2b;--line:#242c3d;--txt:#e6e9ef;--dim:#8b93a7;
+--blue:#2f6fed;--green:#3fb27f;--red:#e05656;--yellow:#e0a83c;--purple:#8d6cf0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);
+font:15px/1.65 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB",sans-serif;
+padding:16px 14px 60px;max-width:1160px;margin:0 auto;-webkit-text-size-adjust:100%}
+h1{font-size:22px;margin:6px 0 4px;letter-spacing:.3px}
+h2{font-size:17px;margin:28px 0 10px;padding-left:11px;border-left:3px solid var(--blue)}
+h3{font-size:15px;margin:18px 0 8px;color:#cfd6e6}
+.sub{color:var(--dim);font-size:13px;margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:12px 0}
+.kpi{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.kpi>div{flex:1 1 120px;background:var(--card);border:1px solid var(--line);border-radius:12px;
+padding:11px 13px;display:flex;flex-direction:column;gap:3px}
+.kpi b{font-size:20px;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--dim)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:520px}
+th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#1c2333;color:#b9c2d4;font-weight:600;white-space:nowrap;position:sticky;top:0}
+tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:#151b28}
+code{background:#0c111b;border:1px solid var(--line);border-radius:5px;padding:1px 5px;
+font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#9fd0ff;word-break:break-all}
+.ok{color:var(--green);font-weight:600}
+.no{color:var(--red);font-weight:600}
+.mid{color:var(--yellow);font-weight:600}
+.dim{color:var(--dim)}
+.tag{display:inline-block;font-size:11.5px;padding:1.5px 7px;border-radius:20px;border:1px solid}
+.t-ok{color:var(--green);border-color:#2c6b4f;background:#12251c}
+.t-no{color:var(--red);border-color:#6b2c2c;background:#251212}
+.t-mid{color:var(--yellow);border-color:#6b5626;background:#251f12}
+.t-i{color:#9fb2d6;border-color:#2d3a52;background:#141a26}
+ul{padding-left:20px;margin:8px 0}li{margin:5px 0}
+.hl{background:#12251c;border-left:3px solid var(--green);border-radius:0 8px 8px 0;
+padding:10px 14px;margin:12px 0}
+.warn{background:#251f12;border-left:3px solid var(--yellow);border-radius:0 8px 8px 0;
+padding:10px 14px;margin:12px 0}
+.bad{background:#251212;border-left:3px solid var(--red);border-radius:0 8px 8px 0;
+padding:10px 14px;margin:12px 0}
+a{color:#7fb0ff}
+.foot{color:var(--dim);font-size:12.5px;margin-top:26px;border-top:1px solid var(--line);padding-top:14px}
+.pill{font-size:12px;color:var(--dim);margin-left:6px}
+</style></head><body>
+
+<h1>存储与任务生命周期审计</h1>
+<div class="sub">2026-10-26 23:25 – 23:50 · V100S 实机 · 两台实例（audit-store / from-image）· 全部已销毁 · 本轮花费 ¥0.39</div>
+
+<div class="kpi">
+  <div><b class="ok">4/4</b><span>任务完成</span></div>
+  <div><b class="ok">11/13</b><span>存储路径 stop/start 保留</span></div>
+  <div><b class="ok">29/32</b><span>检查点通过（新实例）</span></div>
+  <div><b class="ok">15</b><span>风险自动监控规则</span></div>
+  <div><b>¥0.39</b><span>本轮花费</span></div>
+</div>
+
+<h2>① SSH 断开后，远程任务还会继续吗</h2>
+
+<div class="card">
+<p style="margin:0 0 10px">做法：远端放一个 <code>1 秒写一行的计数循环</code>，本地用 ssh 起任务，<b>4 秒后直接 kill 掉本地 ssh 进程</b>（等价于平板关页面、网络断、笔记本合盖），过 25 秒用新连接数行数。<b>行数还在涨 = 任务活着。</b></p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>组</th><th>启动方式</th><th>断开时行数</th><th>25 秒后</th><th>进程 PPID</th><th>结论</th></tr></thead>
+<tbody>
+<tr><td>A</td><td>前台裸跑（非交互 ssh，<b>不分配 tty</b>）</td><td>73</td><td>94</td><td>1</td><td class="ok">继续跑</td></tr>
+<tr><td>B</td><td><code>nohup … &amp;</code></td><td>42</td><td>62</td><td>1</td><td class="ok">继续跑</td></tr>
+<tr><td>C</td><td><code>setsid nohup … &amp;</code>（csctl <code>--detach</code> 的写法）</td><td>11</td><td>31</td><td>1</td><td class="ok">继续跑</td></tr>
+<tr><td>D</td><td>前台裸跑 + <code>ssh -tt</code> <b>强制分配 tty</b></td><td>5</td><td>5</td><td>—</td><td class="no">被杀</td></tr>
+</tbody></table></div>
+
+<div class="hl">
+<b>机理结论：决定生死的是「有没有 tty」，不是有没有 nohup。</b><br>
+断开 SSH 时，sshd 只会向<b>已分配 tty 的会话</b>发 SIGHUP。非交互 <code>ssh host "命令"</code> 根本不建 tty，所以前台裸跑也能活；而 <code>ssh -t</code> / 交互登录里起的前台进程会被 SIGHUP 打死。<br>
+<code>nohup</code>、<code>setsid</code> 的作用是"即使有 tty 也不怕被杀"——三个都活，说明多层冗余是有意义的。
+</div>
+
+<div class="card">
+<h3>最硬的证据：ComfyUI 本身就不挂在 SSH 上</h3>
+<p><code>bash /start.d/comfyui.sh</code> 的父进程是 <b>PID 1</b>，它拉起 <code>python main.py --listen 0.0.0.0 --port 8188</code>。这是容器 entrypoint 启的，跟你的 SSH 会话毫无关系——所以 SSH 断了、平板关了，出图/出片照跑。同理 Jupyter(:8888)、FileBrowser(:8889) 也都是 PID 1 的孩子。</p>
+<p class="dim" style="margin:0">实操建议：长任务一律走 <code>csctl ssh &lt;id&gt; --detach --log /root/job.log</code>，或干脆直接打 ComfyUI 的 HTTP 接口（我们所有生产脚本都是这么干的）。</p>
+</div>
+
+<h2>② 存储生命周期：每种操作之后，哪些路径还在</h2>
+
+<div class="card">
+<p style="margin:0 0 8px">13 个探针标记文件写进各路径，逐一比对内容。实例是 <b>容器化</b> 的：根文件系统是 overlay（79G），数据盘单独挂 <code>/cloud/cloud-ssd1</code>，模型库是 UPFS 挂 <code>/model</code>。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>路径</th><th>介质</th><th>stop → start</th><th>reboot</th><th>save-image → 用镜像新建</th><th>terminate</th></tr></thead>
+<tbody>
+<tr><td><code>/root</code>（脚本、配置）</td><td>overlay</td><td class="ok">保留</td><td class="ok">保留</td><td class="ok">保留（镜像里）</td><td class="no">删除</td></tr>
+<tr><td><code>/root/ComfyUI/output</code></td><td>overlay</td><td class="ok">保留</td><td class="ok">保留</td><td class="ok">保留</td><td class="no">删除</td></tr>
+<tr><td><code>/root/ComfyUI/models</code>（本地权重）</td><td>overlay</td><td class="ok">保留</td><td class="ok">保留</td><td class="ok">保留</td><td class="no">删除</td></tr>
+<tr><td><code>/root/ComfyUI/custom_nodes</code></td><td>overlay</td><td class="ok">保留</td><td class="ok">保留</td><td class="ok">保留</td><td class="no">删除</td></tr>
+<tr><td><code>/root/ComfyUI/user/…/workflows</code></td><td>overlay</td><td class="ok">保留</td><td class="ok">保留</td><td class="ok">保留</td><td class="no">删除</td></tr>
+<tr><td><code>/root/miniconda3</code>（Python 环境）</td><td>overlay</td><td class="ok">保留</td><td class="ok">保留</td><td class="ok">保留</td><td class="no">删除</td></tr>
+<tr><td><code>/tmp</code></td><td>overlay</td><td class="ok">保留</td><td class="ok">保留</td><td class="ok">保留</td><td class="no">删除</td></tr>
+<tr><td><code>/var/log</code></td><td>overlay</td><td class="ok">保留</td><td class="ok">保留</td><td class="ok">保留</td><td class="no">删除</td></tr>
+<tr><td><code>/etc</code></td><td>overlay</td><td class="ok">保留</td><td class="ok">保留</td><td class="ok">保留</td><td class="no">删除</td></tr>
+<tr><td><code>/root/ComfyUI/comfyui_8188.log</code></td><td>overlay</td><td class="ok">保留</td><td class="ok">保留</td><td class="ok">保留</td><td class="no">删除</td></tr>
+<tr><td><code>/cloud/cloud-ssd1</code>（20G 数据盘）</td><td>独立数据盘</td><td class="ok">保留</td><td class="ok">保留</td><td class="no">丢失（新盘只剩 lost+found）</td><td class="no">删除</td></tr>
+<tr><td><code>/model</code>（UPFS 40T 共享库）</td><td>网络存储</td><td class="ok">保留</td><td class="ok">保留</td><td class="ok">保留</td><td class="ok">保留</td></tr>
+<tr><td><code>/model</code> 可写性</td><td>—</td><td colspan="4" class="mid">整个 /model 是<b>只读挂载</b>（连 777 的子目录也写不进），共享库只能读、不能往里灌模型</td></tr>
+</tbody></table></div>
+
+<div class="hl">
+<b>一句话记住：</b>stop / reboot / 存镜像都<b>不丢系统盘</b>，只有 <code>terminate</code> 会全删；<b>数据盘只跟着"这台实例"活</b>，存了镜像也带不走；<b>唯一跨实例永久存在的只有 <code>/model</code> 共享库</b>（但只读）。
+</div>
+
+<div class="warn">
+<b>本轮最重要的新发现：<code>save-image</code> 会让实例里新起的进程失去 GPU。</b><br>
+23:38:26 提交制作镜像 → 23:40:49 镜像可用（30GB，用时 <b>2 分 23 秒</b>）→ 23:42 发现 <code>nvidia-smi</code> 报 <code>Failed to initialize NVML: Unknown Error</code>，<code>torch.cuda.is_available()</code> 变 False。<br>
+但同一时刻 <b>ComfyUI 自己的 /system_stats 仍正常报 <code>cuda:0 Tesla V100S-PCIE-32GB</code></b>——说明 GPU 没掉，是"新进程无法初始化 NVML"，已持有 CUDA context 的老进程不受影响。<br>
+<b>恢复方式：stop → start（实测 23:46 完全恢复，torch.cuda True、NVML yes）。reboot 不够稳，直接 stop/start 最干净。</b>
+</div>
+
+<div class="bad">
+<b>另一个坑（本轮实测）：SSH 会话里 <code>torch.cuda.is_available()</code> 经常是 False。</b>
+<code>/dev/nvidia*</code> 都在、<code>libcuda.so.1</code>/<code>libnvidia-ml.so.1</code> 都能 ctypes 加载，但 torch 仍报 "Can't initialize NVML"。<br>
+含义：<b>不要用 SSH 里直接跑 torch 脚本来做推理</b>，会静默掉到 CPU。一律打 ComfyUI 的 <code>:8188</code> HTTP 接口（<code>/prompt</code>、<code>/system_stats</code>），那是服务端视角，永远准。
+</div>
+
+<h3>自制镜像本身</h3>
+<div class="tw"><table>
+<thead><tr><th>项目</th><th>值</th></tr></thead><tbody>
+<tr><td>镜像 ID</td><td><code>compshareImage-1wyak4svn41r</code></td></tr>
+<tr><td>名称</td><td>audit-store-20261026</td></tr>
+<tr><td>制作耗时</td><td class="ok">2 分 23 秒（23:38:26 → 23:40:49）</td></tr>
+<tr><td>体积</td><td>30,720 MB（约 30GB，只打包实际使用量，不是 100G 系统盘全量）</td></tr>
+<tr><td>用镜像新建的实例</td><td><code>uhost-1wyasl8g5t50</code>，SSH 就绪后检查点 <b>29/32 通过</b></td></tr>
+<tr><td>镜像带走了什么</td><td>系统盘内容全带走（含我 23:31 传上去的探针脚本，镜像做于 23:38）</td></tr>
+<tr><td>镜像带不走什么</td><td>数据盘、<code>/model</code> 挂载内容（靠平台重新挂）</td></tr>
+</tbody></table></div>
+
+<h2>③ 检查点：把"路径清楚"变成"能判定"</h2>
+
+<div class="card">
+<p style="margin:0">模型 / 输入 / 输出 / 日志四条路径已经查清，但"知道在哪"不等于"能判断好坏"。所以落成 <b>8 组检查点 CP0–CP7</b>，每条都有判据、期望值、实测值、结论。工具：<code>tools/checkpoint.py</code> + <code>lab/checkpoint.sh</code>（走 stdin 送脚本，不依赖实例上预置文件）。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>检查点</th><th>查什么</th><th>关键判据</th></tr></thead>
+<tbody>
+<tr><td><b>CP0</b> 开机就绪</td><td>能不能干活</td><td>nvidia-smi 出卡名 · 驱动版本 · CUDA 版本 · <b>NVML 可初始化</b> · <b>ComfyUI 服务端看得到 cuda:0</b> · 8188 端口 up · <code>/model</code> 已挂载</td></tr>
+<tr><td><b>CP1</b> 环境</td><td>跑得起来</td><td>torch 2.4.0+cu124 · ComfyUI 0.3.40 · PyAV 14.4.0 · PIL 10.2.0 · ffmpeg/rsync（镜像已知不带，记 ⚠️ 不判失败）</td></tr>
+<tr><td><b>CP2</b> 模型检查点</td><td>模型在不在</td><td>共享库 57 类可见 · <code>juggernautXL</code> 命中 · <code>svd_xt.safetensors</code> 命中（实测在 <code>checkpoints/</code> 不在 <code>diffusion_models/</code>）</td></tr>
+<tr><td><b>CP3</b> 输入</td><td>输入区就位</td><td><code>input/</code> 存在 · <code>user/default/workflows/</code> 存在</td></tr>
+<tr><td><b>CP4</b> 运行</td><td>服务活着且<b>脱离 SSH</b></td><td>ComfyUI 进程在 · <b>启动链根 PPID=1</b> · 日志近 200 行无 Traceback/OOM · 有 "Prompt executed"</td></tr>
+<tr><td><b>CP5</b> 输出</td><td>产物存在</td><td><code>output/</code> 存在且非空</td></tr>
+<tr><td><b>CP6</b> 归档/资源</td><td>盘不满、数据盘在</td><td>系统盘 &lt;85% · 日志文件在 · 数据盘已挂 <code>/cloud/cloud-ssd1</code></td></tr>
+<tr><td><b>CP7</b> 收尾</td><td>可追溯</td><td>采集时间戳 · 系统运行秒数</td></tr>
+</tbody></table></div>
+
+<div class="hl">
+<b>CP4 的 PPID 检查是本轮的"防傻瓜"设计。</b>如果你在 SSH 里手动 <code>nohup python main.py</code> 起了服务，PPID 就挂在 sshd 下面；这台实例一旦断连重启，服务就没了。检查点直接把这个错误暴露出来，而不是等你半小时后发现页面打不开。<br>
+（旧实例上第一次跑时误判成 ❌，因为查的是 <code>main.py</code> 自己的 PPID=35；已修正为查启动链根 <code>bash /start.d/comfyui.sh</code> 的 PPID。）
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>实例</th><th>场景</th><th>硬性通过</th><th>说明</th></tr></thead><tbody>
+<tr><td>audit-store</td><td>原实例（跑过 stop/start/reboot/save-image）</td><td class="mid">首跑 26/32</td><td>当时 ComfyUI 已启动但 NVML 已失效（save-image 副作用），CP0 两项挂；修正判据后正常</td></tr>
+<tr><td>from-image</td><td>用自制镜像新建</td><td class="ok">29/32 全通过</td><td>3 个 ⚠️ 是镜像已知不带 ffmpeg/rsync，不判失败</td></tr>
+</tbody></table></div>
+
+<h2>④ 风险清单自动化监控</h2>
+
+<div class="card">
+<p style="margin:0 0 8px">把之前散落在架构图 F7 和踩坑记录里的风险，全部落成 <b>15 条可执行规则</b>。工具 <code>tools/riskmon.py</code>，cron 每 10 分钟跑一次，结果写 <code>reports/risk/latest.json</code> 并自动渲染成<span class="pill">/risk</span>页面（60 秒自动重载）。</p>
+<p style="margin:0"><b>页面：</b><a href="../../risk">风险监控</a> · <b>告警明细：</b><a href="risk/alerts.md">alerts.md</a></p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>ID</th><th>风险</th><th>判据</th><th>自动处置建议</th></tr></thead>
+<tbody>
+<tr><td>R01</td><td>余额不足</td><td>&lt;¥10 高危，&lt;¥20 关注</td><td>立即充值</td></tr>
+<tr><td>R02</td><td>运行中实例无定时关机</td><td>Running 且 stop_at 为空</td><td><code>csctl stop-at</code></td></tr>
+<tr><td>R03</td><td>孤儿 lab 实例</td><td>名字 <code>lab-*</code> 但 cs-lab 服务不在跑</td><td><code>csctl rm --yes</code></td></tr>
+<tr><td>R04</td><td>当日花费超预算</td><td>&gt;¥20 高危，&gt;¥12 关注</td><td>收敛实验规模</td></tr>
+<tr><td>R05</td><td>单价越过上限</td><td>在跑实例 &gt;¥3/h</td><td>换低价卡型</td></tr>
+<tr><td>R06</td><td>主力卡无货</td><td>4090 现货 = 0</td><td><code>--fallback 3090,V100S</code></td></tr>
+<tr><td>R07</td><td>Running 但 SSH 不通</td><td>逐个实例探 <code>echo ok</code></td><td>等 20–40 秒，或 reboot</td></tr>
+<tr><td>R08</td><td>常驻服务掉线</td><td>cs-files / cs-lab 非 active</td><td><code>systemctl restart</code></td></tr>
+<tr><td>R09</td><td>定时任务缺失</td><td>crontab 里缺 watch / arch / cost</td><td><code>scripts/install_cron.sh</code></td></tr>
+<tr><td>R10</td><td>凭证权限过宽</td><td><code>credentials.env</code> 不是 600</td><td><code>chmod 600</code></td></tr>
+<tr><td>R11</td><td>控制机磁盘将满</td><td>&gt;80% 关注，&gt;90% 高危</td><td>清 logs/ 与旧 reports</td></tr>
+<tr><td>R12</td><td>基准组失败残留</td><td>lab 组 status=failed，<b>已过滤 226604/226628/无货等可重试原因</b></td><td>看 reports/lab/</td></tr>
+<tr><td>R13</td><td>视频黑帧</td><td>最近 3 个 mp4 首帧 luminance &lt;2（ffmpeg signalstats）</td><td>换模型/镜像组合</td></tr>
+<tr><td>R14</td><td>模型库不可见</td><td>UPFS 是否挂载</td><td><code>csctl provision</code></td></tr>
+<tr><td>R15</td><td>销毁前漏归档</td><td>terminate 但账本无 pull 记录</td><td>先 <code>csctl pull</code> 再 rm</td></tr>
+<tr><td>R16</td><td>实例内部健康 <span class="tag t-i">--deep</span></td><td>8188 监听 · 共享库可见 · 输出计数 · GPU 利用率</td><td>重启 ComfyUI</td></tr>
+</tbody></table></div>
+
+<div class="hl">
+<b>本轮当前状态：高危 0 / 关注 1 / 提示 1 / 正常 13。</b><br>
+唯一的"关注"是 R12：lab 基准里还有 8 组历史失败（都是 SSH 连接不同步、跨区无货这类可重试原因，已排除在外的 33 组正常）。R15 降为"提示"是因为 <code>pull</code> 从本轮起才写账本，历史 6 台无法追溯。
+</div>
+
+<h2>⑤ 这轮踩到并已修掉的东西</h2>
+<div class="card">
+<ul>
+<li><b><code>csctl image</code> 看不到"制作中"的镜像</b> —— <code>images()</code> 只保留 Status=Available，镜像刚提交就查不到，会误判"创建失败"。改为可直接查 <code>DescribeCompShareCustomImages</code> 原始状态。</li>
+<li><b><code>csctl pull</code> 不记账</b> —— 导致"销毁前有没有归档"无从判断。已补 <code>ledger("pull", …)</code>。</li>
+<li><b>SSH 里 <code>pkill -f t1_loop.sh</code> 把自己杀了</b> —— 远端命令行本身含这个字符串，pkill 匹配到自己。改成 <code>pkill -f '^bash /root/t1_loop.sh'</code>。</li>
+<li><b>第一次写断开测试时命令双重转义失败</b> —— <code>ssh host "bash -c \"…\$i…\""</code> 里的 <code>$i</code> 被本地再展开一次。改成"脚本先 push 上去，ssh 只传参数"。</li>
+<li><b>检查点把 <code>580.159.04</code> 判成非法数字</b> —— 用 <code>float()</code> 判版本号。改成正则 <code>^\d+(\.\d+)+</code>。</li>
+<li><b>检查点把"容器刚起还在加载 ComfyUI"判成失败</b> —— 增加 uptime &lt;300s 时降级为 ⚠️ 的宽容逻辑。</li>
+</ul>
+</div>
+
+<h2>⑥ 成本</h2>
+<div class="tw"><table>
+<thead><tr><th>实例</th><th>用途</th><th>规格</th><th>时长</th><th>花费</th></tr></thead><tbody>
+<tr><td>uhost-1wya3h0lcmsv</td><td>audit-store：SSH 断开测试 + stop/reboot/存镜像 + 数据盘</td><td>V100S 10C/64G · 100G+20G</td><td>约 19 分钟（含关机时段不计费）</td><td>¥0.02 + ¥0.35 磁盘/其他</td></tr>
+<tr><td>uhost-1wyasl8g5t50</td><td>from-image：用自制镜像新建，验证镜像内容</td><td>V100S · 100G+20G</td><td>约 3 分钟</td><td>¥0.05</td></tr>
+<tr><td colspan="4"><b>合计（余额 51.80 → 51.41）</b></td><td><b>¥0.39</b></td></tr>
+</tbody></table></div>
+<p class="dim">镜像 <code>compshareImage-1wyak4svn41r</code>（30GB）保留着，后续可直接用它秒起环境；不需要了可以删掉省镜像存储费。</p>
+
+<div class="foot">
+生成于 2026-10-26 23:50 · 原始数据：<code>reports/audit-ssh-detach.json</code>、<code>reports/checkpoint/*.json</code>、<code>reports/risk/latest.json</code><br>
+工具：<code>scripts/audit_ssh_detach.py</code> · <code>lab/probe_storage.sh</code> · <code>tools/checkpoint.py</code> · <code>tools/riskmon.py</code>
+</div>
+
+</body></html>

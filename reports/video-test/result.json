@@ -1,0 +1,61 @@
+{
+  "status": "ok",
+  "runs": [
+    {
+      "step": "still",
+      "shot": "shot1",
+      "seconds": 16.16,
+      "saved": "start_shot1.png"
+    },
+    {
+      "ok": true,
+      "seconds": 96.75,
+      "files": [
+        [
+          "",
+          "wan_seg_00001_.mp4"
+        ]
+      ],
+      "step": "video",
+      "shot": "shot1",
+      "wall_s": 96.75,
+      "saved": "/root/vid_out3/shot1.mp4",
+      "size_mb": 0.01
+    },
+    {
+      "step": "still",
+      "shot": "shot2",
+      "seconds": 12.03,
+      "saved": "start_shot2.png"
+    },
+    {
+      "ok": true,
+      "seconds": 80.54,
+      "files": [
+        [
+          "",
+          "wan_seg_00002_.mp4"
+        ]
+      ],
+      "step": "video",
+      "shot": "shot2",
+      "wall_s": 80.54,
+      "saved": "/root/vid_out3/shot2.mp4",
+      "size_mb": 0.01
+    }
+  ],
+  "comfy_boot_s": 10.0,
+  "device": "cuda:0 NVIDIA GeForce RTX 4090 : cudaMallocAsync",
+  "params": {
+    "w": 832,
+    "h": 480,
+    "frames": 81,
+    "fps": 16,
+    "steps": 4,
+    "cfg": 1.0,
+    "unet": "Wan/Wan2.1_i2v_720p_scaled_fp8_e4m3_lightx2v.safetensors",
+    "vae": "wan_2.1_vae.safetensors",
+    "clip": "umt5_xxl_int8_convrot.safetensors",
+    "seed": 20261026
+  }
+}

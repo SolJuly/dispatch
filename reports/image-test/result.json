@@ -1,0 +1,44 @@
+{
+  "status": "ok",
+  "runs": [
+    {
+      "ok": true,
+      "seconds": 12.13,
+      "files": [
+        [
+          "",
+          "dog_sdxl_r1_20261026_00002_.png"
+        ]
+      ],
+      "run": 1,
+      "wall_s": 12.13,
+      "saved": "/root/img_out/dog_run1_dog_sdxl_r1_20261026_00002_.png"
+    },
+    {
+      "ok": true,
+      "seconds": 11.28,
+      "files": [
+        [
+          "",
+          "dog_sdxl_r2_20261026_00002_.png"
+        ]
+      ],
+      "run": 2,
+      "wall_s": 11.28,
+      "saved": "/root/img_out/dog_run2_dog_sdxl_r2_20261026_00002_.png"
+    }
+  ],
+  "comfyui": "0.3.40",
+  "device": "cuda:0 Tesla V100S-PCIE-32GB : cudaMallocAsync",
+  "model": "sdxl-juggernaut",
+  "params": {
+    "width": 1280,
+    "height": 720,
+    "steps": 20,
+    "seed": 20261026
+  },
+  "comfy_boot_s": [
+    12.0,
+    12.0
+  ]
+}

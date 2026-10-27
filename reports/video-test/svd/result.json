@@ -1,0 +1,43 @@
+{
+  "status": "ok",
+  "runs": [
+    {
+      "shot": "shot1",
+      "frames": 97,
+      "fps": 19.4,
+      "segment_s": [
+        39.1,
+        27.5,
+        27.1,
+        27.6
+      ],
+      "encode_total_s": 124.2,
+      "size_mb": 0.95,
+      "saved": "/root/vid_svd/shot1.mp4"
+    },
+    {
+      "shot": "shot2",
+      "frames": 97,
+      "fps": 19.4,
+      "segment_s": [
+        27.3,
+        27.4,
+        27.2,
+        27.1
+      ],
+      "encode_total_s": 111.4,
+      "size_mb": 0.63,
+      "saved": "/root/vid_svd/shot2.mp4"
+    }
+  ],
+  "params": {
+    "model": "svd_xt",
+    "w": 832,
+    "h": 480,
+    "seg_frames": 25,
+    "segs": 4,
+    "steps": 20,
+    "motion": 127,
+    "target_seconds": 5.0
+  }
+}

@@ -1,0 +1,396 @@
+{
+  "instance": "uhost-1wyasl8g5t50",
+  "name": "from-image",
+  "state": "Running",
+  "collected": {
+    "GPU_NAME": "Tesla V100S-PCIE-32GB",
+    "GPU_DRIVER": "580.159.04",
+    "GPU_MEM": "32768 MiB",
+    "GPU_UTIL": "0 %, 312 MiB",
+    "CUDA": "13.0",
+    "PYVER": "3.10.15",
+    "TORCH": "2.4.0+cu124",
+    "TORCH_CUDA": "True",
+    "AV_VER": "14.4.0",
+    "CV2_VER": "4.10.0",
+    "PIL_VER": "10.2.0",
+    "FFMPEG": "no",
+    "RSYNC": "no",
+    "COMFY_VER": "0.3.40",
+    "COMFY_PROC": "41",
+    "COMFY_PPID": "35",
+    "PORT8188": "up",
+    "NVML_OK": "yes",
+    "COMFY_DEVICE": "cuda:0 Tesla V100S-PCIE-32GB : cudaMallocAsync",
+    "COMFY_ROOT_PPID": "1",
+    "SHARED_MNT": "yes",
+    "SHARED_CAT": "57",
+    "SHARED_CKPT": "44",
+    "SHARED_UNET": "2",
+    "SHARED_VAE": "20",
+    "SDXL_FILE": "/model/comfyui/models/checkpoints/juggernautXL_juggernautX.safetensors",
+    "SVD_FILE": "/model/comfyui/models/checkpoints/svd_xt.safetensors",
+    "LOCAL_CKPT": "20",
+    "OUTPUTS": "1",
+    "OUTPUT_DIR": "yes",
+    "INPUT_DIR": "yes",
+    "WF_DIR": "yes",
+    "LOG_FILE": "yes",
+    "LOG_SIZE": "10433",
+    "LOG_PROMPT": "0",
+    "LOG_ERROR": "0",
+    "LOG_MTIME": "1793029615",
+    "DISK_PCT": "1",
+    "DISK_FREE": "76G",
+    "DATA_MNT": "/cloud/cloud-ssd1",
+    "DATA_PCT": "1",
+    "UPTIME_S": "163",
+    "NOW": "2026-10-26 23:47:50",
+    "_rc": 0
+  },
+  "checks": [
+    {
+      "cp": "CP0",
+      "name": "GPU 可见",
+      "ok": true,
+      "expect": "nvidia-smi 返回卡名",
+      "actual": "Tesla V100S-PCIE-32GB",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP0",
+      "name": "驱动版本",
+      "ok": true,
+      "expect": "有版本号",
+      "actual": "580.159.04",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP0",
+      "name": "CUDA 版本",
+      "ok": true,
+      "expect": "有版本号",
+      "actual": "13.0",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP0",
+      "name": "NVML 可初始化",
+      "ok": true,
+      "expect": "yes（save-image 后可能失效）",
+      "actual": "yes",
+      "note": "实测：制作镜像后新进程 NVML 失败，需 stop/start 恢复",
+      "soft": false
+    },
+    {
+      "cp": "CP0",
+      "name": "ComfyUI 服务端能看到 GPU",
+      "ok": true,
+      "expect": "含 cuda:<n> 卡名",
+      "actual": "cuda:0 Tesla V100S-PCIE-32GB : cudaMallo",
+      "note": "容器刚起，ComfyUI 仍在加载",
+      "soft": true
+    },
+    {
+      "cp": "CP0",
+      "name": "ComfyUI 端口 8188",
+      "ok": true,
+      "expect": "up",
+      "actual": "up",
+      "note": "容器刚起，ComfyUI 仍在加载",
+      "soft": true
+    },
+    {
+      "cp": "CP0",
+      "name": "共享库 /model 已挂载",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP1",
+      "name": "torch 可用",
+      "ok": true,
+      "expect": "有版本",
+      "actual": "2.4.0+cu124",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP1",
+      "name": "torch 里 CUDA 可用（SSH 会话）",
+      "ok": true,
+      "expect": "True",
+      "actual": "True",
+      "note": "实测 SSH 会话常为 False（NVML 不可见），推理走 ComfyUI HTTP",
+      "soft": true
+    },
+    {
+      "cp": "CP1",
+      "name": "ComfyUI 版本",
+      "ok": true,
+      "expect": "有版本",
+      "actual": "0.3.40",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP1",
+      "name": "PyAV（视频编码）",
+      "ok": true,
+      "expect": "有版本",
+      "actual": "14.4.0",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP1",
+      "name": "PIL（图像）",
+      "ok": true,
+      "expect": "有版本",
+      "actual": "10.2.0",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP1",
+      "name": "ffmpeg",
+      "ok": false,
+      "expect": "yes（缺失则用 PyAV 编码）",
+      "actual": "no",
+      "note": "镜像已知不带",
+      "soft": true
+    },
+    {
+      "cp": "CP1",
+      "name": "rsync",
+      "ok": false,
+      "expect": "yes（缺失则用 tar 流）",
+      "actual": "no",
+      "note": "镜像已知不带",
+      "soft": true
+    },
+    {
+      "cp": "CP2",
+      "name": "共享库分类可见",
+      "ok": true,
+      "expect": ">0 个分类",
+      "actual": "57",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP2",
+      "name": "SDXL checkpoint 存在",
+      "ok": true,
+      "expect": "juggernaut* 命中一个",
+      "actual": "nts/juggernautXL_juggernautX.safetensors",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP2",
+      "name": "SVD-XT 模型存在",
+      "ok": true,
+      "expect": "checkpoints/svd_xt.safetensors",
+      "actual": "eckpoints/svd_xt.safetensors",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP2",
+      "name": "diffusion_models 非空",
+      "ok": true,
+      "expect": ">0",
+      "actual": "2",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP3",
+      "name": "输入目录存在",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP3",
+      "name": "工作流目录存在",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP4",
+      "name": "ComfyUI 进程存在",
+      "ok": true,
+      "expect": "有 PID",
+      "actual": "41",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP4",
+      "name": "启动链根已脱离 SSH（PPID=1）",
+      "ok": true,
+      "expect": "1",
+      "actual": "1",
+      "note": "bash /start.d/comfyui.sh 的父进程；≠1 说明挂在你 SSH 会话上，断开就死",
+      "soft": false
+    },
+    {
+      "cp": "CP4",
+      "name": "日志无异常栈",
+      "ok": true,
+      "expect": "0 次 Traceback/OOM",
+      "actual": "0",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP4",
+      "name": "日志有执行记录",
+      "ok": false,
+      "expect": "≥1 次 Prompt executed",
+      "actual": "0",
+      "note": "",
+      "soft": true
+    },
+    {
+      "cp": "CP4",
+      "name": "GPU 显存占用",
+      "ok": true,
+      "expect": "记录值",
+      "actual": "312 MiB",
+      "note": "",
+      "soft": true
+    },
+    {
+      "cp": "CP5",
+      "name": "输出目录存在",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP5",
+      "name": "输出目录非空",
+      "ok": true,
+      "expect": ">0 个文件",
+      "actual": "1",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP6",
+      "name": "系统盘余量",
+      "ok": true,
+      "expect": "<85%",
+      "actual": "1%（剩 76G）",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP6",
+      "name": "日志文件存在",
+      "ok": true,
+      "expect": "yes",
+      "actual": "yes",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP6",
+      "name": "数据盘挂载",
+      "ok": true,
+      "expect": "有挂载点",
+      "actual": "/cloud/cloud-ssd1",
+      "note": "20G 数据盘，随实例删除",
+      "soft": true
+    },
+    {
+      "cp": "CP7",
+      "name": "采集时间",
+      "ok": true,
+      "expect": "有时间戳",
+      "actual": "2026-10-26 23:47:50",
+      "note": "",
+      "soft": false
+    },
+    {
+      "cp": "CP7",
+      "name": "系统已运行秒数",
+      "ok": true,
+      "expect": "≥0",
+      "actual": "163",
+      "note": "",
+      "soft": false
+    }
+  ],
+  "summary": {
+    "by_cp": {
+      "CP0": {
+        "total": 7,
+        "pass": 7,
+        "fail": 0,
+        "soft_fail": 0
+      },
+      "CP1": {
+        "total": 7,
+        "pass": 5,
+        "fail": 0,
+        "soft_fail": 2
+      },
+      "CP2": {
+        "total": 4,
+        "pass": 4,
+        "fail": 0,
+        "soft_fail": 0
+      },
+      "CP3": {
+        "total": 2,
+        "pass": 2,
+        "fail": 0,
+        "soft_fail": 0
+      },
+      "CP4": {
+        "total": 5,
+        "pass": 4,
+        "fail": 0,
+        "soft_fail": 1
+      },
+      "CP5": {
+        "total": 2,
+        "pass": 2,
+        "fail": 0,
+        "soft_fail": 0
+      },
+      "CP6": {
+        "total": 3,
+        "pass": 3,
+        "fail": 0,
+        "soft_fail": 0
+      },
+      "CP7": {
+        "total": 2,
+        "pass": 2,
+        "fail": 0,
+        "soft_fail": 0
+      }
+    },
+    "hard_fail": 0,
+    "total": 32,
+    "pass": 29
+  }
+}
