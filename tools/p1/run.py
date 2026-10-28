@@ -63,6 +63,25 @@ def _ledger(job_id: str, cost: float, **kw) -> None:
         _say(f"  ⚠ 账本写入失败：{e}")
 
 
+def _mark_step(job_id: str, name: str, **detail) -> None:
+    """把「某一步已完成」写进 job.json，供 --resume 判断断点。
+
+    只记续跑需要的 ID（uhost_id / prompt_id / 文件列表），不记密码。
+    """
+    j = state.load_job(job_id)
+    steps = j.setdefault("steps", {})
+    steps[name] = {"done": True,
+                   "at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+                   **{k: v for k, v in detail.items() if v is not None}}
+    j["steps"] = steps
+    store.atomic_write_json(store.job_file(job_id), j)
+
+
+def _step_done(job_id: str, name: str) -> bool:
+    j = store.read_json(store.job_file(job_id)) or {}
+    return bool((j.get("steps") or {}).get(name, {}).get("done"))
+
+
 def _say(msg: str) -> None:
     print(f"[{dt.datetime.now():%H:%M:%S}] {msg}", flush=True)
 
@@ -461,29 +480,39 @@ def run(job_id: str, opts) -> int:
         try:
             state.transition(job_id, state.PROVISIONING, reason="开始建机")
             ctx.update(step_provision(job, opts))
+            _mark_step(job_id, "provision", uhost_id=ctx.get("uhost_id"),
+                       gpu=(ctx.get("inst") or {}).get("GpuType"), hourly=ctx.get("hourly"))
 
             need = "qwen" if str(job["model"]["key"]).startswith("qwen") else "h3"
             run_setup(ctx["uhost_id"], need, ctx)
+            _mark_step(job_id, "setup")
             state.transition(job_id, state.READY, reason="实例就绪")
             step_ready(job, opts, ctx)
+            _mark_step(job_id, "ready")
 
             state.transition(job_id, state.SUBMITTED, reason="提交 workflow")
             step_submit(job, opts, ctx)
+            _mark_step(job_id, "submit", prompt_id=ctx.get("prompt_id"))
 
             state.transition(job_id, state.RUNNING, reason="等待推理")
             files = step_wait(job, opts, ctx)
+            _mark_step(job_id, "wait", files=[list(f) for f in files])
 
             state.transition(job_id, state.FETCHING, reason="拉取产物")
             arts = step_fetch(job, opts, ctx, files)
+            _mark_step(job_id, "fetch", local=[a.name for a in arts])
 
             state.transition(job_id, state.VERIFYING, reason="校验产物")
             res = step_verify(job, opts, ctx, arts)
+            _mark_step(job_id, "verify", verdict=res.get("verdict"))
 
             state.transition(job_id, state.PERSISTED, reason=f"manifest 落盘，{res['verdict']}")
             man = step_persist(job, opts, ctx, res, arts)
+            _mark_step(job_id, "persist")
 
             state.transition(job_id, state.RELEASING, reason="销毁实例")
             step_release(job, opts, ctx)
+            _mark_step(job_id, "release")
 
             state.transition(job_id, state.DONE, reason="闭环完成")
             step_done(job, opts, ctx, man)
