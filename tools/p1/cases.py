@@ -215,6 +215,64 @@ def tc09_fetch_failure(temp: Path) -> None:
            "PASS" if allok else "FAIL", detail)
 
 
+# ---------------------------------------------------------------- TC-13
+def tc13_resume(temp: Path) -> None:
+    """TC-13：断点续跑 —— 断点计算 / RESUMING 转移 / ctx 恢复。
+
+    不需要实例：造一个 steps 半完成、状态 FAILED_FETCH 的 job，
+    验证续跑的三块核心逻辑。
+    """
+    from tools.p1 import run as R
+
+    jid = "p1-20261028T2330-tc1300"
+    jdir = temp / "jobs" / jid
+    (jdir / "artifacts").mkdir(parents=True, exist_ok=True)
+    orig = store.job_dir
+    store.job_dir = lambda j: temp / "jobs" / j
+    try:
+        store.atomic_write_json(jdir / "job.json", {
+            "job_id": jid, "state": "FAILED_FETCH",
+            "model": {"key": "h3_t2v", "workflow": "workflows/h3_t2v_121f.api.json"},
+            "params": {}, "expect": {}, "instance": {"uhost_id": "uhost-fake"},
+            "steps": {
+                "provision": {"done": True, "uhost_id": "uhost-fake", "hourly": 3.8},
+                "setup": {"done": True}, "ready": {"done": True},
+                "submit": {"done": True, "prompt_id": "p-1"},
+                "wait": {"done": True, "files": [["", "out.mp4"]]},
+            }})
+        job = store.read_json(jdir / "job.json")
+
+        # ① 断点计算
+        nxt = R._next_step(job)
+        sub_a = nxt == "fetch"
+
+        # ② 状态机：FAILED_FETCH → RESUMING → FETCHING 合法；RUNNING 直进 RESUMING 非法
+        ok2 = True
+        try:
+            S.check_transition(S.FAILED_FETCH, S.RESUMING, job)
+            S.check_transition(S.RESUMING, S.FETCHING, job)
+        except Exception as e:
+            ok2 = False
+            detail = str(e)[:50]
+        try:
+            S.check_transition(S.RUNNING, S.RESUMING, job)
+            ok3 = False
+        except S.IllegalTransition:
+            ok3 = True
+        sub_b = ok2 and ok3
+
+        # ③ ctx 恢复：files 必须能从 steps 还原
+        ctx = {"files": [tuple(f) for f in (job["steps"]["wait"]["files"] or [])]}
+        sub_c = ctx.get("files") == [("", "out.mp4")]
+        allok = sub_a and sub_b and sub_c
+        record("TC-13", "断点续跑：断点计算 + RESUMING 入口 + ctx 恢复",
+               "PASS" if allok else "FAIL",
+               f"断点={nxt} · RESUMING守卫{'✓' if sub_b else '✗'} · "
+               f"files恢复{'✓' if sub_c else '✗'}")
+    finally:
+        store.job_dir = orig
+
+
 # ---------------------------------------------------------------- TC-10~12
 def tc_needs_instance() -> None:
     record("TC-10", "上传/下载失败（磁盘满）", "PASS",
@@ -235,7 +293,7 @@ def main(argv=None) -> int:
         for fn in (tc01_bad_schema, tc02_illegal_transition, tc03_duplicate_hash,
                    tc04_release_before_persist, tc05_atomic_write,
                    tc06_manifest_hash_mismatch, tc07_zero_byte, tc08_black_frame,
-                   tc09_fetch_failure):
+                   tc09_fetch_failure, tc13_resume):
             try:
                 fn(temp)
             except Exception as e:

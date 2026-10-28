@@ -460,6 +460,226 @@ def step_done(job: dict, opts, ctx: dict, manifest: dict) -> None:
 
 
 # ------------------------------------------------------------ 编排
+STEP_STATE_MAP = {
+    "provision": state.PROVISIONING, "setup": None, "ready": state.READY,
+    "submit": state.SUBMITTED, "wait": state.RUNNING, "fetch": state.FETCHING,
+    "verify": state.VERIFYING, "persist": state.PERSISTED, "release": state.RELEASING,
+}
+
+
+def _need(job: dict) -> str:
+    return "qwen" if str(job["model"]["key"]).startswith("qwen") else "h3"
+
+
+FAIL_STATE_OF_STEP = {
+    "provision": state.FAILED_PROVISION, "setup": state.FAILED_PROVISION,
+    "ready": state.FAILED_PROVISION, "submit": state.FAILED_RUN,
+    "wait": state.FAILED_RUN, "fetch": state.FAILED_FETCH,
+    "verify": state.FAILED_VERIFY, "persist": state.FAILED_VERIFY,
+    "release": state.FAILED,
+}
+
+
+def _do_step(name: str, job_id: str, job: dict, opts, ctx: dict) -> None:
+    """执行单步动作（不含状态转移）。"""
+    # 测试钩子：P1_FAIL_AT=fetch 可在指定步骤注入失败，用于验证续跑
+    if os.environ.get("P1_FAIL_AT") == name:
+        raise RunError(f"注入失败（测试）：{name}",
+                       FAIL_STATE_OF_STEP.get(name, state.FAILED))
+    if name == "provision":
+        ctx.update(step_provision(job, opts))
+        _mark_step(job_id, name, uhost_id=ctx.get("uhost_id"),
+                   gpu=(ctx.get("inst") or {}).get("GpuType"), hourly=ctx.get("hourly"))
+    elif name == "setup":
+        run_setup(ctx["uhost_id"], _need(job), ctx)
+        _mark_step(job_id, name)
+    elif name == "ready":
+        step_ready(job, opts, ctx)
+        _mark_step(job_id, name)
+    elif name == "submit":
+        step_submit(job, opts, ctx)
+        _mark_step(job_id, name, prompt_id=ctx.get("prompt_id"))
+    elif name == "wait":
+        ctx["files"] = step_wait(job, opts, ctx)
+        _mark_step(job_id, name, files=[list(f) for f in ctx["files"]])
+    elif name == "fetch":
+        ctx["arts"] = step_fetch(job, opts, ctx, ctx["files"])
+        _mark_step(job_id, name, local=[a.name for a in ctx["arts"]])
+    elif name == "verify":
+        ctx["res"] = step_verify(job, opts, ctx, ctx["arts"])
+        _mark_step(job_id, name, verdict=ctx["res"].get("verdict"))
+    elif name == "persist":
+        ctx["man"] = step_persist(job, opts, ctx, ctx["res"], ctx["arts"])
+        _mark_step(job_id, name)
+    elif name == "release":
+        step_release(job, opts, ctx)
+        _mark_step(job_id, name)
+    else:
+        raise RunError(f"未知步骤 {name}", state.FAILED)
+
+
+def _execute(job_id: str, job: dict, opts, ctx: dict, start_at: str = "provision") -> dict:
+    """从 start_at 开始顺序执行剩余步骤（每步先转移状态再执行）。"""
+    names = state.STEP_ORDER[state.STEP_ORDER.index(start_at):]
+    for name in names:
+        st = STEP_STATE_MAP.get(name)
+        if st:
+            cur = state.load_job(job_id).get("state")
+            if cur != st:
+                state.transition(job_id, st, reason=f"步骤 {name}")
+        _do_step(name, job_id, job, opts, ctx)
+    return ctx
+
+
+def _next_step(job: dict) -> str | None:
+    steps = job.get("steps") or {}
+    for name in state.STEP_ORDER:
+        if not (steps.get(name) or {}).get("done"):
+            return name
+    return None
+
+
+def _rebuild_ctx(job: dict) -> dict:
+    """续跑时重建上下文：从 uhost_id 反查 host/密码，从 steps 取 prompt_id。"""
+    from compshare.cs import CS
+
+    inst = job.get("instance") or {}
+    uid = inst.get("uhost_id")
+    if not uid:
+        return {}
+    cs = CS()
+    info = cs.get(uid)
+    steps = job.get("steps") or {}
+    ctx = {
+        "uhost_id": uid,
+        "host": cs.public_ip(info),
+        "port": "23",
+        "password": cs.password_of(info),
+        "inst": info,
+        "hourly": (steps.get("provision") or {}).get("hourly"),
+        "prompt_id": (steps.get("submit") or {}).get("prompt_id"),
+    }
+    # 恢复中间产物：断点靠后的步骤要依赖前面步骤的产出
+    wf = (steps.get("wait") or {}).get("files")
+    if wf:
+        ctx["files"] = [tuple(f) for f in wf]
+    fl = (steps.get("fetch") or {}).get("local")
+    if fl:
+        jdir = store.job_dir(job["job_id"])
+        ctx["arts"] = [jdir / "artifacts" / n for n in fl]
+    return ctx
+
+
+KEEP_MINUTES = 15          # 失败后实例保留时长（到点自动关机）
+
+
+def _keep_instance(job_id: str, ctx: dict, opts) -> bool:
+    """失败后保留实例：设定时关机兜底，提示可续跑/可 abort。
+
+    返回 True 表示实例被保留（调用方不要再销毁）。
+    """
+    uid = (ctx or {}).get("uhost_id")
+    if not uid or getattr(opts, "abort", False) or getattr(opts, "no_keep", False):
+        return False
+    try:
+        from compshare.cs import CS
+        cs = CS()
+        ts = int(time.time() + KEEP_MINUTES * 60)
+        cs.stop_at(uid, ts)
+        _say(f"实例 {uid} 已保留（{KEEP_MINUTES} 分钟后自动关机兜底）")
+        _say(f"  续跑：python3 tools/p1/run.py {job_id} --resume")
+        _say(f"  放弃：python3 tools/p1/run.py {job_id} --abort")
+        return True
+    except Exception as e:
+        _say(f"  ⚠ 保留实例失败（将走清理路径）：{e}")
+        return False
+
+
+def _resume(job_id: str, job: dict, opts) -> int:
+    """从 FAILED_* 续跑：RESUMING → 重放到断点状态 → 继续执行。"""
+    cur = job.get("state")
+    if cur in (state.DONE, state.FAILED, state.ABORTED):
+        _say(f"✗ 作业已是终态 {cur}，无需续跑")
+        return 0 if cur == state.DONE else 1
+    if cur not in state.FAIL_BRANCH and cur not in state.MAIN_CHAIN:
+        _say(f"✗ 当前状态 {cur} 不支持续跑")
+        return 1
+
+    nxt = _next_step(job)
+    if nxt is None:
+        _say("所有步骤已完成，无需续跑（可 --abort 清理实例）")
+        return 0
+
+    target = STEP_STATE_MAP.get(nxt)
+    _say(f"续跑：{cur} → RESUMING → {target or 'READY'}（断点步骤 {nxt}）")
+
+    with store.JobLock():
+        ctx = _rebuild_ctx(job)
+        if not ctx.get("uhost_id"):
+            _say("✗ job 里没有 uhost_id，无法续跑（请重新 new 一个作业）")
+            return 1
+        try:
+            # FAILED_* 走 RESUMING 中转；已在中间状态（如进程被杀）则直接继续
+            if cur in state.FAIL_BRANCH:
+                state.transition(job_id, state.RESUMING, reason=f"续跑，断点 {nxt}")
+            _execute(job_id, job, opts, ctx, start_at=nxt)
+            # 收尾
+            if state.load_job(job_id)["state"] == state.RELEASING:
+                pass
+            state.transition(job_id, state.DONE, reason="续跑完成")
+            man = store.read_json(store.job_file(job_id, "manifest.json")) or {}
+            step_done(job, opts, ctx, man)
+            _say("✓ 续跑完成")
+            _ledger(job_id, (man.get("cost") or {}).get("amount", 0),
+                    uhost=ctx.get("uhost_id"), model=job["model"]["key"], resumed=True)
+            return 0
+        except RunError as e:
+            _say(f"✗ 续跑失败：{e}")
+            cur2 = state.load_job(job_id).get("state")
+            if cur2 not in state.TERMINAL:
+                try:
+                    state.transition(job_id, e.fail_state, reason=str(e)[:200])
+                except Exception:
+                    pass
+            _keep_instance(job_id, ctx, opts)
+            return 1
+        except Exception as e:
+            # 非 RunError（程序 bug / 网络异常）也要落到失败态，别把 job 卡在中间状态
+            _say(f"✗ 续跑异常：{type(e).__name__}: {e}")
+            cur2 = state.load_job(job_id).get("state")
+            if cur2 not in state.TERMINAL:
+                fs = FAIL_STATE_OF_STEP.get(nxt, state.FAILED_RUN)
+                try:
+                    state.transition(job_id, fs, reason=f"{type(e).__name__}: {str(e)[:150]}")
+                except Exception:
+                    pass
+            _keep_instance(job_id, ctx, opts)
+            return 1
+
+
+def _abort(job_id: str, job: dict, opts) -> int:
+    """放弃续跑：销毁保留的实例，作业标 FAILED。"""
+    cur = job.get("state")
+    if cur in (state.DONE, state.FAILED, state.ABORTED):
+        _say(f"作业已是终态 {cur}，无需 abort")
+        return 0
+    ctx = _rebuild_ctx(job)
+    with store.JobLock():
+        if cur in state.FAIL_BRANCH:
+            try:
+                state.transition(job_id, state.RELEASING, reason="abort：放弃续跑")
+            except Exception as e:
+                _say(f"  ⚠ 转移到 RELEASING 失败：{e}")
+        try:
+            step_release(job, opts, ctx)
+        except Exception as e:
+            _say(f"  ⚠ 销毁异常：{e}")
+        if state.load_job(job_id).get("state") == state.RELEASING:
+            state.transition(job_id, state.FAILED, reason="abort 收尾")
+        _say("✓ 已放弃并清理")
+    return 0
+
+
 def run(job_id: str, opts) -> int:
     job = state.load_job(job_id)
     _say(f"作业 {job_id} · 模型 {job['model']['key']} · 预算 ¥{job['budget'].get('max_cost')}")
@@ -475,48 +695,21 @@ def run(job_id: str, opts) -> int:
         _say("  （真实执行请去掉 --dry-run）")
         return 0
 
+    if getattr(opts, "abort", False):
+        return _abort(job_id, job, opts)
+
+    if opts.resume:
+        return _resume(job_id, job, opts)
+
     with store.JobLock():
         ctx: dict = {}
         try:
-            state.transition(job_id, state.PROVISIONING, reason="开始建机")
-            ctx.update(step_provision(job, opts))
-            _mark_step(job_id, "provision", uhost_id=ctx.get("uhost_id"),
-                       gpu=(ctx.get("inst") or {}).get("GpuType"), hourly=ctx.get("hourly"))
-
-            need = "qwen" if str(job["model"]["key"]).startswith("qwen") else "h3"
-            run_setup(ctx["uhost_id"], need, ctx)
-            _mark_step(job_id, "setup")
-            state.transition(job_id, state.READY, reason="实例就绪")
-            step_ready(job, opts, ctx)
-            _mark_step(job_id, "ready")
-
-            state.transition(job_id, state.SUBMITTED, reason="提交 workflow")
-            step_submit(job, opts, ctx)
-            _mark_step(job_id, "submit", prompt_id=ctx.get("prompt_id"))
-
-            state.transition(job_id, state.RUNNING, reason="等待推理")
-            files = step_wait(job, opts, ctx)
-            _mark_step(job_id, "wait", files=[list(f) for f in files])
-
-            state.transition(job_id, state.FETCHING, reason="拉取产物")
-            arts = step_fetch(job, opts, ctx, files)
-            _mark_step(job_id, "fetch", local=[a.name for a in arts])
-
-            state.transition(job_id, state.VERIFYING, reason="校验产物")
-            res = step_verify(job, opts, ctx, arts)
-            _mark_step(job_id, "verify", verdict=res.get("verdict"))
-
-            state.transition(job_id, state.PERSISTED, reason=f"manifest 落盘，{res['verdict']}")
-            man = step_persist(job, opts, ctx, res, arts)
-            _mark_step(job_id, "persist")
-
-            state.transition(job_id, state.RELEASING, reason="销毁实例")
-            step_release(job, opts, ctx)
-            _mark_step(job_id, "release")
-
+            _execute(job_id, job, opts, ctx)
             state.transition(job_id, state.DONE, reason="闭环完成")
-            step_done(job, opts, ctx, man)
+            step_done(job, opts, ctx, ctx["man"])
             _say("✓ 闭环完成")
+            _ledger(job_id, (ctx["man"].get("cost") or {}).get("amount", 0),
+                    uhost=ctx.get("uhost_id"), model=job["model"]["key"])
             return 0
 
         except RunError as e:
@@ -527,7 +720,11 @@ def run(job_id: str, opts) -> int:
                     state.transition(job_id, e.fail_state, reason=str(e)[:200])
                 except Exception as e2:
                     _say(f"  进入 {e.fail_state} 失败：{e2}")
-            # 失败也必须释放；G1 允许 FAILED_* → RELEASING
+            # 断点续跑：失败时**保留实例**，靠定时关机兜底，等 --resume 或 --abort
+            kept = _keep_instance(job_id, ctx, opts)
+            if kept:
+                return 1
+            # 未保留（例如建机都没成功）→ 走原有清理路径
             cur = state.load_job(job_id).get("state")
             if cur in state.FAIL_BRANCH:
                 try:
@@ -567,6 +764,10 @@ def main(argv=None) -> int:
     ap.add_argument("--image", help="镜像关键字")
     ap.add_argument("--hours", type=float, default=1.0, help="定时关机兜底小时数")
     ap.add_argument("--wait-stock", type=int, default=0, help="无货时最多等待秒数")
+    ap.add_argument("--resume", action="store_true",
+                    help="从 FAILED_* 续跑：按 job.json 的 steps 从断点继续")
+    ap.add_argument("--abort", action="store_true", help="放弃续跑，销毁保留的实例")
+    ap.add_argument("--no-keep", action="store_true", help="失败时不保留实例（旧行为）")
     a = ap.parse_args(argv)
     return run(a.job_id, a)
 

@@ -34,11 +34,21 @@ FAILED_FETCH = "FAILED_FETCH"
 FAILED_VERIFY = "FAILED_VERIFY"
 FAILED = "FAILED"
 ABORTED = "ABORTED"
+RESUMING = "RESUMING"      # 失败后待续跑的中转态
 
 MAIN_CHAIN = [CREATED, PROVISIONING, READY, SUBMITTED, RUNNING,
               FETCHING, VERIFYING, PERSISTED, RELEASING, DONE]
 FAIL_BRANCH = [FAILED_PROVISION, FAILED_RUN, FAILED_FETCH, FAILED_VERIFY]
-STATES = MAIN_CHAIN + FAIL_BRANCH + [FAILED, ABORTED]
+STATES = MAIN_CHAIN + FAIL_BRANCH + [RESUMING, FAILED, ABORTED]
+
+# 断点 → 该步完成后应处的状态（续跑重放用）
+STEP_STATE = {
+    "provision": PROVISIONING, "setup": READY, "ready": READY,
+    "submit": SUBMITTED, "wait": RUNNING, "fetch": FETCHING,
+    "verify": VERIFYING, "persist": PERSISTED, "release": RELEASING,
+}
+STEP_ORDER = ["provision", "setup", "ready", "submit", "wait",
+              "fetch", "verify", "persist", "release"]
 
 TERMINAL = {DONE, FAILED, ABORTED}
 
@@ -58,7 +68,9 @@ TRANSITIONS: dict[str, set[str]] = {
     ABORTED: set(),
 }
 for _f in FAIL_BRANCH:
-    TRANSITIONS[_f] = {RELEASING}
+    TRANSITIONS[_f] = {RELEASING, RESUMING}
+TRANSITIONS[RESUMING] = {PROVISIONING, READY, SUBMITTED, RUNNING,
+                         FETCHING, VERIFYING, PERSISTED, RELEASING}
 
 
 class IllegalTransition(Exception):
@@ -81,6 +93,12 @@ def check_transition(src: str, dst: str, job: dict, manifest: dict | None = None
         raise IllegalTransition(f"未知目标状态 {dst!r}")
     if not can_transition(src, dst):
         raise IllegalTransition(f"非法转移 {src} → {dst}（允许：{sorted(TRANSITIONS.get(src, [])) or '无，终态'}）")
+
+    # G-R：续跑只能从 FAILED_* 进入，且必须带着断点信息
+    if dst == RESUMING and src not in FAIL_BRANCH:
+        raise GuardViolation(f"G-R：只有 FAILED_* 可以进入 RESUMING（当前 {src}）")
+    if src == RESUMING and dst not in TRANSITIONS[RESUMING]:
+        raise GuardViolation(f"G-R：RESUMING 只能回到主链状态（当前目标 {dst}）")
 
     # G1：没落盘不许销毁
     if dst == RELEASING and src != PERSISTED and src not in FAIL_BRANCH:
@@ -186,5 +204,5 @@ def state_badge(s: str) -> str:
         RUNNING: "推理中", FETCHING: "拉产物", VERIFYING: "校验中", PERSISTED: "已落盘",
         RELEASING: "销毁中", DONE: "完成", FAILED_PROVISION: "建机失败",
         FAILED_RUN: "推理失败", FAILED_FETCH: "传输失败", FAILED_VERIFY: "校验失败",
-        FAILED: "失败", ABORTED: "已中止",
+        FAILED: "失败", ABORTED: "已中止", RESUMING: "待续跑",
     }.get(s, s)
