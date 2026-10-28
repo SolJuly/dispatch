@@ -38,3 +38,7 @@ reports/risk/
 
 # P1 派生数据（可重建）
 reports/p1/jobs/*/thumbs/
+
+# PR 派生文件（不入库）
+*.patch
+*.diff

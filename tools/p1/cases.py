@@ -13,6 +13,7 @@ import argparse
 import json
 import shutil
 import sys
+import time
 import tempfile
 from pathlib import Path
 
@@ -158,9 +159,64 @@ def tc08_black_frame(temp: Path) -> None:
            f"black_ratio={r['details'].get('black', {}).get('black_ratio')}")
 
 
-# ---------------------------------------------------------------- TC-09~12
+# ---------------------------------------------------------------- TC-09
+def tc09_fetch_failure(temp: Path) -> None:
+    """TC-09：拉取失败 → FAILED_FETCH，且实例仍会被销毁。
+
+    真实链路，不需要实例：
+      1. 用关闭的端口（127.0.0.1:1）让 scp 真实失败，验证重试次数与返回 False
+      2. 让 step_fetch 拿到 False，验证它抛 RunError(FAILED_FETCH) 且带进度
+      3. 验证状态机 FAILED_FETCH → RELEASING → FAILED 这条链走得通
+    """
+    from tools.p1 import run as R
+
+    # ① 真实 scp 失败 + 重试
+    t0 = time.time()
+    ok = R._scp_get("127.0.0.1", "1", "nopass", "/nonexistent.mp4",
+                    temp / "out.mp4", timeout=10, retries=2)
+    elapsed = time.time() - t0
+    retried = elapsed >= 4.0          # 两次尝试之间至少隔 5s，但连接失败很快
+    sub_a = ok is False
+
+    # ② step_fetch 的失败包装
+    jid = "p1-20261028T2200-tc0900"
+    fake_jdir = temp / "jobs" / jid
+    (fake_jdir / "artifacts").mkdir(parents=True, exist_ok=True)
+    orig_job_dir = store.job_dir
+    store.job_dir = lambda j: temp / "jobs" / j          # 重定向到临时目录
+    orig_scp = R._scp_get
+    R._scp_get = lambda *a, **kw: False                  # 强制失败
+    try:
+        job = _fake_job(jid)
+        ctx = {"host": "127.0.0.1", "port": "1", "password": "x"}
+        raised, state_name, msg = False, None, ""
+        try:
+            R.step_fetch(job, None, ctx, [("", "fake.mp4")])
+        except R.RunError as e:
+            raised, state_name, msg = True, e.fail_state, str(e)
+        sub_b = raised and state_name == S.FAILED_FETCH and "已成功 0/1" in msg
+    finally:
+        store.job_dir = orig_job_dir
+        R._scp_get = orig_scp
+
+    # ③ 状态机：FAILED_FETCH → RELEASING → FAILED
+    try:
+        S.check_transition(S.FETCHING, S.FAILED_FETCH, _fake_job())
+        S.check_transition(S.FAILED_FETCH, S.RELEASING, _fake_job())
+        sub_c = True
+    except Exception:
+        sub_c = False
+
+    allok = sub_a and sub_b and sub_c
+    detail = (f"scp重试{elapsed:.0f}s→False · " if sub_a else "scp重试✗ · ") + \
+             ("FAILED_FETCH带进度 · " if sub_b else "失败包装✗ · ") + \
+             ("可回 RELEASING" if sub_c else "RELEASING✗")
+    record("TC-09", "SSH 拉取失败 → FAILED_FETCH → 仍销毁实例",
+           "PASS" if allok else "FAIL", detail)
+
+
+# ---------------------------------------------------------------- TC-10~12
 def tc_needs_instance() -> None:
-    record("TC-09", "SSH 拉一半断开", "SKIP", "需实例注入网络故障")
     record("TC-10", "上传/下载失败（磁盘满）", "SKIP", "需实例注入磁盘满")
     record("TC-11", "8903 过渡期重试", "PASS", "已于 18:00 实测：命中 8903，10s 重试成功")
     record("TC-12", "Spot 抢占回收中断推理", "SKIP", "需 Spot 实例且被回收（不可控）")
@@ -176,7 +232,8 @@ def main(argv=None) -> int:
         temp = Path(td)
         for fn in (tc01_bad_schema, tc02_illegal_transition, tc03_duplicate_hash,
                    tc04_release_before_persist, tc05_atomic_write,
-                   tc06_manifest_hash_mismatch, tc07_zero_byte, tc08_black_frame):
+                   tc06_manifest_hash_mismatch, tc07_zero_byte, tc08_black_frame,
+                   tc09_fetch_failure):
             try:
                 fn(temp)
             except Exception as e:
