@@ -1,0 +1,45 @@
+{
+  "schema": "p1.workflows/v1",
+  "generated_at": "2026-10-27T22:20:00+08:00",
+  "note": "占位符 {{PROMPT}}/{{NEG_PROMPT}}/{{SEED}}/{{FIRST_FRAME}}/{{OUTPUT_PREFIX}} 由运行时替换；结构与超参固定，故 sha256 稳定",
+  "workflows": [
+    {
+      "key": "h3_t2v_121f",
+      "file": "workflows/h3_t2v_121f.api.json",
+      "sha256": "339e1f0e3a50a41d49e5a1a8bda95f4225fb138e313c83be1e8bee31848ac966",
+      "desc": "MiniMax H3 文生视频 121帧(5.17s) Dasiwa 20步",
+      "nodes": 10
+    },
+    {
+      "key": "h3_i2v_121f",
+      "file": "workflows/h3_i2v_121f.api.json",
+      "sha256": "5253947d2cdafe91a6ab6a26cfb32e0f97ccb936e3de78bfd4856833a8114326",
+      "desc": "MiniMax H3 图生视频 121帧(5.17s) Dasiwa 20步",
+      "nodes": 11
+    },
+    {
+      "key": "qwen_image_t2i",
+      "file": "workflows/qwen_image_t2i.api.json",
+      "sha256": "16fd3eeb78f3fa2ab1b953ded95d8cba3ab8fc1aa1278c79d54a0178cdf59583",
+      "desc": "Qwen-Image 文生图 1024x1024 20步",
+      "nodes": 9,
+      "note": "vae/clip 改为软链名（qwen_std_vae / qwen25vl7b_std），原始名是断链"
+    },
+    {
+      "key": "ltxv_2b_t2v",
+      "file": "workflows/ltxv_2b_t2v.api.json",
+      "sha256": "647c8be5b4b76480d57977e760679ed95b83be1ddbdc9ca59e18c8a7c4ffe8a4",
+      "desc": "LTXV 2B v0.9.5 文生视频 73帧(2.92s@25fps)",
+      "nodes": 11,
+      "note": "官方结构：SamplerCustom+LTXVScheduler(res_multistep)；97帧会崩，73帧稳定"
+    },
+    {
+      "key": "wan21_i2v_480p",
+      "file": "workflows/wan21_i2v_480p.api.json",
+      "sha256": "4b93e798148a5749319b6aae66dfc339b9b7c22a276cc06dcb8dc911b715bfbf",
+      "desc": "Wan2.1 i2v 480p 官方 fp8 · 49帧(3.06s@16fps)",
+      "nodes": 13,
+      "note": "必须用官方 fp8；社区 NVFP4 4bit 版会过曝+噪点+崩坏（已实测）"
+    }
+  ]
+}

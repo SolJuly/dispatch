@@ -1,0 +1,85 @@
+{
+  "started": "2026-10-27 20:57:54",
+  "groups": [
+    {
+      "id": "A",
+      "desc": "SVD 4段链式 97帧 @8fps",
+      "fps": 8,
+      "mode": "frames",
+      "seg_s": [
+        42.1,
+        28.1,
+        28.1,
+        28.1
+      ],
+      "infer_s": 126.4,
+      "frames": 97,
+      "ok": true,
+      "mp4": "/root/matrix_out/A/A.mp4",
+      "native": "local-PyAV",
+      "duration_expected_s": 12.125,
+      "size_mb": 1.438,
+      "wall_s": 129.3
+    },
+    {
+      "id": "B",
+      "desc": "SVD 2段链式 48帧 @8fps",
+      "fps": 8,
+      "mode": "frames",
+      "seg_s": [
+        28.1,
+        28.1
+      ],
+      "infer_s": 56.2,
+      "frames": 49,
+      "ok": true,
+      "mp4": "/root/matrix_out/B/B.mp4",
+      "native": "local-PyAV",
+      "duration_expected_s": 6.125,
+      "size_mb": 0.825,
+      "wall_s": 57.5
+    },
+    {
+      "id": "C",
+      "desc": "SVD 单段 25帧 @8fps",
+      "fps": 8,
+      "mode": "frames",
+      "seg_s": [
+        28.1
+      ],
+      "infer_s": 28.1,
+      "frames": 25,
+      "ok": true,
+      "mp4": "/root/matrix_out/C/C.mp4",
+      "native": "local-PyAV",
+      "duration_expected_s": 3.125,
+      "size_mb": 0.447,
+      "wall_s": 28.8
+    },
+    {
+      "id": "C2",
+      "desc": "SVD 单段 直出mp4 @8fps",
+      "fps": 8,
+      "mode": "video",
+      "infer_s": 2.0,
+      "ok": true,
+      "native": "comfyui-SaveVideo",
+      "mp4": "/root/matrix_out/C2/C2.mp4",
+      "duration_expected_s": 3.125,
+      "size_mb": 0.297,
+      "wall_s": 2.0
+    },
+    {
+      "id": "D",
+      "desc": "LTXV2B 97帧 直出 @24fps",
+      "fps": 24,
+      "mode": "ltxv",
+      "infer_s": 2.0,
+      "ok": false,
+      "err": "[['execution_error', {'prompt_id': '7be20e01-344f-4e00-b439-c0f626782585', 'node_id': 'neg', 'node_type': 'CLIPTextEncode', 'executed': ['lat', 'ckpt'], 'exception_message': 'ERROR: clip input is invalid: None\\n\\nIf the clip is from a checkpoint loader node your checkpoint does not contain a valid c",
+      "wall_s": 2.0
+    }
+  ],
+  "status": "ok",
+  "total_s": 219.6
+}

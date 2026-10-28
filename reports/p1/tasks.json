@@ -1,0 +1,667 @@
+{
+  "schema": "p1.tasks/v1",
+  "phase": "P1",
+  "updated_at": "2026-10-28T21:54:26+08:00",
+  "scope_note": "只做单任务最小闭环，不做并发批量；顺序：底座 → 校验&持久化 → 模型 → 异常",
+  "global_blockers": [],
+  "tasks": [
+    {
+      "id": "P1-T00",
+      "title": "实例停止 / 销毁能力（已实现，登记为 verified）",
+      "status": "done",
+      "phase_step": 1,
+      "depends_on": [],
+      "deliverables": [
+        "csctl.py: stop/rm"
+      ],
+      "acceptance": [
+        "stop 1s→Stopping/8s→Stopped（README §7 实测）",
+        "rm 后实例列表清空"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 0,
+          "at": "2026-10-26T13:05:00+08:00",
+          "note": "P0 期已实测，本轮仅登记不复做",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "README.md §7 实测记录",
+        "reports/audit-20261026-1320.md §1.1"
+      ]
+    },
+    {
+      "id": "P1-T01",
+      "title": "台账对齐：✅⚠️❌ 三项落成任务并关联 P0 条目",
+      "status": "done",
+      "phase_step": 1,
+      "depends_on": [],
+      "deliverables": [
+        "reports/p1/tasks.json",
+        "reports/p1/tasks.md"
+      ],
+      "acceptance": [
+        "15 条任务均可机读、依赖无环",
+        "每条有验收口径与对应清单来源"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-27T13:45:00+08:00",
+          "note": "15 条落库，含 T00 verified",
+          "cost": 0
+        },
+        {
+          "round": 1,
+          "at": "2026-10-27T13:40:57+08:00",
+          "note": "15 条落库，V1 通过（15 条 / 无环路 / 校验零错）",
+          "cost": 0.0
+        }
+      ],
+      "evidence": [
+        "reports/p1/tasks.json"
+      ]
+    },
+    {
+      "id": "P1-T02",
+      "title": "job / manifest 契约与校验器（纯标准库）",
+      "status": "done",
+      "phase_step": 1,
+      "depends_on": [
+        "P1-T01"
+      ],
+      "deliverables": [
+        "tools/p1/ids.py",
+        "tools/p1/store.py",
+        "tools/p1/schema.py"
+      ],
+      "acceptance": [
+        "A1 非法 job.json 被拒",
+        "V3 坏 job_id / 目录名不一致 / hash 不符 / 有环均被拒"
+      ],
+      "blockers": [],
+      "cases": [
+        "TC-01",
+        "TC-06"
+      ],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-27T13:41:56+08:00",
+          "note": "ids/store/schema 三件套落地；V3 四类坏数据全部被拒（含 hash 重算比对）",
+          "cost": 0.0
+        }
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P1-T03",
+      "title": "状态机核心：15 态 + 守卫 G1–G5 + CAS + events",
+      "status": "done",
+      "phase_step": 1,
+      "depends_on": [
+        "P1-T02"
+      ],
+      "deliverables": [
+        "tools/p1/state.py"
+      ],
+      "acceptance": [
+        "A3 越级转移被拒",
+        "G1 未 PERSISTED 不得 RELEASING",
+        "events 与 state_seq 严格对齐"
+      ],
+      "blockers": [],
+      "cases": [
+        "TC-02",
+        "TC-04",
+        "TC-05"
+      ],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-27T13:41:56+08:00",
+          "note": "15 态 + 白名单 + G1/G2/G3；越级/终态再动全部 IllegalTransition；全程事件 10 条",
+          "cost": 0.0
+        }
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P1-T04",
+      "title": "jobctl CLI：tasks / next / new / show / status / validate",
+      "status": "done",
+      "phase_step": 1,
+      "depends_on": [
+        "P1-T02",
+        "P1-T03"
+      ],
+      "deliverables": [
+        "tools/p1/jobctl.py",
+        "tools/p1/status.py",
+        "tools/p1/tasks.py"
+      ],
+      "acceptance": [
+        "A2 show 打印状态链与事件",
+        "V2 next 算出下一步",
+        "V4 同 params_hash 二次 new 被拒（--force 放行）"
+      ],
+      "blockers": [],
+      "cases": [
+        "TC-03"
+      ],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-27T13:41:56+08:00",
+          "note": "tasks/next/new/show/status/validate 六子命令；V2 next=T02、V4 查重拒绝且 --force 放行",
+          "cost": 0.0
+        }
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P1-T05",
+      "title": "架构图 H 区接 tasks：完成度 / 当前任务 / 阻塞",
+      "status": "done",
+      "phase_step": 1,
+      "depends_on": [
+        "P1-T04"
+      ],
+      "deliverables": [
+        "tools/arch.py（p1_section 扩展）",
+        "reports/p1/status.json"
+      ],
+      "acceptance": [
+        "V5 H 区显示 tasks x/15、当前任务、阻塞数，且随 status.json 变"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-27T13:42:22+08:00",
+          "note": "H 区两行信息栏：任务 5/15 + 当前/下一步 + 阻塞数；步骤条按 phase_step 聚合",
+          "cost": 0.0
+        }
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P1-T06.1",
+      "title": "视频质量基线验证：SVD 链式 vs 单段 vs LTXV 长帧（定参后才允许入库）",
+      "status": "done",
+      "phase_step": 2,
+      "depends_on": [
+        "P1-T01"
+      ],
+      "deliverables": [
+        "reports/p1/video-quality/baseline.md",
+        "并排对比素材"
+      ],
+      "acceptance": [
+        "客观：无黑帧、时间轴正确",
+        "主观：你已确认改用高帧(H3 121帧)",
+        "结论：H3 121帧 + Qwen-Image 为基线"
+      ],
+      "blockers": [],
+      "cases": [
+        "TC-08"
+      ],
+      "budget_cny": 0.6,
+      "rounds": [
+        {
+          "round": 2,
+          "at": "2026-10-27T21:06:37+08:00",
+          "note": "A/B/C/C2 出片，D(LTX22B) 模型加载失败；发现三因叠加：4段链式构图漂移(色漂12.43 vs 3.22)、19.4fps 2.4倍速、motion 偏大。实扣 ¥0.81",
+          "cost": 0.81
+        },
+        {
+          "round": 3,
+          "at": "2026-10-27T21:39:21+08:00",
+          "note": "H3 本地模型 t2v/i2v 各 3.04s 成功出片、Qwen-Image t2i 出图；H3 后段崩坏待换模型复验。实扣 ¥0.97",
+          "cost": 0.97
+        },
+        {
+          "round": 4,
+          "at": "2026-10-27T21:58:22+08:00",
+          "note": "归因完成：帧数73崩/121稳(主因)，20步优于4步(次要)。H3 基线定为 Dasiwa 20步/121帧，3秒需求靠后处理裁切。实扣 ¥0.67",
+          "cost": 0.67
+        },
+        {
+          "round": 5,
+          "at": "2026-10-27T22:15:22+08:00",
+          "note": "定案：H3 统一 121 帧(5.17s)，3秒需求靠裁切；Qwen-Image 作图片基线",
+          "cost": 0.0
+        }
+      ],
+      "evidence": [
+        "reports/p1/h3-diag/README.md",
+        "reports/p1/h3-diag/compare-ABC.png",
+        "reports/p1/h3-qwen/README.md"
+      ]
+    },
+    {
+      "id": "P1-T06.2",
+      "title": "workflow 入库（只入库质量达标的那一份）+ sha256 + 来源追溯",
+      "status": "done",
+      "phase_step": 2,
+      "depends_on": [
+        "P1-T06.1"
+      ],
+      "deliverables": [
+        "workflows/<model>.api.json",
+        "reports/p1/workflow-provenance.md"
+      ],
+      "acceptance": [
+        "sha256 可复算（已核对一致）",
+        "与 job.model.workflow_sha256 对应（已验证 339e1f0e）",
+        "入库的是定案参数组"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-27T22:15:22+08:00",
+          "note": "三份 workflow 入库：h3_t2v_121f / h3_i2v_121f / qwen_image_t2i；占位符化保证 sha256 稳定",
+          "cost": 0.0
+        }
+      ],
+      "evidence": [
+        "workflows/MANIFEST.json",
+        "reports/p1/workflow-provenance.md"
+      ]
+    },
+    {
+      "id": "P1-T07",
+      "title": "校验层：ffprobe 解码 / 几何 / 帧数 / 体积 / 黑帧 / 参数回读",
+      "status": "done",
+      "phase_step": 2,
+      "depends_on": [
+        "P1-T03",
+        "P1-T06.2"
+      ],
+      "deliverables": [
+        "tools/p1/verify.py",
+        "tools/p1/jobctl.py:verify"
+      ],
+      "acceptance": [
+        "6 条复验项可判定",
+        "正例 PASS / 5 类坏产物全部拒绝",
+        "黑帧阈值为 limited-range 24"
+      ],
+      "blockers": [
+        "B2 本机无 GPU，校验只做文件层"
+      ],
+      "cases": [
+        "TC-06",
+        "TC-07",
+        "TC-08"
+      ],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-28T17:01:54+08:00",
+          "note": "verify.py 落地：decode/geometry/frames/size/black/params；端到端 PASS，负向 5 项全拒",
+          "cost": 0.0
+        }
+      ],
+      "evidence": [
+        "tools/p1/verify.py",
+        "reports/p1/logs/verify-tests.txt"
+      ]
+    },
+    {
+      "id": "P1-T08",
+      "title": "持久化 → 释放的串行流程（G1 落地 + 8903 重试）",
+      "status": "done",
+      "phase_step": 2,
+      "depends_on": [
+        "P1-T07"
+      ],
+      "deliverables": [
+        "tools/p1/run.py"
+      ],
+      "acceptance": [
+        "TC-04 未 PERSISTED 的 RELEASING 被拦（已验）",
+        "TC-11 8903 重试（已验）",
+        "H3 与 Qwen 两条闭环均跑通",
+        "manifest 字段完整（bug7 已验）"
+      ],
+      "blockers": [
+        "U2：过渡期 stop/rm 会被 8903 拒，重试包在 loop 侧"
+      ],
+      "cases": [
+        "TC-04",
+        "TC-11"
+      ],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-28T17:43:16+08:00",
+          "note": "run.py 编排落地：建机→setup→提交→轮询→拉取→校验→manifest→销毁；G1/G2 在真实链路生效",
+          "cost": 1.5
+        },
+        {
+          "round": 2,
+          "at": "2026-10-28T18:14:50+08:00",
+          "note": "TC-11 验证通过：8903 必然命中，10s 重试可恢复，实例最终删除",
+          "cost": 0.05
+        },
+        {
+          "round": 3,
+          "at": "2026-10-28T18:34:16+08:00",
+          "note": "Qwen 闭环 1.8 分钟 ¥0.114 PASS；7 个 bug 全部验证清零",
+          "cost": 0.114
+        }
+      ],
+      "evidence": [
+        "tools/p1/run.py",
+        "reports/p1/jobs/p1-20261028T1736-5ed8f1/manifest.json"
+      ]
+    },
+    {
+      "id": "P1-T09",
+      "title": "首次真实单任务闭环（H3 121帧 / 4090_48G / 1 条）",
+      "status": "done",
+      "phase_step": 2,
+      "depends_on": [
+        "P1-T08",
+        "P1-T15"
+      ],
+      "deliverables": [
+        "reports/p1/jobs/<job_id>/{job.json,manifest.json,artifacts/}"
+      ],
+      "acceptance": [
+        "manifest verdict=PASS",
+        "实例已销毁",
+        "实扣 ¥0.18 ≤ ¥2",
+        "manifest.instance 字段完整（bug7 修复后）"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 2.0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-28T17:43:16+08:00",
+          "note": "首个真实闭环：uhost-1x0sfbrkc7zj，4.4 分钟，¥0.28，产物 344KB PASS",
+          "cost": 0.28
+        },
+        {
+          "round": 2,
+          "at": "2026-10-28T18:14:50+08:00",
+          "note": "第二次闭环：2.9 分钟 ¥0.1837，manifest 字段完整，setup 提速到 40s",
+          "cost": 0.18
+        }
+      ],
+      "evidence": [
+        "reports/p1/jobs/p1-20261028T1736-5ed8f1/"
+      ]
+    },
+    {
+      "id": "P1-T10",
+      "title": "Wan2.1 黑帧复验（换 ComfyUI 0.36 镜像）",
+      "status": "done",
+      "phase_step": 3,
+      "depends_on": [
+        "P1-T09",
+        "P1-T13"
+      ],
+      "deliverables": [
+        "workflows/wan21_i2v_480p.api.json",
+        "lab/wan_probe.py"
+      ],
+      "acceptance": [
+        "黑帧问题已解决：0.36 镜像 + 官方 fp8 权重，黑帧率 0.0",
+        "定位到社区 NVFP4 4bit 版不可用（过曝+噪点+崩坏）",
+        "workflow 已入库"
+      ],
+      "blockers": [],
+      "cases": [
+        "TC-08"
+      ],
+      "budget_cny": 2.0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-28T20:59:17+08:00",
+          "note": "根因：0.3.40 时代的 fp8/int8 兼容问题；0.36 + 官方 fp8 正常。社区 NVFP4 4bit 质量不可用",
+          "cost": 1.0
+        }
+      ],
+      "evidence": [
+        "workflows/wan21_i2v_480p.api.json",
+        "reports/p1/wan-result/wan-official-strip.png"
+      ]
+    },
+    {
+      "id": "P1-T11",
+      "title": "LTXV 2B 首跑",
+      "status": "done",
+      "phase_step": 3,
+      "depends_on": [
+        "P1-T09"
+      ],
+      "deliverables": [
+        "workflows/ltxv_2b_t2v.api.json",
+        "reports/p1/examples/job_ltxv.json"
+      ],
+      "acceptance": [
+        "官方结构（SamplerCustom+LTXVScheduler+res_multistep）跑通",
+        "97 帧输出后段崩坏；73 帧（2.92s@25fps）全程稳定",
+        "workflow 已入库"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 1.0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-28T20:18:49+08:00",
+          "note": "两次闭环均 PASS 但画面为噪点；帧差 0.26-0.37 明显低于 H3 的 0.6-0.75，判为结构性问题",
+          "cost": 0.16
+        },
+        {
+          "round": 2,
+          "at": "2026-10-28T20:35:22+08:00",
+          "note": "查官方模板定位根因：缺 LTXVScheduler（标准 KSampler 无法正确去噪）。改用官方结构后 97帧后段崩、73帧稳定",
+          "cost": 0.25
+        }
+      ],
+      "evidence": [
+        "workflows/ltxv_2b_t2v.api.json",
+        "reports/p1/ltxv-debug/attempt4-73frames.png"
+      ]
+    },
+    {
+      "id": "P1-T12",
+      "title": "产物存储与展示（图片 + 视频统一）",
+      "status": "done",
+      "phase_step": 3,
+      "depends_on": [
+        "P1-T09"
+      ],
+      "deliverables": [
+        "reports/p1/artifact-store.md",
+        "tools/p1/gallery.py",
+        "reports/p1/jobs/<id>/thumbs/"
+      ],
+      "acceptance": [
+        "图片与视频共用 artifacts/ 路径（已达成）",
+        "图片缩略图 + 画廊页（已达成）",
+        "落点与保留策略成文（已达成）",
+        "视频展示：按指示延后，gallery.py 已预留分支"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-28T18:34:16+08:00",
+          "note": "Qwen-Image 闭环跑通（1024²，¥0.114），workflow 的 vae/clip 名已修正",
+          "cost": 0.114
+        },
+        {
+          "round": 2,
+          "at": "2026-10-28T18:50:00+08:00",
+          "note": "范围修正：原措辞照搬 P0 清单只写图片；实际 artifacts 存储本就统一，缺的是展示层",
+          "cost": 0
+        },
+        {
+          "round": 2,
+          "at": "2026-10-28T20:05:12+08:00",
+          "note": "图片侧完成：ffmpeg 缩略图(480px) + 画廊页 + 落点策略；scp 超时 1800→300s 并加 2 次重试",
+          "cost": 0.0
+        }
+      ],
+      "evidence": [
+        "reports/p1/gallery.html",
+        "reports/p1/artifact-store.md",
+        "tools/p1/gallery.py"
+      ]
+    },
+    {
+      "id": "P1-T13",
+      "title": "异常专项 12 条用例（TC-01…TC-12）",
+      "status": "done",
+      "phase_step": 4,
+      "depends_on": [
+        "P1-T08"
+      ],
+      "deliverables": [
+        "reports/p1/cases-report.md"
+      ],
+      "acceptance": [
+        "12 条各给结论：9 PASS / 3 SKIP / 0 FAIL",
+        "SKIP 的 3 条（TC-09/10/12）需实例故障注入，已注明"
+      ],
+      "blockers": [
+        "TC-09/10/12 需要真实实例才能触发"
+      ],
+      "cases": [
+        "TC-01",
+        "TC-02",
+        "TC-03",
+        "TC-04",
+        "TC-05",
+        "TC-06",
+        "TC-07",
+        "TC-08",
+        "TC-09",
+        "TC-10",
+        "TC-11",
+        "TC-12"
+      ],
+      "budget_cny": 0.5,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-28T20:18:49+08:00",
+          "note": "本地 8 条 + 已验 TC-11 = 9 PASS；TC-09/10/12 需故障注入标 SKIP；修了 TC-08 用例构造缺陷",
+          "cost": 0.16
+        }
+      ],
+      "evidence": [
+        "reports/p1/logs/tc13-cases.txt",
+        "tools/p1/cases.py"
+      ]
+    },
+    {
+      "id": "P1-T14",
+      "title": "收尾：报告 + 架构图定稿 + 合并评审",
+      "status": "done",
+      "phase_step": 4,
+      "depends_on": [
+        "P1-T13"
+      ],
+      "deliverables": [
+        "reports/p1/P1-总结.md",
+        "reports/architecture.png",
+        "合并评审结论"
+      ],
+      "acceptance": [
+        "P1 总结报告完成（P1-总结.md）",
+        "闭环验证通过：5090 跑通，2.1 分钟 ¥0.14 PASS",
+        "status.json 字段完整、架构图渲染无报错",
+        "截图存档：arch-verify-full / arch-verify-h-section",
+        "发现 3 个显示问题，按要求只记录未修（渲染验证记录-20261028.md）"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-28T21:08:00+08:00",
+          "note": "总结报告完成；架构图定稿与合并评审待做",
+          "cost": 0
+        },
+        {
+          "round": 2,
+          "at": "2026-10-28T21:50:30+08:00",
+          "note": "报告完成 + 闭环验证 + 渲染确认；发现 3 个显示取值问题（checks 键名/卡型字段/过期 blockers），未修",
+          "cost": 0.14
+        }
+      ],
+      "evidence": [
+        "reports/p1/P1-总结.md",
+        "reports/p1/渲染验证记录-20261028.md",
+        "reports/p1/arch-verify-full-20261028.png",
+        "reports/p1/arch-verify-h-section-20261028.png"
+      ]
+    },
+    {
+      "id": "P1-T15",
+      "title": "建机 setup 脚本：挂载 / 禁 Manager / 软链 / 启动 / 自检 一条命令",
+      "status": "done",
+      "phase_step": 2,
+      "depends_on": [
+        "P1-T01"
+      ],
+      "deliverables": [
+        "tools/p1/instance_setup.sh"
+      ],
+      "acceptance": [
+        "bash -n 通过",
+        "幂等（重复跑不报错）",
+        "首次实测在 T09 建机时完成"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-28T17:05:00+08:00",
+          "note": "静态检查通过；真实建机验证随 T09 一起做",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "tools/p1/instance_setup.sh"
+      ]
+    }
+  ],
+  "cases_result": {
+    "total": 12,
+    "passed": 9,
+    "skipped": 3,
+    "failed": 0
+  }
+}

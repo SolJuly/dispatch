@@ -275,3 +275,126 @@ CP0 开机就绪（NVML / 服务端 cuda / 8188 / 共享库）· CP1 环境（to
 
 `tools/riskmon.py` → `reports/risk/latest.json` + `alerts.md`；页面 `<token>/risk`；cron 每 10 分钟。
 覆盖：余额、无定时关机、孤儿 lab、日预算、单价、无货、SSH 不就绪、服务掉线、cron 缺失、凭证权限、磁盘、基准失败（已过滤 226604/226628 等可重试）、黑帧（ffmpeg signalstats）、模型库、漏归档、`--deep` 实例内部健康。
+
+---
+
+## 17. P1 单任务闭环（job 状态机 + 自动校验）
+
+把「手工建机 → 跑 ComfyUI → 拉产物 → 肉眼看好坏 → 销毁」变成**一条命令跑完并自动判定 PASS/FAIL**。
+只做单任务（`flock` 保护），**不改 `csctl.py` / `fileserver.py` / `lab_runner.py` 等主链**。
+
+### 17.1 目录结构
+
+| 文件 | 职责 |
+|---|---|
+| `tools/p1/ids.py` | job_id / task_id 生成与校验（`p1-YYYYMMDDTHHMM-6hex`） |
+| `tools/p1/store.py` | 原子写（tmp→fsync→rename）、单任务锁、`params_hash` 幂等键 |
+| `tools/p1/schema.py` | job / manifest / tasks 三套校验器（纯标准库，无 jsonschema 依赖） |
+| `tools/p1/state.py` | 15 态状态机 + 守卫 G1–G5 + CAS 更新 + `events.jsonl` |
+| `tools/p1/tasks.py` | 任务清单、依赖拓扑、`next` 计算、Markdown 渲染 |
+| `tools/p1/status.py` | 汇总 tasks + job + 账本 → `status.json`（架构图 H 区数据源） |
+| `tools/p1/verify.py` | 六项复验 + 三条内容告警 |
+| `tools/p1/jobctl.py` | CLI 入口：tasks / next / new / show / verify / status / validate |
+| `tools/p1/run.py` | 九步串行执行器 |
+| `tools/p1/gallery.py` | 缩略图 + 画廊页（图片缩略、视频抽 poster） |
+| `tools/p1/cases.py` | 异常 12 条用例 |
+| `tools/p1/instance_setup.sh` | 建机一条命令配环境（挂载 / 禁 Manager / 软链 / 启动 / 自检） |
+
+运行数据在 `reports/p1/`：`tasks.json`（任务台账）、`status.json`（H 区数据源）、`jobs/<job_id>/`（job.json / events.jsonl / manifest.json / artifacts / thumbs）、`gallery.html`、`examples/`（spec 模板）。
+
+单独查询某作业：`python3 tools/p1/jobctl.py show <job_id>`。
+
+### 17.2 快速开始（三条核心命令）
+
+```bash
+# 1) 建作业（只登记，不建机、不花钱）
+python3 tools/p1/jobctl.py new --spec reports/p1/examples/job_h3_t2v.json
+
+# 2) 跑闭环（会建机、会花钱；加 --dry-run 只走状态机不建机）
+python3 tools/p1/run.py <job_id>
+
+# 3) 校验产物
+python3 tools/p1/jobctl.py verify <job_id>
+```
+
+九步状态链：
+
+```
+CREATED → PROVISIONING → READY → SUBMITTED → RUNNING
+        → FETCHING → VERIFYING → PERSISTED → RELEASING → DONE
+```
+
+三条硬规矩：
+
+- **G1** 未落盘（未 PERSISTED）不许销毁 —— 产物不随实例消失
+- **G2** 完成必须 `manifest.verdict == PASS`
+- **8903 重试** 销毁遇到过渡期拒绝时重试 3 次 × 10 秒
+
+`run.py` 常用参数：`--dry-run`（不建机）、`--gpu 5090`（覆盖卡型）、`--wait-stock 600`（无货等待秒数）。
+
+### 17.3 任务与状态
+
+```bash
+python3 tools/p1/jobctl.py tasks            # 任务清单（16 条，含依赖与验收）
+python3 tools/p1/jobctl.py tasks --status doing
+python3 tools/p1/jobctl.py next             # 依赖满足的下一步
+python3 tools/p1/jobctl.py status           # 刷新 status.json（架构图 H 区随动）
+python3 tools/p1/jobctl.py validate         # 校验 tasks / job / manifest
+python3 tools/p1/jobctl.py validate --deep  # 额外核对产物大小与 sha256
+```
+
+### 17.4 校验与异常测试
+
+六项复验（参与 PASS/FAIL）：`decode` / `geometry` / `frames` / `size` / `black` / `params`
+
+三条内容告警（**只提示，不参与判定**）：
+
+| 指标 | 阈值 | 拦什么 |
+|---|---|---|
+| 帧差均值 | < 0.40 | 画面几乎静止（静态噪点 / 卡帧） |
+| 亮度 σ | < 1.5 | 曝光或内容异常 |
+| 边缘能量（拉普拉斯） | < 1.0 | 缺少细节（画面模糊或抽象） |
+
+> 这三条是被 LTXV 逼出来的——它两次输出六项全绿但画面是抽象色块，暴露了「格式合格 ≠ 内容可用」的盲区。
+
+异常用例：
+
+```bash
+python3 tools/p1/cases.py        # TC-01 ~ TC-12
+```
+
+- 本地可跑 9 条：schema 非法、越级转移、重复 params_hash、未落盘就销毁、写盘中断、manifest 不一致、0 字节、黑帧、8903 重试
+- TC-09 / TC-10 / TC-12（SSH 断、磁盘满、Spot 回收）需故障注入，标 **SKIP**
+
+### 17.5 画廊
+
+```bash
+python3 tools/p1/gallery.py            # 生成 thumbs/ 与 reports/p1/gallery.html
+python3 tools/p1/gallery.py --no-thumb # 只重建 HTML
+```
+
+按 job 分卡片：状态徽章、模型、耗时、花费、六项 checks 标签。
+图片点开看原图；视频抽第 1 帧作 poster，页面内 `<video controls>` 直接播放。
+ffmpeg 不可用时自动降级为占位块，不报错。
+
+在线访问：`https://<host>/files/<token>/f/reports/p1/gallery.html`
+
+### 17.6 成本参考
+
+| 模型 | 单次闭环 | 参数 |
+|---|---|---|
+| H3 t2v / i2v | ~¥0.14–0.18 | 121 帧 @24fps，5.17s |
+| Qwen-Image | ~¥0.11 | 1024×1024 |
+| LTXV 2B | ~¥0.08 | 73 帧 @25fps，2.92s |
+| Wan2.1 i2v | ~¥0.25 | 49 帧 @16fps，3.06s |
+
+单次闭环耗时 **2–3 分钟**（建机 60s + setup 30s + 推理 30–180s + 收尾 10s）。
+P1 阶段累计花费 ¥4.15（含大量参数试错）。
+
+### 17.7 已知约束
+
+- **H3 要 121 帧、LTXV 要 73 帧**，两者需求相反——由训练长度决定，调参无解
+- Wan 必须用 `wan2.1/` 官方 fp8；社区 NVFP4 4bit 版会过曝 + 噪点
+- 要 3 秒视频：LTXV 73 帧直接用；H3 需生成 121 帧再裁切（裁切 ≠ 拼接）
+- 不支持并发（单任务 `flock`），不做长视频拼接
+- 镜像无 ffmpeg 时，校验一律在本机做

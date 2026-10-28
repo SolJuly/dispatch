@@ -1,0 +1,143 @@
+{
+  "unet": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "minimax/DasiwaMinimaxH3_dasiwaHybridV2_int8.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "clip": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+      "type": "minimax"
+    }
+  },
+  "vae": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_int8_convrot-v2.safetensors"
+    }
+  },
+  "shift": {
+    "class_type": "MiniMaxH3SigmaShift",
+    "inputs": {
+      "model": [
+        "unet",
+        0
+      ],
+      "shift_video": 5.0,
+      "shift_audio": 1.0
+    }
+  },
+  "cond": {
+    "class_type": "MiniMaxH3ImageToVideo",
+    "inputs": {
+      "clip": [
+        "clip",
+        0
+      ],
+      "vae": [
+        "vae",
+        0
+      ],
+      "prompt": "{{PROMPT}}",
+      "width": 768,
+      "height": 512,
+      "length": 121,
+      "first_frame": [
+        "img",
+        0
+      ]
+    }
+  },
+  "neg": {
+    "class_type": "MiniMaxH3ImageToVideo",
+    "inputs": {
+      "clip": [
+        "clip",
+        0
+      ],
+      "vae": [
+        "vae",
+        0
+      ],
+      "prompt": "{{NEG_PROMPT}}",
+      "width": 768,
+      "height": 512,
+      "length": 121,
+      "first_frame": [
+        "img",
+        0
+      ]
+    }
+  },
+  "ks": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": "{{SEED}}",
+      "steps": 20,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": [
+        "shift",
+        0
+      ],
+      "positive": [
+        "cond",
+        0
+      ],
+      "negative": [
+        "neg",
+        0
+      ],
+      "latent_image": [
+        "cond",
+        1
+      ]
+    }
+  },
+  "dec": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "ks",
+        0
+      ],
+      "vae": [
+        "vae",
+        0
+      ]
+    }
+  },
+  "vid": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "dec",
+        0
+      ],
+      "fps": 24.0
+    }
+  },
+  "save": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "vid",
+        0
+      ],
+      "filename_prefix": "{{OUTPUT_PREFIX}}",
+      "format": "mp4",
+      "codec": "h264"
+    }
+  },
+  "img": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{FIRST_FRAME}}"
+    }
+  }
+}

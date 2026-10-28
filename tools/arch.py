@@ -181,25 +181,34 @@ def p1_section(sec, y: int, LX: int, LW: int, text, svg) -> int:
 
     cols = 4 if LW > 1200 else 3
     check_rows = (len(checks) + cols - 1) // cols
-    h = (200 + 12 + check_rows * 20 + 12
+    h = (218 + 12 + check_rows * 20 + 12
          + ((22 + len(blockers) * 17) if blockers else 0) + 14)
-    sec(y, h, "H · P1 单任务闭环（job 状态机 · 实时）")
+    sec(y, h, "H · P1 单任务闭环（最近作业 · 实时）")
 
-    # 信息行
-    yy = y + 52
+    # 信息行（两行：任务面 / 作业面）
     jid = job.get("job_id") or "—"
     cur = job.get("state") or "IDLE"
-    info = (f"分支 {p.get('branch', '—')} · 模式 {p.get('mode', 'single-task')}"
-            f" · 更新 {p.get('updated_at', '—')} · job {jid} · 当前 {cur}"
-            f" · 用例 {cases.get('passed', 0)}/{cases.get('defined', 0)}"
-            f" · 实扣 ¥{float(cost.get('spent') or 0):.2f} / 预算 ¥{float(cost.get('budget') or 0):.2f}")
-    text(LX + 20, yy, info, 11.4, DIM)
+    tk = p.get("tasks") or {}
+    text(LX + 20, y + 52,
+         f"分支 {p.get('branch', '—')} · 模式 {p.get('mode', 'single-task')}"
+         f" · 更新 {p.get('updated_at', '—')}", 11.4, DIM)
+    text(LX + 20, y + 70,
+         f"任务 {tk.get('done', 0)}/{tk.get('total', 0)}（{tk.get('pct', 0)}%）"
+         f" · 进行中 {tk.get('doing', 0)} · 阻塞 {tk.get('blocked', 0)}"
+         f" · 当前 {tk.get('current') or '—'} · 下一步 {tk.get('next') or '—'}"
+         f" · job {jid}（{cur}）"
+         f" · 用例 {cases.get('passed', 0)}/{cases.get('total', 0)}"
+         f"（跳过 {cases.get('skipped', 0)}）"
+         f" · 本作业 ¥{float(cost.get('spent') or 0):.3f}"
+         f" · P1 累计 ¥{float(cost.get('p1_total') or 0):.2f}"
+         f" / 预算 ¥{float(cost.get('budget') or 0):.2f}",
+         11.4, DIM)
 
     # 状态链
     n = max(1, len(states))
     gap = 10
     cw = (LW - 40 - (n - 1) * gap) / n
-    cy = y + 66
+    cy = y + 84
     for i, s in enumerate(states):
         x = LX + 20 + i * (cw + gap)
         k = s.get("k", "?")
@@ -214,7 +223,7 @@ def p1_section(sec, y: int, LX: int, LW: int, text, svg) -> int:
             text(x + cw + gap / 2, cy + 22, "›", 13, "#3b4657", "700", "middle")
 
     # 四步推进
-    sy = y + 116
+    sy = y + 134
     text(LX + 20, sy + 14, "依赖顺序：底座 → 校验&持久化 → 模型 → 异常测试（只做单任务，不做并发批量）",
          11.2, DIM)
     by = sy + 22
@@ -238,7 +247,7 @@ def p1_section(sec, y: int, LX: int, LW: int, text, svg) -> int:
         text(x + bw - 12, by + 44, f"{pct}%", 9.6, col, "700", "end")
 
     # 复验项
-    ky = y + 200
+    ky = y + 218
     text(LX + 20, ky + 12, "复验项（全部 ✓ 才允许进入 PERSISTED → RELEASING）", 11.0, DIM, "700")
     cwid = (LW - 40 - (cols - 1) * 16) / cols
     for i, c in enumerate(checks):
