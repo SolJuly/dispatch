@@ -115,9 +115,14 @@ def content_warnings(ys: list[float], edge: float | None) -> list[str]:
     """
     w: list[str] = []
     if len(ys) > 1:
-        diff = sum(abs(a - b) for a, b in zip(ys, ys[1:])) / (len(ys) - 1)
-        if diff < WARN_FRAME_DIFF:
-            w.append(f"帧差 {diff:.2f} < {WARN_FRAME_DIFF}：画面几乎静止（疑似静态噪点/卡帧）")
+        diffs = [abs(a - b) for a, b in zip(ys, ys[1:])]
+        win = WARN_WINDOW
+        windows = [sum(diffs[i:i + win]) / len(diffs[i:i + win])
+                   for i in range(0, len(diffs), win) if diffs[i:i + win]]
+        win_max = max(windows) if windows else 0.0
+        if win_max < WARN_FRAME_DIFF:
+            w.append(f"最大窗口帧差 {win_max:.2f} < {WARN_FRAME_DIFF}：整段画面几乎静止"
+                     f"（{len(windows)} 个窗口中最活跃的一段也只有 {win_max:.2f}）")
     if len(ys) > 1:
         mu = sum(ys) / len(ys)
         sigma = (sum((y - mu) ** 2 for y in ys) / len(ys)) ** 0.5
@@ -199,8 +204,21 @@ def _check_frames(pr: dict, expect: dict) -> tuple[bool | None, dict]:
 BLACK_YAVG = 24   # YUV limited range 黑电平是 16，留 8 级编码噪声余量
 
 # 内容启发式阈值（只告警，不参与 PASS/FAIL）
-WARN_FRAME_DIFF = 0.40   # 相邻帧亮度差均值下限（实测 LTXV失败0.26 / H3正常0.60）
-WARN_YAVG_STD = 1.5      # 亮度标准差下限
+# 帧差告警：用「滑动窗口内的最大帧差」而不是全局平均。
+# 全局平均会把「前半段静止、后半段在动」的视频误判为静止
+# （实测：H3 闭环成功样本全局 0.092，比 LTXV 噪点的 0.263 还低）。
+# 实测分档（窗口=12 帧）：真静止 0.0025 / 微动作成功 0.19 / 噪点 0.38 / 正常运动 1.8+
+WARN_FRAME_DIFF = 0.10   # 窗口最大帧差下限，低于此判为「整段几乎静止」
+WARN_WINDOW = 12         # 窗口帧数（24fps 下约 0.5 秒）
+
+# TODO(帧差指标的根本局限)：YAVG 差值只反映「平均亮度」的变化，不反映画面内容。
+# 画面里有人走动但整体亮度稳定时，帧差会接近 0（H3 闭环样本就是 0.092）。
+# 真正的静止检测应该用内容差（SSIM / freezedetect / 场景变化），而不是亮度差。
+# 当前用窗口最大值 + 低阈值只能挡住「完全不动」，挡不住「亮度恒定但内容在动」。
+# 待有预算时改用 ffmpeg freezedetect 计算冻结时长占比，见 reports/p1/P1-总结.md 技术债 #3。
+WARN_YAVG_STD = 1.0      # 亮度标准差下限
+                         # 原 1.5 会把「场景稳定、光线均匀」的正常视频误判为曝光异常
+                         # （实测 H3 闭环成功样本 σ=1.36）。真静止视频 σ≈0，仍会被拦
 WARN_EDGE = 1.0          # 拉普拉斯边缘能量下限（低于此=缺细节/抽象）
 
 
