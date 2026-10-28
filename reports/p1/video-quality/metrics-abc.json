@@ -1,0 +1,106 @@
+[
+  {
+    "file": "A.mp4",
+    "bytes": 1508362,
+    "frames": 97,
+    "fps": 8.0,
+    "duration": 12.125,
+    "w": 832,
+    "h": 480,
+    "codec": "h264",
+    "yavg_mean": 148.02,
+    "yavg_std": 4.248,
+    "black_ratio": 0.0,
+    "frame_diff": 0.598,
+    "yavg_range": 15.01,
+    "color_drift": 12.43,
+    "first_yuv": [
+      145.4,
+      119.3,
+      135.5
+    ],
+    "last_yuv": [
+      154.4,
+      118.4,
+      138.1
+    ]
+  },
+  {
+    "file": "B.mp4",
+    "bytes": 865122,
+    "frames": 49,
+    "fps": 8.0,
+    "duration": 6.125,
+    "w": 832,
+    "h": 480,
+    "codec": "h264",
+    "yavg_mean": 144.89,
+    "yavg_std": 2.74,
+    "black_ratio": 0.0,
+    "frame_diff": 0.706,
+    "yavg_range": 9.5,
+    "color_drift": 1.21,
+    "first_yuv": [
+      145.4,
+      119.3,
+      135.5
+    ],
+    "last_yuv": [
+      145.8,
+      118.7,
+      135.7
+    ]
+  },
+  {
+    "file": "C.mp4",
+    "bytes": 469015,
+    "frames": 25,
+    "fps": 8.0,
+    "duration": 3.125,
+    "w": 832,
+    "h": 480,
+    "codec": "h264",
+    "yavg_mean": 146.77,
+    "yavg_std": 1.259,
+    "black_ratio": 0.0,
+    "frame_diff": 0.753,
+    "yavg_range": 4.76,
+    "color_drift": 3.22,
+    "first_yuv": [
+      145.4,
+      119.3,
+      135.5
+    ],
+    "last_yuv": [
+      147.6,
+      119.7,
+      134.9
+    ]
+  },
+  {
+    "file": "C2.mp4",
+    "bytes": 311169,
+    "frames": 25,
+    "fps": 8.0,
+    "duration": 3.125,
+    "w": 832,
+    "h": 480,
+    "codec": "h264",
+    "yavg_mean": 146.26,
+    "yavg_std": 1.262,
+    "black_ratio": 0.0,
+    "frame_diff": 0.75,
+    "yavg_range": 4.8,
+    "color_drift": 3.19,
+    "first_yuv": [
+      144.8,
+      120.0,
+      135.0
+    ],
+    "last_yuv": [
+      147.1,
+      120.3,
+      134.4
+    ]
+  }
+]

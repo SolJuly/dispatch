@@ -1,0 +1,146 @@
+{
+  "ckpt": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "ltx-2/ltx-video-2b-v0.9.5.safetensors"
+    }
+  },
+  "clip": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "t5xxl_fp16.safetensors",
+      "type": "ltxv",
+      "device": "default"
+    }
+  },
+  "pos": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "{{PROMPT}}",
+      "clip": [
+        "clip",
+        0
+      ]
+    }
+  },
+  "neg": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "{{NEG_PROMPT}}",
+      "clip": [
+        "clip",
+        0
+      ]
+    }
+  },
+  "cond": {
+    "class_type": "LTXVConditioning",
+    "inputs": {
+      "positive": [
+        "pos",
+        0
+      ],
+      "negative": [
+        "neg",
+        0
+      ],
+      "frame_rate": 25.0
+    }
+  },
+  "lat": {
+    "class_type": "EmptyLTXVLatentVideo",
+    "inputs": {
+      "width": 768,
+      "height": 512,
+      "length": 73,
+      "batch_size": 1
+    }
+  },
+  "sched": {
+    "class_type": "LTXVScheduler",
+    "inputs": {
+      "steps": 30,
+      "max_shift": 2.05,
+      "base_shift": 0.95,
+      "stretch": true,
+      "terminal": 0.1,
+      "latent": [
+        "lat",
+        0
+      ]
+    }
+  },
+  "samp": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "res_multistep"
+    }
+  },
+  "ks": {
+    "class_type": "SamplerCustom",
+    "inputs": {
+      "model": [
+        "ckpt",
+        0
+      ],
+      "add_noise": true,
+      "noise_seed": "{{SEED}}",
+      "cfg": 3.0,
+      "positive": [
+        "cond",
+        0
+      ],
+      "negative": [
+        "cond",
+        1
+      ],
+      "sampler": [
+        "samp",
+        0
+      ],
+      "sigmas": [
+        "sched",
+        0
+      ],
+      "latent_image": [
+        "lat",
+        0
+      ]
+    }
+  },
+  "dec": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "ks",
+        0
+      ],
+      "vae": [
+        "ckpt",
+        2
+      ]
+    }
+  },
+  "vid": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "dec",
+        0
+      ],
+      "fps": 25.0
+    }
+  },
+  "save": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "vid",
+        0
+      ],
+      "filename_prefix": "{{OUTPUT_PREFIX}}",
+      "format": "mp4",
+      "codec": "h264"
+    }
+  }
+}

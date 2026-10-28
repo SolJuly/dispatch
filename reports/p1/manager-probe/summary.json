@@ -1,0 +1,72 @@
+{
+  "rounds": 5,
+  "valid": 5,
+  "stuck": 0,
+  "results": [
+    {
+      "round": 1,
+      "gpu": "4090_48G",
+      "uid": "uhost-1x136wbkh0rw",
+      "up_sec": 81.6,
+      "ready_sec": 22.3,
+      "stuck": false,
+      "procs": "69 python -u main.py --listen 0.0.0.0 --port 8188 --enable-manager\nWarning: Permanently added '[117.50.178.205]:23' (ED25519) to the list of known hosts.",
+      "start_cmd": "nohup python -u main.py --listen 0.0.0.0 --port 8188 --enable-manager > comfy.log 2>&1 &\nWarning: Permanently added '[117.50.178.205]:23' (ED25519) to the list of known hosts.",
+      "github_err_lines": "Warning: Permanently added '[117.50.178.205]:23' (ED25519) to the list of known hosts.",
+      "log_tail": "\u001b[32m[INFO]\u001b[0m Starting server\n\n\u001b[32m[INFO]\u001b[0m To see the GUI go to: http://0.0.0.0:8188\nWarning: Permanently added '[117.50.178.205]:23' (ED25519) to the list of known hosts.",
+      "terminated": true
+    },
+    {
+      "round": 2,
+      "gpu": "4090",
+      "uid": "uhost-1x139cj5dmcv",
+      "up_sec": 70.0,
+      "ready_sec": 37.8,
+      "stuck": false,
+      "procs": "53 python -u main.py --listen 0.0.0.0 --port 8188 --enable-manager\nWarning: Permanently added '[117.50.182.46]:23' (ED25519) to the list of known hosts.",
+      "start_cmd": "nohup python -u main.py --listen 0.0.0.0 --port 8188 --enable-manager > comfy.log 2>&1 &\nWarning: Permanently added '[117.50.182.46]:23' (ED25519) to the list of known hosts.",
+      "github_err_lines": "Warning: Permanently added '[117.50.182.46]:23' (ED25519) to the list of known hosts.",
+      "log_tail": "\u001b[32m[INFO]\u001b[0m Starting server\n\n\u001b[32m[INFO]\u001b[0m To see the GUI go to: http://0.0.0.0:8188\nWarning: Permanently added '[117.50.182.46]:23' (ED25519) to the list of known hosts.",
+      "terminated": true
+    },
+    {
+      "round": 3,
+      "gpu": "4090_48G",
+      "uid": "uhost-1x13by2qhvzg",
+      "up_sec": 84.1,
+      "ready_sec": 35.7,
+      "stuck": false,
+      "procs": "69 python -u main.py --listen 0.0.0.0 --port 8188 --enable-manager\nWarning: Permanently added '[117.50.174.168]:23' (ED25519) to the list of known hosts.",
+      "start_cmd": "nohup python -u main.py --listen 0.0.0.0 --port 8188 --enable-manager > comfy.log 2>&1 &\nWarning: Permanently added '[117.50.174.168]:23' (ED25519) to the list of known hosts.",
+      "github_err_lines": "Warning: Permanently added '[117.50.174.168]:23' (ED25519) to the list of known hosts.",
+      "log_tail": "\u001b[32m[INFO]\u001b[0m Starting server\n\n\u001b[32m[INFO]\u001b[0m To see the GUI go to: http://0.0.0.0:8188\nWarning: Permanently added '[117.50.174.168]:23' (ED25519) to the list of known hosts.",
+      "terminated": true
+    },
+    {
+      "round": 4,
+      "gpu": "4090_48G",
+      "uid": "uhost-1x13eprqlhtb",
+      "up_sec": 70.1,
+      "ready_sec": 27.1,
+      "stuck": false,
+      "procs": "57 python -u main.py --listen 0.0.0.0 --port 8188 --enable-manager\nWarning: Permanently added '[117.50.83.63]:23' (ED25519) to the list of known hosts.",
+      "start_cmd": "nohup python -u main.py --listen 0.0.0.0 --port 8188 --enable-manager > comfy.log 2>&1 &\nWarning: Permanently added '[117.50.83.63]:23' (ED25519) to the list of known hosts.",
+      "github_err_lines": "Warning: Permanently added '[117.50.83.63]:23' (ED25519) to the list of known hosts.",
+      "log_tail": "\u001b[32m[INFO]\u001b[0m Starting server\n\n\u001b[32m[INFO]\u001b[0m To see the GUI go to: http://0.0.0.0:8188\nWarning: Permanently added '[117.50.83.63]:23' (ED25519) to the list of known hosts.",
+      "terminated": true
+    },
+    {
+      "round": 5,
+      "gpu": "4090_48G",
+      "uid": "uhost-1x13h7gvcxc4",
+      "up_sec": 75.4,
+      "ready_sec": 26.0,
+      "stuck": false,
+      "procs": "54 python -u main.py --listen 0.0.0.0 --port 8188 --enable-manager\nWarning: Permanently added '[117.50.197.204]:23' (ED25519) to the list of known hosts.",
+      "start_cmd": "nohup python -u main.py --listen 0.0.0.0 --port 8188 --enable-manager > comfy.log 2>&1 &\nWarning: Permanently added '[117.50.197.204]:23' (ED25519) to the list of known hosts.",
+      "github_err_lines": "Warning: Permanently added '[117.50.197.204]:23' (ED25519) to the list of known hosts.",
+      "log_tail": "\u001b[32m[INFO]\u001b[0m Starting server\n\n\u001b[32m[INFO]\u001b[0m To see the GUI go to: http://0.0.0.0:8188\nWarning: Permanently added '[117.50.197.204]:23' (ED25519) to the list of known hosts.",
+      "terminated": true
+    }
+  ]
+}

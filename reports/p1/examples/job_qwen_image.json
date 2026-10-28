@@ -1,0 +1,25 @@
+{
+  "_note": "Qwen-Image 文生图基线 spec（1024x1024）。用于验证 setup 的 --need=qwen 分支与图片类校验。",
+  "kind": "image",
+  "task_ref": "P1-T12",
+  "model": {
+    "key": "qwen_image",
+    "workflow": "workflows/qwen_image_t2i.api.json",
+    "checkpoint": "qwen/qwen_image_fp8_e4m3fn_scaled.safetensors"
+  },
+  "params": {
+    "prompt": "电影感写实风格，中景镜头。现代简约客厅，午后自然光从落地窗斜射入室。一位30岁左右女性穿米色针织家居服，坐在浅灰布艺沙发上低头看手机。背景虚化，浅景深，暖色调，35mm镜头质感。",
+    "neg_prompt": "低质量, 模糊, 变形",
+    "seed": 20261028,
+    "width": 1024,
+    "height": 1024
+  },
+  "expect": {
+    "ext": "png",
+    "min_bytes": 100000,
+    "width": [1024],
+    "height": [1024]
+  },
+  "budget": { "max_minutes": 15, "max_cost": 1.0 },
+  "instance": { "required_gpu": ["4090_48G", "4090"] }
+}

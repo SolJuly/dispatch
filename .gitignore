@@ -31,3 +31,14 @@ reports/p1/status.json
 reports/architecture.svg
 reports/architecture.html
 reports/lab/gallery*.html
+
+# P1 运行态补充：锁文件 + 每 10 分钟被 cron 覆盖的风险报告
+reports/p1/.job.lock
+reports/risk/
+
+# P1 派生数据（可重建）
+reports/p1/jobs/*/thumbs/
+
+# PR 派生文件（不入库）
+*.patch
+*.diff

@@ -1,0 +1,29 @@
+{
+  "_note": "H3 文生视频基线 spec（121帧/5.17s）。workflow 已入库，sha256 由 jobctl 自动计算。",
+  "kind": "video",
+  "task_ref": "P1-T09",
+  "model": {
+    "key": "h3_t2v",
+    "workflow": "workflows/h3_t2v_121f.api.json",
+    "checkpoint": "minimax/DasiwaMinimaxH3_dasiwaHybridV2_int8.safetensors"
+  },
+  "params": {
+    "prompt": "电影感写实风格，中景镜头。现代简约客厅，午后自然光从落地窗斜射入室。一位30岁左右女性穿米色针织家居服，坐在浅灰布艺沙发上低头看手机。她放下手机，双手撑膝站起，身体转向画面右侧厨房方向。背景虚化，浅景深，暖色调，35mm镜头质感，动作流畅自然。",
+    "neg_prompt": "低质量, 模糊, 抖动, 变形",
+    "seed": 20261027,
+    "frames": 121,
+    "fps": 24,
+    "width": 768,
+    "height": 512
+  },
+  "expect": {
+    "ext": "mp4",
+    "min_bytes": 150000,
+    "duration_s": [5.0, 5.4],
+    "width": [768],
+    "height": [512],
+    "black_ratio_max": 0.2
+  },
+  "budget": { "max_minutes": 20, "max_cost": 1.5 },
+  "instance": { "required_gpu": ["4090_48G", "4090"] }
+}

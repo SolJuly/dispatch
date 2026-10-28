@@ -1,0 +1,39 @@
+{
+  "started": "2026-10-27 21:49:12",
+  "runs": [
+    {
+      "id": "A",
+      "desc": "Dasiwa 20步 73帧(3s)",
+      "steps": 20,
+      "frames": 73,
+      "ok": true,
+      "infer_s": 271.1,
+      "err": null,
+      "bytes": 182394,
+      "wall_s": 271.1
+    },
+    {
+      "id": "B",
+      "desc": "Dasiwa 20步 121帧(5s)",
+      "steps": 20,
+      "frames": 121,
+      "ok": true,
+      "infer_s": 78.2,
+      "err": null,
+      "bytes": 351638,
+      "wall_s": 78.2
+    },
+    {
+      "id": "C",
+      "desc": "fastvideo 4步 121帧(5s)",
+      "steps": 4,
+      "frames": 121,
+      "ok": true,
+      "infer_s": 129.2,
+      "err": null,
+      "bytes": 360541,
+      "wall_s": 129.2
+    }
+  ],
+  "status": "ok"
+}
