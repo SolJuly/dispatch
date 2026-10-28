@@ -1,7 +1,7 @@
 {
   "schema": "p1.tasks/v1",
   "phase": "P1",
-  "updated_at": "2026-10-28T22:52:42+08:00",
+  "updated_at": "2026-10-28T23:14:29+08:00",
   "scope_note": "只做单任务最小闭环，不做并发批量；顺序：底座 → 校验&持久化 → 模型 → 异常",
   "global_blockers": [],
   "tasks": [
@@ -702,6 +702,38 @@
       "evidence": [
         "reports/p1/Manager卡住-复现与修复.md",
         "reports/p1/manager-probe/summary.json"
+      ]
+    },
+    {
+      "id": "P1-T17",
+      "title": "LTXV 73帧 vs 75帧：是否调精确 3 秒",
+      "status": "done",
+      "phase_step": 3,
+      "depends_on": [
+        "P1-T11"
+      ],
+      "deliverables": [
+        "reports/p1/LTXV-75帧评估.md"
+      ],
+      "acceptance": [
+        "需求确认：不需要精确 3 秒（差 80ms）",
+        "技术验证：75 帧静默折算为 73 帧（实测 n75 输出 73 帧）",
+        "文档更新：P1-总结.md 加脚注，workflow 参数不变"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0.2,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-28T23:20:00+08:00",
+          "note": "2 个变体实测（n75_f25 与 n73_f24），源码确认 8n+1 约束",
+          "cost": 0.13
+        }
+      ],
+      "evidence": [
+        "reports/p1/LTXV-75帧评估.md",
+        "reports/p1/ltxv-frame-test/compare.png"
       ]
     }
   ],
