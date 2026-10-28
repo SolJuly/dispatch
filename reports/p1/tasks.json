@@ -1,7 +1,7 @@
 {
   "schema": "p1.tasks/v1",
   "phase": "P1",
-  "updated_at": "2026-10-28T22:24:34+08:00",
+  "updated_at": "2026-10-28T22:52:42+08:00",
   "scope_note": "只做单任务最小闭环，不做并发批量；顺序：底座 → 校验&持久化 → 模型 → 异常",
   "global_blockers": [],
   "tasks": [
@@ -669,6 +669,39 @@
       ],
       "evidence": [
         "tools/p1/instance_setup.sh"
+      ]
+    },
+    {
+      "id": "P1-T16",
+      "title": "Manager 建机卡启动：复现统计 + 根因 + 修复",
+      "status": "done",
+      "phase_step": 2,
+      "depends_on": [
+        "P1-T15"
+      ],
+      "deliverables": [
+        "reports/p1/Manager卡住-复现与修复.md",
+        "tools/p1/manager_probe.py"
+      ],
+      "acceptance": [
+        "5 轮复现数据（0 卡）与历史数据（2/4 卡）对比",
+        "根因定位：实例出口访问 GitHub 不稳定",
+        "修复：setup 阶段 patch start.d，验证 startd-patched 生效"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0.5,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-28T23:05:00+08:00",
+          "note": "5 轮探测 + 本机 GitHub 不可达对比 + start.d patch 验证",
+          "cost": 0.52
+        }
+      ],
+      "evidence": [
+        "reports/p1/Manager卡住-复现与修复.md",
+        "reports/p1/manager-probe/summary.json"
       ]
     }
   ],

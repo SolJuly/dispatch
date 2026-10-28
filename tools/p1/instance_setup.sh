@@ -117,6 +117,11 @@ fi
 
 # ---------- 2. 远端准备：停进程 / 禁 Manager / 建软链 ----------
 say "停旧进程 / 禁 Manager / 建软链（逐条执行，便于定位）…"
+# 先 patch 启动脚本：去掉 --enable-manager 并加离线变量。
+# Manager 启动时要拉 raw.githubusercontent.com 的节点表，实例出口不通时会
+# 阻塞 web server 启动（表现为 8188 永不监听）。patch 后即使 entrypoint
+# 重启也不会再带 Manager。
+$CS ssh "$ID" --exec "F=/start.d/comfyui.sh; if [ -f \"\$F\" ] && grep -q -- '--enable-manager' \"\$F\"; then sed -i 's/ --enable-manager//' \"\$F\"; grep -q 'COMFYUI_MANAGER_OFFLINE' \"\$F\" || sed -i 's|^nohup python|COMFYUI_MANAGER_OFFLINE=1 nohup python|' \"\$F\"; echo startd-patched; else echo startd-clean; fi" 2>&1 | grep -E 'startd-' | tail -1 || true
 $CS ssh "$ID" --exec "pkill -f '[m]ain.py --listen' 2>/dev/null; sleep 2; pkill -f '[m]ain.py --listen' 2>/dev/null; echo killed" >/dev/null 2>&1 || true
 $CS ssh "$ID" --exec "if [ -d /root/ComfyUI/custom_nodes/ComfyUI-Manager ]; then mv /root/ComfyUI/custom_nodes/ComfyUI-Manager /root/ComfyUI/custom_nodes/ComfyUI-Manager.disabled; echo mgr-moved; else echo mgr-absent; fi" >/dev/null 2>&1 || true
 $CS ssh "$ID" --exec "ln -sf /model/ModelScope/FireRedTeam/FireRed-Image-Edit-1.1-ComfyUI/qwen_image_vae.safetensors /root/ComfyUI/models/vae/qwen_std_vae.safetensors; ln -sf /model/ModelScope/FireRedTeam/FireRed-Image-Edit-1.1-ComfyUI/qwen2.5vl-7b-bf16.safetensors /root/ComfyUI/models/text_encoders/qwen25vl7b_std.safetensors; echo links-done" >/dev/null 2>&1 || true
