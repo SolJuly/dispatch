@@ -1,7 +1,7 @@
 {
   "schema": "p1.tasks/v1",
   "phase": "P1",
-  "updated_at": "2026-10-28T23:14:29+08:00",
+  "updated_at": "2026-10-28T23:18:04+08:00",
   "scope_note": "只做单任务最小闭环，不做并发批量；顺序：底座 → 校验&持久化 → 模型 → 异常",
   "global_blockers": [],
   "tasks": [
@@ -734,6 +734,40 @@
       "evidence": [
         "reports/p1/LTXV-75帧评估.md",
         "reports/p1/ltxv-frame-test/compare.png"
+      ]
+    },
+    {
+      "id": "P1-T18",
+      "title": "csctl pull 目录探测 bug：定位与根因（待批准修）",
+      "status": "done",
+      "phase_step": 2,
+      "depends_on": [
+        "P1-T01"
+      ],
+      "deliverables": [
+        "reports/p1/csctl-pull-目录探测bug.md",
+        "reports/p1/logs/pull-bug-repro.txt"
+      ],
+      "acceptance": [
+        "定位：transfer.py:92 ssh() 无超时捕获；:344 目录探测；pull() 的 try 覆盖不到",
+        "根因：触发(30s超时)+无重试+无兜底 三层叠加",
+        "方案 B 已给出（约 10 行），待批准后修改主链"
+      ],
+      "blockers": [
+        "改 tools/transfer.py 需你批准（主链文件）"
+      ],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-10-28T23:30:00+08:00",
+          "note": "静态定位 + 代码级复现，未建机（¥0）",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "reports/p1/csctl-pull-目录探测bug.md"
       ]
     }
   ],
