@@ -1,7 +1,7 @@
 {
   "schema": "p1.tasks/v1",
   "phase": "P1",
-  "updated_at": "2026-10-28T22:18:06+08:00",
+  "updated_at": "2026-10-28T22:24:34+08:00",
   "scope_note": "只做单任务最小闭环，不做并发批量；顺序：底座 → 校验&持久化 → 模型 → 异常",
   "global_blockers": [],
   "tasks": [
@@ -548,9 +548,10 @@
         "reports/p1/cases-report.md"
       ],
       "acceptance": [
-        "12 条各给结论：10 PASS / 2 SKIP / 0 FAIL",
-        "TC-09 真实链路验证：scp 失败重试 → FAILED_FETCH → 仍销毁实例",
-        "TC-10/TC-12 需故障注入（磁盘满 / Spot 回收），标 SKIP"
+        "12 条各给结论：11 PASS / 1 SKIP / 0 FAIL",
+        "TC-09 真实链路：scp 失败重试 → FAILED_FETCH → 仍销毁实例",
+        "TC-10 实机验证：64KB tmpfs → ENOSPC → FAILED_FETCH → 残文件清理",
+        "TC-12 Spot 回收仍 SKIP（平台行为不可控）"
       ],
       "blockers": [
         "TC-09/10/12 需要真实实例才能触发"
@@ -582,6 +583,12 @@
           "at": "2026-10-28T22:18:06+08:00",
           "note": "补 TC-09：真实 scp 失败验证重试与失败状态链，异常用例从 9 PASS 提升到 10 PASS",
           "cost": 0.0
+        },
+        {
+          "round": 3,
+          "at": "2026-10-28T22:24:34+08:00",
+          "note": "补 TC-10：本地 64KB tmpfs + 实例 200KB 文件，真实触发 ENOSPC，验证失败包装与残文件清理",
+          "cost": 0.15
         }
       ],
       "evidence": [
@@ -667,8 +674,8 @@
   ],
   "cases_result": {
     "total": 12,
-    "passed": 10,
-    "skipped": 2,
+    "passed": 11,
+    "skipped": 1,
     "failed": 0
   }
 }

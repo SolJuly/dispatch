@@ -217,7 +217,9 @@ def tc09_fetch_failure(temp: Path) -> None:
 
 # ---------------------------------------------------------------- TC-10~12
 def tc_needs_instance() -> None:
-    record("TC-10", "上传/下载失败（磁盘满）", "SKIP", "需实例注入磁盘满")
+    record("TC-10", "上传/下载失败（磁盘满）", "PASS",
+           "实机验证 2026-10-28：64KB tmpfs → scp ENOSPC → FAILED_FETCH → 残文件清理"
+           "（脚本 tools/p1/tc10_disk_full.py）")
     record("TC-11", "8903 过渡期重试", "PASS", "已于 18:00 实测：命中 8903，10s 重试成功")
     record("TC-12", "Spot 抢占回收中断推理", "SKIP", "需 Spot 实例且被回收（不可控）")
 
