@@ -586,6 +586,8 @@ def _keep_instance(job_id: str, ctx: dict, opts) -> bool:
         cs = CS()
         ts = int(time.time() + KEEP_MINUTES * 60)
         cs.stop_at(uid, ts)
+        # 说明：Describe 不返回 SchedulerStopTime，所以查实例看到的该字段永远是 None，
+        # 不代表没设上。2026-10-28 实测：设 23:45:42 → 23:46:59 State 变为 Stopped。
         _say(f"实例 {uid} 已保留（{KEEP_MINUTES} 分钟后自动关机兜底）")
         _say(f"  续跑：python3 tools/p1/run.py {job_id} --resume")
         _say(f"  放弃：python3 tools/p1/run.py {job_id} --abort")
