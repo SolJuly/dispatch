@@ -390,7 +390,7 @@ def build() -> None:
     bx("C2", LX + 352, cy, 330, "fileserver.py :8081",
        ["systemd: cs-files（常驻）", "预览/上传/灯箱/缩略图", "服务端渲染 监控·成本·架构"], GREEN)
     bx("C3", LX + 698, cy, 326, "systemd · cron",
-       ["cs-lab：基准流水线（等货即跑）", "*/5 空闲守护 · */10 架构图", "*/10 余额快照"], PINK)
+       ["cs-lab：已退役（P1/P2 取代）", "*/5 空闲守护 · */10 架构图", "*/10 余额快照"], PINK)
     y = yC + 140 + GAP
 
     yD = y
@@ -399,9 +399,9 @@ def build() -> None:
     bx("D1", LX + 16, dy, 320, "csctl.py",
        ["up：flock 互斥 + 查重 + 预算闸", "stop/start/rm/stop-at/cardless",
         "ssh --exec --detach（断连不停）", "cost/jobs 账本 · price/stock"], BLUE)
-    bx("D2", LX + 352, dy, 330, "lab_runner.py（cs-lab）",
-       ["等现货 → 建机 → 探环境", "→ 跑 6–8 负载 → scp 拉产物",
-        "→ 销毁 → 出报告", "预算 ¥8 · 单机 35min"], PINK)
+    bx("D2", LX + 352, dy, 330, "lab_runner.py（已退役）",
+       ["P0 基准矩阵：卡型×模型选型", "结论已固化进 P1/P2 参数",
+        "cs-lab.service 已 disable", "复跑：systemctl enable --now"], PINK)
     bx("D3", LX + 698, dy, 326, "tools/ · scripts/",
        ["gallery.py：缩略图/长图/画廊", "arch.py：架构图 SVG+PNG", "cost_snapshot.py：余额快照",
         "sync_share.sh · install_cron.sh"], GREEN)
