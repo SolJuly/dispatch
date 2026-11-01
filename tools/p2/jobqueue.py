@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""P2 队列（SQLite WAL）：批量作业的排队、领取、心跳、重排队。
+"""P2 队列 + 审计（SQLite WAL）：排队、领取、心跳、退避重试、审计流水。
 
-设计要点（见 P2 计划 §5.3/§5.4）：
-  - 队列状态活在 queue.db，job 的 15 态状态机完全不动（批量只是调度壳）
-  - claim 用 BEGIN IMMEDIATE 原子领取，天然防双领
-  - 活跃态对 params_hash 建唯一索引，防止同一参数被跑两次（烧两份钱）
-  - 租约 lease_until + 心跳，worker 崩了由 doctor/调度器复位
+设计（P0/P1 硬化后）：
+  - P0-1 幂等：job_id 主键 + 提交前显式检查（同 id 活跃 → 拦截）；params_hash 活跃态唯一索引
+  - P0-2 心跳：worker 每 15s heartbeat()，调度器每 30s scan，>60s 判定 FAILED
+  - P0-3 审计：audit_log 逐条记录状态变更 + instance_id + exit_code + GPU 分钟
+  - P1-4 重试：1s→5s→30s 退避，最多 3 次，超限 TERMINAL_FAILED
+  - P1-5 回收：reclaim() 由 watchdog 调用，落 RECLAIMED
+
+状态：queued → claimed → running → done / failed / terminal_failed / cancelled / skipped / reclaimed
 """
 from __future__ import annotations
 
@@ -18,12 +21,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 DB = ROOT / "reports" / "p2" / "queue.db"
 
-LEASE = 180          # 租约秒
+SCHEMA_VERSION = 2
+LEASE = 90               # 租约（> 心跳 15s × 若干次）
+HEARTBEAT_S = 15         # worker 心跳间隔（P0-2）
+TIMEOUT_S = 60           # 调度器判定超时（P0-2）
+BACKOFF = (1, 5, 30)     # P1-4 退避阶梯（秒）
+MAX_ATTEMPTS = 3         # P1-4 最大重试次数
+
 ACTIVE = ("queued", "claimed", "running")
+STATES = ("queued", "claimed", "running", "done", "failed",
+          "terminal_failed", "cancelled", "skipped", "reclaimed")
 
 DDL = """
 PRAGMA journal_mode=WAL;
 PRAGMA busy_timeout=5000;
+
+CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
 
 CREATE TABLE IF NOT EXISTS batch (
   batch_id     TEXT PRIMARY KEY,
@@ -45,26 +58,42 @@ CREATE TABLE IF NOT EXISTS item (
   required_gpu TEXT,
   est_cost     REAL,
   state        TEXT NOT NULL DEFAULT 'queued'
-               CHECK (state IN ('queued','claimed','running','done','failed','cancelled','skipped')),
+               CHECK (state IN ('queued','claimed','running','done','failed',
+                                'terminal_failed','cancelled','skipped','reclaimed')),
   worker       TEXT,
+  instance_id  TEXT,
   lease_until  INTEGER,
+  heartbeat_at INTEGER,
   attempts     INTEGER NOT NULL DEFAULT 0,
-  max_attempts INTEGER NOT NULL DEFAULT 2,
+  max_attempts INTEGER NOT NULL DEFAULT 3,
+  next_retry_at INTEGER,
+  backoff_s    INTEGER,
   enqueued_at  TEXT NOT NULL,
   started_at   TEXT,
   ended_at     TEXT,
   cost         REAL,
+  gpu_minutes  REAL,
+  exit_code    INTEGER,
   last_error   TEXT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_item_params_active
   ON item(params_hash) WHERE state IN ('queued','claimed','running');
-CREATE INDEX IF NOT EXISTS ix_item_pick ON item(state, priority DESC, enqueued_at);
+CREATE INDEX IF NOT EXISTS ix_item_pick ON item(state, next_retry_at, priority DESC, enqueued_at);
 CREATE INDEX IF NOT EXISTS ix_item_batch ON item(batch_id, state);
 
-CREATE TABLE IF NOT EXISTS event (
-  ts INTEGER, item_id TEXT, from_state TEXT, to_state TEXT, detail TEXT
+CREATE TABLE IF NOT EXISTS audit_log (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts         INTEGER NOT NULL,
+  job_id     TEXT NOT NULL,
+  instance_id TEXT,
+  from_state TEXT,
+  to_state   TEXT NOT NULL,
+  exit_code  INTEGER,
+  gpu_minutes REAL,
+  detail     TEXT
 );
+CREATE INDEX IF NOT EXISTS ix_audit_job ON audit_log(job_id, id);
 """
 
 
@@ -73,6 +102,7 @@ def connect() -> sqlite3.Connection:
     c = sqlite3.connect(str(DB), timeout=10, isolation_level=None)
     c.row_factory = sqlite3.Row
     c.executescript(DDL)
+    c.execute("INSERT OR IGNORE INTO meta(k,v) VALUES('schema_version',?)", (str(SCHEMA_VERSION),))
     return c
 
 
@@ -80,11 +110,14 @@ def _now() -> str:
     return time.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def _event(c, item_id, frm, to, detail=""):
-    c.execute("INSERT INTO event(ts,item_id,from_state,to_state,detail) VALUES(?,?,?,?,?)",
-              (int(time.time()), item_id, frm, to, detail[:500]))
+def _audit(c, job_id, frm, to, *, instance_id=None, exit_code=None,
+           gpu_minutes=None, detail=""):
+    c.execute("INSERT INTO audit_log(ts,job_id,instance_id,from_state,to_state,exit_code,gpu_minutes,detail) "
+              "VALUES(?,?,?,?,?,?,?,?)",
+              (int(time.time()), job_id, instance_id, frm, to, exit_code, gpu_minutes, (detail or "")[:500]))
 
 
+# ---------------------------------------------------------------- 批次
 def create_batch(batch_id: str, name: str, max_concurrency: int = 2,
                  budget_cny: float = 0.0, max_minutes: int = 0) -> None:
     c = connect()
@@ -95,22 +128,28 @@ def create_batch(batch_id: str, name: str, max_concurrency: int = 2,
         c.close()
 
 
+# ---------------------------------------------------------------- 提交（P0-1 幂等）
 def submit(batch_id: str, job_id: str, params_hash: str, *, spec_sha256: str = "",
            priority: int = 0, model_key: str = "", required_gpu=None,
-           est_cost: float = 0.0, max_attempts: int = 2) -> tuple[bool, str]:
-    """入队。返回 (ok, 说明)。同参数活跃条目已存在时拒绝（防双花）。"""
+           est_cost: float = 0.0, max_attempts: int = MAX_ATTEMPTS) -> tuple[bool, str]:
+    """入队。显式幂等：同 job_id 活跃 → 拦截；同 params_hash 活跃 → 拦截。"""
     c = connect()
     try:
-        dup = c.execute("SELECT job_id FROM item WHERE params_hash=? AND state IN ('queued','claimed','running')",
+        dup_id = c.execute("SELECT state FROM item WHERE job_id=?", (job_id,)).fetchone()
+        if dup_id:
+            if dup_id["state"] in ACTIVE:
+                return False, f"job_id 幂等拦截：{job_id} 已处于 {dup_id['state']}"
+            return False, f"job_id 已存在（{dup_id['state']}，不可重复入队）"
+        dup = c.execute("SELECT job_id,state FROM item WHERE params_hash=? AND state IN ('queued','claimed','running')",
                         (params_hash,)).fetchone()
         if dup:
-            return False, f"同参数已在队列/在跑：{dup['job_id']}"
+            return False, f"同参数已在队列/在跑：{dup['job_id']}（{dup['state']}）"
         c.execute("INSERT INTO item(job_id,batch_id,spec_sha256,params_hash,priority,model_key,"
                   "required_gpu,est_cost,state,enqueued_at,max_attempts) "
                   "VALUES(?,?,?,?,?,?,?,?,'queued',?,?)",
                   (job_id, batch_id, spec_sha256, params_hash, priority, model_key,
                    json.dumps(required_gpu or []), est_cost, _now(), max_attempts))
-        _event(c, job_id, None, "queued", f"batch={batch_id}")
+        _audit(c, job_id, None, "queued", detail=f"batch={batch_id}")
         return True, "queued"
     except sqlite3.IntegrityError as e:
         return False, f"入队失败：{e}"
@@ -118,25 +157,29 @@ def submit(batch_id: str, job_id: str, params_hash: str, *, spec_sha256: str = "
         c.close()
 
 
+# ---------------------------------------------------------------- 领取
 def claim(worker_id: str, lease: int = LEASE) -> dict | None:
-    """原子领取一条 queued 项，置为 claimed 并设租约。"""
+    """原子领取：只领 queued 且退避到期的项。"""
     c = connect()
     try:
         c.execute("BEGIN IMMEDIATE")
+        now = int(time.time())
         row = c.execute("SELECT * FROM item WHERE state='queued' "
-                        "ORDER BY priority DESC, enqueued_at ASC LIMIT 1").fetchone()
+                        "AND (next_retry_at IS NULL OR next_retry_at <= ?) "
+                        "ORDER BY priority DESC, enqueued_at ASC LIMIT 1", (now,)).fetchone()
         if not row:
             c.execute("COMMIT")
             return None
         job_id = row["job_id"]
-        n = c.execute("UPDATE item SET state='claimed', worker=?, lease_until=?, attempts=attempts+1, "
-                      "started_at=COALESCE(started_at,?) WHERE job_id=? AND state='queued'",
-                      (worker_id, int(time.time()) + lease, _now(), job_id)).rowcount
+        n = c.execute("UPDATE item SET state='claimed', worker=?, lease_until=?, heartbeat_at=?, "
+                      "attempts=attempts+1, started_at=COALESCE(started_at,?) "
+                      "WHERE job_id=? AND state='queued'",
+                      (worker_id, now + lease, now, _now(), job_id)).rowcount
         if n != 1:
             c.execute("ROLLBACK")
             return None
         c.execute("COMMIT")
-        _event(c, job_id, "queued", "claimed", f"worker={worker_id}")
+        _audit(c, job_id, "queued", "claimed", detail=f"worker={worker_id} attempt={row['attempts'] + 1}")
         return dict(c.execute("SELECT * FROM item WHERE job_id=?", (job_id,)).fetchone())
     finally:
         c.close()
@@ -145,47 +188,77 @@ def claim(worker_id: str, lease: int = LEASE) -> dict | None:
 def mark_running(job_id: str) -> None:
     c = connect()
     try:
-        c.execute("UPDATE item SET state='running', lease_until=? WHERE job_id=?",
-                  (int(time.time()) + LEASE, job_id))
-        _event(c, job_id, "claimed", "running")
+        now = int(time.time())
+        c.execute("UPDATE item SET state='running', lease_until=?, heartbeat_at=? WHERE job_id=?",
+                  (now + LEASE, now, job_id))
+        _audit(c, job_id, "claimed", "running")
+    finally:
+        c.close()
+
+
+def set_instance(job_id: str, uid: str) -> None:
+    """worker 建机成功后登记实例，供 watchdog 回收孤儿实例。"""
+    c = connect()
+    try:
+        c.execute("UPDATE item SET instance_id=? WHERE job_id=?", (uid, job_id))
+    finally:
+        c.close()
+
+
+def clear_instance(job_id: str) -> None:
+    c = connect()
+    try:
+        c.execute("UPDATE item SET instance_id=NULL WHERE job_id=?", (job_id,))
     finally:
         c.close()
 
 
 def heartbeat(job_id: str, lease: int = LEASE) -> None:
+    """worker 每 15s 调用（P0-2）。行不存在时静默（legacy 单跑场景）。"""
     c = connect()
     try:
-        c.execute("UPDATE item SET lease_until=? WHERE job_id=?", (int(time.time()) + lease, job_id))
+        now = int(time.time())
+        c.execute("UPDATE item SET heartbeat_at=?, lease_until=? WHERE job_id=? "
+                  "AND state IN ('claimed','running')", (now, now + lease, job_id))
     finally:
         c.close()
 
 
-def finish(job_id: str, ok: bool, cost: float | None = None, error: str = "") -> None:
+# ---------------------------------------------------------------- 收尾 + 审计
+def finish(job_id: str, ok: bool, cost: float | None = None, error: str = "",
+           *, instance_id: str | None = None, exit_code: int | None = None,
+           gpu_minutes: float | None = None) -> None:
     c = connect()
     try:
         st = "done" if ok else "failed"
-        c.execute("UPDATE item SET state=?, ended_at=?, cost=?, last_error=? WHERE job_id=?",
-                  (st, _now(), cost, error[:500], job_id))
-        _event(c, job_id, "running", st, error[:300])
+        c.execute("UPDATE item SET state=?, ended_at=?, cost=?, last_error=?, instance_id=?, "
+                  "exit_code=?, gpu_minutes=? WHERE job_id=?",
+                  (st, _now(), cost, (error or "")[:500], instance_id, exit_code, gpu_minutes, job_id))
+        _audit(c, job_id, "running", st, instance_id=instance_id, exit_code=exit_code,
+               gpu_minutes=gpu_minutes, detail=(error or "")[:300])
     finally:
         c.close()
 
 
+# ---------------------------------------------------------------- 重试（P1-4）
 def requeue(job_id: str, error: str = "") -> bool:
-    """失败重排：attempts 未到上限才回 queued。返回是否重排。"""
+    """失败重排：1s→5s→30s 退避，最多 MAX_ATTEMPTS 次；超限 → terminal_failed。"""
     c = connect()
     try:
         row = c.execute("SELECT attempts,max_attempts,state FROM item WHERE job_id=?", (job_id,)).fetchone()
         if not row:
             return False
         if row["attempts"] >= row["max_attempts"]:
-            c.execute("UPDATE item SET state='failed', ended_at=?, last_error=? WHERE job_id=?",
+            c.execute("UPDATE item SET state='terminal_failed', ended_at=?, last_error=? WHERE job_id=?",
                       (_now(), (error or "attempts exhausted")[:500], job_id))
-            _event(c, job_id, row["state"], "failed", "attempts exhausted")
+            _audit(c, job_id, row["state"], "terminal_failed", detail="attempts exhausted")
             return False
-        c.execute("UPDATE item SET state='queued', worker=NULL, lease_until=NULL, last_error=? WHERE job_id=?",
-                  (error[:500], job_id))
-        _event(c, job_id, row["state"], "queued", f"requeue: {error[:200]}")
+        backoff = BACKOFF[min(max(row["attempts"] - 1, 0), len(BACKOFF) - 1)]
+        next_at = int(time.time()) + backoff
+        c.execute("UPDATE item SET state='queued', worker=NULL, lease_until=NULL, heartbeat_at=NULL, "
+                  "next_retry_at=?, backoff_s=?, last_error=? WHERE job_id=?",
+                  (next_at, backoff, (error or "")[:500], job_id))
+        _audit(c, job_id, row["state"], "queued", detail=f"retry in {backoff}s: {(error or '')[:200]}")
         return True
     finally:
         c.close()
@@ -196,36 +269,69 @@ def cancel(job_id: str, why: str = "manual") -> None:
     try:
         c.execute("UPDATE item SET state='cancelled', ended_at=?, last_error=? "
                   "WHERE job_id=? AND state IN ('queued','claimed','running')", (_now(), why, job_id))
-        _event(c, job_id, None, "cancelled", why)
+        _audit(c, job_id, None, "cancelled", detail=why)
     finally:
         c.close()
 
 
-def expired(lease: int = LEASE) -> list[dict]:
-    """租约过期仍未完成的项（worker 可能已死）。"""
+def reclaim(job_id: str, why: str = "watchdog") -> None:
+    """P1-5：watchdog 回收后落 RECLAIMED（实例已杀/已释放）。"""
     c = connect()
     try:
+        c.execute("UPDATE item SET state='reclaimed', ended_at=?, last_error=? WHERE job_id=?",
+                  (_now(), why, job_id))
+        _audit(c, job_id, None, "reclaimed", detail=why)
+    finally:
+        c.close()
+
+
+# ---------------------------------------------------------------- 心跳超时（P0-2）
+def stale(seconds: int = TIMEOUT_S) -> list[dict]:
+    """claimed/running 且心跳超时的项。"""
+    c = connect()
+    try:
+        cutoff = int(time.time()) - int(seconds)
         rows = c.execute("SELECT * FROM item WHERE state IN ('claimed','running') "
-                         "AND COALESCE(lease_until,0) < ?", (int(time.time()),)).fetchall()
+                         "AND COALESCE(heartbeat_at,0) < ?", (cutoff,)).fetchall()
         return [dict(r) for r in rows]
     finally:
         c.close()
 
 
-def reset_stale(lease: int = LEASE) -> list[str]:
-    """把租约过期的 claimed/running 复位为 queued（或到上限则 failed）。"""
+def mark_timeout(job_id: str, seconds: int = TIMEOUT_S, detail: str = "") -> None:
+    """心跳超时 → FAILED（P0-2）；是否重排交由 requeue()（P1-4）。"""
+    c = connect()
+    try:
+        row = c.execute("SELECT state FROM item WHERE job_id=?", (job_id,)).fetchone()
+        frm = row["state"] if row else None
+        c.execute("UPDATE item SET state='failed', ended_at=?, last_error=? WHERE job_id=?",
+                  (_now(), f"heartbeat timeout >{seconds}s {detail}"[:500], job_id))
+        _audit(c, job_id, frm, "failed", detail=f"heartbeat timeout >{seconds}s {detail}")
+    finally:
+        c.close()
+
+
+def expired(lease: int = LEASE) -> list[dict]:
+    """兼容旧接口：租约过期即心跳过期。"""
+    return stale(lease)
+
+
+def reset_stale(seconds: int = TIMEOUT_S) -> list[str]:
+    """心跳超时的项：先置 FAILED，再按退避重排（超限则 terminal_failed）。"""
     out = []
-    for row in expired(lease):
-        ok = requeue(row["job_id"], "lease expired")
-        out.append(f"{row['job_id']}:{'requeued' if ok else 'failed'}")
+    for row in stale(seconds):
+        jid = row["job_id"]
+        mark_timeout(jid, seconds)
+        ok = requeue(jid, f"heartbeat timeout >{seconds}s")
+        out.append(f"{jid}:{'requeued' if ok else 'terminal_failed'}")
     return out
 
 
+# ---------------------------------------------------------------- 查询
 def items(batch_id: str | None = None, state: str | None = None) -> list[dict]:
     c = connect()
     try:
-        q, args = "SELECT * FROM item", []
-        where = []
+        q, args, where = "SELECT * FROM item", [], []
         if batch_id:
             where.append("batch_id=?"); args.append(batch_id)
         if state:
@@ -253,5 +359,18 @@ def active_count() -> int:
     c = connect()
     try:
         return c.execute("SELECT COUNT(*) n FROM item WHERE state IN ('claimed','running')").fetchone()["n"]
+    finally:
+        c.close()
+
+
+def audit_rows(job_id: str | None = None, limit: int = 200) -> list[dict]:
+    c = connect()
+    try:
+        if job_id:
+            rows = c.execute("SELECT * FROM audit_log WHERE job_id=? ORDER BY id DESC LIMIT ?",
+                             (job_id, limit)).fetchall()
+        else:
+            rows = c.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        return [dict(r) for r in rows]
     finally:
         c.close()

@@ -505,13 +505,218 @@
         }
       ],
       "evidence": []
+    },
+    {
+      "id": "P2-T15",
+      "title": "P0-1 幂等：job_id 唯一 + 活跃态拦截",
+      "status": "done",
+      "phase_step": 1,
+      "depends_on": [
+        "P2-T08"
+      ],
+      "deliverables": [
+        "jobqueue.submit 显式检查 job_id/params_hash",
+        "单测 2 条"
+      ],
+      "acceptance": [
+        "重复 job_id 被拒且不建实例",
+        "同参数活跃被拒"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T13:05:00+08:00",
+          "note": "P2 阶段硬化落地",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "reports/p2/P2-核心稳定-设计与验收.md"
+      ]
+    },
+    {
+      "id": "P2-T16",
+      "title": "P0-2 心跳：worker 15s / 调度 30s / 60s 超时",
+      "status": "done",
+      "phase_step": 1,
+      "depends_on": [
+        "P2-T08"
+      ],
+      "deliverables": [
+        "run.py daemon 心跳线程",
+        "scheduler reset_stale(60)",
+        "单测 2 条"
+      ],
+      "acceptance": [
+        "超时→failed→requeue",
+        "刚打点不算超时"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T13:05:00+08:00",
+          "note": "P2 阶段硬化落地",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "reports/p2/P2-核心稳定-设计与验收.md"
+      ]
+    },
+    {
+      "id": "P2-T17",
+      "title": "P0-3 审计日志：状态变更+实例+exit_code+GPU 分钟",
+      "status": "done",
+      "phase_step": 1,
+      "depends_on": [
+        "P2-T08"
+      ],
+      "deliverables": [
+        "audit_log 表 + _audit()",
+        "batchctl audit"
+      ],
+      "acceptance": [
+        "finish 写入 exit_code/gpu_minutes/instance_id"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T13:05:00+08:00",
+          "note": "P2 阶段硬化落地",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "reports/p2/P2-核心稳定-设计与验收.md"
+      ]
+    },
+    {
+      "id": "P2-T18",
+      "title": "P1-4 退避重试 1s→5s→30s / 最多 3 次 / TERMINAL_FAILED",
+      "status": "done",
+      "phase_step": 1,
+      "depends_on": [
+        "P2-T08"
+      ],
+      "deliverables": [
+        "BACKOFF + next_retry_at",
+        "claim 尊重退避"
+      ],
+      "acceptance": [
+        "阶梯与上限单测通过"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T13:05:00+08:00",
+          "note": "P2 阶段硬化落地",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "reports/p2/P2-核心稳定-设计与验收.md"
+      ]
+    },
+    {
+      "id": "P2-T19",
+      "title": "P1-5 Watchdog 回收孤儿实例 → RECLAIMED",
+      "status": "done",
+      "phase_step": 1,
+      "depends_on": [
+        "P2-T08"
+      ],
+      "deliverables": [
+        "scheduler.reclaim_orphans + batchctl watchdog",
+        "SSH pkill 方括号技巧 + terminate"
+      ],
+      "acceptance": [
+        "真机 14s 回收、实例消失"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0.05,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T13:05:00+08:00",
+          "note": "P2 阶段硬化落地",
+          "cost": 0.05
+        }
+      ],
+      "evidence": [
+        "reports/p2/P2-核心稳定-设计与验收.md"
+      ]
+    },
+    {
+      "id": "P2-T20",
+      "title": "P2-6 输出校验增强（ffprobe 时长/分辨率）",
+      "status": "done",
+      "phase_step": 2,
+      "depends_on": [],
+      "deliverables": [
+        "verify.py 已有七项校验"
+      ],
+      "acceptance": [
+        "覆盖时长/分辨率，超出要求"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T13:05:00+08:00",
+          "note": "P2 阶段硬化落地",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "reports/p2/P2-核心稳定-设计与验收.md"
+      ]
+    },
+    {
+      "id": "P2-T21",
+      "title": "P2-7 检查点（分段续跑）",
+      "status": "dropped",
+      "phase_step": 2,
+      "depends_on": [],
+      "deliverables": [],
+      "acceptance": [
+        "按要求不推进"
+      ],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T13:05:00+08:00",
+          "note": "P2 阶段硬化落地",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "reports/p2/P2-核心稳定-设计与验收.md"
+      ]
     }
   ],
   "cases_result": {
     "total": 34,
-    "pass": 20,
+    "pass": 22,
     "skip": 0,
     "fail": 0,
-    "note": "freeze6+transfer5+concat4+queue5=20 单测全绿；M4 并发 2×LTXV 双 done、0 残留；P1 回归 12PASS/1SKIP"
+    "note": "freeze6+transfer5+concat4+queue7=22 单测全绿；M4 并发双 done；P2 硬化 P0/P1 全部落地"
   }
 }

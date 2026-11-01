@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""P2 队列单测（¥0，临时 SQLite，不碰真实 queue.db）。"""
+"""P2 队列单测（P0 幂等/心跳 + P1 退避/审计）：¥0，临时 SQLite。"""
 from __future__ import annotations
 
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -13,6 +14,10 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from tools.p2 import jobqueue as queue  # noqa: E402
+
+
+def P(c):
+    return "sha256:" + c * 64
 
 
 class QueueTest(unittest.TestCase):
@@ -26,45 +31,88 @@ class QueueTest(unittest.TestCase):
         queue.DB = self._orig_db
         self._td.cleanup()
 
-    def test_submit_and_dedupe(self):
-        ok, _ = queue.submit("b-1", "j1", "sha256:" + "a" * 64)
+    def _force_ready(self, jid):
+        c = queue.connect()
+        try:
+            c.execute("UPDATE item SET next_retry_at=0 WHERE job_id=?", (jid,))
+        finally:
+            c.close()
+
+    # ---------------- P0-1 幂等
+    def test_duplicate_job_id_rejected(self):
+        ok, _ = queue.submit("b-1", "j1", P("a"))
         self.assertTrue(ok)
-        ok2, why = queue.submit("b-1", "j2", "sha256:" + "a" * 64)   # 同参数
+        ok2, why = queue.submit("b-1", "j1", P("b"))      # 同 job_id
         self.assertFalse(ok2)
-        self.assertIn("同参数", why)
+        self.assertIn("幂等", why)
         self.assertEqual(queue.stats()["total"], 1)
 
-    def test_claim_atomic(self):
-        queue.submit("b-1", "j1", "sha256:" + "b" * 64)
-        a = queue.claim("w1")
-        b = queue.claim("w2")
-        self.assertIsNotNone(a)
-        self.assertIsNone(b)          # 同一条不会被领两次
-        self.assertEqual(a["state"], "claimed")
+    def test_duplicate_params_active_rejected(self):
+        queue.submit("b-1", "j1", P("a"))
+        ok, why = queue.submit("b-1", "j2", P("a"))       # 同参数
+        self.assertFalse(ok)
+        self.assertIn("同参数", why)
 
-    def test_finish_and_stats(self):
-        queue.submit("b-1", "j1", "sha256:" + "c" * 64)
+    # ---------------- 领取
+    def test_claim_atomic(self):
+        queue.submit("b-1", "j1", P("b"))
+        self.assertIsNotNone(queue.claim("w1"))
+        self.assertIsNone(queue.claim("w2"))
+
+    # ---------------- P1-4 退避 + 上限
+    def test_backoff_ladder_and_terminal(self):
+        queue.submit("b-1", "j1", P("c"), max_attempts=3)
+        it = queue.claim("w1")
+        self.assertEqual(it["attempts"], 1)
+        self.assertTrue(queue.requeue("j1", "fail-1"))
+        row = {i["job_id"]: i for i in queue.items()}["j1"]
+        self.assertEqual(row["state"], "queued")
+        self.assertEqual(row["backoff_s"], 1)
+        self.assertIsNone(queue.claim("w1"))              # 退避未到期
+        self._force_ready("j1")
+        it = queue.claim("w1")
+        self.assertEqual(it["attempts"], 2)
+        self.assertTrue(queue.requeue("j1", "fail-2"))
+        self.assertEqual({i["job_id"]: i for i in queue.items()}["j1"]["backoff_s"], 5)
+        self._force_ready("j1")
+        it = queue.claim("w1")
+        self.assertEqual(it["attempts"], 3)
+        self.assertFalse(queue.requeue("j1", "fail-3"))   # 到上限
+        self.assertEqual({i["job_id"]: i for i in queue.items()}["j1"]["state"], "terminal_failed")
+
+    # ---------------- P0-2 心跳超时
+    def test_heartbeat_timeout_requeues(self):
+        queue.submit("b-1", "j1", P("d"))
+        queue.claim("w1")
+        c = queue.connect()
+        try:
+            c.execute("UPDATE item SET heartbeat_at=? WHERE job_id=?", (int(time.time()) - 120, "j1"))
+        finally:
+            c.close()
+        out = queue.reset_stale(60)
+        self.assertIn("j1:requeued", out)
+        self.assertEqual({i["job_id"]: i for i in queue.items()}["j1"]["state"], "queued")
+
+    def test_heartbeat_keeps_alive(self):
+        queue.submit("b-1", "j1", P("e"))
+        queue.claim("w1")
+        queue.heartbeat("j1")
+        self.assertEqual(queue.reset_stale(60), [])       # 刚打过点，不算超时
+
+    # ---------------- P0-3 审计
+    def test_audit_records_exit_and_gpu(self):
+        queue.submit("b-1", "j1", P("f"))
         queue.claim("w1")
         queue.mark_running("j1")
-        queue.finish("j1", True, 0.12)
-        s = queue.stats()
-        self.assertEqual(s["by_state"]["done"]["n"], 1)
-        self.assertAlmostEqual(s["by_state"]["done"]["cost"], 0.12, places=3)
-
-    def test_requeue_until_attempts(self):
-        queue.submit("b-1", "j1", "sha256:" + "d" * 64, max_attempts=2)
-        self.assertIsNotNone(queue.claim("w1"))     # attempts=1
-        self.assertTrue(queue.requeue("j1", "нет stock"))   # 回 queued
-        self.assertIsNotNone(queue.claim("w1"))     # attempts=2
-        self.assertFalse(queue.requeue("j1", "still"))      # 到上限 → failed
-        self.assertEqual({i["job_id"]: i["state"] for i in queue.items()}["j1"], "failed")
-
-    def test_reset_stale(self):
-        queue.submit("b-1", "j1", "sha256:" + "e" * 64)
-        queue.claim("w1", lease=-5)                 # 租约已过期
-        out = queue.reset_stale()
-        self.assertIn("j1:requeued", out)
-        self.assertEqual({i["job_id"]: i["state"] for i in queue.items()}["j1"], "queued")
+        queue.finish("j1", True, 0.12, instance_id="uhost-x", exit_code=0, gpu_minutes=2.5)
+        rows = queue.audit_rows("j1")
+        to_states = [r["to_state"] for r in rows]
+        self.assertIn("queued", to_states)
+        self.assertIn("running", to_states)
+        done = next(r for r in rows if r["to_state"] == "done")
+        self.assertEqual(done["instance_id"], "uhost-x")
+        self.assertEqual(done["exit_code"], 0)
+        self.assertAlmostEqual(done["gpu_minutes"], 2.5, places=3)
 
 
 if __name__ == "__main__":

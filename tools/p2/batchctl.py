@@ -105,8 +105,33 @@ def cmd_show(a) -> int:
 
 def cmd_run(a) -> int:
     s = scheduler.Scheduler(slots=a.slots, gpu=a.gpu, hours=a.hours,
-                            daily_budget=a.daily_budget, poll=a.poll)
+                            daily_budget=a.daily_budget, poll=a.poll,
+                            stagger=a.stagger, dry_run=getattr(a, "dry_run", False))
     return s.run()
+
+
+def cmd_audit(a) -> int:
+    rows = queue.audit_rows(job_id=a.job, limit=a.limit)
+    if not rows:
+        print("审计流水为空")
+        return 0
+    print(f"{'ts':<11} {'job_id':<24} {'from':<9} {'to':<16} {'exit':<5} {'gpu_min':<8} instance")
+    print("-" * 110)
+    for r in rows:
+        print(f"{time.strftime('%H:%M:%S', time.localtime(r['ts'])):<11} {r['job_id']:<24} "
+              f"{(r['from_state'] or '-'):<9} {r['to_state']:<16} "
+              f"{r['exit_code'] if r['exit_code'] is not None else '-':<5} "
+              f"{r['gpu_minutes'] if r['gpu_minutes'] is not None else '-':<8} "
+              f"{r['instance_id'] or '-'}")
+    return 0
+
+
+def cmd_watchdog(a) -> int:
+    """P1-5：扫描孤儿实例并回收（--once 适合 cron）。"""
+    killed = scheduler.reclaim_orphans(dry_run=a.dry_run)
+    stale = queue.reset_stale(scheduler.TIMEOUT_S)
+    print(json.dumps({"reclaimed": killed, "heartbeat_timeout": stale}, ensure_ascii=False, indent=2))
+    return 0
 
 
 def cmd_doctor(a) -> int:
@@ -157,12 +182,23 @@ def main(argv=None) -> int:
     sp.add_argument("--hours", type=float, default=1.0)
     sp.add_argument("--daily-budget", type=float, default=8.0)
     sp.add_argument("--poll", type=float, default=10.0)
+    sp.add_argument("--stagger", type=float, default=10.0, help="错峰下单间隔秒")
+    sp.add_argument("--dry-run", action="store_true", help="只回收/对账，不真正建机")
     sp.set_defaults(fn=cmd_run)
 
     sp = sub.add_parser("doctor", help="对账 + 可选回收")
     sp.add_argument("--reap", action="store_true")
     sp.add_argument("--ttl", type=int, default=45)
     sp.set_defaults(fn=cmd_doctor)
+
+    sp = sub.add_parser("audit", help="审计流水（状态变更/exit_code/GPU 分钟）")
+    sp.add_argument("--job")
+    sp.add_argument("--limit", type=int, default=50)
+    sp.set_defaults(fn=cmd_audit)
+
+    sp = sub.add_parser("watchdog", help="孤儿实例回收（P1-5）")
+    sp.add_argument("--dry-run", action="store_true")
+    sp.set_defaults(fn=cmd_watchdog)
 
     sp = sub.add_parser("cancel", help="取消批次未完成项")
     sp.add_argument("--batch", required=True)

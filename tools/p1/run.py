@@ -96,6 +96,27 @@ def _say(msg: str) -> None:
     print(f"[{dt.datetime.now():%H:%M:%S}] {_LOG_PREFIX}{msg}", flush=True)
 
 
+def _start_heartbeat(job_id: str, opts) -> None:
+    """P0-2：批量模式起心跳线程，每 15s 向队列打点（daemon，进程退出自动结束）。"""
+    if not getattr(opts, "batch", False):
+        return
+    try:
+        import threading
+        from tools.p2 import jobqueue
+    except Exception:
+        return
+
+    def loop():
+        while True:
+            try:
+                jobqueue.heartbeat(job_id)
+            except Exception:
+                pass
+            time.sleep(jobqueue.HEARTBEAT_S)
+
+    threading.Thread(target=loop, daemon=True, name=f"hb-{job_id}").start()
+
+
 def _lock(job_id: str, opts):
     """批量模式用作业级锁（不同 job 可并行）；legacy 单机模式仍用全局锁。"""
     if getattr(opts, "batch", False):
@@ -532,6 +553,12 @@ def _do_step(name: str, job_id: str, job: dict, opts, ctx: dict) -> None:
                        FAIL_STATE_OF_STEP.get(name, state.FAILED))
     if name == "provision":
         ctx.update(step_provision(job, opts))
+        if getattr(opts, "batch", False) and ctx.get("uhost_id"):
+            try:
+                from tools.p2 import jobqueue
+                jobqueue.set_instance(job_id, ctx["uhost_id"])
+            except Exception:
+                pass
         _mark_step(job_id, name, uhost_id=ctx.get("uhost_id"),
                    gpu=(ctx.get("inst") or {}).get("GpuType"), hourly=ctx.get("hourly"))
     elif name == "setup":
@@ -733,6 +760,7 @@ def run(job_id: str, opts) -> int:
         _LOG_PREFIX = f"[{job_id}] "
     job = state.load_job(job_id)
     _say(f"作业 {job_id} · 模型 {job['model']['key']} · 预算 ¥{job['budget'].get('max_cost')}")
+    _start_heartbeat(job_id, opts)
 
     if opts.dry_run:
         _say("--dry-run：只走状态机，不建机、不花钱")

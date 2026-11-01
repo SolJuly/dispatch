@@ -30,6 +30,8 @@ LEDGER = _ROOT / ".compshare" / "ledger.jsonl"
 RETRYABLE = {"FAILED_PROVISION", "FAILED_RUN", "FAILED_FETCH"}
 WORKER = f"{socket.gethostname()[-10:]}-{os.getpid()}"
 TTL_MIN = 45
+SCAN_S = 30          # P0-2：调度器每 30s 扫一次
+TIMEOUT_S = 60       # P0-2：>60s 无心跳判定死锁
 
 
 def _say(msg: str) -> None:
@@ -107,9 +109,11 @@ def reap_instances(ttl_min: int = TTL_MIN) -> list[str]:
 
 class Scheduler:
     def __init__(self, slots: int = 2, gpu: str = "4090", hours: float = 1.0,
-                 daily_budget: float = 8.0, poll: float = 10.0, stagger: float = 10.0):
+                 daily_budget: float = 8.0, poll: float = SCAN_S, stagger: float = 10.0,
+                 dry_run: bool = False):
         self.slots = max(1, slots)
         self.stagger = stagger
+        self.dry_run = dry_run
         self.gpu = gpu
         self.hours = hours
         self.daily_budget = daily_budget
@@ -148,9 +152,11 @@ class Scheduler:
                 cost = float((man.get("cost") or {}).get("amount") or 0)
             except Exception:
                 st, cost, man = "?", 0.0, {}
+            inst = ((j.get("instance") or {}).get("uhost_id") if isinstance(j, dict) else None)
+            gpu_min = float((man.get("cost") or {}).get("minutes") or 0) if isinstance(man, dict) else None
             if rc == 0 and st == state.DONE:
-                queue.finish(jid, True, cost)
-                _say(f"✓ {jid} done  ¥{cost:.3f}")
+                queue.finish(jid, True, cost, instance_id=inst, exit_code=rc, gpu_minutes=gpu_min)
+                _say(f"✓ {jid} done  ¥{cost:.3f}  gpu={gpu_min}m")
             else:
                 # run.py 失败后会走 FAILED_* → RELEASING → FAILED，终态看不出原因，
                 # 所以要翻 events 找有没有「可重试的失败态」（G1 清理后 state 恒为 FAILED）。
@@ -158,7 +164,8 @@ class Scheduler:
                 if reason in RETRYABLE and queue.requeue(jid, f"{reason} rc={rc}"):
                     _say(f"↻ {jid} 重排（{reason}）")
                 else:
-                    queue.finish(jid, False, cost, f"{reason or st} rc={rc}")
+                    queue.finish(jid, False, cost, f"{reason or st} rc={rc}",
+                                 instance_id=inst, exit_code=rc, gpu_minutes=gpu_min)
                     _say(f"✗ {jid} failed（{reason or st}）")
 
     # ---------------------------------------------------------------- 资源
@@ -181,9 +188,12 @@ class Scheduler:
 
     # ---------------------------------------------------------------- 主循环
     def once(self) -> int:
-        """跑一轮：回收 + 领取 + 补槽。返回本轮领取数。"""
+        """跑一轮：回收 + 心跳超时扫描 + 领取 + 补槽。"""
         self._reap_children()
-        queue.reset_stale()
+        timed_out = queue.reset_stale(TIMEOUT_S)
+        if timed_out:
+            _say(f"⏱ 心跳超时：{timed_out}")
+        self._reap_instances()
         ok, msg = self._budget_ok()
         if not ok:
             _say(f"⏸ 熔断：{msg}")
@@ -202,6 +212,13 @@ class Scheduler:
             if len(self.children) < self.slots and self.stagger:
                 time.sleep(self.stagger)   # 错峰下单，避免 226604 雪崩
         return claimed
+
+    def _reap_instances(self) -> None:
+        """P1-5：心跳超时/失败但仍占用实例的项 → 杀进程 + 释放（watchdog 的进程内版本）。"""
+        try:
+            reclaim_orphans(self.dry_run)
+        except Exception as e:
+            _say(f"⚠ watchdog 异常：{type(e).__name__}: {e}")
 
     def run(self) -> int:
         _say(f"启动：slots={self.slots} gpu={self.gpu} hours={self.hours} "
@@ -230,3 +247,60 @@ def doctor() -> dict:
     return {"reset_stale": stale, "active_items": sorted(active_items),
             "live_instances": orphan_inst, "today_cost": today_cost(),
             "stats": queue.stats()}
+
+
+# ---------------------------------------------------------------- watchdog（P1-5）
+def _instance_alive(uid: str) -> bool:
+    try:
+        from compshare.cs import CS
+        inst = CS().get(uid)
+        return (inst.get("State") or "").lower() in ("running", "stopped", "stopping", "starting")
+    except Exception:
+        return False
+
+
+def _ssh_kill(uid: str) -> None:
+    """SSH 到实例杀僵尸 Python/ComfyUI（方括号技巧防误杀执行进程）。"""
+    try:
+        from compshare.cs import CS
+        cs = CS()
+        inst = cs.get(uid)
+        ip, port, pwd = cs.public_ip(inst), "23", cs.password_of(inst)
+        if not ip or not pwd:
+            return
+        cmd = ("pkill -f '[m]ain.py --listen' 2>/dev/null; "
+               "pkill -f '[c]omfyui' 2>/dev/null; "
+               "sleep 2; pgrep -fa '[m]ain.py --listen' | head -3; echo killed")
+        subprocess.run(["sshpass", "-p", pwd, "ssh", "-p", str(port),
+                        "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+                        "-o", "ConnectTimeout=8", f"root@{ip}", cmd],
+                       capture_output=True, text=True, timeout=60)
+    except Exception as e:
+        _say(f"⚠ SSH kill {uid} 失败：{type(e).__name__}: {e}")
+
+
+def reclaim_orphans(dry_run: bool = False) -> list[str]:
+    """扫描仍有实例引用、但已无活跃 worker 的项：杀僵尸进程 → 释放实例 → 落 RECLAIMED。"""
+    done = []
+    for it in queue.items():
+        uid = it.get("instance_id")
+        if not uid or it["state"] == "running":
+            continue
+        jid = it["job_id"]
+        if not _instance_alive(uid):
+            queue.clear_instance(jid)
+            continue
+        if dry_run:
+            _say(f"[dry-run] 回收孤儿 {jid} / {uid}（{it['state']}）")
+            done.append(f"{jid}:{uid}")
+            continue
+        _ssh_kill(uid)
+        terminate(uid)
+        if it["state"] in ("failed", "terminal_failed"):
+            queue.reclaim(jid, f"watchdog reclaimed orphan {uid}")
+            _say(f"🧹 {jid} 孤儿实例 {uid} 已回收 → RECLAIMED")
+        else:
+            queue.clear_instance(jid)
+            _say(f"🧹 {jid} 孤儿实例 {uid} 已释放（保留 {it['state']} 待重试）")
+        done.append(f"{jid}:{uid}")
+    return done
