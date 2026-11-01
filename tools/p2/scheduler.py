@@ -197,7 +197,8 @@ class Scheduler:
                 if reason == "FAILED_PROVISION" and queue.defer(jid, 60, "provision failed（无货/配额？）"):
                     _say(f"⏳ {jid} 建机失败（疑似无货），60s 后再试（不消耗尝试）")
                 elif crashed or reason in RETRYABLE:
-                    if queue.requeue(jid, f"{reason} rc={rc}", exit_code=rc):
+                    if queue.requeue(jid, f"{reason} rc={rc}", exit_code=rc,
+                                     gpu_minutes=gpu_min, cost=cost):
                         _say(f"↻ {jid} 重排（{reason}）")
                     else:
                         # requeue 已把它落成 terminal_failed，不能再 finish 覆盖审计

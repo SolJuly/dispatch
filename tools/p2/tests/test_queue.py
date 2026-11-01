@@ -102,6 +102,22 @@ class QueueTest(unittest.TestCase):
         tf = next(r for r in queue.audit_rows("j1") if r["to_state"] == "terminal_failed")
         self.assertEqual(tf["exit_code"], 137)
 
+    # ---------------- 重试也要累加成本（否则终态失败的成本永远是 0）
+    def test_requeue_accumulates_cost(self):
+        queue.submit("b-1", "j1", P("i"), max_attempts=2)
+        queue.claim("w1")
+        self.assertTrue(queue.requeue("j1", "boom-1", exit_code=1, gpu_minutes=2.0, cost=0.07))
+        row = {i["job_id"]: i for i in queue.items()}["j1"]
+        self.assertAlmostEqual(row["cost"], 0.07, places=3)
+        self.assertAlmostEqual(row["gpu_minutes"], 2.0, places=2)
+        self._force_ready("j1")
+        queue.claim("w1")
+        self.assertFalse(queue.requeue("j1", "boom-2", exit_code=1, gpu_minutes=2.5, cost=0.09))
+        row = {i["job_id"]: i for i in queue.items()}["j1"]
+        self.assertEqual(row["state"], "terminal_failed")
+        self.assertAlmostEqual(row["cost"], 0.16, places=3)
+        self.assertAlmostEqual(row["gpu_minutes"], 4.5, places=2)
+
     # ---------------- P0-2 心跳超时
     def test_heartbeat_timeout_requeues(self):
         queue.submit("b-1", "j1", P("d"))

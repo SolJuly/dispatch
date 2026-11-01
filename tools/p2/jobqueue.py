@@ -294,7 +294,8 @@ def finish(job_id: str, ok: bool, cost: float | None = None, error: str = "",
 
 
 # ---------------------------------------------------------------- 重试（P1-4）
-def requeue(job_id: str, error: str = "", exit_code: int | None = None) -> bool:
+def requeue(job_id: str, error: str = "", exit_code: int | None = None,
+            gpu_minutes: float | None = None, cost: float | None = None) -> bool:
     """失败重排：1s→5s→30s 退避，最多 MAX_ATTEMPTS 次；超限 → terminal_failed。"""
     c = connect()
     try:
@@ -306,16 +307,21 @@ def requeue(job_id: str, error: str = "", exit_code: int | None = None) -> bool:
             return False
         if row["attempts"] >= row["max_attempts"]:
             c.execute("UPDATE item SET state='terminal_failed', ended_at=?, last_error=?, "
-                      "exit_code=COALESCE(?, exit_code) WHERE job_id=?",
-                      (_now(), (error or "attempts exhausted")[:500], exit_code, job_id))
+                      "exit_code=COALESCE(?, exit_code), "
+                      "gpu_minutes=COALESCE(gpu_minutes,0)+COALESCE(?,0), "
+                      "cost=COALESCE(cost,0)+COALESCE(?,0) WHERE job_id=?",
+                      (_now(), (error or "attempts exhausted")[:500], exit_code,
+                       gpu_minutes, cost, job_id))
             _audit(c, job_id, row["state"], "terminal_failed", exit_code=exit_code,
                    detail="attempts exhausted")
             return False
         backoff = BACKOFF[min(max(row["attempts"] - 1, 0), len(BACKOFF) - 1)]
         next_at = int(time.time()) + backoff
         c.execute("UPDATE item SET state='queued', worker=NULL, lease_until=NULL, heartbeat_at=NULL, "
-                  "next_retry_at=?, backoff_s=?, last_error=? WHERE job_id=?",
-                  (next_at, backoff, (error or "")[:500], job_id))
+                  "next_retry_at=?, backoff_s=?, last_error=?, "
+                  "gpu_minutes=COALESCE(gpu_minutes,0)+COALESCE(?,0), "
+                  "cost=COALESCE(cost,0)+COALESCE(?,0) WHERE job_id=?",
+                  (next_at, backoff, (error or "")[:500], gpu_minutes, cost, job_id))
         _audit(c, job_id, row["state"], "queued", detail=f"retry in {backoff}s: {(error or '')[:200]}")
         return True
     finally:
