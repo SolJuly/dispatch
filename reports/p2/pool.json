@@ -1,0 +1,8 @@
+{
+  "schema": "p2.pool/v1",
+  "gpu": "V100S",
+  "size": 1,
+  "image_id": "compshareImage-1x65o3j08tdw",
+  "max_total": 3,
+  "instances": []
+}

@@ -26,6 +26,13 @@ DEFAULT_ZONE = "cn-wlcb-01"
 IMAGE_JSON = ROOT / "reports" / "p2" / "image.json"
 BENCH_JSON = ROOT / "reports" / "p2" / "bench-boot.json"
 
+# 卡型 → (CPU 核, 内存 GB)：平台对 cpu:memory 有比例校验，必须按卡型给
+GPU_SPEC = {
+    "4090": (16, 64), "4090_48G": (16, 96), "3090": (16, 64), "5090": (16, 96),
+    "V100S": (10, 64), "A100": (16, 64), "A800": (16, 240), "H20": (16, 240),
+    "3080Ti": (12, 32), "2080": (8, 40), "P40": (8, 64),
+}
+
 # 体积预算（GB）
 SIZE_BUDGET_GB = {"base": 32.0, "media": 33.0}
 
