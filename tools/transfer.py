@@ -89,10 +89,27 @@ class Transfer:
             base += ["-c", self.cipher]
         return base, f"{user}@{ip}"
 
-    def ssh(self, cmd: str, timeout: int = 120) -> tuple[int, str]:
-        r = subprocess.run(self._ssh_base() + [cmd], capture_output=True, text=True,
-                           timeout=timeout)
-        return r.returncode, (r.stdout or "") + (("ERR:" + r.stderr) if r.returncode else "")
+    def ssh(self, cmd: str, timeout: int = 120, retries: int = 1) -> tuple[int, str]:
+        """执行远端命令，返回 (rc, out)。
+
+        P2 修复：捕获 TimeoutExpired，超时返回 (124, "TIMEOUT(Ns)") 而不是抛异常。
+        调用方全部按 (rc, out) 使用，无人依赖异常（reports/p1/csctl-pull-目录探测bug.md）。
+        满载实例上 ssh 抖动很常见，retries>1 时先重试一次再降级。
+        """
+        last = "TIMEOUT"
+        for attempt in range(max(1, retries)):
+            try:
+                r = subprocess.run(self._ssh_base() + [cmd], capture_output=True, text=True,
+                                   timeout=timeout)
+                return r.returncode, (r.stdout or "") + (("ERR:" + r.stderr) if r.returncode else "")
+            except subprocess.TimeoutExpired:
+                last = f"TIMEOUT({timeout}s)"
+                if attempt + 1 < max(1, retries):
+                    time.sleep(3)
+                    continue
+            except OSError as e:
+                return 127, f"OSError:{e}"
+        return 124, last
 
     def probe(self) -> dict:
         if self._cap is not None:
@@ -153,10 +170,15 @@ class Transfer:
     # ---------------------------------------------------------------- 下载
     def pull(self, remote: str, local_dir: str, mode: str = "auto") -> bool:
         """远端单文件 / 目录 / 通配符，一律拉到本地 local_dir。"""
-        cap = self.probe()
+        # P2：探测与分类也纳入兜底，超时不再整条 pull 崩（原来在 try 之外）
+        try:
+            cap = self.probe()
+            Path(local_dir).mkdir(parents=True, exist_ok=True)
+            kind, items, base = self._classify(remote)
+        except Exception as e:
+            print(f"  ✗ 远端探测失败（{type(e).__name__}: {e}），放弃本次 pull")
+            return False
         t0 = time.time()
-        Path(local_dir).mkdir(parents=True, exist_ok=True)
-        kind, items, base = self._classify(remote)
         if not items:
             print(f"  ✗ 远端没有匹配: {remote}")
             return False
@@ -230,8 +252,12 @@ class Transfer:
                     print(f"    = 已完整 {posixpath.basename(remote)} ({human(have)})，跳过")
                 return True
         base, host = self._scp_base()
-        r = subprocess.run(base + [f"{host}:{remote}", str(local_p)],
-                           capture_output=True, text=True, timeout=self.timeout)
+        try:
+            r = subprocess.run(base + [f"{host}:{remote}", str(local_p)],
+                               capture_output=True, text=True, timeout=self.timeout)
+        except subprocess.TimeoutExpired:
+            print(f"    ⚠ scp 超时（{self.timeout}s），放弃该文件")
+            return False
         return r.returncode == 0 and self._same_size(remote, local_p)
 
     @staticmethod
@@ -341,7 +367,12 @@ class Transfer:
             rc, out = self.ssh(f"ls -1 {base} 2>/dev/null", timeout=60)
             items = [x for x in out.splitlines() if x and fnmatch.fnmatch(x, pat)]
             return "files", items, base
-        rc, out = self.ssh(f"if [ -d {remote} ]; then echo DIR; else echo FILE; fi", timeout=30)
+        # P2：探测超时 30→60s + 重试一次；仍超时则保守按单文件处理（不再抛异常）
+        rc, out = self.ssh(f"if [ -d {remote} ]; then echo DIR; else echo FILE; fi",
+                           timeout=60, retries=2)
+        if rc == 124:
+            print(f"    ⚠ 目录探测超时（已重试），按单文件处理: {remote}")
+            return "file", [posixpath.basename(remote)], posixpath.dirname(remote)
         if "DIR" in out:
             parent, name = posixpath.dirname(remote.rstrip("/")), posixpath.basename(remote.rstrip("/"))
             rc, out = self.ssh(f"ls -1 {remote}", timeout=60)

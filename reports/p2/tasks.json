@@ -197,7 +197,7 @@
     {
       "id": "P2-T05",
       "title": "csctl pull 目录探测 bug 修复（D1：允许改主链）",
-      "status": "todo",
+      "status": "done",
       "phase_step": 3,
       "depends_on": [
         "P2-T03"
@@ -220,7 +220,14 @@
         "pull-classify-regression"
       ],
       "budget_cny": 0,
-      "rounds": [],
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T12:30:00+08:00",
+          "note": "transfer.py 三层兜底 + pull_file scp 兜底；5 条单测全绿；主链冻结清单已增补",
+          "cost": 0
+        }
+      ],
       "evidence": [
         "reports/p1/csctl-pull-目录探测bug.md",
         "reports/p2/P2-任务执行计划.md §4.1"
@@ -229,7 +236,7 @@
     {
       "id": "P2-T06",
       "title": "视频/图片自动拼接（concat.py + post 步骤，D5）",
-      "status": "todo",
+      "status": "done",
       "phase_step": 3,
       "depends_on": [
         "P2-T00"
@@ -254,7 +261,14 @@
         "concat-broken-input"
       ],
       "budget_cny": 0,
-      "rounds": [],
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T12:30:00+08:00",
+          "note": "concat.py video/image/probe + run.py post 钩子；4 条单测全绿；真实产物 15.5s/44x / 2408x1604",
+          "cost": 0
+        }
+      ],
       "evidence": [
         "reports/p2/P2-任务执行计划.md §4.2"
       ]
@@ -495,9 +509,9 @@
   ],
   "cases_result": {
     "total": 34,
-    "pass": 12,
+    "pass": 15,
     "skip": 0,
     "fail": 0,
-    "note": "freeze 6 + P1 回归 12PASS/1SKIP；M1 两层镜像+bench 完成"
+    "note": "freeze 6 + transfer 5 + concat 4 = 15 单测全绿；P1 回归 12PASS/1SKIP；M1 两层镜像完成"
   }
 }

@@ -480,6 +480,32 @@ FAIL_STATE_OF_STEP = {
 }
 
 
+def _run_posts(job: dict, job_id: str) -> None:
+    """执行 job.post 的本地步骤（拼接），产物进 artifacts/，manifest 追加 derived。
+
+    D5：位置在 PERSISTED 之后、RELEASING 之前；本地零 GPU，不影响 G1（已落盘）。
+    post 失败不改变主产物 verdict，只记录告警。
+    """
+    posts = job.get("post") or []
+    if not posts:
+        return
+    try:
+        from tools.p2 import concat as concat_mod
+    except Exception as e:  # 工具链缺失不应拖垮闭环
+        _say(f"  ⚠ post 跳过（concat 不可用：{e}）")
+        return
+    jdir = store.job_dir(job_id)
+    _say(f"post：{len(posts)} 个本地步骤")
+    results = concat_mod.run_posts(job, jdir / "artifacts")
+    man = store.read_json(store.job_file(job_id, "manifest.json")) or {}
+    if man:
+        man["derived"] = results
+        store.atomic_write_json(store.job_file(job_id, "manifest.json"), man)
+    for r in results:
+        flag = "ok" if r.get("ok") else f"FAIL：{r.get('reason')}"
+        _say(f"  {r.get('op')} → {r.get('out')} {flag}")
+
+
 def _do_step(name: str, job_id: str, job: dict, opts, ctx: dict) -> None:
     """执行单步动作（不含状态转移）。"""
     # 测试钩子：P1_FAIL_AT=fetch 可在指定步骤注入失败，用于验证续跑
@@ -510,6 +536,7 @@ def _do_step(name: str, job_id: str, job: dict, opts, ctx: dict) -> None:
         _mark_step(job_id, name, verdict=ctx["res"].get("verdict"))
     elif name == "persist":
         ctx["man"] = step_persist(job, opts, ctx, ctx["res"], ctx["arts"])
+        _run_posts(job, job_id)
         _mark_step(job_id, name)
     elif name == "release":
         step_release(job, opts, ctx)
