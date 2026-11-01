@@ -114,13 +114,40 @@ def _ensure_schema() -> None:
         pass
 
 
+# 增量列迁移：CREATE TABLE IF NOT EXISTS 不会给旧表补列，必须显式 ALTER
+MIG_COLS = {
+    "item": {
+        "instance_id": "TEXT", "heartbeat_at": "INTEGER", "next_retry_at": "INTEGER",
+        "backoff_s": "INTEGER", "defers": "INTEGER NOT NULL DEFAULT 0",
+        "gpu_minutes": "REAL", "exit_code": "INTEGER",
+    },
+}
+
+
+def _migrate_columns(c: sqlite3.Connection) -> None:
+    for table, cols in MIG_COLS.items():
+        try:
+            have = {r[1] for r in c.execute(f"PRAGMA table_info({table})")}
+        except sqlite3.OperationalError:
+            continue
+        if not have:
+            continue
+        for name, decl in cols.items():
+            if name not in have:
+                try:
+                    c.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
+                except sqlite3.OperationalError:
+                    pass
+
+
 def connect() -> sqlite3.Connection:
     DB.parent.mkdir(parents=True, exist_ok=True)
     _ensure_schema()
     c = sqlite3.connect(str(DB), timeout=10, isolation_level=None)
     c.row_factory = sqlite3.Row
     c.executescript(DDL)
-    c.execute("INSERT OR IGNORE INTO meta(k,v) VALUES('schema_version',?)", (str(SCHEMA_VERSION),))
+    _migrate_columns(c)
+    c.execute("INSERT OR REPLACE INTO meta(k,v) VALUES('schema_version',?)", (str(SCHEMA_VERSION),))
     return c
 
 
@@ -253,10 +280,12 @@ def finish(job_id: str, ok: bool, cost: float | None = None, error: str = "",
                       "exit_code=?, gpu_minutes=? WHERE job_id=? AND state != 'cancelled'",
                       (st, _now(), cost, (error or "")[:500], instance_id, exit_code, gpu_minutes, job_id)).rowcount
         if n == 0:
-            # 已被 cancel：只补审计，不复活
+            # 已被 cancel：不复活状态，但成本/退出码必须如实记账（否则对账 C4 对不上）
+            c.execute("UPDATE item SET cost=?, instance_id=?, exit_code=?, gpu_minutes=? WHERE job_id=?",
+                      (cost, instance_id, exit_code, gpu_minutes, job_id))
             _audit(c, job_id, "cancelled", "cancelled",
                    instance_id=instance_id, exit_code=exit_code, gpu_minutes=gpu_minutes,
-                   detail=f"worker finished after cancel: {st} {(error or '')[:120]}")
+                   detail=f"worker finished after cancel: {st} ¥{cost or 0:.4f}")
             return
         _audit(c, job_id, "running", st, instance_id=instance_id, exit_code=exit_code,
                gpu_minutes=gpu_minutes, detail=(error or "")[:300])

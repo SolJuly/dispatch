@@ -102,6 +102,32 @@ def run_scene(scene: str, spec: str, kill_delay: int = 95, kill_state: str = "RU
         log(f"审计链：{chain}")
         return 0 if done else 1
 
+    if scene == "defer":
+        # 无货场景：不建机、不花钱；看 defer 是否不消耗 attempts
+        log("等 item 出现（最多 30s）…")
+        wait_for(lambda: any(i["job_id"] == jid for i in jobqueue.items()), 30, step=1)
+        seen = []
+        t0 = time.time()
+        while time.time() - t0 < 150:
+            row = {i["job_id"]: i for i in jobqueue.items()}.get(jid)
+            if row:
+                seen.append((row["attempts"], row.get("defers") or 0, row["state"]))
+                if (row.get("defers") or 0) >= 2:
+                    break
+            time.sleep(3)
+        row = {i["job_id"]: i for i in jobqueue.items()}[jid]
+        log(f"观察轨迹 attempts/defers/state：{seen[-6:]}")
+        log(f"终态观察：attempts={row['attempts']} defers={row.get('defers')} state={row['state']}")
+        s.stop = True
+        ok = (row.get("defers") or 0) >= 1 and row["attempts"] <= 1
+        log("结论：" + ("✅ defer 生效（无货不消耗重试）" if ok else "✗ defer 未生效"))
+        # 收拾：取消该批
+        bid = row.get("batch_id")
+        if bid:
+            subprocess.run([sys.executable, str(_ROOT / "tools" / "p2" / "batchctl.py"),
+                            "cancel", "--batch", bid], capture_output=True, text=True, cwd=str(_ROOT))
+        return 0 if ok else 1
+
     if scene == "cancel":
         log(f"等作业进入 {kill_state}（最多 300s）…")
         wait_for(lambda: job_state_of(jid) in ({kill_state} | TERMINAL), 300, step=2)
@@ -136,7 +162,7 @@ _ARGS = None
 def main(argv=None) -> int:
     global _ARGS
     ap = argparse.ArgumentParser()
-    ap.add_argument("--scene", required=True, choices=["heartbeat", "cancel", "failrun"])
+    ap.add_argument("--scene", required=True, choices=["heartbeat", "cancel", "defer", "failrun"])
     ap.add_argument("--spec", default="reports/p2/specs/ltxv-a.json")
     ap.add_argument("--kill-delay", type=int, default=95, help="（兼容）固定延迟，已改为状态触发")
     ap.add_argument("--kill-state", default="RUNNING", help="作业进入该状态时注入故障")
