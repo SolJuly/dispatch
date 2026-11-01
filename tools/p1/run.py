@@ -196,6 +196,28 @@ def _scp_get(host: str, port: str, password: str, remote: str, local: Path,
 
 
 # ---------------------------------------------------------------- 九步
+def _pick_image(cs, opts, job: dict) -> dict:
+    """选镜像（D2 两层）：--image > image.json.layers[video→media/image→base] > 平台关键字。
+
+    任何一环缺失/解析失败都回落基础镜像关键字，保证不会因为镜像登记问题挡住闭环。
+    """
+    if getattr(opts, "image", None):
+        try:
+            return cs.resolve_image(opts.image)
+        except Exception:
+            pass
+    try:
+        from tools.p2 import config as p2cfg
+        d = json.loads(p2cfg.IMAGE_JSON.read_text(encoding="utf-8"))
+        layer = "media" if job.get("kind") == "video" else "base"
+        iid = ((d.get("layers") or {}).get(layer) or {}).get("image_id")
+        if iid:
+            return cs.resolve_image(iid)
+    except Exception:
+        pass
+    return cs.resolve_image(IMAGE_KEYWORD)
+
+
 def step_provision(job: dict, opts) -> dict:
     """建机并等 Running。"""
     from compshare.cs import CS, CompShareError
@@ -203,7 +225,7 @@ def step_provision(job: dict, opts) -> dict:
     cs = CS()
     gpu = opts.gpu or (job.get("instance", {}).get("required_gpu") or ["4090_48G"])[0]
     hours = opts.hours
-    img = cs.resolve_image(opts.image or IMAGE_KEYWORD)
+    img = _pick_image(cs, opts, job)
     cpu_n, mem_gb = GPU_SPEC.get(gpu, (16, 64))
     price = cs.price(gpu, 1, cpu_n, mem_gb, "Postpay", 100, 0, image_id=img["CompShareImageId"])
     est = float(price.get("total") or 0) * hours

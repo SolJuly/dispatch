@@ -104,9 +104,19 @@ def cmd_show(a) -> int:
 
 
 def cmd_run(a) -> int:
+    import signal
+
     s = scheduler.Scheduler(slots=a.slots, gpu=a.gpu, hours=a.hours,
                             daily_budget=a.daily_budget, poll=a.poll,
-                            stagger=a.stagger, dry_run=getattr(a, "dry_run", False))
+                            stagger=a.stagger, dry_run=getattr(a, "dry_run", False),
+                            quota=getattr(a, "quota", 5))
+
+    def _stop(signum, frame):
+        print("\n⏹ 收到中断：停止领取，等在跑的收尾（再按一次强退）…", flush=True)
+        s.stop = True
+
+    signal.signal(signal.SIGINT, _stop)
+    signal.signal(signal.SIGTERM, _stop)
     return s.run()
 
 
@@ -150,6 +160,12 @@ def cmd_cancel(a) -> int:
             queue.cancel(r["job_id"], "batch cancel")
             n += 1
     print(f"已取消 {n} 条")
+    if getattr(a, "purge", False):
+        killed = scheduler.reclaim_orphans(dry_run=False)
+        print(f"purge：释放孤儿实例 {killed or '无'}")
+    else:
+        print("提示：在跑的 worker 会在调度器下一轮（≤30s）被终止；实例由 watchdog 释放。"
+              "要立刻释放加 --purge")
     return 0
 
 
@@ -183,6 +199,7 @@ def main(argv=None) -> int:
     sp.add_argument("--daily-budget", type=float, default=8.0)
     sp.add_argument("--poll", type=float, default=10.0)
     sp.add_argument("--stagger", type=float, default=10.0, help="错峰下单间隔秒")
+    sp.add_argument("--quota", type=int, default=5, help="账户实例上限（Level1=5 / Level2=20）")
     sp.add_argument("--dry-run", action="store_true", help="只回收/对账，不真正建机")
     sp.set_defaults(fn=cmd_run)
 
@@ -202,6 +219,7 @@ def main(argv=None) -> int:
 
     sp = sub.add_parser("cancel", help="取消批次未完成项")
     sp.add_argument("--batch", required=True)
+    sp.add_argument("--purge", action="store_true", help="同时释放实例（立刻止血）")
     sp.set_defaults(fn=cmd_cancel)
 
     a = ap.parse_args(argv)

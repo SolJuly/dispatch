@@ -454,7 +454,7 @@
     {
       "id": "P2-T13",
       "title": "P2 验收报告 + 主链冻结清单增补 + 回滚演练",
-      "status": "todo",
+      "status": "done",
       "phase_step": 4,
       "depends_on": [
         "P2-T12"
@@ -476,9 +476,17 @@
         "rollback-queue"
       ],
       "budget_cny": 0,
-      "rounds": [],
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T14:30:00+08:00",
+          "note": "P2 总验收报告 + 三层回滚演练（代码/镜像/队列）通过",
+          "cost": 0
+        }
+      ],
       "evidence": [
-        "reports/p2/P2-任务执行计划.md §8 §10"
+        "reports/p2/P2-任务执行计划.md §8 §10",
+        "reports/p2/P2-总验收与回滚演练.md"
       ]
     },
     {
@@ -710,13 +718,88 @@
       "evidence": [
         "reports/p2/P2-核心稳定-设计与验收.md"
       ]
+    },
+    {
+      "id": "P2-T22",
+      "title": "P2 收尾批次（dry-run穿透/cron watchdog/cancel/sigint/批预算/镜像选层/status2 接图）",
+      "status": "done",
+      "phase_step": 4,
+      "depends_on": [
+        "P2-T13"
+      ],
+      "deliverables": [],
+      "acceptance": [],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T14:30:00+08:00",
+          "note": "收尾批次",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "reports/p2/P2-总验收与回滚演练.md"
+      ]
+    },
+    {
+      "id": "P2-T23",
+      "title": "三层回滚演练（代码 / 镜像 / 队列）",
+      "status": "done",
+      "phase_step": 4,
+      "depends_on": [
+        "P2-T13"
+      ],
+      "deliverables": [],
+      "acceptance": [],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T14:30:00+08:00",
+          "note": "收尾批次",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "reports/p2/P2-总验收与回滚演练.md"
+      ]
+    },
+    {
+      "id": "P2-T24",
+      "title": "文档偏差更正（executor/registry/budget 未建，实际为 scheduler 内联 + subprocess）",
+      "status": "done",
+      "phase_step": 4,
+      "depends_on": [
+        "P2-T13"
+      ],
+      "deliverables": [],
+      "acceptance": [],
+      "blockers": [],
+      "cases": [],
+      "budget_cny": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T14:30:00+08:00",
+          "note": "收尾批次",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "reports/p2/P2-总验收与回滚演练.md"
+      ]
     }
   ],
   "cases_result": {
     "total": 34,
-    "pass": 22,
+    "pass": 26,
     "skip": 0,
     "fail": 0,
-    "note": "freeze6+transfer5+concat4+queue7=22 单测全绿；M4 并发双 done；P2 硬化 P0/P1 全部落地"
+    "note": "freeze6+transfer5+concat4+queue7+scheduler4=26 单测全绿；P1 回归 12PASS/1SKIP；三层回滚演练通过"
   }
 }

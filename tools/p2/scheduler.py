@@ -110,8 +110,9 @@ def reap_instances(ttl_min: int = TTL_MIN) -> list[str]:
 class Scheduler:
     def __init__(self, slots: int = 2, gpu: str = "4090", hours: float = 1.0,
                  daily_budget: float = 8.0, poll: float = SCAN_S, stagger: float = 10.0,
-                 dry_run: bool = False):
+                 dry_run: bool = False, quota: int = 5):
         self.slots = max(1, slots)
+        self.quota = quota          # 账户实例上限（Level1=5 / Level2=20，可 --quota 覆盖）
         self.stagger = stagger
         self.dry_run = dry_run
         self.gpu = gpu
@@ -169,27 +170,36 @@ class Scheduler:
                     _say(f"✗ {jid} failed（{reason or st}）")
 
     # ---------------------------------------------------------------- 资源
-    def _budget_ok(self) -> tuple[bool, str]:
+    def _budget_ok(self, batch_id: str | None = None) -> tuple[bool, str]:
         spent = today_cost()
         if self.daily_budget and spent >= self.daily_budget:
             return False, f"当日已花 ¥{spent:.2f} ≥ cap ¥{self.daily_budget:.2f}"
+        if batch_id:
+            info = queue.batch_info(batch_id) or {}
+            cap = float(info.get("budget_cny") or 0)
+            bspent = queue.batch_spent(batch_id)
+            if cap and bspent >= cap:
+                return False, f"批次 {batch_id} 已花 ¥{bspent:.2f} ≥ 批预算 ¥{cap:.2f}（该批暂停）"
+            return True, f"当日 ¥{spent:.2f} / ¥{self.daily_budget:.2f} · 批 ¥{bspent:.2f} / ¥{cap:.2f}"
         return True, f"当日 ¥{spent:.2f} / ¥{self.daily_budget:.2f}"
 
     def _quota_left(self) -> int | None:
         try:
             from compshare.cs import CS
-            cs = CS()
-            insts = cs.instances()
+            insts = CS().instances()
             running = sum(1 for i in insts if (i.get("State") or "").lower() == "running")
-            # Level1 上限 5 台；保守用 5 作分母
-            return max(0, 5 - running)
+            return max(0, self.quota - running)
         except Exception:
             return None
 
     # ---------------------------------------------------------------- 主循环
     def once(self) -> int:
-        """跑一轮：回收 + 心跳超时扫描 + 领取 + 补槽。"""
+        """跑一轮：回收 + 心跳扫描 + 取消清理 + 领取 + 补槽。dry-run 只报计划不动手。"""
+        if self.dry_run:
+            self._report_plan()
+            return 0
         self._reap_children()
+        self._kill_cancelled_children()
         timed_out = queue.reset_stale(TIMEOUT_S)
         if timed_out:
             _say(f"⏱ 心跳超时：{timed_out}")
@@ -202,16 +212,53 @@ class Scheduler:
         if left is not None and left <= 0:
             _say("⏸ 账户配额已满（无空闲槽）")
             return 0
-        claimed = 0
+        claimed, skip = 0, set()
         while len(self.children) < self.slots:
             item = queue.claim(WORKER)
             if not item:
                 break
+            bid = item.get("batch_id")
+            if bid in skip:
+                queue.release(item["job_id"], "batch budget skip")
+                break
+            ok2, msg2 = self._budget_ok(bid)
+            if not ok2:
+                skip.add(bid)
+                queue.release(item["job_id"], f"budget: {msg2}")
+                _say(f"⏸ 批次 {bid} 暂停：{msg2}")
+                continue
             self._spawn(item)
             claimed += 1
             if len(self.children) < self.slots and self.stagger:
                 time.sleep(self.stagger)   # 错峰下单，避免 226604 雪崩
         return claimed
+
+    def _kill_cancelled_children(self) -> None:
+        if not self.children:
+            return
+        cancelled = queue.cancelled_ids()
+        for jid, p in list(self.children.items()):
+            if jid in cancelled:
+                try:
+                    p.kill()
+                except Exception:
+                    pass
+                _say(f"⛔ {jid} 已取消，终止 worker")
+
+    def _report_plan(self) -> None:
+        ok, msg = self._budget_ok()
+        left = self._quota_left()
+        _say(f"[dry-run] 预算 {msg} · 配额剩余 {left} · 槽位 {self.slots}（不领取、不建机）")
+        qs = queue.items(state="queued")
+        if not qs:
+            _say("  [dry-run] 队列为空，无事可做")
+            return
+        for it in qs[:20]:
+            ok2, msg2 = self._budget_ok(it.get("batch_id"))
+            _say(f"  将跑 {it['job_id']}（{it.get('model_key') or '-'}）"
+                 f"{'✓' if ok2 else '✗ ' + msg2}")
+        if len(qs) > 20:
+            _say(f"  …另有 {len(qs) - 20} 项")
 
     def _reap_instances(self) -> None:
         """P1-5：心跳超时/失败但仍占用实例的项 → 杀进程 + 释放（watchdog 的进程内版本）。"""
@@ -222,7 +269,11 @@ class Scheduler:
 
     def run(self) -> int:
         _say(f"启动：slots={self.slots} gpu={self.gpu} hours={self.hours} "
-             f"daily_cap=¥{self.daily_budget} poll={self.poll}s")
+             f"daily_cap=¥{self.daily_budget} quota={self.quota} poll={self.poll}s"
+             f"{' [dry-run]' if self.dry_run else ''}")
+        if self.dry_run:
+            self.once()
+            return 0
         while not self.stop:
             n = self.once()
             if not self.children and n == 0:

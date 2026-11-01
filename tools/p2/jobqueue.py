@@ -97,8 +97,25 @@ CREATE INDEX IF NOT EXISTS ix_audit_job ON audit_log(job_id, id);
 """
 
 
+def _ensure_schema() -> None:
+    """v1→v2 自动迁移：旧库缺 heartbeat_at 列就改名备份并重建（队列是运行态，job 事实在 job.json）。"""
+    if not DB.exists():
+        return
+    try:
+        c = sqlite3.connect(str(DB), timeout=5)
+        cols = {r[1] for r in c.execute("PRAGMA table_info(item)")}
+        c.close()
+        if cols and "heartbeat_at" not in cols:
+            bak = DB.with_name(f"queue.db.v1.{int(time.time())}.bak")
+            DB.rename(bak)
+            print(f"[jobqueue] 旧库已备份为 {bak.name}，重建 v{SCHEMA_VERSION} 库")
+    except Exception:
+        pass
+
+
 def connect() -> sqlite3.Connection:
     DB.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_schema()
     c = sqlite3.connect(str(DB), timeout=10, isolation_level=None)
     c.row_factory = sqlite3.Row
     c.executescript(DDL)
@@ -231,9 +248,15 @@ def finish(job_id: str, ok: bool, cost: float | None = None, error: str = "",
     c = connect()
     try:
         st = "done" if ok else "failed"
-        c.execute("UPDATE item SET state=?, ended_at=?, cost=?, last_error=?, instance_id=?, "
-                  "exit_code=?, gpu_minutes=? WHERE job_id=?",
-                  (st, _now(), cost, (error or "")[:500], instance_id, exit_code, gpu_minutes, job_id))
+        n = c.execute("UPDATE item SET state=?, ended_at=?, cost=?, last_error=?, instance_id=?, "
+                      "exit_code=?, gpu_minutes=? WHERE job_id=? AND state != 'cancelled'",
+                      (st, _now(), cost, (error or "")[:500], instance_id, exit_code, gpu_minutes, job_id)).rowcount
+        if n == 0:
+            # 已被 cancel：只补审计，不复活
+            _audit(c, job_id, "cancelled", "cancelled",
+                   instance_id=instance_id, exit_code=exit_code, gpu_minutes=gpu_minutes,
+                   detail=f"worker finished after cancel: {st} {(error or '')[:120]}")
+            return
         _audit(c, job_id, "running", st, instance_id=instance_id, exit_code=exit_code,
                gpu_minutes=gpu_minutes, detail=(error or "")[:300])
     finally:
@@ -260,6 +283,18 @@ def requeue(job_id: str, error: str = "") -> bool:
                   (next_at, backoff, (error or "")[:500], job_id))
         _audit(c, job_id, row["state"], "queued", detail=f"retry in {backoff}s: {(error or '')[:200]}")
         return True
+    finally:
+        c.close()
+
+
+def release(job_id: str, why: str = "") -> None:
+    """把刚 claim 但未真正执行的项退回 queued（attempts 回退，不消耗重试次数）。"""
+    c = connect()
+    try:
+        n = c.execute("UPDATE item SET state='queued', worker=NULL, lease_until=NULL, heartbeat_at=NULL, "
+                      "attempts=MAX(attempts-1,0) WHERE job_id=? AND state='claimed'", (job_id,)).rowcount
+        if n:
+            _audit(c, job_id, "claimed", "queued", detail=f"released: {(why or '')[:200]}")
     finally:
         c.close()
 
@@ -328,6 +363,35 @@ def reset_stale(seconds: int = TIMEOUT_S) -> list[str]:
 
 
 # ---------------------------------------------------------------- 查询
+def batch_info(batch_id: str) -> dict | None:
+    c = connect()
+    try:
+        r = c.execute("SELECT * FROM batch WHERE batch_id=?", (batch_id,)).fetchone()
+        return dict(r) if r else None
+    finally:
+        c.close()
+
+
+def batch_spent(batch_id: str) -> float:
+    """该批已花（item.cost 汇总；running 项按 est_cost 计入在途）。"""
+    c = connect()
+    try:
+        spent = c.execute("SELECT COALESCE(SUM(cost),0) v FROM item WHERE batch_id=?", (batch_id,)).fetchone()["v"]
+        inflight = c.execute("SELECT COALESCE(SUM(est_cost),0) v FROM item "
+                             "WHERE batch_id=? AND state IN ('claimed','running')", (batch_id,)).fetchone()["v"]
+        return round(float(spent) + float(inflight), 4)
+    finally:
+        c.close()
+
+
+def cancelled_ids() -> set[str]:
+    c = connect()
+    try:
+        return {r["job_id"] for r in c.execute("SELECT job_id FROM item WHERE state='cancelled'")}
+    finally:
+        c.close()
+
+
 def items(batch_id: str | None = None, state: str | None = None) -> list[dict]:
     c = connect()
     try:
