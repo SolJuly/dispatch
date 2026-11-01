@@ -17,13 +17,14 @@ FAILED_STATES = {"FAILED", "ABORTED", "FAILED_PROVISION", "FAILED_RUN",
                  "FAILED_FETCH", "FAILED_VERIFY"}
 
 # 键名必须与 verify.py 的 checks 一一对应：
-#   decode / geometry / frames / size / black / params
+#   decode / geometry / frames / size / black / freeze / params
 CHECKS = [
     ("ffprobe 解码", "decode"),
     ("尺寸匹配", "geometry"),
     ("帧数 / 时长", "frames"),
     ("产物体积", "size"),
     ("黑帧占比", "black"),
+    ("冻结时长占比", "freeze"),
     ("参数回读匹配", "params"),
 ]
 
