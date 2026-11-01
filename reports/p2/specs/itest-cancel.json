@@ -1,0 +1,42 @@
+{
+  "kind": "video",
+  "task_ref": "P1-T11",
+  "model": {
+    "key": "ltxv_2b",
+    "workflow": "workflows/ltxv_2b_t2v.api.json",
+    "checkpoint": "ltx-2/ltx-video-2b-v0.9.5.safetensors"
+  },
+  "params": {
+    "prompt": "A cinematic medium shot in a modern minimalist living room, warm afternoon sunlight streaming through floor-to-ceiling windows. A young woman in a beige knit loungewear sits on a light grey fabric sofa, looking down at her phone. She slowly lowers the phone, places both hands on her knees and begins to stand up, turning her body toward the kitchen on the right side of the frame. The camera slowly pans right to follow her. Shallow depth of field, soft background bokeh, warm tones, 35mm lens look, smooth natural motion.",
+    "neg_prompt": "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly, blurry, static",
+    "seed": 93517656,
+    "frames": 73,
+    "width": 768,
+    "height": 512
+  },
+  "expect": {
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "duration_s": [
+      2.7,
+      3.2
+    ],
+    "width": [
+      768
+    ],
+    "height": [
+      512
+    ],
+    "black_ratio_max": 0.3
+  },
+  "budget": {
+    "max_minutes": 30,
+    "max_cost": 1.0
+  },
+  "instance": {
+    "required_gpu": [
+      "4090_48G",
+      "4090"
+    ]
+  }
+}

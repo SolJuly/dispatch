@@ -753,6 +753,42 @@ def _resume(job_id: str, job: dict, opts) -> int:
             return 1
 
 
+def _restart(job_id: str, job: dict, opts) -> int | None:
+    """批量重试用：实例已丢，必须从 provision 整条重跑。
+
+    合法路径：crashed(PROVISIONING/READY/SUBMITTED/RUNNING/FETCHING/VERIFYING)
+              → 对应 FAILED_* → RESUMING → PROVISIONING（清空断点）
+    返回 None 表示「已重置，继续走正常流程」。
+    """
+    cur = job.get("state")
+    if cur == state.CREATED:
+        return None                              # 首次运行
+    if cur == state.DONE:
+        _say("作业已完成，无需 restart")
+        return 0
+    if cur == state.ABORTED:
+        _say("作业已中止，不 restart")
+        return 1
+    crash_map = {
+        state.PROVISIONING: state.FAILED_PROVISION, state.READY: state.FAILED_PROVISION,
+        state.SUBMITTED: state.FAILED_RUN, state.RUNNING: state.FAILED_RUN,
+        state.FETCHING: state.FAILED_FETCH, state.VERIFYING: state.FAILED_VERIFY,
+    }
+    if cur in crash_map:
+        state.transition(job_id, crash_map[cur], reason=f"restart: crashed at {cur}")
+        cur = crash_map[cur]
+    if cur in state.FAIL_BRANCH or cur == state.FAILED:
+        state.transition(job_id, state.RESUMING, reason="restart")
+        j = state.load_job(job_id)
+        j["steps"] = {}                          # 清断点，强制重做
+        store.atomic_write_json(store.job_file(job_id), j)
+        state.transition(job_id, state.PROVISIONING, reason="restart from scratch")
+        _say(f"restart：{job.get('state')} → PROVISIONING（清空断点，全量重跑）")
+        return None
+    _say(f"当前状态 {cur} 不支持 restart（产物可能已落盘）")
+    return 1
+
+
 def _abort(job_id: str, job: dict, opts) -> int:
     """放弃续跑：销毁保留的实例，作业标 FAILED。"""
     cur = job.get("state")
@@ -800,6 +836,12 @@ def run(job_id: str, opts) -> int:
 
     if opts.resume:
         return _resume(job_id, job, opts)
+
+    if getattr(opts, "restart", False):
+        r = _restart(job_id, job, opts)
+        if r is not None:
+            return r
+        job = state.load_job(job_id)             # 重置后重新加载
 
     with _lock(job_id, opts):
         ctx: dict = {}
@@ -868,6 +910,8 @@ def main(argv=None) -> int:
                     help="从 FAILED_* 续跑：按 job.json 的 steps 从断点继续")
     ap.add_argument("--abort", action="store_true", help="放弃续跑，销毁保留的实例")
     ap.add_argument("--no-keep", action="store_true", help="失败时不保留实例（旧行为）")
+    ap.add_argument("--restart", action="store_true",
+                    help="实例丢失后整条重跑：crashed/FAILED_* → PROVISIONING（清断点）")
     ap.add_argument("--batch", action="store_true",
                     help="批量模式：用作业级锁（不同 job 可并行），日志加 job 前缀")
     a = ap.parse_args(argv)

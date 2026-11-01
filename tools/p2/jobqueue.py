@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS item (
   max_attempts INTEGER NOT NULL DEFAULT 3,
   next_retry_at INTEGER,
   backoff_s    INTEGER,
+  defers       INTEGER NOT NULL DEFAULT 0,
   enqueued_at  TEXT NOT NULL,
   started_at   TEXT,
   ended_at     TEXT,
@@ -264,17 +265,22 @@ def finish(job_id: str, ok: bool, cost: float | None = None, error: str = "",
 
 
 # ---------------------------------------------------------------- 重试（P1-4）
-def requeue(job_id: str, error: str = "") -> bool:
+def requeue(job_id: str, error: str = "", exit_code: int | None = None) -> bool:
     """失败重排：1s→5s→30s 退避，最多 MAX_ATTEMPTS 次；超限 → terminal_failed。"""
     c = connect()
     try:
         row = c.execute("SELECT attempts,max_attempts,state FROM item WHERE job_id=?", (job_id,)).fetchone()
         if not row:
             return False
+        # 终态/取消不得复活（cancel 是被杀 worker 的崩溃路径再跑一遍时最容易踩的坑）
+        if row["state"] in ("cancelled", "done", "reclaimed", "skipped"):
+            return False
         if row["attempts"] >= row["max_attempts"]:
-            c.execute("UPDATE item SET state='terminal_failed', ended_at=?, last_error=? WHERE job_id=?",
-                      (_now(), (error or "attempts exhausted")[:500], job_id))
-            _audit(c, job_id, row["state"], "terminal_failed", detail="attempts exhausted")
+            c.execute("UPDATE item SET state='terminal_failed', ended_at=?, last_error=?, "
+                      "exit_code=COALESCE(?, exit_code) WHERE job_id=?",
+                      (_now(), (error or "attempts exhausted")[:500], exit_code, job_id))
+            _audit(c, job_id, row["state"], "terminal_failed", exit_code=exit_code,
+                   detail="attempts exhausted")
             return False
         backoff = BACKOFF[min(max(row["attempts"] - 1, 0), len(BACKOFF) - 1)]
         next_at = int(time.time()) + backoff
@@ -282,6 +288,25 @@ def requeue(job_id: str, error: str = "") -> bool:
                   "next_retry_at=?, backoff_s=?, last_error=? WHERE job_id=?",
                   (next_at, backoff, (error or "")[:500], job_id))
         _audit(c, job_id, row["state"], "queued", detail=f"retry in {backoff}s: {(error or '')[:200]}")
+        return True
+    finally:
+        c.close()
+
+
+def defer(job_id: str, seconds: int = 60, why: str = "", max_defers: int = 10) -> bool:
+    """瞬时故障（无货/限流）退回队列：不消耗 attempts，延迟再试；超过 max_defers 交回 requeue。"""
+    c = connect()
+    try:
+        row = c.execute("SELECT state,defers FROM item WHERE job_id=?", (job_id,)).fetchone()
+        if not row or row["state"] in ("cancelled", "done", "reclaimed", "skipped"):
+            return False
+        if (row["defers"] or 0) >= max_defers:
+            return False
+        now = int(time.time())
+        c.execute("UPDATE item SET state='queued', worker=NULL, lease_until=NULL, heartbeat_at=NULL, "
+                  "defers=defers+1, attempts=MAX(attempts-1,0), next_retry_at=?, last_error=? "
+                  "WHERE job_id=?", (now + seconds, (why or "")[:500], job_id))
+        _audit(c, job_id, row["state"], "queued", detail=f"defer {seconds}s: {(why or '')[:150]}")
         return True
     finally:
         c.close()

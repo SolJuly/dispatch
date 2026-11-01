@@ -64,8 +64,16 @@ def cmd_submit(a) -> int:
             required_gpu=(j.get("instance") or {}).get("required_gpu") or [],
             est_cost=float((j.get("budget") or {}).get("max_cost") or 0),
             max_attempts=a.max_attempts)
-        print(f"  {'✓' if ok else '✗'} {s.name} → {jid} {why}")
-        ok_n += 1 if ok else 0
+        if ok:
+            print(f"  ✓ {s.name} → {jid} queued")
+            ok_n += 1
+        else:
+            print(f"  ✗ {s.name} → {jid} 入队被拒：{why}（回收空作业）")
+            try:
+                import shutil
+                shutil.rmtree(store.job_dir(jid), ignore_errors=True)
+            except Exception:
+                pass
     print(f"\n入队 {ok_n}/{len(specs)}")
     print(f"下一步：python3 tools/p2/batchctl.py run --slots {a.slots}")
     return 0 if ok_n else 1
@@ -180,7 +188,7 @@ def main(argv=None) -> int:
     sp.add_argument("--slots", type=int, default=2)
     sp.add_argument("--budget", type=float, default=0.0)
     sp.add_argument("--priority", type=int, default=0)
-    sp.add_argument("--max-attempts", type=int, default=2)
+    sp.add_argument("--max-attempts", type=int, default=3, help="最大尝试次数（默认 3）")
     sp.set_defaults(fn=cmd_submit)
 
     sp = sub.add_parser("list", help="列队列表")

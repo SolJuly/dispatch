@@ -69,6 +69,11 @@ TRANSITIONS: dict[str, set[str]] = {
 }
 for _f in FAIL_BRANCH:
     TRANSITIONS[_f] = {RELEASING, RESUMING}
+# 批量重试需要：run.py 失败清理会把 FAILED_* 折叠成 FAILED，之后要能重新进 RESUMING
+TRANSITIONS[FAILED] = {RESUMING}
+# 人工取消 / watchdog 回收：中间态允许直接 ABORTED（worker 已被杀，不再走正常链）
+for _s in (PROVISIONING, READY, SUBMITTED, RUNNING, FETCHING, VERIFYING):
+    TRANSITIONS[_s].add(ABORTED)
 TRANSITIONS[RESUMING] = {PROVISIONING, READY, SUBMITTED, RUNNING,
                          FETCHING, VERIFYING, PERSISTED, RELEASING}
 
@@ -95,8 +100,8 @@ def check_transition(src: str, dst: str, job: dict, manifest: dict | None = None
         raise IllegalTransition(f"非法转移 {src} → {dst}（允许：{sorted(TRANSITIONS.get(src, [])) or '无，终态'}）")
 
     # G-R：续跑只能从 FAILED_* 进入，且必须带着断点信息
-    if dst == RESUMING and src not in FAIL_BRANCH:
-        raise GuardViolation(f"G-R：只有 FAILED_* 可以进入 RESUMING（当前 {src}）")
+    if dst == RESUMING and src not in FAIL_BRANCH and src != FAILED:
+        raise GuardViolation(f"G-R：只有 FAILED_*/FAILED 可以进入 RESUMING（当前 {src}）")
     if src == RESUMING and dst not in TRANSITIONS[RESUMING]:
         raise GuardViolation(f"G-R：RESUMING 只能回到主链状态（当前目标 {dst}）")
 

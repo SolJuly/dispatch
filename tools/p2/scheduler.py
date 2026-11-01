@@ -28,6 +28,10 @@ from tools.p2 import jobqueue as queue  # noqa: E402
 
 LEDGER = _ROOT / ".compshare" / "ledger.jsonl"
 RETRYABLE = {"FAILED_PROVISION", "FAILED_RUN", "FAILED_FETCH"}
+# run.py 的终态。worker 被 kill 时 job 会停在这些之外（READY/RUNNING/…），那属于「崩了」，
+# 必须当可重试处理——否则心跳丢了的任务会被直接判死，永远不重试。
+TERMINAL_JOB_STATES = {"DONE", "FAILED", "ABORTED", "FAILED_PROVISION", "FAILED_RUN",
+                       "FAILED_FETCH", "FAILED_VERIFY"}
 WORKER = f"{socket.gethostname()[-10:]}-{os.getpid()}"
 TTL_MIN = 45
 SCAN_S = 30          # P0-2：调度器每 30s 扫一次
@@ -36,6 +40,27 @@ TIMEOUT_S = 60       # P0-2：>60s 无心跳判定死锁
 
 def _say(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] [sched] {msg}", flush=True)
+
+
+def _metrics(job: dict, man: dict) -> tuple[float | None, float | None]:
+    """GPU 分钟 + 成本：成功看 manifest，失败从 instance.up_at 推算（审计要 100% 有值）。"""
+    m = man.get("cost") or {}
+    if m.get("minutes") is not None:
+        return float(m["minutes"]), float(m.get("amount") or 0)
+    inst = job.get("instance") or {}
+    up_at = inst.get("up_at")
+    hourly = ((job.get("steps") or {}).get("provision") or {}).get("hourly")
+    minutes = None
+    if up_at:
+        try:
+            from datetime import datetime
+            up = datetime.fromisoformat(up_at)
+            now = datetime.now().astimezone()
+            minutes = round(max(0.0, (now - up).total_seconds() / 60), 1)
+        except Exception:
+            minutes = None
+    cost = round(float(hourly) * minutes / 60, 4) if (hourly and minutes is not None) else None
+    return minutes, cost
 
 
 def _fail_reason(jid: str, final_state: str) -> str:
@@ -133,7 +158,7 @@ class Scheduler:
         log = open(self._log_path(jid), "ab")
         # --no-keep：批量无人值守，失败不得保留实例（否则 15 分钟空转烧钱）
         cmd = [sys.executable, str(_ROOT / "tools" / "p1" / "run.py"), jid,
-               "--batch", "--no-keep", "--gpu", self.gpu, "--hours", str(self.hours)]
+               "--batch", "--no-keep", "--restart", "--gpu", self.gpu, "--hours", str(self.hours)]
         p = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, cwd=str(_ROOT))
         self.children[jid] = p
         queue.mark_running(jid)
@@ -146,15 +171,19 @@ class Scheduler:
                 queue.heartbeat(jid)
                 continue
             self.children.pop(jid, None)
+            if jid in queue.cancelled_ids():
+                _say(f"⛔ {jid} 已取消（worker 已终止），不再重排")
+                continue
+            j, man = {}, {}
             try:
                 j = state.load_job(jid)
                 st = j.get("state")
                 man = store.read_json(store.job_file(jid, "manifest.json")) or {}
-                cost = float((man.get("cost") or {}).get("amount") or 0)
             except Exception:
-                st, cost, man = "?", 0.0, {}
-            inst = ((j.get("instance") or {}).get("uhost_id") if isinstance(j, dict) else None)
-            gpu_min = float((man.get("cost") or {}).get("minutes") or 0) if isinstance(man, dict) else None
+                st = "?"
+            inst = (j.get("instance") or {}).get("uhost_id")
+            gpu_min, cost = _metrics(j, man)
+            cost = float(cost or 0)
             if rc == 0 and st == state.DONE:
                 queue.finish(jid, True, cost, instance_id=inst, exit_code=rc, gpu_minutes=gpu_min)
                 _say(f"✓ {jid} done  ¥{cost:.3f}  gpu={gpu_min}m")
@@ -162,8 +191,17 @@ class Scheduler:
                 # run.py 失败后会走 FAILED_* → RELEASING → FAILED，终态看不出原因，
                 # 所以要翻 events 找有没有「可重试的失败态」（G1 清理后 state 恒为 FAILED）。
                 reason = _fail_reason(jid, st)
-                if reason in RETRYABLE and queue.requeue(jid, f"{reason} rc={rc}"):
-                    _say(f"↻ {jid} 重排（{reason}）")
+                crashed = st not in TERMINAL_JOB_STATES
+                if crashed:
+                    reason = f"worker died (state={st})"
+                if reason == "FAILED_PROVISION" and queue.defer(jid, 60, "provision failed（无货/配额？）"):
+                    _say(f"⏳ {jid} 建机失败（疑似无货），60s 后再试（不消耗尝试）")
+                elif crashed or reason in RETRYABLE:
+                    if queue.requeue(jid, f"{reason} rc={rc}", exit_code=rc):
+                        _say(f"↻ {jid} 重排（{reason}）")
+                    else:
+                        # requeue 已把它落成 terminal_failed，不能再 finish 覆盖审计
+                        _say(f"✗ {jid} 终态失败（{reason}，重试已到上限）")
                 else:
                     queue.finish(jid, False, cost, f"{reason or st} rc={rc}",
                                  instance_id=inst, exit_code=rc, gpu_minutes=gpu_min)
@@ -243,6 +281,13 @@ class Scheduler:
                     p.kill()
                 except Exception:
                     pass
+                # 把 job 也置 ABORTED（否则 job.json 会冻结在 RUNNING，和队列对不上）
+                try:
+                    cur = (state.load_job(jid) or {}).get("state")
+                    if cur not in state.TERMINAL:
+                        state.transition(jid, state.ABORTED, reason="cancel by user")
+                except Exception:
+                    pass
                 _say(f"⛔ {jid} 已取消，终止 worker")
 
     def _report_plan(self) -> None:
@@ -301,13 +346,16 @@ def doctor() -> dict:
 
 
 # ---------------------------------------------------------------- watchdog（P1-5）
-def _instance_alive(uid: str) -> bool:
+def _instance_state(uid: str) -> str | None:
     try:
         from compshare.cs import CS
-        inst = CS().get(uid)
-        return (inst.get("State") or "").lower() in ("running", "stopped", "stopping", "starting")
+        return (CS().get(uid).get("State") or "").lower()
     except Exception:
-        return False
+        return None
+
+
+def _instance_alive(uid: str) -> bool:
+    return _instance_state(uid) in ("running", "stopped", "stopping", "starting")
 
 
 def _ssh_kill(uid: str) -> None:
@@ -325,7 +373,7 @@ def _ssh_kill(uid: str) -> None:
         subprocess.run(["sshpass", "-p", pwd, "ssh", "-p", str(port),
                         "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
                         "-o", "ConnectTimeout=8", f"root@{ip}", cmd],
-                       capture_output=True, text=True, timeout=60)
+                       capture_output=True, text=True, timeout=15)
     except Exception as e:
         _say(f"⚠ SSH kill {uid} 失败：{type(e).__name__}: {e}")
 
@@ -345,13 +393,16 @@ def reclaim_orphans(dry_run: bool = False) -> list[str]:
             _say(f"[dry-run] 回收孤儿 {jid} / {uid}（{it['state']}）")
             done.append(f"{jid}:{uid}")
             continue
-        _ssh_kill(uid)
+        # 只在实例真的 running 时才值得 SSH（stopping/deleting 只会白等超时）
+        if _instance_state(uid) == "running":
+            _ssh_kill(uid)
         terminate(uid)
         if it["state"] in ("failed", "terminal_failed"):
             queue.reclaim(jid, f"watchdog reclaimed orphan {uid}")
+            queue.clear_instance(jid)
             _say(f"🧹 {jid} 孤儿实例 {uid} 已回收 → RECLAIMED")
         else:
             queue.clear_instance(jid)
-            _say(f"🧹 {jid} 孤儿实例 {uid} 已释放（保留 {it['state']} 待重试）")
+            _say(f"🧹 {jid} 孤儿实例 {uid} 已释放（保留 {it['state']}）")
         done.append(f"{jid}:{uid}")
     return done

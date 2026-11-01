@@ -80,6 +80,28 @@ class QueueTest(unittest.TestCase):
         self.assertFalse(queue.requeue("j1", "fail-3"))   # 到上限
         self.assertEqual({i["job_id"]: i for i in queue.items()}["j1"]["state"], "terminal_failed")
 
+    # ---------------- 瞬时限流不消耗尝试（defer）
+    def test_defer_does_not_consume_attempts(self):
+        queue.submit("b-1", "j1", P("g"), max_attempts=3)
+        queue.claim("w1")
+        self.assertTrue(queue.defer("j1", 60, "无现货"))
+        row = {i["job_id"]: i for i in queue.items()}["j1"]
+        self.assertEqual(row["state"], "queued")
+        self.assertEqual(row["attempts"], 0)          # 不消耗
+        self.assertEqual(row["defers"], 1)
+        self.assertIsNone(queue.claim("w1"))          # 延迟未到期
+
+    # ---------------- terminal_failed 也要有 exit_code
+    def test_terminal_failed_records_exit_code(self):
+        queue.submit("b-1", "j1", P("h"), max_attempts=1)
+        queue.claim("w1")
+        self.assertFalse(queue.requeue("j1", "boom", exit_code=137))
+        row = {i["job_id"]: i for i in queue.items()}["j1"]
+        self.assertEqual(row["state"], "terminal_failed")
+        self.assertEqual(row["exit_code"], 137)
+        tf = next(r for r in queue.audit_rows("j1") if r["to_state"] == "terminal_failed")
+        self.assertEqual(tf["exit_code"], 137)
+
     # ---------------- P0-2 心跳超时
     def test_heartbeat_timeout_requeues(self):
         queue.submit("b-1", "j1", P("d"))
