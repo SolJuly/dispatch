@@ -164,14 +164,13 @@ def c_ssh_unready(cs, insts):
 
 
 def c_service(cs):
-    down = []
-    for s in ("cs-files", "cs-lab"):
-        if _sh(f"systemctl is-active {s}") != "active":
-            down.append(s)
-    if down:
-        return "high", ", ".join(down), "常驻服务不在跑，页面/基准会停更", \
-            f"systemctl restart {' '.join(down)}"
-    return "ok", "cs-files, cs-lab", "两个常驻服务 active", ""
+    """R08：只盯 cs-files。cs-lab 是 P0 基准实验室，已被 P1/P2 闭环取代并退役，
+    不再作为告警对象（detail 里注明，避免误以为「该重启」）。"""
+    if _sh("systemctl is-active cs-files") != "active":
+        return "high", "cs-files", "文件服务不在跑，平板窗口/页面会停更", "systemctl restart cs-files"
+    lab = _sh("systemctl is-active cs-lab")
+    extra = "；cs-lab 在跑（历史 lab，非当前主链）" if lab == "active" else "（cs-lab 已退役）"
+    return "ok", "cs-files", f"文件服务 active{extra}", ""
 
 
 def c_cron(cs):
@@ -207,6 +206,9 @@ def c_lab_state(cs):
     p = ROOT / "lab" / "state.json"
     if not p.exists():
         return "info", "—", "无 lab 状态文件", ""
+    age_h = (time.time() - p.stat().st_mtime) / 3600
+    if age_h > 24:
+        return "info", f"{age_h / 24:.1f} 天前", "历史 lab 数据（cs-lab 已退役，不计入告警）", ""
     try:
         st = json.loads(p.read_text(encoding="utf-8"))
     except Exception:

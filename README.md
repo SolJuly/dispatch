@@ -180,10 +180,13 @@ cat .share_token                 # 访问口令；删掉该文件并重启服务
 
 ---
 
-## 12. 自动化基准实验室（cs-lab）
+## 12. 自动化基准实验室（cs-lab）—— 已退役
+
+> P0 选型任务已完成，结论固化进 P1/P2。`cs-lab.service` 已 `disable`（重启不再自起），
+> 历史数据保留在 `reports/lab/`。需要复跑：`systemctl enable --now cs-lab`。
 
 ```bash
-systemctl status cs-lab     # 等货中 / 正在跑
+systemctl status cs-lab     # 已退役（inactive/disabled）；复跑前先看 lab/README.md
 tail -f logs/lab.log        # 实时日志
 cat lab/state.json          # 每台机器的结果与花费
 touch lab/STOP && systemctl stop cs-lab   # 急停
