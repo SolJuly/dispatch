@@ -33,6 +33,8 @@ ARCH_SVG = PROJ / "reports" / "architecture.svg"
 ARCH_TS = {"t": 0.0}
 LOG_FILES = {
     "lab.log": PROJ / "logs" / "lab.log",
+    "watchdog.log": PROJ / "logs" / "watchdog.log",
+    "status2.log": PROJ / "logs" / "status2.log",
     "watch.log": PROJ / ".compshare" / "watch.log",
     "ledger.jsonl": PROJ / ".compshare" / "ledger.jsonl",
     "lab.state": PROJ / "lab" / "state.json",
@@ -471,7 +473,7 @@ class Handler(BaseHTTPRequestHandler):
         out = {"ts": time.time(), "at": time.strftime("%Y-%m-%d %H:%M:%S"),
                "balance": None, "instances": [], "stock": {}, "lab": {}, "services": {},
                "errors": []}
-        for svc in ("cs-lab", "cs-files", "nginx"):
+        for svc in ("cs-files", "nginx"):   # cs-lab 已退役（P1/P2 取代），不再监控
             try:
                 r = subprocess.run(["systemctl", "is-active", svc], capture_output=True,
                                    text=True, timeout=5)
@@ -511,26 +513,22 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             out["errors"].append(f"API: {type(e).__name__}: {e}")
         try:
-            stp = PROJ / "lab" / "state.json"
-            st = json.loads(stp.read_text(encoding="utf-8")) if stp.exists() else {"groups": {}}
-            groups = st.get("groups", {})
-            lab = {"groups": [], "done": 0, "total": 0, "cost": 0.0}
-            for gid, g in groups.items():
-                w = g.get("workloads") or {}
-                lab["groups"].append({
-                    "id": gid, "status": g.get("status"), "uhost": g.get("uhost"),
-                    "boot": g.get("t_to_running_s"), "cost": g.get("cost_actual"),
-                    "ok": sum(1 for x in w.values() if x.get("status") == "ok"),
-                    "bad": sum(1 for x in w.values() if x.get("status") == "failed"),
-                    "skip": sum(1 for x in w.values() if x.get("status") == "skipped"),
-                    "reason": (g.get("reason") or "")[:120],
-                })
-                lab["done"] += 1 if g.get("status") == "ok" else 0
-                lab["total"] += 1
-                lab["cost"] += float(g.get("cost_actual") or 0)
-            out["lab"] = lab
+            p2p = PROJ / "reports" / "p2" / "status2.json"
+            dd = json.loads(p2p.read_text(encoding="utf-8")) if p2p.exists() else {}
+            by = ((dd.get("queue") or {}).get("by_state") or {})
+            out["p2"] = {
+                "jobs": dd.get("jobs") or {},
+                "cost": float(dd.get("cost_total") or 0),
+                "queued": (by.get("queued") or {}).get("n", 0),
+                "running": (by.get("claimed") or {}).get("n", 0) + (by.get("running") or {}).get("n", 0),
+                "done": (by.get("done") or {}).get("n", 0),
+                "terminal_failed": (by.get("terminal_failed") or {}).get("n", 0),
+                "reclaimed": (by.get("reclaimed") or {}).get("n", 0),
+                "items": (dd.get("items") or [])[-8:],
+            }
         except Exception as e:
-            out["errors"].append(f"lab: {e}")
+            out["errors"].append(f"p2: {e}")
+            out["p2"] = {}
         return out
 
     def _api_arch(self):
@@ -672,9 +670,8 @@ class Handler(BaseHTTPRequestHandler):
         kpi = "".join([
             f"<div><b>{html.escape(str(d.get('balance')))}</b><span>余额 ¥</span></div>",
             f"<div><b>{len(d.get('instances') or [])}</b><span>实例</span></div>",
-            f"<div><b>{d.get('lab', {}).get('done', 0)}/{d.get('lab', {}).get('total', 0)}</b>"
-            f"<span>已完成机器</span></div>",
-            f"<div><b>¥{float(d.get('lab', {}).get('cost') or 0):.2f}</b><span>实验室消耗</span></div>",
+            f"<div><b>{(d.get('p2') or {}).get('queued', 0)}</b><span>队列待跑</span></div>",
+            f"<div><b>{(d.get('p2') or {}).get('terminal_failed', 0)}</b><span>终态失败</span></div>",
         ] + [f"<div><b style='font-size:14px'>{html.escape(str(v))}</b><span>{html.escape(k)}</span></div>"
              for k, v in (d.get("services") or {}).items()])
 
@@ -686,25 +683,28 @@ class Handler(BaseHTTPRequestHandler):
 
         stock = " · ".join(f"{k} → " + (" / ".join(f"{g}:{n}" for g, n in v.items()) or "全 0")
                            for k, v in (d.get("stock") or {}).items())
-        lab_rows = [[g.get("id"), g.get("status"), g.get("boot") or "-", g.get("ok"),
-                     g.get("bad"), g.get("skip"), f"¥{g.get('cost') or 0}", (g.get("reason") or "")[:40]]
-                    for g in ((d.get("lab") or {}).get("groups") or [])]
-        lab = self._tbl(["机器", "状态", "就绪s", "成功", "失败", "跳过", "花费", "备注"],
-                        lab_rows) if lab_rows else "<div class='hint'>还没有记录</div>"
+        p2 = d.get("p2") or {}
+        p2_rows = [[it.get("job_id"), it.get("state"), it.get("model") or "-",
+                    f"¥{float(it.get('cost') or 0):.3f}",
+                    (it.get("verdict") or "-"),
+                    "".join("✓" if v else "✗" for v in (it.get("checks") or {}).values())]
+                   for it in (p2.get("items") or [])]
+        lab = self._tbl(["作业", "队列状态", "模型", "成本", "判定", "复验"],
+                        p2_rows) if p2_rows else "<div class='hint'>队列为空（batchctl submit 后可在此看到）</div>"
 
-        log_text, _ = self._api_log("lab.log", 200)
+        log_text, _ = self._api_log("watchdog.log", 200)
         body = f"""
 <div class='hint' id='diag'>快照 {html.escape(d.get('at', ''))} · 页面每 20 秒自动重载</div>
 <div class='kpi'>{kpi}</div>
 <h2>实例</h2>{inst}
 <h2>库存</h2><div class="hint">{html.escape(stock or '无现货')}</div>
-<h2>基准实验室进度</h2>{lab}
-<h2>日志（lab.log 尾部）</h2>
+<h2>P2 队列（最近 8 项 · 数据源 status2.json）</h2>{lab}
+<h2>日志（watchdog.log 尾部）</h2>
 <pre class='code' style='max-height:46vh;overflow:auto;white-space:pre-wrap'>{html.escape(log_text[-20000:])}</pre>
-<div class='hint'>完整日志：<a href="{root}/f/reports/lab/REPORT.md">REPORT.md</a> ·
+<div class='hint'>完整数据：<a href="{root}/f/reports/p2/status2.json">status2.json</a> ·
+ <a href="{root}/f/reports/p2/P2-联调与对账报告.md">联调与对账报告</a> ·
  <a href="{root}/cost">成本记录</a> · <a href="{root}/risk">风险监控</a> ·
- <a href="{root}/arch">实时架构图</a> ·
- <a href="{root}/f/reports/lab/gallery-inline.html">画廊</a></div>
+ <a href="{root}/arch">实时架构图</a></div>
 <h2>架构图（每 20 秒重算）</h2>
 <div style='border:1px solid #222833;border-radius:12px;overflow:auto;background:#0d1013'>{self._api_arch()}</div>
 """
