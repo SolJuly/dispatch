@@ -135,11 +135,12 @@ def reap_instances(ttl_min: int = TTL_MIN) -> list[str]:
 class Scheduler:
     def __init__(self, slots: int = 2, gpu: str = "4090", hours: float = 1.0,
                  daily_budget: float = 8.0, poll: float = SCAN_S, stagger: float = 10.0,
-                 dry_run: bool = False, quota: int = 5):
+                 dry_run: bool = False, quota: int = 5, from_pool: bool = False):
         self.slots = max(1, slots)
         self.quota = quota          # 账户实例上限（Level1=5 / Level2=20，可 --quota 覆盖）
         self.stagger = stagger
         self.dry_run = dry_run
+        self.from_pool = from_pool
         self.gpu = gpu
         self.hours = hours
         self.daily_budget = daily_budget
@@ -159,6 +160,8 @@ class Scheduler:
         # --no-keep：批量无人值守，失败不得保留实例（否则 15 分钟空转烧钱）
         cmd = [sys.executable, str(_ROOT / "tools" / "p1" / "run.py"), jid,
                "--batch", "--no-keep", "--restart", "--gpu", self.gpu, "--hours", str(self.hours)]
+        if self.from_pool:
+            cmd.append("--from-pool")
         p = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, cwd=str(_ROOT))
         self.children[jid] = p
         queue.mark_running(jid)

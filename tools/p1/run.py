@@ -38,12 +38,12 @@ from tools.p1 import verify as verify_mod  # noqa: E402
 COMFY_API = "http://127.0.0.1:8188"
 IMAGE_KEYWORD = "ComfyUI基础镜像纯净版0.36.0"
 
-# 卡型 → (CPU 核, 内存 GB)：平台对 cpu:memory 有比例校验，硬编码 96 会在 4090 上被拒
-GPU_SPEC = {
-    "4090": (16, 64), "4090_48G": (16, 96), "3090": (16, 64), "5090": (16, 96),
-    "V100S": (10, 64), "A100": (16, 64), "A800": (16, 240), "H20": (16, 240),
-    "3080Ti": (12, 32), "2080": (8, 40), "P40": (8, 64),
-}
+# 卡型 → (CPU 核, 内存 GB)：统一放 p2/config.py，避免两处漂移
+try:
+    from tools.p2.config import GPU_SPEC  # noqa: E402
+except Exception:  # 极端情况下回退
+    GPU_SPEC = {"4090": (16, 64), "4090_48G": (16, 96), "3090": (16, 64), "5090": (16, 96),
+                "V100S": (10, 64), "A100": (16, 64), "A800": (16, 240), "H20": (16, 240)}
 RETRY_8903 = 3
 CREATE_RETRY = 4
 RETRY_8903_WAIT = 10
@@ -236,6 +236,28 @@ def step_provision(job: dict, opts) -> dict:
     bal = float(cs.balance().get("AmountAvailable") or 0)
     if bal < 5:
         raise RunError(f"余额 ¥{bal:.2f} < ¥5，中止建机", state.FAILED_PROVISION)
+
+    # 预热池优先：池里有停机实例就直接 start（~12s），不消耗现货
+    if getattr(opts, "from_pool", False):
+        got = None
+        try:
+            from tools.p2 import pool as poolmod
+            got = poolmod.acquire(job["job_id"])
+        except Exception as e:
+            _say(f"⚠ 预热池不可用（{type(e).__name__}: {e}），回落新建")
+        if got:
+            uid = got["uhost_id"]
+            j = state.load_job(job["job_id"])
+            j.setdefault("instance", {})
+            j["instance"].update({
+                "uhost_id": uid, "gpu": gpu, "zone": cs.zone, "from_pool": True,
+                "up_at": dt.datetime.now().astimezone().isoformat(timespec="seconds")})
+            store.atomic_write_json(store.job_file(job["job_id"]), j)
+            _say(f"复用预热池实例 {uid}（start {got.get('t_start')}s · 就绪 {got.get('t_ready')}s）")
+            return {"uhost_id": uid, "inst": got["inst"], "hourly": float(price.get("total") or 0),
+                    "host": got["host"], "port": got["port"], "password": got["password"],
+                    "from_pool": True}
+        _say("池内无空闲实例，回落到新建")
 
     # 库存预检：无货直接失败，不要盲下单（226604 是常态，不是异常）
     wait_s = int(getattr(opts, "wait_stock", 0) or 0)
@@ -493,6 +515,22 @@ def step_release(job: dict, opts, ctx: dict) -> None:
     if not uid:
         _say("无实例可销毁")
         return
+
+    # 预热池实例：停机回池（下次 12s 起），不销毁
+    try:
+        jk = state.load_job(job["job_id"])
+        from_pool = bool((jk.get("instance") or {}).get("from_pool"))
+    except Exception:
+        from_pool = bool(ctx.get("from_pool"))
+    if from_pool:
+        try:
+            from tools.p2 import pool as poolmod
+            poolmod.release(uid, keep=True)
+            _say(f"{uid} 已停机回池（保留复用）")
+            return
+        except Exception as e:
+            _say(f"⚠ 回池失败（{type(e).__name__}: {e}），改为销毁")
+
     cs = CS()
     last = None
     for attempt in range(1, RETRY_8903 + 1):
@@ -910,6 +948,8 @@ def main(argv=None) -> int:
                     help="从 FAILED_* 续跑：按 job.json 的 steps 从断点继续")
     ap.add_argument("--abort", action="store_true", help="放弃续跑，销毁保留的实例")
     ap.add_argument("--no-keep", action="store_true", help="失败时不保留实例（旧行为）")
+    ap.add_argument("--from-pool", action="store_true",
+                    help="优先复用预热池停机实例（start ~12s），池空回落新建")
     ap.add_argument("--restart", action="store_true",
                     help="实例丢失后整条重跑：crashed/FAILED_* → PROVISIONING（清断点）")
     ap.add_argument("--batch", action="store_true",

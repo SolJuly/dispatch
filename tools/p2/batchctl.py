@@ -117,7 +117,8 @@ def cmd_run(a) -> int:
     s = scheduler.Scheduler(slots=a.slots, gpu=a.gpu, hours=a.hours,
                             daily_budget=a.daily_budget, poll=a.poll,
                             stagger=a.stagger, dry_run=getattr(a, "dry_run", False),
-                            quota=getattr(a, "quota", 5))
+                            quota=getattr(a, "quota", 5),
+                            from_pool=getattr(a, "from_pool", False))
 
     def _stop(signum, frame):
         print("\n⏹ 收到中断：停止领取，等在跑的收尾（再按一次强退）…", flush=True)
@@ -208,6 +209,7 @@ def main(argv=None) -> int:
     sp.add_argument("--poll", type=float, default=10.0)
     sp.add_argument("--stagger", type=float, default=10.0, help="错峰下单间隔秒")
     sp.add_argument("--quota", type=int, default=5, help="账户实例上限（Level1=5 / Level2=20）")
+    sp.add_argument("--from-pool", action="store_true", help="优先复用预热池（pool.py ensure 先备好）")
     sp.add_argument("--dry-run", action="store_true", help="只回收/对账，不真正建机")
     sp.set_defaults(fn=cmd_run)
 
