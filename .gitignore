@@ -42,3 +42,8 @@ reports/p1/jobs/*/thumbs/
 # PR 派生文件（不入库）
 *.patch
 *.diff
+
+# P2 运行态（队列库是可删的，job 事实在 job.json）
+reports/p2/*.db
+reports/p2/*.db-wal
+reports/p2/*.db-shm

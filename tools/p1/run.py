@@ -37,6 +37,13 @@ from tools.p1 import verify as verify_mod  # noqa: E402
 
 COMFY_API = "http://127.0.0.1:8188"
 IMAGE_KEYWORD = "ComfyUI基础镜像纯净版0.36.0"
+
+# 卡型 → (CPU 核, 内存 GB)：平台对 cpu:memory 有比例校验，硬编码 96 会在 4090 上被拒
+GPU_SPEC = {
+    "4090": (16, 64), "4090_48G": (16, 96), "3090": (16, 64), "5090": (16, 96),
+    "V100S": (10, 64), "A100": (16, 64), "A800": (16, 240), "H20": (16, 240),
+    "3080Ti": (12, 32), "2080": (8, 40), "P40": (8, 64),
+}
 RETRY_8903 = 3
 CREATE_RETRY = 4
 RETRY_8903_WAIT = 10
@@ -82,8 +89,18 @@ def _step_done(job_id: str, name: str) -> bool:
     return bool((j.get("steps") or {}).get(name, {}).get("done"))
 
 
+_LOG_PREFIX = ""
+
+
 def _say(msg: str) -> None:
-    print(f"[{dt.datetime.now():%H:%M:%S}] {msg}", flush=True)
+    print(f"[{dt.datetime.now():%H:%M:%S}] {_LOG_PREFIX}{msg}", flush=True)
+
+
+def _lock(job_id: str, opts):
+    """批量模式用作业级锁（不同 job 可并行）；legacy 单机模式仍用全局锁。"""
+    if getattr(opts, "batch", False):
+        return store.per_job_lock(job_id)
+    return store.JobLock()
 
 
 def _render_workflow(wf: dict, params: dict, prefix: str) -> dict:
@@ -166,7 +183,8 @@ def step_provision(job: dict, opts) -> dict:
     gpu = opts.gpu or (job.get("instance", {}).get("required_gpu") or ["4090_48G"])[0]
     hours = opts.hours
     img = cs.resolve_image(opts.image or IMAGE_KEYWORD)
-    price = cs.price(gpu, 1, 16, 96, "Postpay", 100, 0, image_id=img["CompShareImageId"])
+    cpu_n, mem_gb = GPU_SPEC.get(gpu, (16, 64))
+    price = cs.price(gpu, 1, cpu_n, mem_gb, "Postpay", 100, 0, image_id=img["CompShareImageId"])
     est = float(price.get("total") or 0) * hours
     cap = float((job.get("budget") or {}).get("max_cost") or 0)
 
@@ -192,7 +210,7 @@ def step_provision(job: dict, opts) -> dict:
     for attempt in range(1, CREATE_RETRY + 1):
         try:
             ids = cs.create(image_id=img["CompShareImageId"], gpu_type=gpu, gpu=1,
-                            cpu=16, memory_gb=96, name=f"p1-{job['job_id'][-6:]}",
+                            cpu=cpu_n, memory_gb=mem_gb, name=f"p1-{job['job_id'][-6:]}",
                             charge_type="Postpay", disk_gb=100, data_disk_gb=0,
                             remark="p1 single-task")
             break
@@ -642,7 +660,7 @@ def _resume(job_id: str, job: dict, opts) -> int:
     target = STEP_STATE_MAP.get(nxt)
     _say(f"续跑：{cur} → RESUMING → {target or 'READY'}（断点步骤 {nxt}）")
 
-    with store.JobLock():
+    with _lock(job_id, opts):
         ctx = _rebuild_ctx(job)
         if not ctx.get("uhost_id"):
             _say("✗ job 里没有 uhost_id，无法续跑（请重新 new 一个作业）")
@@ -693,7 +711,7 @@ def _abort(job_id: str, job: dict, opts) -> int:
         _say(f"作业已是终态 {cur}，无需 abort")
         return 0
     ctx = _rebuild_ctx(job)
-    with store.JobLock():
+    with _lock(job_id, opts):
         if cur in state.FAIL_BRANCH:
             try:
                 state.transition(job_id, state.RELEASING, reason="abort：放弃续跑")
@@ -710,6 +728,9 @@ def _abort(job_id: str, job: dict, opts) -> int:
 
 
 def run(job_id: str, opts) -> int:
+    global _LOG_PREFIX
+    if getattr(opts, "batch", False):
+        _LOG_PREFIX = f"[{job_id}] "
     job = state.load_job(job_id)
     _say(f"作业 {job_id} · 模型 {job['model']['key']} · 预算 ¥{job['budget'].get('max_cost')}")
 
@@ -730,7 +751,7 @@ def run(job_id: str, opts) -> int:
     if opts.resume:
         return _resume(job_id, job, opts)
 
-    with store.JobLock():
+    with _lock(job_id, opts):
         ctx: dict = {}
         try:
             _execute(job_id, job, opts, ctx)
@@ -797,6 +818,8 @@ def main(argv=None) -> int:
                     help="从 FAILED_* 续跑：按 job.json 的 steps 从断点继续")
     ap.add_argument("--abort", action="store_true", help="放弃续跑，销毁保留的实例")
     ap.add_argument("--no-keep", action="store_true", help="失败时不保留实例（旧行为）")
+    ap.add_argument("--batch", action="store_true",
+                    help="批量模式：用作业级锁（不同 job 可并行），日志加 job 前缀")
     a = ap.parse_args(argv)
     return run(a.job_id, a)
 

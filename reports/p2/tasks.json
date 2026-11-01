@@ -276,7 +276,7 @@
     {
       "id": "P2-T07",
       "title": "抽 executor + per-job 锁（批量重构 4a，¥0）",
-      "status": "todo",
+      "status": "done",
       "phase_step": 4,
       "depends_on": [
         "P2-T01",
@@ -307,7 +307,7 @@
     {
       "id": "P2-T08",
       "title": "队列 SQLite + batchctl submit/list/show（批量 4b，¥0）",
-      "status": "todo",
+      "status": "done",
       "phase_step": 4,
       "depends_on": [
         "P2-T07"
@@ -336,7 +336,7 @@
     {
       "id": "P2-T09",
       "title": "调度器 + 实例登记 + 僵尸回收（批量 4c，D4 默认并发 2）",
-      "status": "todo",
+      "status": "done",
       "phase_step": 4,
       "depends_on": [
         "P2-T08"
@@ -367,7 +367,7 @@
     {
       "id": "P2-T10",
       "title": "预算熔断（日/批/单 job 三档）",
-      "status": "todo",
+      "status": "done",
       "phase_step": 4,
       "depends_on": [
         "P2-T08"
@@ -394,7 +394,7 @@
     {
       "id": "P2-T11",
       "title": "并发真机三轮联调（slots 1 干跑 / 2×LTXV / 3 混合）",
-      "status": "todo",
+      "status": "done",
       "phase_step": 4,
       "depends_on": [
         "P2-T09",
@@ -426,7 +426,7 @@
     {
       "id": "P2-T12",
       "title": "多作业视图收口：status2 / 画廊分组 / 架构图 H 区",
-      "status": "todo",
+      "status": "done",
       "phase_step": 4,
       "depends_on": [
         "P2-T11"
@@ -509,9 +509,9 @@
   ],
   "cases_result": {
     "total": 34,
-    "pass": 15,
+    "pass": 20,
     "skip": 0,
     "fail": 0,
-    "note": "freeze 6 + transfer 5 + concat 4 = 15 单测全绿；P1 回归 12PASS/1SKIP；M1 两层镜像完成"
+    "note": "freeze6+transfer5+concat4+queue5=20 单测全绿；M4 并发 2×LTXV 双 done、0 残留；P1 回归 12PASS/1SKIP"
   }
 }
