@@ -79,6 +79,15 @@ if [[ "$MODE" == "--check" ]]; then
   exit $?
 fi
 
+# ---------- P2 快路径：镜像已烘焙 → 只做轻量核对，跳过全套配置 ----------
+# 已烘焙的实例带 /root/.p2_image.json 标记，环境在镜像里已固化（start.d 去
+# Manager / 挂载配置 / 软链 / rsync），这里不再 sed/scp/ln/重启，5s 内返回。
+if $CS ssh "$ID" --exec "test -f /root/.p2_image.json && echo P2_BAKED || echo NOT_BAKED" 2>/dev/null | grep -q P2_BAKED; then
+  say "已烘焙镜像（/root/.p2_image.json），走轻量核对"
+  check
+  exit $?
+fi
+
 # ---------- 1. 生成并推送挂载配置 ----------
 YAML="$(mktemp /tmp/p1_model_paths.XXXXXX.yaml)"
 cat >"$YAML" <<'YAML'
@@ -103,13 +112,20 @@ YAML
 trap 'rm -f "$YAML"' EXIT
 
 say "推送挂载配置…"
-# 用 sshpass scp 直传（csctl push 走 transfer.py，实测在部分实例上会失败）
+# 用 sshpass scp 直传（csctl push 走 transfer.py，实测在部分实例上会失败）。
+# 去掉 -c aes128-gcm@openssh.com：fresh 实例上该自定义加密偶发握手失败（P2 实测）。
 if [[ -n "${P1_PASSWORD:-}" && -n "${P1_HOST:-}" ]]; then
-  sshpass -p "$P1_PASSWORD" scp -q -P "${P1_PORT:-23}" \
-    -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-    -o ConnectTimeout=15 -c aes128-gcm@openssh.com \
-    "$YAML" "root@${P1_HOST}:/root/ComfyUI/extra_model_paths.yaml" 2>/dev/null \
-    || die "scp 推送 extra_model_paths.yaml 失败"
+  scp_ok=0
+  for _ in 1 2 3; do
+    if sshpass -p "$P1_PASSWORD" scp -q -P "${P1_PORT:-23}" \
+        -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        -o ConnectTimeout=15 \
+        "$YAML" "root@${P1_HOST}:/root/ComfyUI/extra_model_paths.yaml" 2>/dev/null; then
+      scp_ok=1; break
+    fi
+    sleep 5
+  done
+  [[ $scp_ok -eq 1 ]] || die "scp 推送 extra_model_paths.yaml 失败"
 else
   $CS push "$ID" "$YAML" /root/ComfyUI/extra_model_paths.yaml >/dev/null \
     || die "推送 extra_model_paths.yaml 失败"

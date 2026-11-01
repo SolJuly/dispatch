@@ -1,0 +1,44 @@
+[
+  {
+    "layer": "base",
+    "image": "p2-comfy-base-v1",
+    "t_running": 74.1,
+    "t_sshd": 85.4,
+    "t_ready": 117.3
+  },
+  {
+    "layer": "base",
+    "image": "p2-comfy-base-v1",
+    "t_running": 71.5,
+    "t_sshd": 72.2,
+    "t_ready": 110.5
+  },
+  {
+    "layer": "base",
+    "image": "p2-comfy-base-v1",
+    "t_running": 71.1,
+    "t_sshd": 71.8,
+    "t_ready": 103.9
+  },
+  {
+    "layer": "media",
+    "image": "p2-comfy-media-v1",
+    "t_running": 64.9,
+    "t_sshd": 65.5,
+    "t_ready": 105.0
+  },
+  {
+    "layer": "media",
+    "image": "p2-comfy-media-v1",
+    "t_running": 69.2,
+    "t_sshd": 70.0,
+    "t_ready": 109.5
+  },
+  {
+    "layer": "media",
+    "image": "p2-comfy-media-v1",
+    "t_running": 71.0,
+    "t_sshd": 71.8,
+    "t_ready": 112.0
+  }
+]

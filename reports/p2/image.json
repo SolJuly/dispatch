@@ -1,0 +1,22 @@
+{
+  "schema": "p2.image/v2",
+  "fallback_keyword": "ComfyUI基础镜像纯净版0.36.0",
+  "layers": {
+    "base": {
+      "name": "p2-comfy-base-v1",
+      "image_id": "compshareImage-1x65ieja8ncj",
+      "based_on": "compshareImage-1vjv4ef2vy94",
+      "has_ffmpeg": false,
+      "comfy_ver": "0.36.x",
+      "baked_at": "2026-11-01T11:47:55+0800"
+    },
+    "media": {
+      "name": "p2-comfy-media-v1",
+      "image_id": "compshareImage-1x65o3j08tdw",
+      "based_on": "compshareImage-1x65ieja8ncj",
+      "has_ffmpeg": true,
+      "comfy_ver": "0.36.x",
+      "baked_at": "2026-11-01T11:52:19+0800"
+    }
+  }
+}

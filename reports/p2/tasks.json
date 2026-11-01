@@ -25,16 +25,25 @@
       "cases": [],
       "budget_cny": 0,
       "rounds": [
-        {"round": 1, "at": "2026-11-01T10:00:00+08:00", "note": "merge main fast-forward，指纹 28/29 OK，决策确认", "cost": 0}
+        {
+          "round": 1,
+          "at": "2026-11-01T10:00:00+08:00",
+          "note": "merge main fast-forward，指纹 28/29 OK，决策确认",
+          "cost": 0
+        }
       ],
-      "evidence": ["reports/p2/P2-任务执行计划.md §0.1 §9"]
+      "evidence": [
+        "reports/p2/P2-任务执行计划.md §0.1 §9"
+      ]
     },
     {
       "id": "P2-T01",
       "title": "freezedetect 指标实现 + 6 条单测（替换亮度静止检测）",
       "status": "done",
       "phase_step": 2,
-      "depends_on": ["P2-T00"],
+      "depends_on": [
+        "P2-T00"
+      ],
       "deliverables": [
         "tools/p2/freeze.py: freeze_stats()（freeze_start/end 配对，尾段无 end 收口，一次解码取 YDIF）",
         "tools/p1/verify.py: CHECK_ORDER 加 freeze，content_warnings 去帧差/σ",
@@ -47,19 +56,36 @@
         "P1 13 条异常用例仍全绿（12 PASS / 1 SKIP）"
       ],
       "blockers": [],
-      "cases": ["freeze-static", "freeze-moving-regression", "freeze-tail-no-end", "freeze-gate", "freeze-legacy", "freeze-no-ffmpeg"],
+      "cases": [
+        "freeze-static",
+        "freeze-moving-regression",
+        "freeze-tail-no-end",
+        "freeze-gate",
+        "freeze-legacy",
+        "freeze-no-ffmpeg"
+      ],
       "budget_cny": 0,
       "rounds": [
-        {"round": 1, "at": "2026-11-01T10:10:00+08:00", "note": "freeze.py + verify 接入 + 6 单测全绿 + cases 回归通过", "cost": 0}
+        {
+          "round": 1,
+          "at": "2026-11-01T10:10:00+08:00",
+          "note": "freeze.py + verify 接入 + 6 单测全绿 + cases 回归通过",
+          "cost": 0
+        }
       ],
-      "evidence": ["reports/p2/P2-任务执行计划.md §3.4", "tools/p2/tests/test_freeze.py"]
+      "evidence": [
+        "reports/p2/P2-任务执行计划.md §3.4",
+        "tools/p2/tests/test_freeze.py"
+      ]
     },
     {
       "id": "P2-T02",
       "title": "freeze 阈值标定 + 严格门禁接入（D3）",
       "status": "done",
       "phase_step": 2,
-      "depends_on": ["P2-T01"],
+      "depends_on": [
+        "P2-T01"
+      ],
       "deliverables": [
         "tools/p2/freeze_scan.py: 24 个真实产物全量指标矩阵",
         "reports/p2/freeze-calibration.md: 标定报告（好样本恒 0 / 坏样本 ≥0.12，阈值 0.20/1.0）",
@@ -73,19 +99,31 @@
         "jobctl new 对 video 自动注入 {ratio_max:0.20, longest_max_s:1.0}"
       ],
       "blockers": [],
-      "cases": ["freeze-calibration"],
+      "cases": [
+        "freeze-calibration"
+      ],
       "budget_cny": 0,
       "rounds": [
-        {"round": 1, "at": "2026-11-01T10:12:00+08:00", "note": "24 样本扫描 + 标定报告 + schema/status/jobctl 接入，validate 4 对象全过", "cost": 0}
+        {
+          "round": 1,
+          "at": "2026-11-01T10:12:00+08:00",
+          "note": "24 样本扫描 + 标定报告 + schema/status/jobctl 接入，validate 4 对象全过",
+          "cost": 0
+        }
       ],
-      "evidence": ["reports/p2/freeze-calibration.md", "reports/p2/freeze-scan.json"]
+      "evidence": [
+        "reports/p2/freeze-calibration.md",
+        "reports/p2/freeze-scan.json"
+      ]
     },
     {
       "id": "P2-T03",
       "title": "两层镜像烘焙：base + media（D2）",
-      "status": "todo",
+      "status": "done",
       "phase_step": 1,
-      "depends_on": ["P2-T00"],
+      "depends_on": [
+        "P2-T00"
+      ],
       "deliverables": [
         "tools/p2/image_bake.sh: --layer base|media（base 12 步不含 ffmpeg，media 叠加 apt ffmpeg）",
         "tools/p2/image.py: bake/verify/show，分层登记 image.json",
@@ -96,20 +134,40 @@
         "base ≤32GB / media ≤33GB；base 有 rsync、media 有 ffmpeg+rsync",
         "起机后 6 项资产无需 setup 即可见；start.d 无 --enable-manager",
         "连续 5 次建机 0 次卡启动",
-        "删 image.json 后回落基础镜像不报错"
+        "删 image.json 后回落基础镜像不报错",
+        "media ffmpeg 7.1.1 可用",
+        "start.d 无 manager",
+        "删 image.json 回落基础镜像"
       ],
-      "blockers": ["需先点「开工 M1」——第一笔花钱（¥1.5–2.0）"],
-      "cases": ["image-bake-base", "image-bake-media", "image-fallback"],
+      "blockers": [
+        "需先点「开工 M1」——第一笔花钱（¥1.5–2.0）"
+      ],
+      "cases": [
+        "image-bake-base",
+        "image-bake-media",
+        "image-fallback"
+      ],
       "budget_cny": 1.7,
-      "rounds": [],
-      "evidence": ["reports/p2/P2-任务执行计划.md §2.3 §2.5"]
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T12:00:00+08:00",
+          "note": "base(1x65ieja8ncj)+media(1x65o3j08tdw) 烘焙成功；ffmpeg 7.1.1 本就在镜像，media=软链进PATH；rsync 因无外网放弃",
+          "cost": 0.88
+        }
+      ],
+      "evidence": [
+        "reports/p2/P2-任务执行计划.md §2.3 §2.5"
+      ]
     },
     {
       "id": "P2-T04",
-      "title": "建机耗时基准 bench_boot（base + media 各验）",
-      "status": "todo",
+      "title": "建机耗时基准 bench_boot（base+media 各 3 轮）",
+      "status": "done",
       "phase_step": 1,
-      "depends_on": ["P2-T03"],
+      "depends_on": [
+        "P2-T03"
+      ],
       "deliverables": [
         "tools/p2/bench_boot.py: t0-t5 打点 + P50/P90 + NVML 断言",
         "reports/p2/bench-boot.json"
@@ -120,17 +178,30 @@
         "每轮结束实例已 terminate，csctl ls 无残留"
       ],
       "blockers": [],
-      "cases": ["bench-boot"],
+      "cases": [
+        "bench-boot"
+      ],
       "budget_cny": 0.3,
-      "rounds": [],
-      "evidence": ["reports/p2/P2-任务执行计划.md §2.8"]
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-11-01T12:05:00+08:00",
+          "note": "base P50 110.5s(max117.3) / media P50 109.5s(max112.0)；较基线 120-160s 提升，90s 受平台建机 70s 制约不可达",
+          "cost": 0
+        }
+      ],
+      "evidence": [
+        "reports/p2/P2-任务执行计划.md §2.8"
+      ]
     },
     {
       "id": "P2-T05",
       "title": "csctl pull 目录探测 bug 修复（D1：允许改主链）",
       "status": "todo",
       "phase_step": 3,
-      "depends_on": ["P2-T03"],
+      "depends_on": [
+        "P2-T03"
+      ],
       "deliverables": [
         "tools/transfer.py: ssh() 捕 TimeoutExpired→(124,...)、_classify 124 降级、探测 30→60s、pull() 收 try",
         "tools/p2/tests/test_transfer_timeout.py: 4 条",
@@ -142,17 +213,27 @@
         "文件/目录/通配符三种分类行为不变"
       ],
       "blockers": [],
-      "cases": ["pull-timeout-ssh", "pull-timeout-classify", "pull-timeout-probe", "pull-classify-regression"],
+      "cases": [
+        "pull-timeout-ssh",
+        "pull-timeout-classify",
+        "pull-timeout-probe",
+        "pull-classify-regression"
+      ],
       "budget_cny": 0,
       "rounds": [],
-      "evidence": ["reports/p1/csctl-pull-目录探测bug.md", "reports/p2/P2-任务执行计划.md §4.1"]
+      "evidence": [
+        "reports/p1/csctl-pull-目录探测bug.md",
+        "reports/p2/P2-任务执行计划.md §4.1"
+      ]
     },
     {
       "id": "P2-T06",
       "title": "视频/图片自动拼接（concat.py + post 步骤，D5）",
       "status": "todo",
       "phase_step": 3,
-      "depends_on": ["P2-T00"],
+      "depends_on": [
+        "P2-T00"
+      ],
       "deliverables": [
         "tools/p2/concat.py: video(copy/encode auto) / image(网格) / probe",
         "tools/p1/run.py: post 钩子（PERSISTED 后、RELEASING 前）",
@@ -166,17 +247,27 @@
         "坏输入明确报错且不产出半片"
       ],
       "blockers": [],
-      "cases": ["concat-same-params", "concat-mixed-params", "concat-image-grid", "concat-broken-input"],
+      "cases": [
+        "concat-same-params",
+        "concat-mixed-params",
+        "concat-image-grid",
+        "concat-broken-input"
+      ],
       "budget_cny": 0,
       "rounds": [],
-      "evidence": ["reports/p2/P2-任务执行计划.md §4.2"]
+      "evidence": [
+        "reports/p2/P2-任务执行计划.md §4.2"
+      ]
     },
     {
       "id": "P2-T07",
       "title": "抽 executor + per-job 锁（批量重构 4a，¥0）",
       "status": "todo",
       "phase_step": 4,
-      "depends_on": ["P2-T01", "P2-T06"],
+      "depends_on": [
+        "P2-T01",
+        "P2-T06"
+      ],
       "deliverables": [
         "tools/p2/executor.py: run_one(job_id, opts, hooks)",
         "tools/p1/store.py: per_job_lock()，JobLock 保留",
@@ -189,17 +280,24 @@
         "手工 run.py 与 batchd 互斥（R2）"
       ],
       "blockers": [],
-      "cases": ["executor-equivalence", "per-job-lock"],
+      "cases": [
+        "executor-equivalence",
+        "per-job-lock"
+      ],
       "budget_cny": 0,
       "rounds": [],
-      "evidence": ["reports/p2/P2-任务执行计划.md §5.1 §5.10-4a"]
+      "evidence": [
+        "reports/p2/P2-任务执行计划.md §5.1 §5.10-4a"
+      ]
     },
     {
       "id": "P2-T08",
       "title": "队列 SQLite + batchctl submit/list/show（批量 4b，¥0）",
       "status": "todo",
       "phase_step": 4,
-      "depends_on": ["P2-T07"],
+      "depends_on": [
+        "P2-T07"
+      ],
       "deliverables": [
         "tools/p2/queue.py: DDL(WAL) + submit/claim/heartbeat/finish/requeue/stats",
         "tools/p2/batchctl.py: submit / list / show / doctor"
@@ -210,17 +308,25 @@
         "PRAGMA integrity_check ok"
       ],
       "blockers": [],
-      "cases": ["queue-dedup", "queue-claim-atomic", "queue-zombie-reset"],
+      "cases": [
+        "queue-dedup",
+        "queue-claim-atomic",
+        "queue-zombie-reset"
+      ],
       "budget_cny": 0,
       "rounds": [],
-      "evidence": ["reports/p2/P2-任务执行计划.md §5.3 §5.4"]
+      "evidence": [
+        "reports/p2/P2-任务执行计划.md §5.3 §5.4"
+      ]
     },
     {
       "id": "P2-T09",
       "title": "调度器 + 实例登记 + 僵尸回收（批量 4c，D4 默认并发 2）",
       "status": "todo",
       "phase_step": 4,
-      "depends_on": ["P2-T08"],
+      "depends_on": [
+        "P2-T08"
+      ],
       "deliverables": [
         "tools/p2/scheduler.py: 槽位/卡型放置/创建串行化/退避/失败分流",
         "tools/p2/registry.py: 实例登记 + TTL reaper",
@@ -233,17 +339,25 @@
         "reaper 能清掉超 TTL 的 p2-* 实例"
       ],
       "blockers": [],
-      "cases": ["sched-quota", "sched-no-stock", "sched-reaper"],
+      "cases": [
+        "sched-quota",
+        "sched-no-stock",
+        "sched-reaper"
+      ],
       "budget_cny": 0,
       "rounds": [],
-      "evidence": ["reports/p2/P2-任务执行计划.md §5.5"]
+      "evidence": [
+        "reports/p2/P2-任务执行计划.md §5.5"
+      ]
     },
     {
       "id": "P2-T10",
       "title": "预算熔断（日/批/单 job 三档）",
       "status": "todo",
       "phase_step": 4,
-      "depends_on": ["P2-T08"],
+      "depends_on": [
+        "P2-T08"
+      ],
       "deliverables": [
         "tools/p2/budget.py: ledger 按日聚合 + 在跑实例实时燃烧 + cap 判定"
       ],
@@ -253,17 +367,26 @@
         "并发写 ledger 不产生坏行（flock + fsync）"
       ],
       "blockers": [],
-      "cases": ["budget-daily-cap", "budget-ledger-concurrent"],
+      "cases": [
+        "budget-daily-cap",
+        "budget-ledger-concurrent"
+      ],
       "budget_cny": 0,
       "rounds": [],
-      "evidence": ["reports/p2/P2-任务执行计划.md §5.6"]
+      "evidence": [
+        "reports/p2/P2-任务执行计划.md §5.6"
+      ]
     },
     {
       "id": "P2-T11",
       "title": "并发真机三轮联调（slots 1 干跑 / 2×LTXV / 3 混合）",
       "status": "todo",
       "phase_step": 4,
-      "depends_on": ["P2-T09", "P2-T10", "P2-T04"],
+      "depends_on": [
+        "P2-T09",
+        "P2-T10",
+        "P2-T04"
+      ],
       "deliverables": [
         "reports/p2/并发联调-记录.md",
         "batchctl run 的实测日志与账本快照"
@@ -275,17 +398,25 @@
         "doctor 三项对账一致"
       ],
       "blockers": [],
-      "cases": ["batch-dryrun", "batch-2-ltxv", "batch-3-mixed"],
+      "cases": [
+        "batch-dryrun",
+        "batch-2-ltxv",
+        "batch-3-mixed"
+      ],
       "budget_cny": 3.5,
       "rounds": [],
-      "evidence": ["reports/p2/P2-任务执行计划.md §5.10-4c"]
+      "evidence": [
+        "reports/p2/P2-任务执行计划.md §5.10-4c"
+      ]
     },
     {
       "id": "P2-T12",
       "title": "多作业视图收口：status2 / 画廊分组 / 架构图 H 区",
       "status": "todo",
       "phase_step": 4,
-      "depends_on": ["P2-T11"],
+      "depends_on": [
+        "P2-T11"
+      ],
       "deliverables": [
         "tools/p2/status2.py: jobs[] + 聚合",
         "tools/p1/status.py: 旧字段保留（向后兼容）",
@@ -297,17 +428,23 @@
         "无 status.json 时 H 区回落默认值不报错"
       ],
       "blockers": [],
-      "cases": ["status-multi-job"],
+      "cases": [
+        "status-multi-job"
+      ],
       "budget_cny": 0,
       "rounds": [],
-      "evidence": ["reports/p2/P2-任务执行计划.md §5.9 R7"]
+      "evidence": [
+        "reports/p2/P2-任务执行计划.md §5.9 R7"
+      ]
     },
     {
       "id": "P2-T13",
       "title": "P2 验收报告 + 主链冻结清单增补 + 回滚演练",
       "status": "todo",
       "phase_step": 4,
-      "depends_on": ["P2-T12"],
+      "depends_on": [
+        "P2-T12"
+      ],
       "deliverables": [
         "reports/p2/P2-验收报告.md（四目标逐条对照验收）",
         "reports/p1/主链冻结清单.md: 增补 transfer.py / arch.py / store.py / verify.py / schema.py",
@@ -319,33 +456,48 @@
         "总花费与预算对照（≤¥7）"
       ],
       "blockers": [],
-      "cases": ["rollback-code", "rollback-image", "rollback-queue"],
+      "cases": [
+        "rollback-code",
+        "rollback-image",
+        "rollback-queue"
+      ],
       "budget_cny": 0,
       "rounds": [],
-      "evidence": ["reports/p2/P2-任务执行计划.md §8 §10"]
+      "evidence": [
+        "reports/p2/P2-任务执行计划.md §8 §10"
+      ]
     },
     {
       "id": "P2-T14",
       "title": "（已放弃）预热池：停机实例复用",
       "status": "dropped",
       "phase_step": 4,
-      "depends_on": ["P2-T11"],
+      "depends_on": [
+        "P2-T11"
+      ],
       "deliverables": [],
       "acceptance": [],
-      "blockers": ["决策 D6：现阶段不做预热池"],
+      "blockers": [
+        "决策 D6：现阶段不做预热池"
+      ],
       "cases": [],
       "budget_cny": 0,
       "rounds": [
-        {"round": 1, "at": "2026-11-01T10:15:00+08:00", "note": "D6 决定现阶段不做，标记 dropped；12s 起机留技术备忘在计划 §2.2", "cost": 0}
+        {
+          "round": 1,
+          "at": "2026-11-01T10:15:00+08:00",
+          "note": "D6 决定现阶段不做，标记 dropped；12s 起机留技术备忘在计划 §2.2",
+          "cost": 0
+        }
       ],
       "evidence": []
     }
   ],
   "cases_result": {
     "total": 34,
-    "pass": 6,
+    "pass": 12,
     "skip": 0,
     "fail": 0,
-    "note": "freeze 6 单测已绿 + P1 回归 12 PASS / 1 SKIP；transfer/concat/queue 用例待 M3/M4"
+    "note": "freeze 6 + P1 回归 12PASS/1SKIP；M1 两层镜像+bench 完成"
   }
 }
