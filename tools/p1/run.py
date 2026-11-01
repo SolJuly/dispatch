@@ -37,6 +37,13 @@ from tools.p1 import verify as verify_mod  # noqa: E402
 
 COMFY_API = "http://127.0.0.1:8188"
 IMAGE_KEYWORD = "ComfyUI基础镜像纯净版0.36.0"
+
+# 卡型 → (CPU 核, 内存 GB)：平台对 cpu:memory 有比例校验，硬编码 96 会在 4090 上被拒
+GPU_SPEC = {
+    "4090": (16, 64), "4090_48G": (16, 96), "3090": (16, 64), "5090": (16, 96),
+    "V100S": (10, 64), "A100": (16, 64), "A800": (16, 240), "H20": (16, 240),
+    "3080Ti": (12, 32), "2080": (8, 40), "P40": (8, 64),
+}
 RETRY_8903 = 3
 CREATE_RETRY = 4
 RETRY_8903_WAIT = 10
@@ -82,8 +89,39 @@ def _step_done(job_id: str, name: str) -> bool:
     return bool((j.get("steps") or {}).get(name, {}).get("done"))
 
 
+_LOG_PREFIX = ""
+
+
 def _say(msg: str) -> None:
-    print(f"[{dt.datetime.now():%H:%M:%S}] {msg}", flush=True)
+    print(f"[{dt.datetime.now():%H:%M:%S}] {_LOG_PREFIX}{msg}", flush=True)
+
+
+def _start_heartbeat(job_id: str, opts) -> None:
+    """P0-2：批量模式起心跳线程，每 15s 向队列打点（daemon，进程退出自动结束）。"""
+    if not getattr(opts, "batch", False):
+        return
+    try:
+        import threading
+        from tools.p2 import jobqueue
+    except Exception:
+        return
+
+    def loop():
+        while True:
+            try:
+                jobqueue.heartbeat(job_id)
+            except Exception:
+                pass
+            time.sleep(jobqueue.HEARTBEAT_S)
+
+    threading.Thread(target=loop, daemon=True, name=f"hb-{job_id}").start()
+
+
+def _lock(job_id: str, opts):
+    """批量模式用作业级锁（不同 job 可并行）；legacy 单机模式仍用全局锁。"""
+    if getattr(opts, "batch", False):
+        return store.per_job_lock(job_id)
+    return store.JobLock()
 
 
 def _render_workflow(wf: dict, params: dict, prefix: str) -> dict:
@@ -158,6 +196,28 @@ def _scp_get(host: str, port: str, password: str, remote: str, local: Path,
 
 
 # ---------------------------------------------------------------- 九步
+def _pick_image(cs, opts, job: dict) -> dict:
+    """选镜像（D2 两层）：--image > image.json.layers[video→media/image→base] > 平台关键字。
+
+    任何一环缺失/解析失败都回落基础镜像关键字，保证不会因为镜像登记问题挡住闭环。
+    """
+    if getattr(opts, "image", None):
+        try:
+            return cs.resolve_image(opts.image)
+        except Exception:
+            pass
+    try:
+        from tools.p2 import config as p2cfg
+        d = json.loads(p2cfg.IMAGE_JSON.read_text(encoding="utf-8"))
+        layer = "media" if job.get("kind") == "video" else "base"
+        iid = ((d.get("layers") or {}).get(layer) or {}).get("image_id")
+        if iid:
+            return cs.resolve_image(iid)
+    except Exception:
+        pass
+    return cs.resolve_image(IMAGE_KEYWORD)
+
+
 def step_provision(job: dict, opts) -> dict:
     """建机并等 Running。"""
     from compshare.cs import CS, CompShareError
@@ -165,8 +225,9 @@ def step_provision(job: dict, opts) -> dict:
     cs = CS()
     gpu = opts.gpu or (job.get("instance", {}).get("required_gpu") or ["4090_48G"])[0]
     hours = opts.hours
-    img = cs.resolve_image(opts.image or IMAGE_KEYWORD)
-    price = cs.price(gpu, 1, 16, 96, "Postpay", 100, 0, image_id=img["CompShareImageId"])
+    img = _pick_image(cs, opts, job)
+    cpu_n, mem_gb = GPU_SPEC.get(gpu, (16, 64))
+    price = cs.price(gpu, 1, cpu_n, mem_gb, "Postpay", 100, 0, image_id=img["CompShareImageId"])
     est = float(price.get("total") or 0) * hours
     cap = float((job.get("budget") or {}).get("max_cost") or 0)
 
@@ -192,7 +253,7 @@ def step_provision(job: dict, opts) -> dict:
     for attempt in range(1, CREATE_RETRY + 1):
         try:
             ids = cs.create(image_id=img["CompShareImageId"], gpu_type=gpu, gpu=1,
-                            cpu=16, memory_gb=96, name=f"p1-{job['job_id'][-6:]}",
+                            cpu=cpu_n, memory_gb=mem_gb, name=f"p1-{job['job_id'][-6:]}",
                             charge_type="Postpay", disk_gb=100, data_disk_gb=0,
                             remark="p1 single-task")
             break
@@ -480,6 +541,32 @@ FAIL_STATE_OF_STEP = {
 }
 
 
+def _run_posts(job: dict, job_id: str) -> None:
+    """执行 job.post 的本地步骤（拼接），产物进 artifacts/，manifest 追加 derived。
+
+    D5：位置在 PERSISTED 之后、RELEASING 之前；本地零 GPU，不影响 G1（已落盘）。
+    post 失败不改变主产物 verdict，只记录告警。
+    """
+    posts = job.get("post") or []
+    if not posts:
+        return
+    try:
+        from tools.p2 import concat as concat_mod
+    except Exception as e:  # 工具链缺失不应拖垮闭环
+        _say(f"  ⚠ post 跳过（concat 不可用：{e}）")
+        return
+    jdir = store.job_dir(job_id)
+    _say(f"post：{len(posts)} 个本地步骤")
+    results = concat_mod.run_posts(job, jdir / "artifacts")
+    man = store.read_json(store.job_file(job_id, "manifest.json")) or {}
+    if man:
+        man["derived"] = results
+        store.atomic_write_json(store.job_file(job_id, "manifest.json"), man)
+    for r in results:
+        flag = "ok" if r.get("ok") else f"FAIL：{r.get('reason')}"
+        _say(f"  {r.get('op')} → {r.get('out')} {flag}")
+
+
 def _do_step(name: str, job_id: str, job: dict, opts, ctx: dict) -> None:
     """执行单步动作（不含状态转移）。"""
     # 测试钩子：P1_FAIL_AT=fetch 可在指定步骤注入失败，用于验证续跑
@@ -488,6 +575,12 @@ def _do_step(name: str, job_id: str, job: dict, opts, ctx: dict) -> None:
                        FAIL_STATE_OF_STEP.get(name, state.FAILED))
     if name == "provision":
         ctx.update(step_provision(job, opts))
+        if getattr(opts, "batch", False) and ctx.get("uhost_id"):
+            try:
+                from tools.p2 import jobqueue
+                jobqueue.set_instance(job_id, ctx["uhost_id"])
+            except Exception:
+                pass
         _mark_step(job_id, name, uhost_id=ctx.get("uhost_id"),
                    gpu=(ctx.get("inst") or {}).get("GpuType"), hourly=ctx.get("hourly"))
     elif name == "setup":
@@ -510,6 +603,7 @@ def _do_step(name: str, job_id: str, job: dict, opts, ctx: dict) -> None:
         _mark_step(job_id, name, verdict=ctx["res"].get("verdict"))
     elif name == "persist":
         ctx["man"] = step_persist(job, opts, ctx, ctx["res"], ctx["arts"])
+        _run_posts(job, job_id)
         _mark_step(job_id, name)
     elif name == "release":
         step_release(job, opts, ctx)
@@ -615,7 +709,7 @@ def _resume(job_id: str, job: dict, opts) -> int:
     target = STEP_STATE_MAP.get(nxt)
     _say(f"续跑：{cur} → RESUMING → {target or 'READY'}（断点步骤 {nxt}）")
 
-    with store.JobLock():
+    with _lock(job_id, opts):
         ctx = _rebuild_ctx(job)
         if not ctx.get("uhost_id"):
             _say("✗ job 里没有 uhost_id，无法续跑（请重新 new 一个作业）")
@@ -659,6 +753,42 @@ def _resume(job_id: str, job: dict, opts) -> int:
             return 1
 
 
+def _restart(job_id: str, job: dict, opts) -> int | None:
+    """批量重试用：实例已丢，必须从 provision 整条重跑。
+
+    合法路径：crashed(PROVISIONING/READY/SUBMITTED/RUNNING/FETCHING/VERIFYING)
+              → 对应 FAILED_* → RESUMING → PROVISIONING（清空断点）
+    返回 None 表示「已重置，继续走正常流程」。
+    """
+    cur = job.get("state")
+    if cur == state.CREATED:
+        return None                              # 首次运行
+    if cur == state.DONE:
+        _say("作业已完成，无需 restart")
+        return 0
+    if cur == state.ABORTED:
+        _say("作业已中止，不 restart")
+        return 1
+    crash_map = {
+        state.PROVISIONING: state.FAILED_PROVISION, state.READY: state.FAILED_PROVISION,
+        state.SUBMITTED: state.FAILED_RUN, state.RUNNING: state.FAILED_RUN,
+        state.FETCHING: state.FAILED_FETCH, state.VERIFYING: state.FAILED_VERIFY,
+    }
+    if cur in crash_map:
+        state.transition(job_id, crash_map[cur], reason=f"restart: crashed at {cur}")
+        cur = crash_map[cur]
+    if cur in state.FAIL_BRANCH or cur == state.FAILED:
+        state.transition(job_id, state.RESUMING, reason="restart")
+        j = state.load_job(job_id)
+        j["steps"] = {}                          # 清断点，强制重做
+        store.atomic_write_json(store.job_file(job_id), j)
+        state.transition(job_id, state.PROVISIONING, reason="restart from scratch")
+        _say(f"restart：{job.get('state')} → PROVISIONING（清空断点，全量重跑）")
+        return None
+    _say(f"当前状态 {cur} 不支持 restart（产物可能已落盘）")
+    return 1
+
+
 def _abort(job_id: str, job: dict, opts) -> int:
     """放弃续跑：销毁保留的实例，作业标 FAILED。"""
     cur = job.get("state")
@@ -666,7 +796,7 @@ def _abort(job_id: str, job: dict, opts) -> int:
         _say(f"作业已是终态 {cur}，无需 abort")
         return 0
     ctx = _rebuild_ctx(job)
-    with store.JobLock():
+    with _lock(job_id, opts):
         if cur in state.FAIL_BRANCH:
             try:
                 state.transition(job_id, state.RELEASING, reason="abort：放弃续跑")
@@ -683,8 +813,12 @@ def _abort(job_id: str, job: dict, opts) -> int:
 
 
 def run(job_id: str, opts) -> int:
+    global _LOG_PREFIX
+    if getattr(opts, "batch", False):
+        _LOG_PREFIX = f"[{job_id}] "
     job = state.load_job(job_id)
     _say(f"作业 {job_id} · 模型 {job['model']['key']} · 预算 ¥{job['budget'].get('max_cost')}")
+    _start_heartbeat(job_id, opts)
 
     if opts.dry_run:
         _say("--dry-run：只走状态机，不建机、不花钱")
@@ -703,7 +837,13 @@ def run(job_id: str, opts) -> int:
     if opts.resume:
         return _resume(job_id, job, opts)
 
-    with store.JobLock():
+    if getattr(opts, "restart", False):
+        r = _restart(job_id, job, opts)
+        if r is not None:
+            return r
+        job = state.load_job(job_id)             # 重置后重新加载
+
+    with _lock(job_id, opts):
         ctx: dict = {}
         try:
             _execute(job_id, job, opts, ctx)
@@ -770,6 +910,10 @@ def main(argv=None) -> int:
                     help="从 FAILED_* 续跑：按 job.json 的 steps 从断点继续")
     ap.add_argument("--abort", action="store_true", help="放弃续跑，销毁保留的实例")
     ap.add_argument("--no-keep", action="store_true", help="失败时不保留实例（旧行为）")
+    ap.add_argument("--restart", action="store_true",
+                    help="实例丢失后整条重跑：crashed/FAILED_* → PROVISIONING（清断点）")
+    ap.add_argument("--batch", action="store_true",
+                    help="批量模式：用作业级锁（不同 job 可并行），日志加 job 前缀")
     a = ap.parse_args(argv)
     return run(a.job_id, a)
 

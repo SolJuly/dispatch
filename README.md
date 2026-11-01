@@ -180,10 +180,13 @@ cat .share_token                 # 访问口令；删掉该文件并重启服务
 
 ---
 
-## 12. 自动化基准实验室（cs-lab）
+## 12. 自动化基准实验室（cs-lab）—— 已退役
+
+> P0 选型任务已完成，结论固化进 P1/P2。`cs-lab.service` 已 `disable`（重启不再自起），
+> 历史数据保留在 `reports/lab/`。需要复跑：`systemctl enable --now cs-lab`。
 
 ```bash
-systemctl status cs-lab     # 等货中 / 正在跑
+systemctl status cs-lab     # 已退役（inactive/disabled）；复跑前先看 lab/README.md
 tail -f logs/lab.log        # 实时日志
 cat lab/state.json          # 每台机器的结果与花费
 touch lab/STOP && systemctl stop cs-lab   # 急停
@@ -398,3 +401,34 @@ P1 阶段累计花费 ¥4.15（含大量参数试错）。
 - 要 3 秒视频：LTXV 73 帧直接用；H3 需生成 121 帧再裁切（裁切 ≠ 拼接）
 - 不支持并发（单任务 `flock`），不做长视频拼接
 - 镜像无 ffmpeg 时，校验一律在本机做
+
+---
+
+## 18. 文件交付约定（2026-10-31 起）
+
+**所有产出文件一律以「预览 + 下载」两个链接交付**，不再只给本地路径。
+
+链接规则（由 `fileserver.py` 决定，**别手拼**）：
+
+```
+预览   https://123.207.74.155/files/<TOKEN>/f/<urlencoded 相对路径>
+下载   https://123.207.74.155/files/<TOKEN>/f/<urlencoded 相对路径>?dl=1
+```
+
+- 预览：`.md` 按文档排版渲染（表格/代码块可读），`.py`/`.sh` 按代码块显示，图片直接内嵌
+- 下载：`?dl=1` 返回附件（`Content-Disposition: attachment`，中文文件名已 UTF-8 编码）
+- `TOKEN` = `cat .share_token`（当前 `23e00ec2`）；改 token 后所有旧链接失效
+- 新写的文件必须先同步再给链接，否则 404
+
+一条命令生成（推荐，省得手拼和漏同步）：
+
+```bash
+bash scripts/share_link.sh reports/p2/P2-任务执行计划.md reports/p2/tasks.json
+bash scripts/share_link.sh --table reports/p2/*.md      # 直接输出 Markdown 表格行
+```
+
+交付时的表格样式：
+
+| 文件 | 预览 | 下载 |
+|---|---|---|
+| `xxx.md` | [预览](…) | [下载](…?dl=1) |

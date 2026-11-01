@@ -146,6 +146,46 @@ class JobLock:
         return False
 
 
+class PerJobLock:
+    """作业级锁：同一 job 不能并发跑，不同 job 互不影响（P2 批量模式用）。
+
+    路径 reports/p1/jobs/<jid>/.lock，非阻塞：拿不到抛 JobLocked（调用方跳过/重排）。
+    与全局 JobLock 的区别：global 是「同一时刻只允许一个作业」，per-job 只防「同一作业被跑两次」。
+    """
+
+    def __init__(self, job_id: str):
+        self.path = job_dir(job_id) / ".lock"
+        self._fd: int | None = None
+
+    def __enter__(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(str(self.path), os.O_CREAT | os.O_RDWR, 0o644)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as e:
+            os.close(fd)
+            if e.errno in (errno.EAGAIN, errno.EACCES):
+                raise JobLocked(f"作业已在跑（{self.path}）。") from e
+            raise
+        os.ftruncate(fd, 0)
+        os.write(fd, str(os.getpid()).encode())
+        self._fd = fd
+        return self
+
+    def __exit__(self, *exc):
+        if self._fd is not None:
+            try:
+                fcntl.flock(self._fd, fcntl.LOCK_UN)
+            finally:
+                os.close(self._fd)
+                self._fd = None
+        return False
+
+
+def per_job_lock(job_id: str) -> PerJobLock:
+    return PerJobLock(job_id)
+
+
 def rel(p: Path) -> str:
     """相对仓库根，用于报告与 manifest。"""
     try:

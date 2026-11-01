@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""P1 校验层：把「产物好不好」从肉眼判断变成可复现的 PASS/FAIL。
+"""P1/P2 校验层：把「产物好不好」从肉眼判断变成可复现的 PASS/FAIL。
 
-6 条复验项（与 status.json / 架构图 H 区同名）：
+7 条复验项（与 status.json / 架构图 H 区同名）：
   decode    ffprobe 能解析出有效视频流（图：PIL 能打开）
   geometry  宽高命中 expect
   frames    帧数/时长落在 expect 区间
   size      体积 ≥ expect.min_bytes
   black     黑帧占比 ≤ expect.black_ratio_max（YAVG<16 视为黑）
+  freeze    冻结时长占比门禁（freezedetect，D3 严格管控；expect.freeze 出现即参与 verdict）
   params    从 workflow 回读的参数与 job.params 一致
 
 规则：
-  - 不适用项记 None（例如图片没有 frames/black），不参与 verdict
+  - 不适用项记 None（例如图片没有 frames/black/freeze），不参与 verdict
   - 占位符（{{SEED}} 等）跳过比对——那是运行时注入的
   - verdict = 所有适用项全 True 才 PASS
 """
@@ -20,9 +21,16 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 
-CHECK_ORDER = ("decode", "geometry", "frames", "size", "black", "params")
+# freeze.py 在 tools/p2，与本包平级；保证任何入口都能 import 到
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+from tools.p2 import freeze as freeze_mod  # noqa: E402
+
+CHECK_ORDER = ("decode", "geometry", "frames", "size", "black", "freeze", "params")
 
 # workflow 节点 → 参数字段
 _PARAM_NODES = {
@@ -108,26 +116,20 @@ def edge_energy(path: Path, frames: int = 3) -> float | None:
     return round(sum(vals) / len(vals), 3) if vals else None
 
 
-def content_warnings(ys: list[float], edge: float | None) -> list[str]:
-    """三条启发式：帧差过低 / 亮度σ过低 / 边缘能量过低。
+def content_warnings(edge: float | None, fz: dict | None, freeze_gated: bool = False) -> list[str]:
+    """内容告警（只提示，不改变 PASS/FAIL——除非 freeze 已升级为门禁）。
 
-    只提示"这视频可能没用"，不改变 PASS/FAIL——最终仍需人眼判断。
+    P2 起：不再用「亮度均值差 / 亮度σ」判静止（动作集中会误报，见 P2 计划 §3）。
+    静止判定交给 freezedetect；这里只在「未走门禁」时补一句冻结提示，
+    保留 edge_energy 抓噪点/抽象/糊片（LTXV 失败样本只有它抓得住）。
     """
     w: list[str] = []
-    if len(ys) > 1:
-        diffs = [abs(a - b) for a, b in zip(ys, ys[1:])]
-        win = WARN_WINDOW
-        windows = [sum(diffs[i:i + win]) / len(diffs[i:i + win])
-                   for i in range(0, len(diffs), win) if diffs[i:i + win]]
-        win_max = max(windows) if windows else 0.0
-        if win_max < WARN_FRAME_DIFF:
-            w.append(f"最大窗口帧差 {win_max:.2f} < {WARN_FRAME_DIFF}：整段画面几乎静止"
-                     f"（{len(windows)} 个窗口中最活跃的一段也只有 {win_max:.2f}）")
-    if len(ys) > 1:
-        mu = sum(ys) / len(ys)
-        sigma = (sum((y - mu) ** 2 for y in ys) / len(ys)) ** 0.5
-        if sigma < WARN_YAVG_STD:
-            w.append(f"亮度σ {sigma:.2f} < {WARN_YAVG_STD}：曝光或内容异常")
+    if not freeze_gated and fz and fz.get("ok"):
+        ratio = fz.get("ratio")
+        longest = fz.get("longest_s")
+        if ratio is not None and ratio > WARN_FREEZE_RATIO:
+            w.append(f"冻结时长占比 {ratio:.1%} > {WARN_FREEZE_RATIO:.0%}"
+                     f"（最长 {longest}s），画面可能静止/卡帧")
     if edge is not None and edge < WARN_EDGE:
         w.append(f"边缘能量 {edge:.2f} < {WARN_EDGE}：缺少细节（画面模糊或抽象）")
     return w
@@ -203,23 +205,12 @@ def _check_frames(pr: dict, expect: dict) -> tuple[bool | None, dict]:
 
 BLACK_YAVG = 24   # YUV limited range 黑电平是 16，留 8 级编码噪声余量
 
-# 内容启发式阈值（只告警，不参与 PASS/FAIL）
-# 帧差告警：用「滑动窗口内的最大帧差」而不是全局平均。
-# 全局平均会把「前半段静止、后半段在动」的视频误判为静止
-# （实测：H3 闭环成功样本全局 0.092，比 LTXV 噪点的 0.263 还低）。
-# 实测分档（窗口=12 帧）：真静止 0.0025 / 微动作成功 0.19 / 噪点 0.38 / 正常运动 1.8+
-WARN_FRAME_DIFF = 0.10   # 窗口最大帧差下限，低于此判为「整段几乎静止」
-WARN_WINDOW = 12         # 窗口帧数（24fps 下约 0.5 秒）
-
-# TODO(帧差指标的根本局限)：YAVG 差值只反映「平均亮度」的变化，不反映画面内容。
-# 画面里有人走动但整体亮度稳定时，帧差会接近 0（H3 闭环样本就是 0.092）。
-# 真正的静止检测应该用内容差（SSIM / freezedetect / 场景变化），而不是亮度差。
-# 当前用窗口最大值 + 低阈值只能挡住「完全不动」，挡不住「亮度恒定但内容在动」。
-# 待有预算时改用 ffmpeg freezedetect 计算冻结时长占比，见 reports/p1/P1-总结.md 技术债 #3。
-WARN_YAVG_STD = 1.0      # 亮度标准差下限
-                         # 原 1.5 会把「场景稳定、光线均匀」的正常视频误判为曝光异常
-                         # （实测 H3 闭环成功样本 σ=1.36）。真静止视频 σ≈0，仍会被拦
-WARN_EDGE = 1.0          # 拉普拉斯边缘能量下限（低于此=缺细节/抽象）
+# 内容启发式阈值
+# 冻结告警：只在「未走门禁」的 legacy 作业上提示（门禁阈值在 expect.freeze，见 freeze.py）。
+# freezedetect 是内容级判据，替代 P1 的「亮度均值差 / 亮度σ」——那两条在动作集中的
+# 视频上会误报（实测 testsrc2 持续运动：窗口帧差 0.067、σ 0.19，双双触发误报）。
+WARN_FREEZE_RATIO = 0.20  # 冻结时长占比告警线（legacy 作业）
+WARN_EDGE = 1.0           # 拉普拉斯边缘能量下限（低于此=缺细节/抽象；抓 LTXV 噪点样本）
 
 
 def _check_black(ys: list[float], expect: dict) -> tuple[bool | None, dict]:
@@ -244,11 +235,11 @@ def verify_file(path: Path, expect: dict, job: dict, workflow: dict | None,
     details["decode"] = pr or {"error": "ffprobe 无法解析"}
 
     if kind == "image":
-        # 图片：geometry / size / params 三项，frames/black 不适用
+        # 图片：geometry / size / params 三项，frames/black/freeze 不适用
         checks["geometry"], details["geometry"] = _check_geometry(pr, expect)
         checks["size"], details["size"] = _check_size(path, expect)
         checks["params"], details["params"] = check_params(job, workflow)
-        checks["frames"], checks["black"] = None, None
+        checks["frames"], checks["black"], checks["freeze"] = None, None, None
     else:
         checks["geometry"], details["geometry"] = _check_geometry(pr, expect)
         checks["frames"], details["frames"] = _check_frames(pr, expect)
@@ -256,6 +247,18 @@ def verify_file(path: Path, expect: dict, job: dict, workflow: dict | None,
         ys = yavg_series(path)
         checks["black"], details["black"] = _check_black(ys, expect)
         checks["params"], details["params"] = check_params(job, workflow)
+        # 冻结门禁（D3 严格管控）：expect.freeze 出现即参与 PASS/FAIL
+        fz = freeze_mod.freeze_stats(path)
+        fz_expect = expect.get("freeze")
+        if fz_expect:
+            ok_fz, d_fz = freeze_mod.verdict(
+                fz, fz_expect.get("ratio_max"), fz_expect.get("longest_max_s"))
+            checks["freeze"] = ok_fz
+            d_fz["stats"] = fz
+            details["freeze"] = d_fz
+        else:
+            checks["freeze"] = None
+            details["freeze"] = fz
 
     applicable = {k: v for k, v in checks.items() if v is not None}
     verdict = "PASS" if applicable and all(applicable.values()) else "FAIL"
@@ -263,10 +266,10 @@ def verify_file(path: Path, expect: dict, job: dict, workflow: dict | None,
 
     warnings: list[str] = []
     if kind != "image":
-        ys = details.get("black", {}).get("_ys") or yavg_series(path)
         edge = edge_energy(path)
-        warnings = content_warnings(ys, edge)
-        details["content"] = {"edge_energy": edge, "samples": len(ys)}
+        fz = details.get("freeze")
+        warnings = content_warnings(edge, fz, freeze_gated=bool(expect.get("freeze")))
+        details["content"] = {"edge_energy": edge, "freeze": fz}
 
     return {"file": path.name, "checks": checks, "verdict": verdict,
             "failed": failed, "warnings": warnings, "details": details}
@@ -301,5 +304,6 @@ TASK_CHECKS = {
     "frames": "帧数 / 时长区间",
     "size": "产物体积下限",
     "black": "黑帧占比",
+    "freeze": "冻结时长占比门禁",
     "params": "params_hash 回读匹配",
 }

@@ -164,14 +164,13 @@ def c_ssh_unready(cs, insts):
 
 
 def c_service(cs):
-    down = []
-    for s in ("cs-files", "cs-lab"):
-        if _sh(f"systemctl is-active {s}") != "active":
-            down.append(s)
-    if down:
-        return "high", ", ".join(down), "常驻服务不在跑，页面/基准会停更", \
-            f"systemctl restart {' '.join(down)}"
-    return "ok", "cs-files, cs-lab", "两个常驻服务 active", ""
+    """R08：只盯 cs-files。cs-lab 是 P0 基准实验室，已被 P1/P2 闭环取代并退役，
+    不再作为告警对象（detail 里注明，避免误以为「该重启」）。"""
+    if _sh("systemctl is-active cs-files") != "active":
+        return "high", "cs-files", "文件服务不在跑，平板窗口/页面会停更", "systemctl restart cs-files"
+    lab = _sh("systemctl is-active cs-lab")
+    extra = "；cs-lab 在跑（历史 lab，非当前主链）" if lab == "active" else "（cs-lab 已退役）"
+    return "ok", "cs-files", f"文件服务 active{extra}", ""
 
 
 def c_cron(cs):
@@ -207,6 +206,9 @@ def c_lab_state(cs):
     p = ROOT / "lab" / "state.json"
     if not p.exists():
         return "info", "—", "无 lab 状态文件", ""
+    age_h = (time.time() - p.stat().st_mtime) / 3600
+    if age_h > 24:
+        return "info", f"{age_h / 24:.1f} 天前", "历史 lab 数据（cs-lab 已退役，不计入告警）", ""
     try:
         st = json.loads(p.read_text(encoding="utf-8"))
     except Exception:
@@ -330,6 +332,56 @@ def c_deep(cs):
     return "ok", i.get("Name") or "", f"8188 up，共享库 {kv.get('SHARED')} 类，输出 {kv.get('OUTPUTS')} 个", ""
 
 
+
+def _queue_items():
+    """读 P2 队列（不可用时返回 None）；不建库、不惊动主流程。"""
+    try:
+        from tools.p2 import jobqueue as q
+        return q, q.items()
+    except Exception:
+        return None, []
+
+
+def c_queue_terminal(cs):
+    """R17：队列终态失败 / 已回收（P0/P1 硬化的告警出口）。"""
+    q, items = _queue_items()
+    if q is None:
+        return "info", "—", "P2 队列不可用（跳过）", ""
+    if not items:
+        return "ok", "0", "队列为空", ""
+    tf = [i for i in items if i["state"] == "terminal_failed"]
+    rc = [i for i in items if i["state"] == "reclaimed"]
+    if tf:
+        sample = "；".join(f"{i['job_id']}（{(i.get('last_error') or '-')[:36]}）" for i in tf[:3])
+        return "high", f"{len(tf)} 终态失败", f"{sample}", "python3 tools/p2/batchctl.py list --state terminal_failed"
+    if rc:
+        return "medium", f"{len(rc)} 已回收", "；".join(i["job_id"] for i in rc[:3]), \
+            "python3 tools/p2/batchctl.py list --state reclaimed"
+    return "ok", "0", f"终态失败 0 · 回收 0（共 {len(items)} 项）", ""
+
+
+def c_queue_heartbeat(cs):
+    """R18：队列心跳超时 / 卡死（P0-2 的监控面）。"""
+    q, items = _queue_items()
+    if q is None:
+        return "info", "—", "P2 队列不可用（跳过）", ""
+    try:
+        st = q.stale(q.TIMEOUT_S)
+    except Exception as e:
+        return "info", "—", f"读心跳失败：{type(e).__name__}", ""
+    running = [i for i in items if i["state"] in ("claimed", "running")]
+    if st:
+        return "high", f"{len(st)} 心跳超时", \
+            "；".join(f"{i['job_id']}（{(i.get('worker') or '-')}）" for i in st[:3]), \
+            "python3 tools/p2/batchctl.py watchdog"
+    overdue = [i for i in items if i["state"] == "queued" and (i.get("next_retry_at") or 0) and
+               (i["next_retry_at"] or 0) < time.time() - 120]
+    if overdue:
+        return "medium", f"{len(overdue)} 待重试超时", \
+            "；".join(i["job_id"] for i in overdue[:3]), "检查 scheduler 是否在跑"
+    return "ok", f"{len(running)} 在跑", f"在跑 {len(running)} 项，心跳正常", ""
+
+
 # --------------------------------------------------------------- 主流程
 def run_checks(deep: bool = False) -> dict:
     from compshare.cs import CS
@@ -365,6 +417,8 @@ def run_checks(deep: bool = False) -> dict:
     add("R13", "视频黑帧", c_black_frame)
     add("R14", "模型库不可见", c_model_lib)
     add("R15", "销毁前漏归档", c_archive_gap)
+    add("R17", "队列终态失败/回收", c_queue_terminal)
+    add("R18", "队列心跳超时", c_queue_heartbeat)
     if deep:
         add("R16", "实例内部健康", c_deep)
 

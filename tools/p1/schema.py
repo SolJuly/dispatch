@@ -96,6 +96,18 @@ def validate_job(d, *, job_id_expected: str | None = None) -> list[str]:
     br = expect.get("black_ratio_max")
     if br is not None and not (_is_num(br) and 0 <= br <= 1):
         e.append("expect.black_ratio_max 应在 0–1 之间")
+    fz = expect.get("freeze")
+    if fz is not None:
+        if not isinstance(fz, dict):
+            e.append("expect.freeze 应为对象")
+        else:
+            if not _is_num(fz.get("ratio_max")) or not (0 <= fz.get("ratio_max", -1) <= 1):
+                e.append("expect.freeze.ratio_max 应在 0–1 之间")
+            if not _is_num(fz.get("longest_max_s")) or fz.get("longest_max_s", -1) <= 0:
+                e.append("expect.freeze.longest_max_s 应为正数")
+    # D3 严格管控：video 且 freeze_policy=strict 必须带 expect.freeze
+    if d.get("kind") == "video" and d.get("freeze_policy") == "strict" and fz is None:
+        e.append("freeze_policy=strict 但 expect.freeze 缺失（D3 冻结门禁）")
 
     budget = d.get("budget") or {}
     if not isinstance(budget, dict):

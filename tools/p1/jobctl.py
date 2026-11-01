@@ -162,6 +162,11 @@ def cmd_new(a) -> int:
     params, expect = spec.get("params") or {}, spec.get("expect") or {}
     if not params:
         _die("spec.params 为空（没有任何可跑的参数）")
+
+    # D3 严格管控：视频作业默认启用 freeze 门禁（spec 可显式覆盖阈值）
+    kind = spec.get("kind", "video")
+    if kind == "video" and "freeze" not in expect:
+        expect["freeze"] = {"ratio_max": 0.20, "longest_max_s": 1.0}
     ph = store.params_hash(model, params, expect)
 
     same = _find_same_hash(ph)
@@ -178,12 +183,13 @@ def cmd_new(a) -> int:
         "job_id": ids.new_job_id(),
         "created_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
         "branch": a.branch or _branch(),
-        "kind": spec.get("kind", "video"),
+        "kind": kind,
         "task_ref": a.task or spec.get("task_ref"),
         "model": model,
         "params": params,
         "params_hash": ph,
         "expect": expect,
+        "freeze_policy": "strict" if kind == "video" else None,
         "budget": spec.get("budget") or SPEC_DEFAULTS["budget"],
         "instance": spec.get("instance") or SPEC_DEFAULTS["instance"],
         "state": state.CREATED,
@@ -297,6 +303,10 @@ def cmd_verify(a) -> int:
                 brief = f"{det['bytes']}B ≥ {det.get('min_bytes')}B"
             elif k == "black" and det.get("black_ratio") is not None:
                 brief = f"黑帧 {det['black_ratio']:.1%} ≤ {det.get('max')}"
+            elif k == "freeze" and det.get("ratio_max") is not None:
+                brief = f"冻结 {det['ratio']:.1%} ≤ {det.get('ratio_max')}"
+            elif k == "freeze" and v is None:
+                brief = "未启用门禁（legacy spec）"
             elif k == "params" and det.get("diffs"):
                 brief = "；".join(det["diffs"])[:60]
             elif v is None:

@@ -268,6 +268,54 @@ def p1_section(sec, y: int, LX: int, LW: int, text, svg) -> int:
     return y + h
 
 
+P2STATUS = ROOT / "reports" / "p2" / "status2.json"
+
+
+def p2_status() -> dict:
+    """读 P2 多作业视图；缺失/损坏回落空值，不影响整图。"""
+    d = {"generated_at": "—", "jobs": {"total": 0, "done": 0, "failed": 0, "running": 0},
+         "queue": {"total": 0, "by_state": {}}, "cost_total": 0.0, "items": []}
+    try:
+        raw = json.loads(P2STATUS.read_text(encoding="utf-8"))
+        if isinstance(raw, dict):
+            d.update(raw)
+    except Exception:
+        pass
+    d["jobs"] = {**{"total": 0, "done": 0, "failed": 0, "running": 0}, **(d.get("jobs") or {})}
+    d["queue"] = {**{"total": 0, "by_state": {}}, **(d.get("queue") or {})}
+    return d
+
+
+def p2_section(sec, y: int, LX: int, LW: int, text, svg) -> int:
+    """I · P2 批量队列（数据源 reports/p2/status2.json，cron */10 刷新）。"""
+    d = p2_status()
+    j, q = d["jobs"], d["queue"]
+    by = q.get("by_state") or {}
+    n_queued = (by.get("queued") or {}).get("n", 0)
+    n_run = (by.get("claimed") or {}).get("n", 0) + (by.get("running") or {}).get("n", 0)
+    n_done = (by.get("done") or {}).get("n", 0)
+    n_tf = (by.get("terminal_failed") or {}).get("n", 0)
+    n_rc = (by.get("reclaimed") or {}).get("n", 0)
+    n_fail = (by.get("failed") or {}).get("n", 0)
+
+    h = 118
+    sec(y, h, "I · P2 批量队列（多作业 · 实时）")
+    text(LX + 20, y + 54,
+         f"作业 {j.get('total', 0)} · 完成 {j.get('done', 0)} · 失败 {j.get('failed', 0)}"
+         f" · 进行 {j.get('running', 0)} · 产物成本 ¥{float(d.get('cost_total') or 0):.3f}"
+         f" · 更新 {d.get('generated_at', '—')}", 11.4, DIM)
+    text(LX + 20, y + 74,
+         f"队列 {q.get('total', 0)} 项：待跑 {n_queued} · 在跑 {n_run} · 完成 {n_done}"
+         f" · 失败 {n_fail} · 终态失败 {n_tf} · 已回收 {n_rc}", 11.4, DIM)
+    items = (d.get("items") or [])[-4:]
+    if items:
+        text(LX + 20, y + 94, "最近：" + " · ".join(
+            f"{it.get('job_id', '?')[-6:]}({it.get('state', '?')})" for it in items), 10.6, DIM)
+    else:
+        text(LX + 20, y + 94, "最近：—（batchctl submit 后可在此看到队列）", 10.6, DIM)
+    return y + h
+
+
 def build() -> None:
     s = stats()
     LX, LW = 40, 1040
@@ -278,10 +326,10 @@ def build() -> None:
     rects: dict[str, tuple] = {}
 
     ACCENTS = {"A": BLUE, "B": VIOLET, "C": GREEN, "D": PINK, "E": YELLOW, "F": BLUE,
-               "G": DIM, "H": "#6fe3c4"}
+               "G": DIM, "H": "#6fe3c4", "I": "#f0a35e"}
 
     def sec(y, h, title):
-        m = re.match(r"^([A-G])\s*·\s*(.*)$", title)
+        m = re.match(r"^([A-Z][0-9]?)\s*·\s*(.*)$", title)
         letter, body = (m.group(1), m.group(2)) if m else ("", title)
         accent = ACCENTS.get(letter, BLUE)
         svg.append(f'<rect x="{LX}" y="{y}" width="{LW}" height="{h}" rx="16" fill="url(#sec)" '
@@ -390,7 +438,7 @@ def build() -> None:
     bx("C2", LX + 352, cy, 330, "fileserver.py :8081",
        ["systemd: cs-files（常驻）", "预览/上传/灯箱/缩略图", "服务端渲染 监控·成本·架构"], GREEN)
     bx("C3", LX + 698, cy, 326, "systemd · cron",
-       ["cs-lab：基准流水线（等货即跑）", "*/5 空闲守护 · */10 架构图", "*/10 余额快照"], PINK)
+       ["cs-lab：已退役（P1/P2 取代）", "*/5 空闲守护 · */10 架构图", "*/10 余额快照"], PINK)
     y = yC + 140 + GAP
 
     yD = y
@@ -399,9 +447,9 @@ def build() -> None:
     bx("D1", LX + 16, dy, 320, "csctl.py",
        ["up：flock 互斥 + 查重 + 预算闸", "stop/start/rm/stop-at/cardless",
         "ssh --exec --detach（断连不停）", "cost/jobs 账本 · price/stock"], BLUE)
-    bx("D2", LX + 352, dy, 330, "lab_runner.py（cs-lab）",
-       ["等现货 → 建机 → 探环境", "→ 跑 6–8 负载 → scp 拉产物",
-        "→ 销毁 → 出报告", "预算 ¥8 · 单机 35min"], PINK)
+    bx("D2", LX + 352, dy, 330, "lab_runner.py（已退役）",
+       ["P0 基准矩阵：卡型×模型选型", "结论已固化进 P1/P2 参数",
+        "cs-lab.service 已 disable", "复跑：systemctl enable --now"], PINK)
     bx("D3", LX + 698, dy, 326, "tools/ · scripts/",
        ["gallery.py：缩略图/长图/画廊", "arch.py：架构图 SVG+PNG", "cost_snapshot.py：余额快照",
         "sync_share.sh · install_cron.sh"], GREEN)
@@ -547,9 +595,10 @@ def build() -> None:
     # ---------------- H · P1 单任务闭环（通栏，实时读 reports/p1/status.json）
     yH = max(left_end, ry0 + f_h) + GAP
     yH_end = p1_section(sec, yH, LX, W - 80, text, svg)
+    yI_end = p2_section(sec, yH_end + GAP, LX, W - 80, text, svg)
 
     # ---------------- 图例（紧跟内容）
-    gy = yH_end + 18
+    gy = yI_end + 18
     svg.append(f'<rect x="{LX}" y="{gy}" width="{W - 80}" height="108" rx="16" fill="url(#sec)" '
                f'stroke="{LINE}" stroke-width="1.1" filter="url(#soft)"/>')
     text(LX + 16, gy + 24, "G · 图例与实时进度", 14.5, TXT, "700")
