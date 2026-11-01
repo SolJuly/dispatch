@@ -487,6 +487,21 @@ def active_count() -> int:
         c.close()
 
 
+def audit_since(since_id: int = 0, job_id: str | None = None, limit: int = 200) -> list[dict]:
+    """增量取审计（id 游标），给 UI 轮询用。返回按 id 升序。"""
+    c = connect()
+    try:
+        if job_id:
+            rows = c.execute("SELECT * FROM audit_log WHERE id>? AND job_id=? ORDER BY id ASC LIMIT ?",
+                             (int(since_id), job_id, int(limit))).fetchall()
+        else:
+            rows = c.execute("SELECT * FROM audit_log WHERE id>? ORDER BY id ASC LIMIT ?",
+                             (int(since_id), int(limit))).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        c.close()
+
+
 def audit_rows(job_id: str | None = None, limit: int = 200) -> list[dict]:
     c = connect()
     try:

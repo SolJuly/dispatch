@@ -325,6 +325,8 @@ class Handler(BaseHTTPRequestHandler):
         if kind == "diagram" and not rest[1:]:
             return self._arch_page()
         if kind == "api" and len(rest) >= 2:
+            if rest[1] == "p2":
+                return self._api_p2(rest[2:], q)
             if rest[1] == "status":
                 return self._send(200, json.dumps(self._api_status(), ensure_ascii=False).encode(),
                                   "application/json; charset=utf-8")
@@ -469,6 +471,97 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, data, "application/zip", {"Content-Disposition": disp})
 
     # ---------------- 监控接口
+    def _api_p2(self, sub: list[str], q: dict):
+        """P2 只读 API（给 UI）：jobs / jobs/<id> / audit / events / queue。
+
+        全部 GET、只读、沿用 token 鉴权；轮询用 since 游标（audit id / events seq）。
+        """
+        def _json(obj):
+            return self._send(200, json.dumps(obj, ensure_ascii=False, default=str).encode(),
+                              "application/json; charset=utf-8")
+
+        try:
+            from tools.p2 import jobqueue as qq
+            from tools.p1 import store as p1store
+        except Exception as e:
+            return self._err(500, f"P2 模块不可用: {e}")
+
+        def _job_view(it: dict) -> dict:
+            jid = it["job_id"]
+            j = p1store.read_json(p1store.job_file(jid)) or {}
+            man = p1store.read_json(p1store.job_file(jid, "manifest.json")) or {}
+            return {
+                "job_id": jid,
+                "queue_state": it.get("state"),
+                "job_state": j.get("state"),
+                "model": (j.get("model") or {}).get("key") or it.get("model_key"),
+                "kind": j.get("kind"),
+                "attempts": it.get("attempts"),
+                "defers": it.get("defers"),
+                "instance_id": it.get("instance_id"),
+                "exit_code": it.get("exit_code"),
+                "cost": it.get("cost"),
+                "gpu_minutes": it.get("gpu_minutes"),
+                "params_hash": it.get("params_hash"),
+                "verdict": man.get("verdict"),
+                "checks": man.get("checks") or {},
+                "artifacts": [a.get("rel") for a in (man.get("artifacts") or [])],
+                "enqueued_at": it.get("enqueued_at"),
+                "started_at": it.get("started_at"),
+                "ended_at": it.get("ended_at"),
+                "last_error": (it.get("last_error") or "")[:300],
+            }
+
+        # /api/p2/queue
+        if sub == ["queue"]:
+            return _json({"stats": qq.stats(),
+                          "items": [{k: it.get(k) for k in ("job_id", "state", "model_key", "attempts",
+                                                            "defers", "cost", "exit_code", "enqueued_at")}
+                                    for it in qq.items()]})
+
+        # /api/p2/jobs  |  /api/p2/jobs/<id>
+        if sub and sub[0] == "jobs":
+            if len(sub) == 1:
+                return _json({"jobs": [_job_view(it) for it in qq.items()],
+                              "total": qq.stats()["total"]})
+            jid = sub[1]
+            rows = [it for it in qq.items() if it["job_id"] == jid]
+            if not rows:
+                return self._err(404, f"作业不存在: {jid}")
+            ev = []
+            jdir = p1store.job_dir(jid)
+            try:
+                with open(jdir / "events.jsonl", encoding="utf-8") as f:
+                    ev = [json.loads(x) for x in f.read().splitlines() if x.strip()]
+            except FileNotFoundError:
+                pass
+            return _json({"job": _job_view(rows[0]), "events": ev})
+
+        # /api/p2/audit?job=&since=&limit=
+        if sub == ["audit"]:
+            since = int((q.get("since") or ["0"])[0] or 0)
+            limit = int((q.get("limit") or ["200"])[0] or 200)
+            job_id = (q.get("job") or [None])[0]
+            rows = qq.audit_since(since, job_id, min(max(limit, 1), 1000))
+            return _json({"rows": rows, "next": (rows[-1]["id"] if rows else since)})
+
+        # /api/p2/events?job=&since=  （job 状态机的增量事件，供 UI 轮询）
+        if sub == ["events"]:
+            job_id = (q.get("job") or [None])[0]
+            since = int((q.get("since") or ["0"])[0] or 0)
+            if not job_id:
+                return self._err(400, "缺少 job 参数")
+            jdir = p1store.job_dir(job_id)
+            try:
+                with open(jdir / "events.jsonl", encoding="utf-8") as f:
+                    evs = [json.loads(x) for x in f.read().splitlines() if x.strip()]
+            except FileNotFoundError:
+                return self._err(404, f"作业不存在: {job_id}")
+            evs = [e for e in evs if int(e.get("seq") or 0) > since]
+            return _json({"events": evs, "next": (evs[-1]["seq"] if evs else since)})
+
+        return self._err(404, "未知的 P2 API 路径")
+
     def _api_status(self):
         out = {"ts": time.time(), "at": time.strftime("%Y-%m-%d %H:%M:%S"),
                "balance": None, "instances": [], "stock": {}, "lab": {}, "services": {},
