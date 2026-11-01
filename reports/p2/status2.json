@@ -1,26 +1,22 @@
 {
   "schema": "p2.status/v1",
-  "generated_at": "2026-11-01T15:40:02+0800",
+  "generated_at": "2026-11-01T15:42:36+0800",
   "jobs": {
     "total": 12,
     "done": 8,
-    "failed": 2,
-    "running": 2
+    "failed": 3,
+    "running": 1
   },
   "queue": {
     "total": 6,
     "by_state": {
       "cancelled": {
-        "n": 3,
-        "cost": 0
+        "n": 4,
+        "cost": 0.057
       },
       "done": {
         "n": 2,
         "cost": 0.097
-      },
-      "running": {
-        "n": 1,
-        "cost": 0
       }
     }
   },
@@ -200,7 +196,7 @@
     },
     {
       "job_id": "p1-20261101T1539-fd0dd3",
-      "state": "PROVISIONING",
+      "state": "ABORTED",
       "model": "ltxv_2b",
       "created_at": "2026-11-01T15:39:07+08:00",
       "verdict": null,
