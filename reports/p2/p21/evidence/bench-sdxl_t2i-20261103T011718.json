@@ -1,0 +1,77 @@
+{
+  "schema": "p21.bench/v1",
+  "workflow": "sdxl_t2i",
+  "model": "sdxl_juggernaut",
+  "gpu": "4090",
+  "started_at": "20261103T011718",
+  "cases": [
+    {
+      "i": 90,
+      "category": "seed",
+      "seed": 12345,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 26.4,
+      "total_s": 29.0,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "0e5928608fb082daf5b6eff13e6a7c6dae30d73bea6d8176fc94e17c1c7b775b"
+      ],
+      "pixel_sha256": [
+        "56ce7ed0cb20aed2ca0d1702948ab6191a3e85e996bb0c00ac3cb698fba54e76"
+      ]
+    },
+    {
+      "i": 91,
+      "category": "seed",
+      "seed": 12345,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 1.2,
+      "total_s": 3.7,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "0e5928608fb082daf5b6eff13e6a7c6dae30d73bea6d8176fc94e17c1c7b775b"
+      ],
+      "pixel_sha256": [
+        "56ce7ed0cb20aed2ca0d1702948ab6191a3e85e996bb0c00ac3cb698fba54e76"
+      ]
+    }
+  ],
+  "seed_check": {
+    "seed": 12345,
+    "same_file": true,
+    "same_pixels": true,
+    "sha_a": [
+      "0e5928608fb082daf5b6eff13e6a7c6dae30d73bea6d8176fc94e17c1c7b775b"
+    ],
+    "sha_b": [
+      "0e5928608fb082daf5b6eff13e6a7c6dae30d73bea6d8176fc94e17c1c7b775b"
+    ],
+    "pixel_sha_a": [
+      "56ce7ed0cb20aed2ca0d1702948ab6191a3e85e996bb0c00ac3cb698fba54e76"
+    ],
+    "pixel_sha_b": [
+      "56ce7ed0cb20aed2ca0d1702948ab6191a3e85e996bb0c00ac3cb698fba54e76"
+    ]
+  },
+  "vram_peak_mb": 7454,
+  "finished_at": "2026-11-03T01:19:44+08:00",
+  "total": 2,
+  "pass": 2,
+  "success_rate": 1.0,
+  "inference_p50_s": 1.2,
+  "inference_p95_s": 26.4,
+  "elapsed_min": 2.4,
+  "est_cost": 0.087
+}

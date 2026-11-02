@@ -52,3 +52,6 @@ reports/p2/*.db-shm
 registry/registry.db
 registry/registry.db-wal
 registry/registry.db-shm
+
+# P2.1 连测产物（44 张 PNG 约 48MB，已发布到 /pub/bench/，不入库）
+reports/p2/p21/bench/

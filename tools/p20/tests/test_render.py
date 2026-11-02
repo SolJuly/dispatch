@@ -168,6 +168,12 @@ class TestExpect(unittest.TestCase):
         exp = render.expect_for(wf, {"width": 768, "height": 512})
         self.assertEqual(exp["freeze"], {"ratio_max": 0.20, "longest_max_s": 1.0})
 
+    def test_requested_size_overrides_config_default(self):
+        wf = registry.get_workflow("qwen_image_t2i")
+        exp = render.expect_for(wf, {"width": 768, "height": 1024})
+        self.assertEqual(exp["width"], [768])
+        self.assertEqual(exp["height"], [1024])
+
     def test_batch_images_resolved_from_param(self):
         wf = registry.get_workflow("qwen_image_t2i")
         for n in (1, 2, 4):

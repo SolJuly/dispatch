@@ -214,8 +214,9 @@ def _resolve_count(spec, params: dict) -> int | None:
 def expect_for(wf: dict, params: dict) -> dict:
     """由工作流默认期望 + 解析后的尺寸/帧数，生成 job.json 的 expect。"""
     exp = dict(wf.get("expect_defaults") or {})
+    # 尺寸以本次请求为准（宽度/高度是参数时，配置里的 expect 只是默认值）
     for k in ("width", "height"):
-        if k in params and k not in exp:
+        if k in params:
             exp[k] = [params[k]]
     out = wf.get("output") or {}
     exp.setdefault("ext", out.get("ext", "mp4"))

@@ -36,6 +36,8 @@ DOCS = [
      "13 项逐条评估阻塞性、修复窗口、验证方式"),
     ("05-M0-资产盘点.md", "05-M0-资产盘点.html", "M0 资产盘点",
      "共享库模型清单、Qwen impaint ControlNet、SDXL 确切权重、5.4 方案修正"),
+    ("06-M1-连测报告.md", "06-M1-连测报告.html", "M1 连测报告",
+     "两工作流各 20 条：成功率/耗时/显存/成本 + seed 复现，Qwen 显存贴边"),
 ]
 
 INDEX = """<!doctype html>
@@ -101,6 +103,7 @@ footer {{ margin-top:36px; color:#8a929c; font-size:13px; }}
     <tr><td>10 个参数差多少</td><td>v1 已有 7 个，缺 <b>sampler、scheduler、batch_size、模型选择</b> 共 4 项，v2 全部补齐。</td></tr>
     <tr><td>遗留问题是否阻塞</td><td>硬阻塞 3 项：P2.0 未提交、失败作业不写 ledger、写 API 未实现（原 P2 项被 P2.1 拉成关键路径）。均在 M0/M1 前 3 天解决，不影响 11-10 的 5.1 出口。</td></tr>
     <tr><td>UI 做到什么程度</td><td>已确认做<b>完整页面体系</b>：创作台（三 tab）、任务列表、任务详情、图库、工作流与模型、公开分享页，共 6 页约 40h；由并行前端执行体承担，主执行体留在 GPU/Registry 关键路径。</td></tr>
+    <tr><td>20 连测结果</td><td>SDXL 22/22、Qwen 22/22 全 PASS；P50 <b>4.8s</b> / <b>21.9s</b>，单张 ≈¥0.008 / ¥0.019；seed 文件与像素哈希均一致。<b>唯一未达标：Qwen 1024² 显存 23.7GB 贴边 24G</b>，batch&gt;1 需 48G 卡或降分辨率。</td></tr>
     <tr><td>M0 资产盘点结果</td><td>共享库比预期全：<b>57 checkpoints / 29 LoRA / 16 ControlNet / 16 IP-Adapter / 4 upscale</b>；SDXL 权重确定为 <code>juggernautXL_v8Rundiffusion_V8</code>；5.3 改用 <b>Qwen-Image + Qwen-Image-ControlNet-Inpainting</b>（同族、资产已就位）；但<b>没有 Impact Pack</b>，面部修复改为「检测 + 局部重绘」。实际花费 ¥0.27。</td></tr>
     <tr><td>5.4 做什么</td><td>本期只做 <b>LoRA / 图片放大 / 面部修复</b>三项；ControlNet、IP-Adapter、角色一致性、变体生成顺延 P2.2，避免挤掉 5.1–5.3 的稳定性。</td></tr>
   </table>
