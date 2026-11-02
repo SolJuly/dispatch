@@ -1,0 +1,27 @@
+{
+  "started_at": "2026-11-03T00:17:58+08:00",
+  "gpu": "4090",
+  "image": "compshareImage-1x65ieja8ncj",
+  "raw": "Warning: Permanently added '[117.50.179.123]:23' (ED25519) to the list of known hosts.\ncat: /root/inv.out: No such file or directory\n",
+  "ssh_rc": 1,
+  "derived": {
+    "mount_ok": false,
+    "comfy_up": false,
+    "counts": {},
+    "nodes_has": "",
+    "ckpt_sdxl": "",
+    "ckpt_inpaint": "",
+    "unet_qwen_flux": "",
+    "controlnet_inpaint": "",
+    "lora_n": 0,
+    "controlnet_n": 0,
+    "upscale_n": 0,
+    "object_info_ok": false
+  },
+  "instance": "uhost-1x8bnnxh03pa",
+  "host": "117.50.179.123",
+  "hourly": 2.15,
+  "duration_s": 617.3,
+  "est_cost": 0.3686,
+  "finished_at": "2026-11-03T00:28:16+08:00"
+}

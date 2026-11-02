@@ -34,6 +34,8 @@ DOCS = [
      "6 个页面、组件清单、交互状态机、接口契约、落地目录、里程碑映射"),
     ("03-P0-P1-遗留问题排期.md", "03-P0-P1-遗留问题排期.html", "P0/P1 遗留问题排期",
      "13 项逐条评估阻塞性、修复窗口、验证方式"),
+    ("05-M0-资产盘点.md", "05-M0-资产盘点.html", "M0 资产盘点",
+     "共享库模型清单、Qwen impaint ControlNet、SDXL 确切权重、5.4 方案修正"),
 ]
 
 INDEX = """<!doctype html>
@@ -99,6 +101,7 @@ footer {{ margin-top:36px; color:#8a929c; font-size:13px; }}
     <tr><td>10 个参数差多少</td><td>v1 已有 7 个，缺 <b>sampler、scheduler、batch_size、模型选择</b> 共 4 项，v2 全部补齐。</td></tr>
     <tr><td>遗留问题是否阻塞</td><td>硬阻塞 3 项：P2.0 未提交、失败作业不写 ledger、写 API 未实现（原 P2 项被 P2.1 拉成关键路径）。均在 M0/M1 前 3 天解决，不影响 11-10 的 5.1 出口。</td></tr>
     <tr><td>UI 做到什么程度</td><td>已确认做<b>完整页面体系</b>：创作台（三 tab）、任务列表、任务详情、图库、工作流与模型、公开分享页，共 6 页约 40h；由并行前端执行体承担，主执行体留在 GPU/Registry 关键路径。</td></tr>
+    <tr><td>M0 资产盘点结果</td><td>共享库比预期全：<b>57 checkpoints / 29 LoRA / 16 ControlNet / 16 IP-Adapter / 4 upscale</b>；SDXL 权重确定为 <code>juggernautXL_v8Rundiffusion_V8</code>；5.3 改用 <b>Qwen-Image + Qwen-Image-ControlNet-Inpainting</b>（同族、资产已就位）；但<b>没有 Impact Pack</b>，面部修复改为「检测 + 局部重绘」。实际花费 ¥0.27。</td></tr>
     <tr><td>5.4 做什么</td><td>本期只做 <b>LoRA / 图片放大 / 面部修复</b>三项；ControlNet、IP-Adapter、角色一致性、变体生成顺延 P2.2，避免挤掉 5.1–5.3 的稳定性。</td></tr>
   </table>
 
@@ -108,6 +111,8 @@ footer {{ margin-top:36px; color:#8a929c; font-size:13px; }}
     <tr><td>tests.txt</td><td>P2.0 60 / P2 42 / P1 cases 汇总</td><td><a class="btn" href="evidence/tests.txt" target="_blank">打开</a></td></tr>
     <tr><td>validate.txt</td><td>p20ctl validate + jobctl validate --deep</td><td><a class="btn" href="evidence/validate.txt" target="_blank">打开</a></td></tr>
     <tr><td>git-baseline.txt</td><td>分支/HEAD/远端/工作区状态</td><td><a class="btn" href="evidence/git-baseline.txt" target="_blank">打开</a></td></tr>
+    <tr><td>inventory-summary.json</td><td>M0 资产盘点派生结论</td><td><a class="btn" href="evidence/inventory-summary.json" target="_blank">打开</a></td></tr>
+    <tr><td>inventory-20261102.json</td><td>盘点原始输出（模型清单）</td><td><a class="btn" href="evidence/inventory-20261102.json" target="_blank">打开</a></td></tr>
   </table>
 
   <div class="note">本页与全部文档为 nginx 静态提供（<code>/pub/p21/</code>），不依赖临时后台进程。计划为 v1 草案，确认范围与预算后进入 M0。</div>

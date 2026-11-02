@@ -1,0 +1,60 @@
+{
+  "schema": "p21.inventory/v1",
+  "primary_evidence": "inventory-20261102.json",
+  "failed_attempts": [
+    "inventory-attempt4-20261103-failed.json"
+  ],
+  "note": "第 3 次尝试的派生字段（counts/inpaint 目录/qwen 软链）原始输出被第 4 次失败尝试覆盖，仅保留本文件中的派生结论",
+  "mount_ok": true,
+  "counts_run1": {
+    "checkpoints": 57,
+    "diffusion_models": 33,
+    "unet": 7,
+    "vae": 23,
+    "text_encoders": 30,
+    "loras": 29,
+    "controlnet": 16,
+    "ipadapter": 16,
+    "clip_vision": 7,
+    "upscale_models": 4
+  },
+  "counts_run3": {
+    "ultralytics": 2,
+    "inpaint": 2,
+    "Controlnet": 1,
+    "embeddings": 1
+  },
+  "sdxl_ckpt": [
+    "juggernautXL_v8Rundiffusion_V8.safetensors",
+    "juggernautXL_juggernautX.safetensors"
+  ],
+  "qwen_unet": [
+    "qwen/qwen_image_fp8_e4m3fn_scaled.safetensors",
+    "qwen/qwen_image_2512_fp8_e4m3fn_scaled_comfyui.safetensors",
+    "qwen/qwen_image_edit_fp8_e4m3fn.safetensors"
+  ],
+  "inpaint_assets": [
+    "/root/ComfyUI/models/controlnet/Qwen-Image-ControlNet-Inpainting -> /model/ModelScope/InstantX/Qwen-Image-ControlNet-Inpainting",
+    "qwen_image_inpaint_diffsynth_controlnet.safetensors",
+    "FLUX.1-dev-Controlnet-Inpainting-Beta.safetensors",
+    "flux1-fill-dev.safetensors (unet)",
+    "control_v11p_sd15_inpaint_fp16.safetensors"
+  ],
+  "upscale": [
+    "4x-UltraSharp.pth",
+    "ltxv-spatial-upscaler-0.9.7",
+    "ltxv-temporal-upscaler-0.9.7"
+  ],
+  "custom_nodes": [
+    "ComfyUI-Crystools",
+    "ComfyUI-DD-Translation",
+    "ComfyUI-GGUF",
+    "ComfyUI-Manager.disabled",
+    "ComfyUI-nunchaku.disabled"
+  ],
+  "gaps": [
+    "object_info 可见性未验证（实例 SSH 在开机 2-3 分钟后被重置）",
+    "无 Impact Pack / FaceDetailer 节点",
+    "无 IPAdapter Plus 自定义节点（仅模型文件）"
+  ]
+}
