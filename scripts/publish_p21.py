@@ -30,6 +30,8 @@ DOCS = [
      "模型选型对比、10 参数覆盖矩阵、图变更、配置草案、测试计划"),
     ("01-P2.1-执行计划.md", "01-P2.1-执行计划.html", "P2.1 执行计划",
      "6 条验收映射、M0–M4 里程碑、20 连测方案、成本预算、风险登记册"),
+    ("04-图片控制台-页面体系设计.md", "04-图片控制台-页面体系设计.html", "页面体系设计",
+     "6 个页面、组件清单、交互状态机、接口契约、落地目录、里程碑映射"),
     ("03-P0-P1-遗留问题排期.md", "03-P0-P1-遗留问题排期.html", "P0/P1 遗留问题排期",
      "13 项逐条评估阻塞性、修复窗口、验证方式"),
 ]
@@ -77,6 +79,7 @@ footer {{ margin-top:36px; color:#8a929c; font-size:13px; }}
     <div class="card"><b>14</b><span>工作日（11-03 ~ 11-20）</span></div>
     <div class="card"><b>M0–M4</b><span>5 个里程碑，逐个有出口判据</span></div>
     <div class="card"><b>3 套</b><span>文生图 / 图生图 / 局部重绘</span></div>
+    <div class="card"><b>6 页</b><span>完整页面体系（约 40h）</span></div>
     <div class="card"><b>20 连测</b><span>每套：成功率·耗时·显存·成本</span></div>
     <div class="card"><b>≤ ¥10</b><span>GPU 预算上限</span></div>
     <div class="card"><b>3 项</b><span>硬阻塞（M0/M1 内清零）</span></div>
@@ -95,6 +98,7 @@ footer {{ margin-top:36px; color:#8a929c; font-size:13px; }}
     <tr><td>5.1 选哪套</td><td><b>Qwen-Image 作质量基准（~35s/张）+ SDXL juggernaut 作速度与生态底座（3.0s/张）</b>；Flux 因冷启 60s、23.6GB 贴边 24G 显存不进基准；SD1.5 质量不达标。</td></tr>
     <tr><td>10 个参数差多少</td><td>v1 已有 7 个，缺 <b>sampler、scheduler、batch_size、模型选择</b> 共 4 项，v2 全部补齐。</td></tr>
     <tr><td>遗留问题是否阻塞</td><td>硬阻塞 3 项：P2.0 未提交、失败作业不写 ledger、写 API 未实现（原 P2 项被 P2.1 拉成关键路径）。均在 M0/M1 前 3 天解决，不影响 11-10 的 5.1 出口。</td></tr>
+    <tr><td>UI 做到什么程度</td><td>已确认做<b>完整页面体系</b>：创作台（三 tab）、任务列表、任务详情、图库、工作流与模型、公开分享页，共 6 页约 40h；由并行前端执行体承担，主执行体留在 GPU/Registry 关键路径。</td></tr>
     <tr><td>5.4 做什么</td><td>本期只做 <b>LoRA / 图片放大 / 面部修复</b>三项；ControlNet、IP-Adapter、角色一致性、变体生成顺延 P2.2，避免挤掉 5.1–5.3 的稳定性。</td></tr>
   </table>
 
