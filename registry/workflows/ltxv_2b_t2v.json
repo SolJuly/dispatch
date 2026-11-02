@@ -1,0 +1,64 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "ltxv_2b_t2v",
+  "name": "LTXV 2B 文生视频 73 帧",
+  "version": 1,
+  "kind": "video",
+  "engine": "comfyui",
+  "graph": "workflows/ltxv_2b_t2v.api.json",
+  "model": {
+    "key": "ltxv_2b",
+    "slots": {
+      "ckpt": {"node": "ckpt", "input": "ckpt_name"},
+      "clip": {"node": "clip", "input": "clip_name"}
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string", "required": true,
+      "bindings": [{"node": "pos", "input": "text"}]
+    },
+    "neg_prompt": {
+      "type": "string", "default": "",
+      "bindings": [{"node": "neg", "input": "text"}]
+    },
+    "seed": {
+      "type": "int", "required": true,
+      "bindings": [{"node": "ks", "input": "noise_seed"}],
+      "description": "SamplerCustom.noise_seed（注意不是 KSampler.seed）"
+    },
+    "width": {
+      "type": "int", "default": 768, "min": 256, "max": 1280, "multiple": 32,
+      "bindings": [{"node": "lat", "input": "width"}]
+    },
+    "height": {
+      "type": "int", "default": 512, "min": 256, "max": 1280, "multiple": 32,
+      "bindings": [{"node": "lat", "input": "height"}]
+    },
+    "frames": {
+      "type": "int", "default": 73, "min": 1, "max": 257,
+      "bindings": [{"node": "lat", "input": "length"}],
+      "description": "73 帧稳定；97 帧会崩"
+    },
+    "steps": {
+      "type": "int", "default": 30, "min": 1, "max": 60,
+      "bindings": [{"node": "sched", "input": "steps"}]
+    },
+    "cfg": {
+      "type": "float", "default": 3.0, "min": 0.0, "max": 30.0,
+      "bindings": [{"node": "ks", "input": "cfg"}]
+    }
+  },
+  "output": {
+    "node": "save", "input": "filename_prefix",
+    "kind": "video", "ext": "mp4", "pick": ["videos", "gifs"]
+  },
+  "expect_defaults": {
+    "ext": "mp4", "min_bytes": 50000, "duration_s": [2.7, 3.2],
+    "width": [768], "height": [512], "black_ratio_max": 0.3,
+    "freeze": {"ratio_max": 0.20, "longest_max_s": 1.0}
+  },
+  "limits": {"max_minutes": 30, "max_cost": 1.0},
+  "required_gpu": ["4090", "4090_48G"],
+  "notes": "SamplerCustom + LTXVScheduler(res_multistep)。P1 的 legacy 渲染只把 seed 字段转 int，noise_seed 会留字符串；registry 渲染按参数类型转 int，属修复。"
+}

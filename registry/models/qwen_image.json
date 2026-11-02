@@ -1,0 +1,44 @@
+{
+  "schema": "p20.model/v1",
+  "key": "qwen_image",
+  "name": "Qwen-Image FP8 (e4m3fn scaled)",
+  "version": 1,
+  "kind": "image",
+  "family": "qwen",
+  "primary": "unet",
+  "files": {
+    "unet": {
+      "name": "qwen/qwen_image_fp8_e4m3fn_scaled.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {"contains": "qwen_image_fp8"}
+    },
+    "clip": {
+      "name": "qwen25vl7b_std.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "extra": {"type": "qwen_image"},
+      "match": {"equals": "qwen25vl7b_std.safetensors"}
+    },
+    "vae": {
+      "name": "qwen_std_vae.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {"equals": "qwen_std_vae.safetensors"}
+    }
+  },
+  "defaults": {"steps": 20, "cfg": 2.5, "sampler_name": "euler", "scheduler": "simple"},
+  "constraints": {
+    "width": {"min": 256, "max": 2048, "multiple": 16},
+    "height": {"min": 256, "max": 2048, "multiple": 16},
+    "steps": {"min": 1, "max": 60}
+  },
+  "setup": {
+    "profile": "qwen",
+    "links": [
+      {"link": "/root/ComfyUI/models/vae/qwen_std_vae.safetensors", "target": "/model/ModelScope/FireRedTeam/FireRed-Image-Edit-1.1-ComfyUI/qwen_image_vae.safetensors"},
+      {"link": "/root/ComfyUI/models/text_encoders/qwen25vl7b_std.safetensors", "target": "/model/ModelScope/FireRedTeam/FireRed-Image-Edit-1.1-ComfyUI/qwen2.5vl-7b-bf16.safetensors"}
+    ]
+  },
+  "notes": "P1 已验证（p1-20261101T1822-8407bd，1024×1024，PASS）。qwen_std_vae / qwen25vl7b_std 是 setup 软链名，不是原始文件名。"
+}

@@ -1,0 +1,13 @@
+== registry stats ==
+{"stats": {"workflows": 7, "models": 4, "compat": {"equivalent": 2, "experimental": 1, "verified": 4}, "fingerprint": "7dd4a15363a284ac1fe0e3128a965be314beef7c8cc172c04e7e2241c5c01451", "imported_at": "2026-11-01T21:35:41+0800", "schema_version": "1"}, "workflows": 7, "models": 4}
+== workflows total ==
+7
+h3_i2v_121f experimental
+h3_t2v_121f verified
+ltxv_2b_t2v verified
+qwen_image_t2i verified
+qwen_image_t2i_landscape equivalent
+qwen_image_t2i_portrait equivalent
+wan21_i2v_480p verified
+== portrait detail ==
+qwen_image_t2i_portrait 9 {'workflow': 'qwen_image_t2i_portrait', 'model': 'qwen_image', 'status': 'equivalent', 'basis': 'structure-equal:qwen_image_t2i', 'evidence': ['p1-20261101T1822-8407bd'], 'checked_at': '2026-11-01T21:35:41+0800', 'notes': '同一模型文件 + 同一图结构，继承已验证结论'}

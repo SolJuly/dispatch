@@ -1,0 +1,116 @@
+[
+  {
+    "job_id": "p1-20261101T2121-c82708",
+    "state": "DONE",
+    "workflow": "qwen_image_t2i",
+    "model": "qwen_image",
+    "verdict": "PASS",
+    "checks": {
+      "decode": true,
+      "geometry": true,
+      "size": true,
+      "params": true
+    },
+    "probe": {
+      "codec": "png",
+      "w": 1024,
+      "h": 1024,
+      "frames": 0,
+      "fps": 25.0,
+      "duration": 0.0
+    },
+    "bytes": 892643,
+    "sha256": "eea3ad6c404b94bb0e045d752dc45039529c16ac55e872724c868285a8f7b1c9",
+    "cost": 0.0752,
+    "minutes": 2.1,
+    "cost_yuan": 0.0752,
+    "artifact": "artifacts/01-p1-20261101T2121-c82708_00001_.png",
+    "registry": {
+      "workflow_key": "qwen_image_t2i",
+      "workflow_version": 1,
+      "model_key": "qwen_image",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "real-run",
+      "graph_sha256": "c31d38d4adc70de9d5a7880c635bc4d5280b60721e9fbc1c3be62a72d8834d45",
+      "template_sha256": "16fd3eeb78f3fa2ab1b953ded95d8cba3ab8fc1aa1278c79d54a0178cdf59583",
+      "registry_fingerprint": "8dc884a145fe9ec68d95d51943579858d50423ec291b699b79cd4b5a1237dba4"
+    }
+  },
+  {
+    "job_id": "p1-20261101T2126-9fb4ed",
+    "state": "DONE",
+    "workflow": "qwen_image_t2i_portrait",
+    "model": "qwen_image",
+    "verdict": "PASS",
+    "checks": {
+      "decode": true,
+      "geometry": true,
+      "size": true,
+      "params": true
+    },
+    "probe": {
+      "codec": "png",
+      "w": 768,
+      "h": 1024,
+      "frames": 0,
+      "fps": 25.0,
+      "duration": 0.0
+    },
+    "bytes": 658058,
+    "sha256": "66bd6b8d29cf8e2e72562d45395fb50b76b0c019ef0696e1e89df057552f2cc1",
+    "cost": 0.0717,
+    "minutes": 2.0,
+    "cost_yuan": 0.0717,
+    "artifact": "artifacts/01-p1-20261101T2126-9fb4ed_00001_.png",
+    "registry": {
+      "workflow_key": "qwen_image_t2i_portrait",
+      "workflow_version": 1,
+      "model_key": "qwen_image",
+      "model_version": 1,
+      "compat": "equivalent",
+      "compat_basis": "structure-equal:qwen_image_t2i",
+      "graph_sha256": "2c895e619bb3f8cd67defbf48f59f40b6b73ea1350ed32bdc57e9024066c1b6b",
+      "template_sha256": "34cfca2f70a91dc9dae49708eb017cddf2afec223762e981a22fc0dbaf1e7c0c",
+      "registry_fingerprint": "8dc884a145fe9ec68d95d51943579858d50423ec291b699b79cd4b5a1237dba4"
+    }
+  },
+  {
+    "job_id": "p1-20261101T2131-4d366a",
+    "state": "DONE",
+    "workflow": "qwen_image_t2i_landscape",
+    "model": "qwen_image",
+    "verdict": "PASS",
+    "checks": {
+      "decode": true,
+      "geometry": true,
+      "size": true,
+      "params": true
+    },
+    "probe": {
+      "codec": "png",
+      "w": 1024,
+      "h": 768,
+      "frames": 0,
+      "fps": 25.0,
+      "duration": 0.0
+    },
+    "bytes": 719801,
+    "sha256": "0d8ff479be5066717c985aec14a8e7bbc5dedffe21b980005bdf240870f82375",
+    "cost": 0.0681,
+    "minutes": 1.9,
+    "cost_yuan": 0.0681,
+    "artifact": "artifacts/01-p1-20261101T2131-4d366a_00001_.png",
+    "registry": {
+      "workflow_key": "qwen_image_t2i_landscape",
+      "workflow_version": 1,
+      "model_key": "qwen_image",
+      "model_version": 1,
+      "compat": "equivalent",
+      "compat_basis": "structure-equal:qwen_image_t2i",
+      "graph_sha256": "2bfc530273a340a78296a9cd57ded10e7807b91e1cebca0d8a93322299a54067",
+      "template_sha256": "16fd3eeb78f3fa2ab1b953ded95d8cba3ab8fc1aa1278c79d54a0178cdf59583",
+      "registry_fingerprint": "7dd4a15363a284ac1fe0e3128a965be314beef7c8cc172c04e7e2241c5c01451"
+    }
+  }
+]

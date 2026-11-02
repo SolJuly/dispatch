@@ -149,8 +149,15 @@ def read_workflow_params(workflow: dict) -> dict:
     return out
 
 
-def check_params(job: dict, workflow: dict | None) -> tuple[bool | None, dict]:
-    """回读比对：workflow 里写死的参数，必须与 job.params 一致。"""
+def check_params(job: dict, workflow: dict | None, wf_config: dict | None = None) -> tuple[bool | None, dict]:
+    """回读比对：workflow 里写死的参数，必须与 job.params 一致。
+
+    registry 作业传 wf_config（工作流配置）→ 用配置里的 bindings 回读，支持任意节点类；
+    legacy 作业不传 → 走下面的 _PARAM_NODES 白名单，行为不变。
+    """
+    if wf_config and workflow:
+        from tools.p20 import render as p20render
+        return p20render.check_params(job, workflow, wf_config)
     if not workflow:
         return None, {"skipped": "workflow 缺失"}
     got = read_workflow_params(workflow)
@@ -226,7 +233,7 @@ def _check_black(ys: list[float], expect: dict) -> tuple[bool | None, dict]:
 
 
 def verify_file(path: Path, expect: dict, job: dict, workflow: dict | None,
-                kind: str = "video") -> dict:
+                kind: str = "video", wf_config: dict | None = None) -> dict:
     checks: dict = {}
     details: dict = {}
 
@@ -238,7 +245,7 @@ def verify_file(path: Path, expect: dict, job: dict, workflow: dict | None,
         # 图片：geometry / size / params 三项，frames/black/freeze 不适用
         checks["geometry"], details["geometry"] = _check_geometry(pr, expect)
         checks["size"], details["size"] = _check_size(path, expect)
-        checks["params"], details["params"] = check_params(job, workflow)
+        checks["params"], details["params"] = check_params(job, workflow, wf_config)
         checks["frames"], checks["black"], checks["freeze"] = None, None, None
     else:
         checks["geometry"], details["geometry"] = _check_geometry(pr, expect)
@@ -246,7 +253,7 @@ def verify_file(path: Path, expect: dict, job: dict, workflow: dict | None,
         checks["size"], details["size"] = _check_size(path, expect)
         ys = yavg_series(path)
         checks["black"], details["black"] = _check_black(ys, expect)
-        checks["params"], details["params"] = check_params(job, workflow)
+        checks["params"], details["params"] = check_params(job, workflow, wf_config)
         # 冻结门禁（D3 严格管控）：expect.freeze 出现即参与 PASS/FAIL
         fz = freeze_mod.freeze_stats(path)
         fz_expect = expect.get("freeze")
@@ -275,11 +282,18 @@ def verify_file(path: Path, expect: dict, job: dict, workflow: dict | None,
             "failed": failed, "warnings": warnings, "details": details}
 
 
-def verify_job(job: dict, artifacts_dir: Path, workflow_path: Path | None = None) -> dict:
-    """对一个 job 的 artifacts 目录做全量校验。"""
+def verify_job(job: dict, artifacts_dir: Path, workflow_path: Path | None = None, *,
+               rendered_graph: dict | None = None, wf_config: dict | None = None) -> dict:
+    """对一个 job 的 artifacts 目录做全量校验。
+
+    registry 作业：传 rendered_graph（实际提交的图）+ wf_config（绑定配置），
+    这样参数复验不依赖 workflow 模板里的静态值；legacy 作业保持原路径。
+    """
     expect = job.get("expect") or {}
     workflow = None
-    if workflow_path and workflow_path.exists():
+    if rendered_graph is not None:
+        workflow = rendered_graph
+    elif workflow_path and workflow_path.exists():
         try:
             workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
@@ -291,7 +305,7 @@ def verify_job(job: dict, artifacts_dir: Path, workflow_path: Path | None = None
         return {"verdict": "FAIL", "reason": "artifacts 目录为空", "files": []}
 
     kind = "image" if files[0].suffix.lower() != ".mp4" else "video"
-    results = [verify_file(f, expect, job, workflow, kind) for f in files]
+    results = [verify_file(f, expect, job, workflow, kind, wf_config) for f in files]
     all_pass = all(r["verdict"] == "PASS" for r in results)
     return {"verdict": "PASS" if all_pass else "FAIL", "kind": kind,
             "artifacts": results,

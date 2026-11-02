@@ -1,0 +1,25 @@
+== p20 unit ==
+..
+----------------------------------------------------------------------
+Ran 60 tests in 0.924s
+
+OK
+== p2 unit ==
+
+OK
+    ⚠ 目录探测超时（已重试），按单文件处理: /root/ComfyUI/output/x.mp4
+    ⚠ 目录探测超时（已重试），按单文件处理: /root/out/a.mp4
+    ⚠ scp 超时（10s），放弃该文件
+== p1 cases ==
+— TC-12  Spot 抢占回收中断推理                      SKIP  需 Spot 实例且被回收（不可控）
+
+合计 13 条：PASS 12 · FAIL 0 · SKIP 1
+== jobctl validate ==
+✓ p1-20261101T2133-a855b6
+
+全部通过（共 19 个）
+== p20 validate ==
+⚠ h3_i2v_121f × h3 未验证（执行需 --allow-experimental）
+
+工作流 7 · 模型 4 · verified 4 · equivalent 2 · experimental 1 · incompatible 0
+✓ 全部通过

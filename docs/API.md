@@ -1,7 +1,7 @@
 # P2 只读 API（UI 对接文档）
 
-> 版本：`v0.3-p2-core` · 2026-11-01
-> 全部 **GET / 只读 / JSON**，沿用文件服务的 token 鉴权；无写接口（提交/取消仍走 `batchctl`）。
+> 版本：`v0.4-p20-registry` · 2026-11-01
+> 全部 **GET / 只读 / JSON**，沿用文件服务的 token 鉴权；无写接口（提交/取消仍走 `batchctl`，Registry 导入仍走 `p20ctl`）。
 
 ---
 
@@ -28,6 +28,13 @@ https://<host>/files/<TOKEN>/api/p2/...
 | GET | `/api/p2/jobs/<job_id>` | 单作业详情 + 状态机事件 |
 | GET | `/api/p2/audit?job=&since=&limit=` | 审计流水（id 游标，可增量轮询） |
 | GET | `/api/p2/events?job=&since=` | 状态机事件（seq 游标，可增量轮询） |
+| GET | `/api/p2/registry` | P2.0 Registry 统计 + 目录摘要 |
+| GET | `/api/p2/registry/workflows` | 工作流列表（含兼容性状态） |
+| GET | `/api/p2/registry/workflows/<key>` | 工作流详情（参数/绑定/输出/兼容性） |
+| GET | `/api/p2/registry/models` | 模型列表（角色 → 权重文件） |
+| GET | `/api/p2/registry/models/<key>` | 模型详情（默认值/约束/setup） |
+| GET | `/api/p2/registry/compat` | 兼容性矩阵 |
+| GET | `/api/p2/registry/resolve?workflow=&model=&params=` | 参数解析 + 渲染预览（不落盘） |
 
 ---
 
@@ -152,3 +159,86 @@ https://<host>/files/<TOKEN>/api/p2/...
 - 数据源是 `queue.db` + `jobs/<id>/{job,manifest,events}`，`status2.json` 只作快照。
 - 无分页（列表按 `enqueued_at` 全量返回）；作业量过百再加 `offset/limit`。
 - 无 WebSocket / SSE；轮询足够（作业级更新频率 ~1–5s）。
+
+---
+
+## 6. P2.0 Registry API（新增，只读）
+
+> 设计文档：`docs/P2.0-Workflow-Model-Registry-设计.md`
+> 数据源：`registry/registry.db`（由 `registry/*.json` 派生，`p20ctl import` 重建）。
+
+### 6.1 `GET /api/p2/registry`
+
+```json
+{"stats": {"workflows": 7, "models": 4,
+           "compat": {"verified": 4, "equivalent": 2, "experimental": 1},
+           "fingerprint": "8dc8...", "imported_at": "2026-11-01T21:26:00+0800",
+           "schema_version": "1"},
+ "workflows": 7, "models": 4}
+```
+
+### 6.2 `GET /api/p2/registry/workflows`
+
+```json
+{"total": 7, "workflows": [
+  {"key": "qwen_image_t2i", "name": "Qwen-Image 文生图 1024×1024", "version": 1,
+   "kind": "image", "model_key": "qwen_image",
+   "graph_sha256": "16fd3e...",
+   "compat": {"status": "verified", "basis": "real-run", "evidence": ["p1-..."]},
+   "params": ["cfg", "height", "neg_prompt", "prompt", "seed", "steps", "width"],
+   "nodes": 9}
+]}
+```
+
+`compat.status`：`verified` / `equivalent` / `experimental` / `incompatible`。
+
+### 6.3 `GET /api/p2/registry/workflows/<key>`
+
+返回 `{"workflow": {...}, "compat": {...}}`。`workflow.params` 是完整参数契约（类型/默认/范围/绑定），`workflow.output` 是输出契约，`workflow.nodes` 是节点数。**404** = key 不存在。
+
+### 6.4 `GET /api/p2/registry/models`
+
+```json
+{"total": 4, "models": [
+  {"key": "qwen_image", "name": "...", "version": 1, "kind": "image", "family": "qwen",
+   "files": {"unet": "qwen/qwen_image_fp8_e4m3fn_scaled.safetensors",
+             "clip": "qwen25vl7b_std.safetensors", "vae": "qwen_std_vae.safetensors"}}
+]}
+```
+
+### 6.5 `GET /api/p2/registry/models/<key>`
+
+返回 `{"model": {...}}`：`files`（含 loader/input/match/extra）、`defaults`、`constraints`、`setup`、`primary`。
+
+### 6.6 `GET /api/p2/registry/compat`
+
+```json
+{"matrix": [
+  {"workflow": "qwen_image_t2i", "model": "qwen_image", "status": "verified",
+   "basis": "real-run", "evidence": ["p1-..."], "checked_at": "2026-11-01", "notes": "..."},
+  {"workflow": "h3_i2v_121f", "model": "h3", "status": "experimental",
+   "basis": "unverified", "evidence": [], "notes": "..."}
+]}
+```
+
+### 6.7 `GET /api/p2/registry/resolve`
+
+| 参数 | 必填 | 说明 |
+|---|---|---|
+| `workflow` | ✅ | 工作流 key |
+| `model` | — | 默认取工作流配置的 `model.key` |
+| `params` | — | URL-encoded JSON，如 `{"prompt":"a cat","seed":7}` |
+| `allow_experimental` | — | `1/true` 放行 experimental |
+| `graph` | — | `1/true` 返回完整渲染图（默认只返回摘要） |
+
+响应含 `params`（补全默认值后）、`defaults_applied`、`expect`、`render`（graph_sha256/nodes/prefix）；`400` = 参数/兼容性/渲染错误。
+
+### 6.8 轮询建议
+
+Registry 配置只在 `p20ctl import` 后变化，UI 首屏拉一次即可；`workflows/models` 可 30–60s 刷新一次。作业进度仍用 `/api/p2/jobs` + `/api/p2/events`。
+
+### 6.9 限制
+
+- **只读**：导入/兼容性写入仍走 `p20ctl import` / `p20ctl compat verify`；写 API 需要幂等令牌与权限升级，未实现。
+- `resolve` 不落盘、不建作业；要提交请走 CLI（`p20ctl new`）。
+- 首次访问若 `registry.db` 不存在或配置指纹变化，会自动 `import_all()`（毫秒级；7 工作流/4 模型）。

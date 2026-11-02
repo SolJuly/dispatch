@@ -326,6 +326,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._arch_page()
         if kind == "api" and len(rest) >= 2:
             if rest[1] == "p2":
+                if rest[2:3] == ["registry"]:
+                    return self._api_registry(rest[3:], q)
                 return self._api_p2(rest[2:], q)
             if rest[1] == "status":
                 return self._send(200, json.dumps(self._api_status(), ensure_ascii=False).encode(),
@@ -469,6 +471,103 @@ class Handler(BaseHTTPRequestHandler):
         disp = ("attachment; filename=\"cs-tools.zip\"; filename*=UTF-8''%s"
                 % urllib.parse.quote(fn))
         self._send(200, data, "application/zip", {"Content-Disposition": disp})
+
+    # ---------------- P2.0 Registry 只读接口
+    def _api_registry(self, sub: list[str], q: dict):
+        """Workflow/Model Registry 只读 API（UI 用）。
+
+        GET /api/p2/registry                     统计 + 目录摘要
+        GET /api/p2/registry/workflows           工作流列表
+        GET /api/p2/registry/workflows/<key>     工作流详情（参数/绑定/兼容性）
+        GET /api/p2/registry/models              模型列表
+        GET /api/p2/registry/models/<key>        模型详情
+        GET /api/p2/registry/compat              兼容性矩阵
+        GET /api/p2/registry/resolve?workflow=&model=&params=<urlencoded JSON>
+        GET /api/p2/registry/stats               库统计
+        """
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False, default=str).encode(),
+                              "application/json; charset=utf-8")
+
+        try:
+            from tools.p20 import registry as reg, render as p20render, config_schema as cs
+        except Exception as e:
+            return _json({"error": f"P20 模块不可用: {e}"}, 500)
+
+        def _wf_summary(w: dict) -> dict:
+            return {"key": w.get("key"), "name": w.get("name"), "version": w.get("version"),
+                    "kind": w.get("kind"), "model_key": w.get("model_key"),
+                    "graph_sha256": w.get("graph_sha256"), "compat": w.get("compat"),
+                    "params": sorted((w.get("params") or {}).keys()),
+                    "nodes": len(w.get("graph_obj") or {})}
+
+        def _wf_detail(w: dict) -> dict:
+            d = {k: v for k, v in w.items() if k != "graph"}
+            d["nodes"] = len(w.get("graph_obj") or {})
+            d["params"] = w.get("params") or {}
+            return d
+
+        try:
+            if not sub or sub == ["stats"]:
+                return _json({"stats": reg.stats(), "workflows": len(reg.list_workflows()),
+                              "models": len(reg.list_models())})
+            if sub[0] == "workflows":
+                if len(sub) == 1:
+                    return _json({"total": len(reg.list_workflows()),
+                                  "workflows": [_wf_summary(w) for w in reg.list_workflows()]})
+                key = sub[1]
+                try:
+                    w = reg.get_workflow(key)
+                except reg.RegistryError as e:
+                    return _json({"error": str(e)}, 404)
+                return _json({"workflow": _wf_detail(w),
+                              "compat": reg.compat_for(key, (w.get("model") or {}).get("key"))})
+            if sub[0] == "models":
+                if len(sub) == 1:
+                    rows = []
+                    for m in reg.list_models():
+                        rows.append({"key": m.get("key"), "name": m.get("name"),
+                                     "version": m.get("version"), "kind": m.get("kind"),
+                                     "family": m.get("family"),
+                                     "files": {r: f.get("name") for r, f in
+                                               (m.get("files") or {}).items()}})
+                    return _json({"total": len(rows), "models": rows})
+                key = sub[1]
+                try:
+                    return _json({"model": reg.get_model(key)})
+                except reg.RegistryError as e:
+                    return _json({"error": str(e)}, 404)
+            if sub[0] == "compat":
+                return _json({"matrix": reg.compat_matrix()})
+            if sub[0] == "resolve":
+                wkey = (q.get("workflow") or [None])[0]
+                if not wkey:
+                    return _json({"error": "缺少 workflow 参数"}, 400)
+                mkey = (q.get("model") or [None])[0]
+                raw = (q.get("params") or ["{}"])[0] or "{}"
+                try:
+                    params = json.loads(raw)
+                except json.JSONDecodeError:
+                    return _json({"error": "params 不是合法 JSON"}, 400)
+                allow = (q.get("allow_experimental") or ["0"])[0] in ("1", "true", "yes")
+                try:
+                    r = reg.resolve(wkey, model_key=mkey, params=params,
+                                    allow_experimental=allow)
+                    graph, meta = p20render.render(r["workflow"], r["model"], r["params"], "preview",
+                                                   graph=r["workflow"].get("graph_obj"))
+                except (reg.RegistryError, cs.ConfigError, p20render.RenderError) as e:
+                    return _json({"error": str(e)}, 400)
+                out = {"workflow": r["workflow"]["key"], "model": r["model_key"],
+                       "compat": r["compat"], "params": r["params"],
+                       "defaults_applied": r["defaults_applied"],
+                       "expect": p20render.expect_for(r["workflow"], r["params"]),
+                       "render": {k: v for k, v in meta.items() if k != "params"}}
+                if (q.get("graph") or ["0"])[0] in ("1", "true"):
+                    out["graph"] = graph
+                return _json(out)
+            return _json({"error": f"未知 registry 路径: {sub}"}, 404)
+        except Exception as e:
+            return _json({"error": f"{type(e).__name__}: {e}"}, 500)
 
     # ---------------- 监控接口
     def _api_p2(self, sub: list[str], q: dict):

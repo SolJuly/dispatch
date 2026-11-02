@@ -331,11 +331,54 @@ def run_setup(uid: str, need: str = "all", ctx: dict | None = None) -> None:
     _say("setup 完成，自检通过")
 
 
-def step_ready(job: dict, opts, ctx: dict) -> None:
-    """等 ComfyUI 就绪 + 6 项资产可见。"""
-    from compshare.cs import CS
+def _registry_meta(job: dict) -> dict:
+    """registry 作业的元数据；legacy 作业返回 {}（所有新分支都以它为准，保证向后兼容）。"""
+    return ((job.get("model") or {}).get("registry") or {})
 
+
+def _apply_model_links(job: dict, ctx: dict) -> None:
+    """registry 模型可在配置里声明软链（setup.links）；legacy 作业零操作。"""
+    reg = _registry_meta(job)
+    if not reg:
+        return
+    from tools.p20 import assets as p20assets, registry as p20registry
+    model = p20registry.get_model(reg["model_key"], version=reg.get("model_version"))
+    links = p20assets.apply_links(
+        model, lambda cmd, timeout=60: _ssh_run(ctx["host"], ctx["port"],
+                                                ctx["password"], cmd, timeout=timeout))
+    if not links:
+        return
+    bad = [x for x in links if not x.get("ok")]
+    _say(f"模型软链 {len(links) - len(bad)}/{len(links)} 就绪")
+    if bad:
+        raise RunError(f"模型软链失败：{bad[0].get('link')}（{bad[0].get('out')}）",
+                       state.FAILED_PROVISION)
+
+
+def step_ready(job: dict, opts, ctx: dict) -> None:
+    """等 ComfyUI 就绪 + 模型资产可见。
+
+    registry 作业：资产清单来自 registry/models/*.json（不再写死 H3/Qwen 文件名）；
+    legacy 作业：保持原逻辑一字不动。
+    """
     host, port, pwd = ctx["host"], ctx["port"], ctx["password"]
+    reg = _registry_meta(job)
+    if reg:
+        from tools.p20 import assets as p20assets, registry as p20registry
+        try:
+            model = p20registry.get_model(reg["model_key"],
+                                          version=reg.get("model_version"))
+        except Exception as e:
+            raise RunError(f"registry 模型读取失败：{e}", state.FAILED_PROVISION) from e
+        ok, missing, detail = p20assets.run_check(
+            model, lambda cmd, timeout=90: _ssh_run(host, port, pwd, cmd, timeout=timeout))
+        if ok:
+            _say(f"ComfyUI 就绪，{len(p20assets.asset_rules(model))} 项模型资产可见"
+                 f"（第 {detail.get('attempt')} 次探活）")
+            return
+        why = detail.get("why") or detail.get("error") or ""
+        raise RunError(f"模型资产不可见：{missing or why}（{str(why)[:200]}）",
+                       state.FAILED_PROVISION)
 
     check = ("source /root/miniconda3/bin/activate && python3 -c \""
              "import json,urllib.request;"
@@ -352,12 +395,29 @@ def step_ready(job: dict, opts, ctx: dict) -> None:
 
 
 def step_submit(job: dict, opts, ctx: dict) -> None:
-    """渲染 workflow 并提交，拿 prompt_id。"""
+    """渲染 workflow 并提交，拿 prompt_id。
+
+    registry 作业：节点/参数绑定全部来自配置（render_job），run.py 不认识任何节点名；
+    legacy 作业：仍走写死 5 个占位符的 _render_workflow，行为不变。
+    """
     wf_path = ROOT / job["model"]["workflow"]
     if not wf_path.exists():
         raise RunError(f"workflow 不存在：{wf_path}", state.FAILED_RUN)
-    wf = json.loads(wf_path.read_text(encoding="utf-8"))
-    graph = _render_workflow(wf, job.get("params") or {}, job["job_id"])
+    reg = _registry_meta(job)
+    if reg:
+        from tools.p20 import render as p20render
+        try:
+            graph, meta = p20render.render_job(job)
+        except Exception as e:
+            raise RunError(f"registry 渲染失败：{type(e).__name__}: {e}", state.FAILED_RUN) from e
+        store.atomic_write_json(store.job_file(job["job_id"], "render.json"),
+                                {"schema": "p20.render/v1", "job_id": job["job_id"],
+                                 "meta": meta, "graph": graph})
+        _say(f"registry 渲染：{meta['workflow_key']} v{meta['workflow_version']} × "
+             f"{meta['model_key']} v{meta['model_version']} · {meta['nodes']} 节点")
+    else:
+        wf = json.loads(wf_path.read_text(encoding="utf-8"))
+        graph = _render_workflow(wf, job.get("params") or {}, job["job_id"])
 
     host, port, pwd = ctx["host"], ctx["port"], ctx["password"]
     payload = json.dumps({"prompt": graph, "client_id": "p1"}, ensure_ascii=False)
@@ -369,11 +429,10 @@ def step_submit(job: dict, opts, ctx: dict) -> None:
            "print(urllib.request.urlopen(r,timeout=120).read().decode())\" "
            + "'" + payload.replace("'", "'\"'\"'") + "'")
     rc, out = _ssh_run(host, port, pwd, cmd, timeout=180)
-    import re as _re
-    m = _re.search(r'"prompt_id"\s*:\s*"([^"]+)"', out)
-    if not m:
+    from tools.p20 import comfy as p20comfy
+    pid = p20comfy.parse_prompt_id(out)
+    if not pid:
         raise RunError(f"提交失败：{out[-400:]}", state.FAILED_RUN)
-    pid = m.group(1)
     ctx["prompt_id"] = pid
     _say(f"已提交 prompt_id={pid}")
 
@@ -392,33 +451,19 @@ def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
            "print(json.dumps(e if e else {}))\" " + pid)
     while time.time() - t0 < limit:
         rc, out = _ssh_run(host, port, pwd, cmd, timeout=120)
-        if rc == 0 and out.strip().startswith("{"):
-            try:
-                raw = out[out.index("{"):].splitlines()[0]
-                ent = json.loads(raw)
-            except (json.JSONDecodeError, ValueError):
-                ent = {}
+        if rc == 0:
+            from tools.p20 import comfy as p20comfy
+            ent = p20comfy.parse_history(out)
             if ent:
-                st = ent.get("status", {})
-                if st.get("status_str") == "success":
-                    files = []
-                    for o in (ent.get("outputs") or {}).values():
-                        for k in ("images", "videos", "gifs"):
-                            for f in (o.get(k) or []):
-                                files.append((f.get("subfolder", ""), f.get("filename")))
+                st = p20comfy.status_of(ent)
+                if st == "success":
+                    files = p20comfy.extract_files(ent)
                     if not files:
                         raise RunError("任务成功但无输出文件", state.FAILED_FETCH)
                     _say(f"推理完成：{len(files)} 个文件，耗时 {int(time.time()-t0)}s")
                     return sorted(files)
-                if st.get("status_str") == "error":
-                    detail = ""
-                    for m in (st.get("messages") or []):
-                        if isinstance(m, list) and m and m[0] == "execution_error":
-                            info = m[1]
-                            detail = f"{info.get('node_type')}: {info.get('exception_message')}"
-                            break
-                    raise RunError(f"推理失败：{detail or str(st.get('messages'))[:600]}",
-                                   state.FAILED_RUN)
+                if st == "error":
+                    raise RunError(f"推理失败：{p20comfy.extract_error(ent)}", state.FAILED_RUN)
         time.sleep(5)
     raise RunError(f"推理超时（{limit}s）", state.FAILED_RUN)
 
@@ -441,9 +486,23 @@ def step_fetch(job: dict, opts, ctx: dict, files: list[tuple[str, str]]) -> list
 
 
 def step_verify(job: dict, opts, ctx: dict, arts: list[Path]) -> dict:
-    """跑 6 条复验项。"""
-    wf_path = ROOT / job["model"]["workflow"]
-    res = verify_mod.verify_job(job, store.job_dir(job["job_id"]) / "artifacts", wf_path)
+    """跑复验项。
+
+    registry 作业用「渲染后的图 + 配置里的绑定」回读参数（不再依赖 verify.py 的节点白名单）；
+    legacy 作业仍用模板图 + 内置 _PARAM_NODES。
+    """
+    jdir = store.job_dir(job["job_id"])
+    reg = _registry_meta(job)
+    if reg:
+        from tools.p20 import registry as p20registry
+        wf = p20registry.get_workflow(reg["workflow_key"], version=reg.get("workflow_version"))
+        rr = store.read_json(jdir / "render.json") or {}
+        graph = rr.get("graph") or {}
+        res = verify_mod.verify_job(job, jdir / "artifacts", None,
+                                    rendered_graph=graph, wf_config=wf)
+    else:
+        wf_path = ROOT / job["model"]["workflow"]
+        res = verify_mod.verify_job(job, jdir / "artifacts", wf_path)
     for a in res.get("artifacts", []):
         _say(f"  {a['file']}: {a['verdict']}  failed={a['failed'] or '—'}")
     if res["verdict"] != "PASS":
@@ -498,6 +557,21 @@ def step_persist(job: dict, opts, ctx: dict, res: dict, arts: list[Path]) -> dic
                  "amount": round(hourly * minutes / 60, 4)},
         "state_history": [e.get("to") for e in state.read_events(job["job_id"]) if e.get("to")],
     }
+    reg = _registry_meta(job)
+    if reg:
+        rr = store.read_json(jdir / "render.json") or {}
+        meta = rr.get("meta") or {}
+        manifest["registry"] = {
+            "workflow_key": reg.get("workflow_key"),
+            "workflow_version": reg.get("workflow_version"),
+            "model_key": reg.get("model_key"),
+            "model_version": reg.get("model_version"),
+            "compat": (meta.get("compat") or {}).get("status") or reg.get("compat"),
+            "compat_basis": (meta.get("compat") or {}).get("basis") or reg.get("compat_basis"),
+            "graph_sha256": meta.get("graph_sha256"),
+            "template_sha256": meta.get("template_sha256"),
+            "registry_fingerprint": meta.get("registry_fingerprint"),
+        }
     man_path = jdir / "manifest.json"
     store.atomic_write_json(man_path, manifest)
     back = store.read_json(man_path)
@@ -567,6 +641,10 @@ STEP_STATE_MAP = {
 
 
 def _need(job: dict) -> str:
+    """setup 资产档位：registry 作业读模型配置，legacy 仍按模型 key 猜。"""
+    reg = _registry_meta(job)
+    if reg.get("setup_need"):
+        return reg["setup_need"]
     return "qwen" if str(job["model"]["key"]).startswith("qwen") else "h3"
 
 
@@ -623,6 +701,7 @@ def _do_step(name: str, job_id: str, job: dict, opts, ctx: dict) -> None:
                    gpu=(ctx.get("inst") or {}).get("GpuType"), hourly=ctx.get("hourly"))
     elif name == "setup":
         run_setup(ctx["uhost_id"], _need(job), ctx)
+        _apply_model_links(job, ctx)
         _mark_step(job_id, name)
     elif name == "ready":
         step_ready(job, opts, ctx)
@@ -860,11 +939,27 @@ def run(job_id: str, opts) -> int:
 
     if opts.dry_run:
         _say("--dry-run：只走状态机，不建机、不花钱")
-        wf = json.loads((ROOT / job["model"]["workflow"]).read_text(encoding="utf-8"))
-        g = _render_workflow(wf, job.get("params") or {}, job_id)
-        seeds = [n["inputs"].get("seed") for n in g.values() if "seed" in (n.get("inputs") or {})]
-        prompts = [n["inputs"].get("prompt") for n in g.values() if "prompt" in (n.get("inputs") or {})]
-        _say(f"  占位符渲染 OK：seed={seeds} · prompt 长度={[len(p) for p in prompts if p]}")
+        reg = _registry_meta(job)
+        if reg:
+            from tools.p20 import render as p20render
+            g, meta = p20render.render_job(job)
+            _say(f"  registry 渲染 OK：{meta['workflow_key']} v{meta['workflow_version']} × "
+                 f"{meta['model_key']} v{meta['model_version']} · 兼容性 "
+                 f"{meta['compat']['status']}")
+        else:
+            wf = json.loads((ROOT / job["model"]["workflow"]).read_text(encoding="utf-8"))
+            g = _render_workflow(wf, job.get("params") or {}, job_id)
+        seeds = []
+        prompts = []
+        for n in g.values():
+            ins = n.get("inputs") or {}
+            for k in ("seed", "noise_seed"):
+                if k in ins:
+                    seeds.append(ins[k])
+            for k in ("prompt", "text"):
+                if isinstance(ins.get(k), str):
+                    prompts.append(ins[k])
+        _say(f"  占位符渲染 OK：seed={seeds} · prompt 长度={[len(p) for p in prompts]}")
         _say(f"  节点数 {len(g)}，输出目录 {store.rel(store.job_dir(job_id))}")
         _say("  （真实执行请去掉 --dry-run）")
         return 0

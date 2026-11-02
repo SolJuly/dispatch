@@ -1,0 +1,19 @@
+### 2026-11-01 21:38:36 ###
+== p20 unit ==
+Ran 60 tests in 0.941s
+OK
+== p2 unit ==
+Ran 42 tests in 13.353s
+OK
+== p1 cases ==
+合计 13 条：PASS 12 · FAIL 0 · SKIP 1
+== validate deep ==
+
+全部通过（共 19 个）
+== p20 validate ==
+⚠ h3_i2v_121f × h3 未验证（执行需 --allow-experimental）
+
+工作流 7 · 模型 4 · verified 4 · equivalent 2 · experimental 1 · incompatible 0
+✓ 全部通过
+== registry import check ==
+✓ 已是最新（src 7dd4a15363a2 / db 7dd4a15363a2）

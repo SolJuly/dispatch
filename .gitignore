@@ -47,3 +47,8 @@ reports/p1/jobs/*/thumbs/
 reports/p2/*.db
 reports/p2/*.db-wal
 reports/p2/*.db-shm
+
+# P2.0 Registry 派生索引（事实在 registry/*.json，可 p20ctl import 重建）
+registry/registry.db
+registry/registry.db-wal
+registry/registry.db-shm
