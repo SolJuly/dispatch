@@ -1,0 +1,98 @@
+# -*- coding: utf-8 -*-
+"""页面组件：纯函数，输入数据 → HTML 片段（全部转义）。"""
+from __future__ import annotations
+
+import datetime as dt
+import html
+
+
+def esc(v) -> str:
+    return html.escape("" if v is None else str(v), quote=True)
+
+
+def badge(state: str) -> str:
+    s = (state or "").upper()
+    if s == "DONE":
+        cls = "ok"
+    elif s.startswith("FAILED") or s in ("ABORTED", "FAILED"):
+        cls = "bad"
+    elif s in ("CREATED",):
+        cls = "idle"
+    else:
+        cls = "run"
+    return f'<span class="pill {cls}">{esc(s or "?")}</span>'
+
+
+def compat_badge(status: str) -> str:
+    cls = {"verified": "ok", "equivalent": "warn", "experimental": "bad",
+           "incompatible": "bad"}.get(status or "", "idle")
+    return f'<span class="pill {cls}">{esc(status or "unknown")}</span>'
+
+
+def _input(name: str, spec: dict, value) -> str:
+    typ = spec.get("type")
+    attrs = f'data-param="{esc(name)}"'
+    if typ == "enum":
+        vals = spec.get("values") or []
+        cur = value if value is not None else spec.get("default")
+        opts = "".join(
+            f'<option value="{esc(v)}"{" selected" if v == cur else ""}>{esc(v)}</option>'
+            for v in vals)
+        return f'<select {attrs}>{opts}</select>'
+    if typ == "bool":
+        cur = bool(value if value is not None else spec.get("default"))
+        return (f'<label class="switch"><input type="checkbox" {attrs}'
+                f'{" checked" if cur else ""}><span></span></label>')
+    if typ in ("int", "float"):
+        step = "1" if typ == "int" else "0.01"
+        cur = value if value is not None else spec.get("default", "")
+        rng = ""
+        if "min" in spec:
+            rng += f' min="{spec["min"]}"'
+        if "max" in spec:
+            rng += f' max="{spec["max"]}"'
+        return f'<input type="number" step="{step}" {attrs}{rng} value="{esc(cur)}">'
+    if name in ("prompt", "neg_prompt"):
+        cur = value if value is not None else spec.get("default", "")
+        rows = 4 if name == "prompt" else 2
+        return f'<textarea rows="{rows}" {attrs} placeholder="{esc(spec.get("description", ""))}">{esc(cur)}</textarea>'
+    cur = value if value is not None else spec.get("default", "")
+    return f'<input type="text" {attrs} value="{esc(cur)}">'
+
+
+def field(name: str, spec: dict, value=None) -> str:
+    label = esc(name)
+    hint = ""
+    bits = [spec.get("type", "")]
+    if "default" in spec:
+        bits.append(f"默认 {spec['default']}")
+    if spec.get("min") is not None or spec.get("max") is not None:
+        bits.append(f"{spec.get('min', '')}–{spec.get('max', '')}")
+    if bits:
+        hint = f'<div class="hint">{esc(" · ".join(str(b) for b in bits))}</div>'
+    return (f'<div class="field"><label for="p-{esc(name)}">{label}</label>'
+            f'{_input(name, spec, value)}{hint}</div>')
+
+
+def fmt_bytes(n: int | None) -> str:
+    n = int(n or 0)
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024 or unit == "GB":
+            return f"{n:.0f} {unit}" if unit == "B" else f"{n/1:.1f} {unit}" if unit == "GB" else f"{n:.0f} {unit}"
+        n /= 1024
+    return f"{n} B"
+
+
+def human_time(iso: str | None) -> str:
+    if not iso:
+        return "—"
+    try:
+        t = dt.datetime.fromisoformat(iso)
+    except ValueError:
+        return esc(iso)
+    return t.astimezone().strftime("%m-%d %H:%M:%S")
+
+
+def kv_table(rows: list[tuple[str, str]]) -> str:
+    body = "".join(f"<tr><th>{esc(k)}</th><td>{v}</td></tr>" for k, v in rows)
+    return f'<table class="kv">{body}</table>'

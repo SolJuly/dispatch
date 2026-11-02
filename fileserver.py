@@ -312,6 +312,10 @@ class Handler(BaseHTTPRequestHandler):
         if not rest:
             return self._index()
         kind = rest[0]
+        if kind == "app":
+            return self._app_page(rest[1:], q)
+        if kind == "static":
+            return self._static_asset(rest[1:])
         if kind == "zip":
             return self._zip()
         if kind == "monitor" and not rest[1:]:
@@ -326,6 +330,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._arch_page()
         if kind == "api" and len(rest) >= 2:
             if rest[1] == "p2":
+                if rest[2:3] == ["jobs"]:
+                    return self._api_jobs(rest[3:], q)
                 if rest[2:3] == ["registry"]:
                     return self._api_registry(rest[3:], q)
                 return self._api_p2(rest[2:], q)
@@ -370,6 +376,11 @@ class Handler(BaseHTTPRequestHandler):
         parts = [x for x in u.path.split("/") if x != ""]
         if len(parts) >= 2 and self._token_ok(parts[0]) and parts[1] == "upload":
             return self._receive_upload()
+        if len(parts) == 6 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"] \
+                and parts[5] == "cancel":
+            return self._api_jobs([parts[4], "cancel"], {})
+        if len(parts) == 4 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"]:
+            return self._api_job_create()
         return self._err(404, "路径不存在")
 
     # ---------------- 页面
@@ -473,6 +484,90 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, data, "application/zip", {"Content-Disposition": disp})
 
     # ---------------- P2.0 Registry 只读接口
+    # ---------------- 图片控制台（M1 骨架）
+    def _app_page(self, rest: list[str], q: dict):
+        from webui import api as webapi, pages as webpages
+
+        base = BASE
+        page = rest[0] if rest else "create"
+        try:
+            if page in ("", "create"):
+                body = webpages.create_page(base, TOKEN, (q.get("workflow") or [""])[0])
+            elif page == "jobs" and len(rest) == 1:
+                body = webpages.jobs_page(base, TOKEN, (q.get("state") or [""])[0],
+                                          (q.get("q") or [""])[0])
+            elif page == "jobs" and len(rest) == 2:
+                body = webpages.detail_page(base, TOKEN, rest[1])
+            elif page in ("gallery", "registry"):
+                body = webpages.shell(base, TOKEN, f"/app/{page}", page,
+                                      f"<div class='card'><p class='empty'>{page} 页面在 M3/M4 交付</p></div>")
+            else:
+                return self._err(404, "页面不存在")
+        except webapi.ApiError as e:
+            return self._err(e.code, e.msg)
+        return self._send(200, body.encode("utf-8"), "text/html; charset=utf-8")
+
+    def _static_asset(self, rest: list[str]):
+        from webui import assets as webassets
+
+        name = rest[0] if rest else ""
+        if name == "app.css":
+            body, ct = webassets.CSS.encode("utf-8"), "text/css; charset=utf-8"
+        elif name == "app.js":
+            body, ct = webassets.JS.encode("utf-8"), "application/javascript; charset=utf-8"
+        else:
+            return self._err(404, "资源不存在")
+        return self._send(200, body, ct, {"Cache-Control": "public, max-age=60"})
+
+    def _api_jobs(self, rest: list[str], q: dict):
+        from webui import api as webapi
+
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False, default=str).encode(),
+                              "application/json; charset=utf-8")
+        try:
+            if not rest:
+                items = webapi.list_jobs(
+                    limit=int((q.get("limit") or ["20"])[0] or 20),
+                    state_prefix=(q.get("state") or [""])[0],
+                    workflow=(q.get("workflow") or [""])[0],
+                    q=(q.get("q") or [""])[0])
+                return _json({"items": items, "count": len(items)})
+            jid = rest[0]
+            if len(rest) == 1:
+                return _json(webapi.get_job(jid))
+            if rest[1] == "cancel" and len(rest) == 2:
+                return _json(webapi.cancel_job(jid))
+            return _json({"error": "路径不存在"}, 404)
+        except webapi.ApiError as e:
+            return _json({"error": e.msg}, e.code)
+        except Exception as e:  # noqa: BLE001
+            return _json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+    def _api_job_create(self):
+        from webui import api as webapi
+
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False, default=str).encode(),
+                              "application/json; charset=utf-8")
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            if n <= 0 or n > 1_000_000:
+                return _json({"error": "请求体为空或过大"}, 400)
+            body = json.loads(self.rfile.read(n).decode("utf-8"))
+            if not isinstance(body, dict):
+                return _json({"error": "请求体应为 JSON 对象"}, 400)
+            data = webapi.create_job(str(body.get("workflow") or ""),
+                                     body.get("params") or {},
+                                     run=bool(body.get("run")))
+            return _json(data, 201)
+        except webapi.ApiError as e:
+            return _json({"error": e.msg}, e.code)
+        except json.JSONDecodeError:
+            return _json({"error": "JSON 解析失败"}, 400)
+        except Exception as e:  # noqa: BLE001
+            return _json({"error": f"{type(e).__name__}: {e}"}, 500)
+
     def _api_registry(self, sub: list[str], q: dict):
         """Workflow/Model Registry 只读 API（UI 用）。
 

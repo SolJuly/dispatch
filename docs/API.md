@@ -242,3 +242,55 @@ Registry 配置只在 `p20ctl import` 后变化，UI 首屏拉一次即可；`wo
 - **只读**：导入/兼容性写入仍走 `p20ctl import` / `p20ctl compat verify`；写 API 需要幂等令牌与权限升级，未实现。
 - `resolve` 不落盘、不建作业；要提交请走 CLI（`p20ctl new`）。
 - 首次访问若 `registry.db` 不存在或配置指纹变化，会自动 `import_all()`（毫秒级；7 工作流/4 模型）。
+
+---
+
+## 7. 图片控制台（P2.1 · M1）
+
+页面与服务端渲染（`webui/`），token 与文件服务一致；路径前缀 `/{token}`。
+
+| 页面 | 说明 |
+|---|---|
+| `/{token}/app`、`/{token}/app/create?workflow=<key>` | 创作台：工作流/参数表单、提交、轮询、结果网格 |
+| `/{token}/app/jobs?state=&q=` | 任务列表（状态/关键词筛选） |
+| `/{token}/app/jobs/<job_id>` | 任务详情：状态时间线、产物、参数快照 |
+| `/{token}/static/app.css`、`/static/app.js` | 控制台静态资源 |
+| `/{token}/app/gallery`、`/app/registry` | M3/M4 交付，当前为占位页 |
+
+### 7.1 `GET /api/p2/jobs`
+
+| 参数 | 说明 |
+|---|---|
+| `limit` | 默认 20，上限 200 |
+| `state` | 精确状态，或 `FAILED` 前缀匹配 `FAILED_*` |
+| `workflow` | 工作流 key |
+| `q` | job_id / prompt 关键词 |
+
+响应：`{items:[{job_id,state,workflow,workflow_version,model,created_at,artifacts}], count}`。
+
+### 7.2 `POST /api/p2/jobs`（唯一写接口）
+
+```json
+{"workflow": "qwen_image_t2i",
+ "params": {"prompt": "a red apple", "seed": 7, "batch_size": 2},
+ "run": false}
+```
+
+- 服务端用 `registry.resolve` 补默认值并校验（含兼容性）；`experimental` 组合返回 **409**。
+- 生成 spec → `jobctl new` → 返回 `201 {job_id,state,workflow_version,params_hash,params,expect}`。
+- `run:true` 时后台起 `run.py <job_id> --no-keep`（日志写 `reports/p1/jobs/<id>/run.log`）；默认 `false`，不花钱。
+- `batch_size=2` → `expect.images=2`，fetch/verify 按张数校验。
+
+### 7.3 `GET /api/p2/jobs/<job_id>`
+
+响应 `{job, artifacts:[{name,bytes,url}], workflow, terminal}`；`404` 作业不存在，`400` job_id 非法。
+
+### 7.4 `POST /api/p2/jobs/<job_id>/cancel`
+
+只允许取消 `CREATED`（改为 `ABORTED`，`state_seq` +1）；已在执行返回 **409**，用 `run.py --abort`。
+
+### 7.5 限制
+
+- 写接口只做"建作业/取消"，**不暴露**改作业、删产物、改 registry。
+- 上传（图生图/蒙版）在 M2/M3 提供 `POST /api/p2/uploads`。
+- 页面无构建链：改 `webui/assets.py` 即生效，无需打包。
