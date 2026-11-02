@@ -97,9 +97,9 @@ JS = r"""
       `<span class="pill ${/^DONE$/.test(st.state)?"ok":/FAILED|ABORTED/.test(st.state||"")?"bad":"run"}">${esc(st.state||"")}</span>`;
     if(artifacts.length){
       $("#results").innerHTML = artifacts.map(a =>
-        `<figure class="thumb"><a href="${BASE}/f/reports/p1/jobs/${esc(id)}/artifacts/${esc(a.name)}" target="_blank">` +
-        `<img src="${BASE}/f/reports/p1/jobs/${esc(id)}/artifacts/${esc(a.name)}" alt="${esc(a.name)}" loading="lazy"></a>` +
-        `<div class="meta"><span>${esc(a.name)}</span><a href="${BASE}/f/reports/p1/jobs/${esc(id)}/artifacts/${esc(a.name)}?dl=1">下载</a>` +
+        `<figure class="thumb"><a href="${esc(a.url)}" target="_blank">` +
+        `<img src="${esc(a.url)}" alt="${esc(a.name)}" loading="lazy"></a>` +
+        `<div class="meta"><span>${esc(a.name)}</span><a href="${esc(a.url)}" download>下载</a>` +
         `<a href="${BASE}/app/jobs/${esc(id)}">详情</a></div></figure>`).join("");
     }
   }

@@ -49,6 +49,8 @@ def _mk_job(root: Path, jid: str, state: str, wf: str = "qwen_image_t2i",
 
 class TestListGet(unittest.TestCase):
     def setUp(self):
+        self._mp = api.maybe_publish
+        api.maybe_publish = lambda *a, **k: None
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         _mk_job(self.root, "p1-20260101T0000-aaaaaa", "DONE")
@@ -56,6 +58,7 @@ class TestListGet(unittest.TestCase):
         _mk_job(self.root, "p1-20260101T0002-cccccc", "CREATED")
 
     def tearDown(self):
+        api.maybe_publish = self._mp
         self.tmp.cleanup()
 
     def test_list_all(self):
@@ -76,7 +79,7 @@ class TestListGet(unittest.TestCase):
         d = api.get_job("p1-20260101T0000-aaaaaa", jobs_dir=self.root)
         self.assertEqual(d["workflow"], "qwen_image_t2i")
         self.assertEqual(len(d["artifacts"]), 1)
-        self.assertTrue(d["artifacts"][0]["url"].endswith("01-a.png"))
+        self.assertTrue(d["artifacts"][0]["url"].endswith("/pub/jobs/p1-20260101T0000-aaaaaa/01-a.png"))
 
     def test_get_missing(self):
         with self.assertRaises(api.ApiError) as cm:
@@ -91,12 +94,15 @@ class TestListGet(unittest.TestCase):
 
 class TestCancel(unittest.TestCase):
     def setUp(self):
+        self._mp = api.maybe_publish
+        api.maybe_publish = lambda *a, **k: None
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         _mk_job(self.root, "p1-20260101T0000-aaaaaa", "CREATED")
         _mk_job(self.root, "p1-20260101T0001-bbbbbb", "DONE")
 
     def tearDown(self):
+        api.maybe_publish = self._mp
         self.tmp.cleanup()
 
     def test_cancel_created(self):

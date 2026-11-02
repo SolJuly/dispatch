@@ -1,0 +1,54 @@
+{
+  "kind": "image",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "qwen_image",
+    "workflow": "workflows/qwen_image_t2i_v2.api.json",
+    "checkpoint": "qwen/qwen_image_fp8_e4m3fn_scaled.safetensors",
+    "workflow_sha256": "8108c68316625b3cacdea002d9937cf8d95d8806a56b620516f6bd126a9be098",
+    "registry": {
+      "workflow_key": "qwen_image_t2i",
+      "workflow_version": 2,
+      "model_key": "qwen_image",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "real-run",
+      "setup_need": "qwen",
+      "graph_sha256": "8108c68316625b3cacdea002d9937cf8d95d8806a56b620516f6bd126a9be098"
+    }
+  },
+  "params": {
+    "batch_size": 1,
+    "cfg": 2.5,
+    "height": 1024,
+    "neg_prompt": "no extra limbs,no deformed hands,no blur,no noise,no watermark,no text,no cartoon/anime style. Aspect Ratio: 3:4.\n",
+    "prompt": "loli, fair_skin, curvy, baby face, bunches, unbuttoned clothes, bent_over, middle_finger, squatting,_open_legs, lifted_by_self, disgust, Ultra-HD, realistic, photorealistic,realistic, new_school_swimsuit, filmic, bedroom, professional, A stunning 18-year-old Chinese girl with a youthful,pure face and realistic skin texture,sitting on a cozy,slightly messy bed in her bedroom. She is taking a mirror selfie with a smartphone,capturing a natural and intimate moment. Wearing casual gray loungewear and neat white crew socks. Soft natural light (golden hour) streams in from a side window,creating a warm,moody,and cinematic atmosphere. 35mm lens,sharp focus on the subject in the mirror,depth of field with a beautifully blurred background (bokeh). Photorealistic,8K,high resolution,studio quality,masterpiece.",
+    "sampler": "euler",
+    "scheduler": "simple",
+    "seed": 13314,
+    "steps": 20,
+    "width": 1024
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "height": [
+      1024
+    ],
+    "images": 1,
+    "min_bytes": 20000,
+    "width": [
+      1024
+    ]
+  },
+  "budget": {
+    "max_minutes": 30,
+    "max_cost": 1.0
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

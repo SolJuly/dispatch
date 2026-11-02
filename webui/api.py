@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import re
 import subprocess
 import sys
@@ -20,6 +21,8 @@ from tools.p20 import p20ctl as p20cli
 from tools.p20 import registry
 
 ROOT = Path(__file__).resolve().parent.parent
+PUB_DIR = Path(os.environ.get("P21_PUB_DIR", "/srv/dsh-pub/jobs"))
+PUBLISHER = ROOT / "scripts/publish_artifacts.py"
 JOBS_DIR = ROOT / "reports/p1/jobs"
 SPEC_DIR = ROOT / "reports/p2/p21/specs"
 RUN_PY = ROOT / "tools/p1/run.py"
@@ -67,7 +70,8 @@ def _artifacts(job_id: str, jobs_dir: Path | None) -> list[dict]:
     for p in sorted(d.iterdir()):
         if p.is_file() and p.suffix.lower() in ART_SUFFIX:
             out.append({"name": p.name, "bytes": p.stat().st_size,
-                        "url": f"/f/reports/p1/jobs/{job_id}/artifacts/{p.name}"})
+                        "url": f"/pub/jobs/{job_id}/{p.name}",
+                        "published": (PUB_DIR / job_id / p.name).exists()})
     return out
 
 
@@ -114,8 +118,24 @@ def list_jobs(limit: int = 20, *, state_prefix: str = "", workflow: str = "",
     return rows[:max(1, min(int(limit or 20), 200))]
 
 
+def maybe_publish(job_id: str, job: dict) -> None:
+    """作业终态后把产物复制到 nginx 静态目录（幂等；页面轮询会触发）。"""
+    if job.get("state") not in ("DONE", "FAILED_VERIFY"):
+        return
+    marker = PUB_DIR / job_id / "job-summary.json"
+    if marker.exists():
+        return
+    try:
+        subprocess.Popen([sys.executable, str(PUBLISHER), "--job", job_id],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True, cwd=str(ROOT))
+    except OSError:
+        pass
+
+
 def get_job(job_id: str, jobs_dir: Path | None = None) -> dict:
     job = _load_job(job_id, jobs_dir)
+    maybe_publish(job_id, job)
     return {
         "job": job,
         "artifacts": _artifacts(job_id, jobs_dir),

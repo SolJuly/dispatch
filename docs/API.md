@@ -283,7 +283,7 @@ Registry 配置只在 `p20ctl import` 后变化，UI 首屏拉一次即可；`wo
 
 ### 7.3 `GET /api/p2/jobs/<job_id>`
 
-响应 `{job, artifacts:[{name,bytes,url}], workflow, terminal}`；`404` 作业不存在，`400` job_id 非法。
+响应 `{job, artifacts:[{name,bytes,url,published}], workflow, terminal}`；`url` 指向 nginx 静态路径 `/pub/jobs/<job_id>/<file>`（作业终态后由 `scripts/publish_artifacts.py` 复制，页面轮询会触发），**不依赖 fileserver 进程是否存活**。`404` 作业不存在，`400` job_id 非法。
 
 ### 7.4 `POST /api/p2/jobs/<job_id>/cancel`
 

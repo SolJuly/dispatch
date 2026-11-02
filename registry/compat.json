@@ -7,7 +7,10 @@
       "model": "h3",
       "status": "verified",
       "basis": "real-run",
-      "evidence": ["p1-20261028T2145-85e4d5", "p1-20261028T2328-72fd7f"],
+      "evidence": [
+        "p1-20261028T2145-85e4d5",
+        "p1-20261028T2328-72fd7f"
+      ],
       "verified_at": "2026-10-28",
       "notes": "P1 H3 T2V 闭环两次 DONE，manifest PASS"
     },
@@ -16,27 +19,45 @@
       "model": "ltxv_2b",
       "status": "verified",
       "basis": "real-run",
-      "evidence": ["p1-20261101T1458-2e7352", "p1-20261101T1534-569378"],
+      "evidence": [
+        "p1-20261101T1458-2e7352",
+        "p1-20261101T1534-569378"
+      ],
       "verified_at": "2026-11-01",
       "notes": "P2 M4 批量 LTXV 多次 DONE，manifest PASS"
-    },
-    {
-      "workflow": "wan21_i2v_480p",
-      "model": "wan21_i2v",
-      "status": "verified",
-      "basis": "real-run",
-      "evidence": ["p1-20261101T1818-71b2a0"],
-      "verified_at": "2026-11-01",
-      "notes": "官方 fp8 版实跑 PASS（社区 NVFP4 版已排除）"
     },
     {
       "workflow": "qwen_image_t2i",
       "model": "qwen_image",
       "status": "verified",
       "basis": "real-run",
-      "evidence": ["p1-20261101T1822-8407bd"],
+      "evidence": [
+        "p1-20261101T1822-8407bd"
+      ],
       "verified_at": "2026-11-01",
       "notes": "Qwen-Image 1024×1024 实跑 PASS，成本 ¥0.0681"
+    },
+    {
+      "workflow": "sdxl_t2i",
+      "model": "sdxl_juggernaut",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261103T0059-998e34"
+      ],
+      "verified_at": "2026-11-03",
+      "notes": "M1 D2 首次真机：batch=2 两张 1024²，26s 推理，DONE+双 PASS，质量人工验收通过"
+    },
+    {
+      "workflow": "wan21_i2v_480p",
+      "model": "wan21_i2v",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261101T1818-71b2a0"
+      ],
+      "verified_at": "2026-11-01",
+      "notes": "官方 fp8 版实跑 PASS（社区 NVFP4 版已排除）"
     }
   ]
 }

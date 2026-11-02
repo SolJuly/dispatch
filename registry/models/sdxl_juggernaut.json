@@ -1,0 +1,46 @@
+{
+  "schema": "p20.model/v1",
+  "key": "sdxl_juggernaut",
+  "name": "SDXL juggernautXL v8",
+  "version": 1,
+  "kind": "image",
+  "family": "sdxl",
+  "primary": "ckpt",
+  "files": {
+    "ckpt": {
+      "name": "juggernautXL_v8Rundiffusion_V8.safetensors",
+      "loader": "CheckpointLoaderSimple",
+      "input": "ckpt_name",
+      "match": {
+        "contains": "juggernautXL_v8Rundiffusion"
+      }
+    }
+  },
+  "defaults": {
+    "steps": 25,
+    "cfg": 6.0,
+    "sampler_name": "dpmpp_2m",
+    "scheduler": "karras"
+  },
+  "constraints": {
+    "width": {
+      "min": 512,
+      "max": 1536,
+      "multiple": 8
+    },
+    "height": {
+      "min": 512,
+      "max": 1536,
+      "multiple": 8
+    },
+    "steps": {
+      "min": 1,
+      "max": 60
+    }
+  },
+  "setup": {
+    "profile": "all",
+    "links": []
+  },
+  "notes": "M0 盘点确认共享库有该权重（7.1GB，文件头可读）。首次真机前 compat=experimental。"
+}

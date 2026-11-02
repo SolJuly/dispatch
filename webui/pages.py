@@ -137,10 +137,10 @@ def detail_page(base: str, token: str, job_id: str) -> str:
                  for k, v in steps.items())
     params = json.dumps(job.get("params") or {}, ensure_ascii=False, indent=2)
     cards = "".join(
-        f'<figure class="thumb"><a href="{base}/{token}/f/reports/p1/jobs/{job_id}/artifacts/{C.esc(a["name"])}" target="_blank">'
-        f'<img src="{base}/{token}/f/reports/p1/jobs/{job_id}/artifacts/{C.esc(a["name"])}" alt="{C.esc(a["name"])}"></a>'
+        f'<figure class="thumb"><a href="{C.esc(a["url"])}" target="_blank">'
+        f'<img src="{C.esc(a["url"])}" alt="{C.esc(a["name"])}"></a>'
         f'<div class="meta"><span>{C.esc(a["name"])}</span>'
-        f'<a href="{base}/{token}/f/reports/p1/jobs/{job_id}/artifacts/{C.esc(a["name"])}?dl=1">下载</a></div></figure>'
+        f'<a href="{C.esc(a["url"])}" download>下载</a></div></figure>'
         for a in arts)
     body = f"""
 <h1>作业详情</h1>
