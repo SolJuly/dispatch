@@ -61,7 +61,8 @@ class TestImport(RegistryBase):
         self.assertIn("unet", m["files"])
 
     def test_version_snapshots(self):
-        w = registry.get_workflow("qwen_image_t2i", version=1, db_path=self.db)
+        cur = registry.get_workflow("qwen_image_t2i", db_path=self.db)["version"]
+        w = registry.get_workflow("qwen_image_t2i", version=cur, db_path=self.db)
         self.assertTrue(w["snapshot"])
         self.assertEqual(len(w["graph_obj"]), 9)
         m = registry.get_model("qwen_image", version=1, db_path=self.db)

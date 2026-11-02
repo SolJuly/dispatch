@@ -24,7 +24,8 @@ WORKFLOW_SCHEMA = "p20.workflow/v1"
 COMPAT_SCHEMA = "p20.compat/v1"
 
 KINDS = ("video", "image")
-PARAM_TYPES = ("string", "int", "float", "bool", "image")
+PARAM_TYPES = ("string", "int", "float", "bool", "image", "enum")
+COUNT_RE = re.compile(r"^\{\{[A-Z0-9_]+\}\}$")
 MODEL_STATUS = ("verified", "experimental", "equivalent", "incompatible")
 SETUP_PROFILES = ("h3", "qwen", "all", "none")
 KEY_RE = re.compile(r"^[a-z][a-z0-9_]{1,63}$")
@@ -87,6 +88,7 @@ def _check_type(name: str, value, typ: str, e: list[str], where: str) -> None:
         "int": _is_int,
         "float": _is_num,
         "bool": lambda x: isinstance(x, bool),
+        "enum": lambda x: isinstance(x, str),
     }.get(typ, lambda x: True)(value)
     if not ok:
         e.append(f"{where}.{name} 类型应为 {typ}，实际 {type(value).__name__}={value!r}")
@@ -365,8 +367,19 @@ def validate_workflow(d: dict, *, root: Path | None = None, check_graph: bool = 
         for k in ("min", "max", "multiple"):
             if k in p and not _is_num(p[k]):
                 e.append(f"{w}.{k} 应为数字")
-        if "enum" in p and (not isinstance(p["enum"], list) or not p["enum"]):
-            e.append(f"{w}.enum 应为非空数组")
+        if typ == "enum":
+            vals = p.get("values", p.get("enum"))
+            if not isinstance(vals, list) or not vals \
+                    or not all(isinstance(v, str) for v in vals):
+                e.append(f"{w}.values 应为非空字符串数组（enum 类型的取值域）")
+            else:
+                if "default" in p and p["default"] not in vals:
+                    e.append(f"{w}.default={p['default']!r} 不在 values 内")
+                seen = {v for v in vals}
+                if len(seen) != len(vals):
+                    e.append(f"{w}.values 有重复项")
+        elif "values" in p or "enum" in p:
+            e.append(f"{w} 只有 type=enum 才允许 values/enum")
         if "description" in p and not isinstance(p["description"], str):
             e.append(f"{w}.description 应为字符串")
         if p.get("virtual"):
@@ -402,6 +415,20 @@ def validate_workflow(d: dict, *, root: Path | None = None, check_graph: bool = 
         pick = out.get("pick", ["images", "videos", "gifs"])
         if not isinstance(pick, list) or not all(isinstance(x, str) for x in pick):
             e.append("output.pick 应为字符串数组")
+        if "count" in out:
+            c = out["count"]
+            if _is_int(c):
+                if c < 1:
+                    e.append("output.count 应为正整数")
+            elif not (isinstance(c, str) and COUNT_RE.match(c)):
+                e.append("output.count 应为正整数或 {{PARAM}} 形式")
+            elif COUNT_RE.match(c):
+                pname = c[2:-2].lower()
+                pspec = (d.get("params") or {}).get(pname)
+                if not pspec:
+                    e.append(f"output.count 引用的参数不存在：{pname}")
+                elif pspec.get("type") != "int":
+                    e.append(f"output.count 只能引用 int 参数：{pname}")
         if graph and _nonempty_str(out.get("node")):
             if out["node"] not in graph:
                 e.append(f"output.node 不存在：{out['node']}")
@@ -438,6 +465,20 @@ def validate_workflow(d: dict, *, root: Path | None = None, check_graph: bool = 
         e.append("expect_defaults.duration_s 应为 [下限,上限]")
     if "freeze" in exp and not isinstance(exp["freeze"], dict):
         e.append("expect_defaults.freeze 应为对象")
+    if "images" in exp:
+        v = exp["images"]
+        if _is_int(v):
+            if v < 1:
+                e.append("expect_defaults.images 应为正整数")
+        elif not (isinstance(v, str) and COUNT_RE.match(v)):
+            e.append("expect_defaults.images 应为正整数或 {{PARAM}} 形式")
+        else:
+            pname = v[2:-2].lower()
+            pspec = (d.get("params") or {}).get(pname)
+            if not pspec:
+                e.append(f"expect_defaults.images 引用的参数不存在：{pname}")
+            elif pspec.get("type") != "int":
+                e.append(f"expect_defaults.images 只能引用 int 参数：{pname}")
 
     limits = d.get("limits", {})
     if not isinstance(limits, dict):

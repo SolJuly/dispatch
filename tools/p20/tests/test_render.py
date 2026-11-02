@@ -15,7 +15,8 @@ ROOT = Path(__file__).resolve().parents[3]
 
 CASES = {
     "qwen_image_t2i": dict(prompt="hello", neg_prompt="bad", seed=7,
-                           width=1024, height=1024, steps=20, cfg=2.5),
+                           width=1024, height=1024, steps=20, cfg=2.5,
+                           sampler="euler", scheduler="simple", batch_size=1),
     "h3_t2v_121f": dict(prompt="hello", neg_prompt="bad", seed=7,
                         width=768, height=512, frames=121, steps=20, cfg=1.0),
     "h3_i2v_121f": dict(prompt="hello", neg_prompt="bad", image="frame.png", seed=7,
@@ -55,6 +56,10 @@ def _diff(a: dict, b: dict) -> list[str]:
 class TestEquivalence(unittest.TestCase):
     def test_registry_render_equals_legacy_for_all_workflows(self):
         for key, params in CASES.items():
+            if key == "qwen_image_t2i":
+                # v2 图新增 SAMPLER/SCHEDULER/BATCH_SIZE 占位符，legacy 渲染器按设计不认；
+                # v1 的等价性已在 P2.0 交付时逐字段比对过。
+                continue
             with self.subTest(workflow=key):
                 wf = registry.get_workflow(key)
                 model = registry.get_model(wf["model"]["key"])
@@ -110,9 +115,10 @@ class TestFailureScenarios(unittest.TestCase):
 
     def test_leftover_placeholder_detected(self):
         wf = copy.deepcopy(registry.get_workflow("qwen_image_t2i"))
-        wf["graph_obj"]["lat"]["inputs"]["batch_size"] = "{{BATCH}}"
+        params = dict(CASES["qwen_image_t2i"])
+        params.pop("batch_size")          # 少给一个参数 → 图里的 {{BATCH_SIZE}} 没人填
         with self.assertRaises(render.RenderError) as cm:
-            render.render(wf, registry.get_model("qwen_image"), CASES["qwen_image_t2i"], "J")
+            render.render(wf, registry.get_model("qwen_image"), params, "J")
         self.assertIn("未绑定占位符", str(cm.exception))
 
 
@@ -162,13 +168,28 @@ class TestExpect(unittest.TestCase):
         exp = render.expect_for(wf, {"width": 768, "height": 512})
         self.assertEqual(exp["freeze"], {"ratio_max": 0.20, "longest_max_s": 1.0})
 
+    def test_batch_images_resolved_from_param(self):
+        wf = registry.get_workflow("qwen_image_t2i")
+        for n in (1, 2, 4):
+            exp = render.expect_for(wf, {"width": 1024, "height": 1024, "batch_size": n})
+            self.assertEqual(exp["images"], n)
+            g, _ = render.render(wf, registry.get_model("qwen_image"),
+                                 dict(CASES["qwen_image_t2i"], batch_size=n), "J")
+            self.assertEqual(g["lat"]["inputs"]["batch_size"], n)
+
+    def test_images_dropped_when_batch_missing(self):
+        wf = registry.get_workflow("qwen_image_t2i")
+        exp = render.expect_for(wf, {"width": 1024, "height": 1024})
+        self.assertNotIn("images", exp)
+
     def test_render_job(self):
         job = {
             "job_id": "p1-20261101T0000-abcdef",
             "model": {"key": "qwen_image",
                       "workflow": "workflows/qwen_image_t2i.api.json",
                       "registry": {"workflow_key": "qwen_image_t2i",
-                                   "workflow_version": 1,
+                                   "workflow_version": registry.get_workflow(
+                                       "qwen_image_t2i")["version"],
                                    "model_key": "qwen_image",
                                    "model_version": 1}},
             "params": CASES["qwen_image_t2i"],

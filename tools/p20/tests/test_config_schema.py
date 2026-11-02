@@ -108,6 +108,36 @@ class TestWorkflowValidation(unittest.TestCase):
         g3["extra"] = {"class_type": "LoadImage", "inputs": {"image": "x.png"}}
         self.assertNotEqual(sig, cs.structure_signature(g3))
 
+    def test_enum_values_default_must_be_in_values(self):
+        self.w["params"]["sampler"]["default"] = "not_a_sampler"
+        errs = cs.validate_workflow(self.w, root=ROOT)
+        self.assertTrue(any("不在 values 内" in e for e in errs), errs)
+
+    def test_enum_requires_values(self):
+        self.w["params"]["sampler"].pop("values")
+        errs = cs.validate_workflow(self.w, root=ROOT)
+        self.assertTrue(any("values 应为非空字符串数组" in e for e in errs), errs)
+
+    def test_values_only_allowed_on_enum(self):
+        self.w["params"]["steps"]["values"] = ["a", "b"]
+        errs = cs.validate_workflow(self.w, root=ROOT)
+        self.assertTrue(any("只有 type=enum 才允许" in e for e in errs), errs)
+
+    def test_count_reference_must_exist(self):
+        self.w["output"]["count"] = "{{NOPE}}"
+        errs = cs.validate_workflow(self.w, root=ROOT)
+        self.assertTrue(any("output.count 引用的参数不存在" in e for e in errs), errs)
+
+    def test_count_reference_must_be_int_param(self):
+        self.w["output"]["count"] = "{{SAMPLER}}"
+        errs = cs.validate_workflow(self.w, root=ROOT)
+        self.assertTrue(any("只能引用 int 参数" in e for e in errs), errs)
+
+    def test_images_must_be_int_or_template(self):
+        self.w["expect_defaults"]["images"] = "four"
+        errs = cs.validate_workflow(self.w, root=ROOT)
+        self.assertTrue(any("expect_defaults.images" in e for e in errs), errs)
+
     def test_placeholder_sites(self):
         g = _load(ROOT / self.w["graph"])
         sites = cs.placeholder_sites(g)

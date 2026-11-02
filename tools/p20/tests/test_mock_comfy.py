@@ -90,7 +90,8 @@ class TestMockComfyChain(unittest.TestCase):
         cls.wf = registry.get_workflow("qwen_image_t2i")
         cls.model = registry.get_model("qwen_image")
         cls.params = {"prompt": "a red apple on a wooden table", "neg_prompt": "blur",
-                      "seed": 42, "width": 1024, "height": 1024, "steps": 20, "cfg": 2.5}
+                      "seed": 42, "width": 1024, "height": 1024, "steps": 20, "cfg": 2.5,
+                      "sampler": "euler", "scheduler": "simple", "batch_size": 1}
         cls.graph, cls.meta = render.render(cls.wf, cls.model, cls.params, "mock-job")
 
     @classmethod

@@ -304,6 +304,13 @@ def verify_job(job: dict, artifacts_dir: Path, workflow_path: Path | None = None
     if not files:
         return {"verdict": "FAIL", "reason": "artifacts 目录为空", "files": []}
 
+    # 多图作业（batch>1）：张数必须与 expect.images 一致，否则是 fetch 漏拉
+    want = expect.get("images")
+    if isinstance(want, int) and not isinstance(want, bool) and want != len(files):
+        return {"verdict": "FAIL",
+                "reason": f"产物张数不符：expect.images={want}，实际 {len(files)}",
+                "files": [p.name for p in files], "expect_images": want}
+
     kind = "image" if files[0].suffix.lower() != ".mp4" else "video"
     results = [verify_file(f, expect, job, workflow, kind, wf_config) for f in files]
     all_pass = all(r["verdict"] == "PASS" for r in results)

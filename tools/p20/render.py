@@ -197,6 +197,20 @@ def check_params(job: dict, graph: dict, wf: dict) -> tuple[bool | None, dict]:
     return ok, {"compared": compared, "skipped": skipped, "diffs": diffs, "warnings": warns}
 
 
+def _resolve_count(spec, params: dict) -> int | None:
+    """{{BATCH_SIZE}} → params["batch_size"]；int 原样返回；解析不了返回 None。"""
+    if isinstance(spec, bool):
+        return None
+    if isinstance(spec, int):
+        return spec
+    if isinstance(spec, str):
+        m = re.fullmatch(r"\{\{([A-Z0-9_]+)\}\}", spec)
+        if m:
+            v = params.get(m.group(1).lower())
+            return int(v) if isinstance(v, int) and not isinstance(v, bool) else None
+    return None
+
+
 def expect_for(wf: dict, params: dict) -> dict:
     """由工作流默认期望 + 解析后的尺寸/帧数，生成 job.json 的 expect。"""
     exp = dict(wf.get("expect_defaults") or {})
@@ -205,6 +219,18 @@ def expect_for(wf: dict, params: dict) -> dict:
             exp[k] = [params[k]]
     out = wf.get("output") or {}
     exp.setdefault("ext", out.get("ext", "mp4"))
+
+    # 多图：expect.images 或 output.count 可以是 {{PARAM}}，这里解析成具体张数
+    if "images" in exp:
+        n = _resolve_count(exp["images"], params)
+        if n is None:
+            exp.pop("images", None)
+        else:
+            exp["images"] = n
+    if "images" not in exp and "count" in out:
+        n = _resolve_count(out["count"], params)
+        if n is not None:
+            exp["images"] = n
     if wf.get("kind") == "video" and "freeze" not in exp:
         exp["freeze"] = {"ratio_max": 0.20, "longest_max_s": 1.0}
     return exp
