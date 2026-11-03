@@ -1,0 +1,47 @@
+{
+  "kind": "image",
+  "task_ref": "P2.1-M4-polish",
+  "model": {
+    "key": "sdxl_juggernaut",
+    "workflow": "workflows/detail_polish.api.json",
+    "checkpoint": "juggernautXL_v8Rundiffusion_V8.safetensors",
+    "workflow_sha256": "112e6eacedbd3d5eac11e77baf8b452c344a15ccd940385ca20a02616f8b0f06",
+    "registry": {
+      "workflow_key": "detail_polish",
+      "workflow_version": 1,
+      "model_key": "sdxl_juggernaut",
+      "model_version": 1,
+      "compat": "experimental",
+      "compat_basis": "unverified",
+      "setup_need": "all",
+      "graph_sha256": "112e6eacedbd3d5eac11e77baf8b452c344a15ccd940385ca20a02616f8b0f06"
+    }
+  },
+  "params": {
+    "cfg": 6.0,
+    "denoise": 0.25,
+    "image": "in-ff45f4b6.png",
+    "neg_prompt": "blurry, lowres, deformed, watermark",
+    "prompt": "detailed skin texture, sharp eyes, natural light",
+    "sampler": "dpmpp_2m",
+    "scheduler": "karras",
+    "seed": 9,
+    "steps": 25,
+    "upscale_model": "4x-UltraSharp.pth"
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "min_bytes": 20000
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

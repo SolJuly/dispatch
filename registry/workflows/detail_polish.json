@@ -1,0 +1,163 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "detail_polish",
+  "name": "细节增强 / 面部修复（降级方案）",
+  "version": 1,
+  "kind": "image",
+  "engine": "comfyui",
+  "graph": "workflows/detail_polish.api.json",
+  "model": {
+    "key": "sdxl_juggernaut",
+    "slots": {
+      "ckpt": {
+        "node": "ckpt",
+        "input": "ckpt_name"
+      }
+    }
+  },
+  "params": {
+    "seed": {
+      "type": "int",
+      "required": true,
+      "bindings": [
+        {
+          "node": "ks",
+          "input": "seed"
+        }
+      ]
+    },
+    "steps": {
+      "type": "int",
+      "default": 25,
+      "min": 1,
+      "max": 60,
+      "bindings": [
+        {
+          "node": "ks",
+          "input": "steps"
+        }
+      ]
+    },
+    "cfg": {
+      "type": "float",
+      "default": 6.0,
+      "min": 0.0,
+      "max": 30.0,
+      "bindings": [
+        {
+          "node": "ks",
+          "input": "cfg"
+        }
+      ]
+    },
+    "sampler": {
+      "type": "enum",
+      "default": "dpmpp_2m",
+      "values": [
+        "euler",
+        "euler_ancestral",
+        "dpmpp_2m",
+        "dpmpp_2m_sde",
+        "uni_pc"
+      ],
+      "bindings": [
+        {
+          "node": "ks",
+          "input": "sampler_name"
+        }
+      ]
+    },
+    "scheduler": {
+      "type": "enum",
+      "default": "karras",
+      "values": [
+        "simple",
+        "normal",
+        "karras",
+        "beta"
+      ],
+      "bindings": [
+        {
+          "node": "ks",
+          "input": "scheduler"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "load",
+          "input": "image"
+        }
+      ]
+    },
+    "prompt": {
+      "type": "string",
+      "default": "detailed skin texture, sharp eyes, natural light",
+      "bindings": [
+        {
+          "node": "pos",
+          "input": "text"
+        }
+      ]
+    },
+    "neg_prompt": {
+      "type": "string",
+      "default": "blurry, lowres, deformed, watermark",
+      "bindings": [
+        {
+          "node": "neg",
+          "input": "text"
+        }
+      ]
+    },
+    "denoise": {
+      "type": "float",
+      "default": 0.25,
+      "min": 0.1,
+      "max": 0.5,
+      "bindings": [
+        {
+          "node": "ks",
+          "input": "denoise"
+        }
+      ],
+      "description": "细节增强强度；太大会改变长相"
+    },
+    "upscale_model": {
+      "type": "string",
+      "default": "4x-UltraSharp.pth",
+      "bindings": [
+        {
+          "node": "up",
+          "input": "model_name"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "save",
+    "input": "filename_prefix",
+    "kind": "image",
+    "ext": "png",
+    "pick": [
+      "images"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "png",
+    "min_bytes": 20000,
+    "black_ratio_max": 0.5
+  },
+  "limits": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "P2.1 5.4：无 Impact Pack（无 FaceDetailer），用低 denoise 重绘 + 4x 放大近似「细节增强/面部修复」；真 FaceDetailer 留到 P2.2 装节点后替换。"
+}

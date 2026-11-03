@@ -34,6 +34,10 @@ for a in spec:
     except Exception:
         res[key] = {'ok': False, 'why': 'loader/input 不存在: %s.%s' % (loader, inp)}
         continue
+    # 新版 ComfyUI：combo 输入写成 ["COMBO", {"options": [...], ...}]
+    if isinstance(vals, str) and vals == 'COMBO':
+        meta = oi[loader]['input']['required'][inp][1] if len(oi[loader]['input']['required'][inp]) > 1 else {}
+        vals = (meta or {}).get('options') or []
     if not isinstance(vals, list):
         vals = [vals]
     if 'equals' in rule:

@@ -291,6 +291,12 @@ def _make_spec(r: dict, *, job_key: str, task_ref: str | None) -> dict:
     }
 
 
+def _pick_job_id(out: str) -> str:
+    """jobctl 会先打印"同参数作业"的历史 id，最后一个才是本次新建的。"""
+    ids = JOB_ID_RE.findall(out or "")
+    return ids[-1] if ids else ""
+
+
 def cmd_new(a) -> int:
     params = _load_params(a.params, a.set)
     schema = {}
@@ -327,10 +333,9 @@ def cmd_new(a) -> int:
     print(out.strip())
     if p.returncode != 0:
         _die(f"jobctl new 失败（rc={p.returncode}）")
-    m = JOB_ID_RE.search(out)
-    if not m:
+    jid = _pick_job_id(out)
+    if not jid:
         _die("未从 jobctl 输出解析到 job_id")
-    jid = m.group(0)
     if not a.run:
         print(f"\n下一步：python3 tools/p1/run.py {jid} --gpu {spec['instance']['required_gpu'][0]}")
         return 0

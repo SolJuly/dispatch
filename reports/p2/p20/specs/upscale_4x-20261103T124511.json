@@ -1,0 +1,38 @@
+{
+  "kind": "image",
+  "task_ref": "P2.1-M4-upscale",
+  "model": {
+    "key": "upscale_ultrasharp",
+    "workflow": "workflows/upscale_4x.api.json",
+    "checkpoint": "4x-UltraSharp.pth",
+    "workflow_sha256": "3da3930c4641e9169a827ba232682509c3fe78b5494c754f12a12979920c7005",
+    "registry": {
+      "workflow_key": "upscale_4x",
+      "workflow_version": 1,
+      "model_key": "upscale_ultrasharp",
+      "model_version": 1,
+      "compat": "experimental",
+      "compat_basis": "unverified",
+      "setup_need": "all",
+      "graph_sha256": "3da3930c4641e9169a827ba232682509c3fe78b5494c754f12a12979920c7005"
+    }
+  },
+  "params": {
+    "image": "in-ff45f4b6.png"
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "min_bytes": 200000
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

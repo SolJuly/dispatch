@@ -1,0 +1,26 @@
+{
+  "schema": "p20.model/v1",
+  "key": "upscale_ultrasharp",
+  "name": "4x-UltraSharp 放大模型",
+  "version": 1,
+  "kind": "image",
+  "family": "upscaler",
+  "primary": "up",
+  "files": {
+    "up": {
+      "name": "4x-UltraSharp.pth",
+      "loader": "UpscaleModelLoader",
+      "input": "model_name",
+      "match": {
+        "equals": "4x-UltraSharp.pth"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  },
+  "notes": "M0 盘点确认：upscale_models/4x-UltraSharp.pth。"
+}

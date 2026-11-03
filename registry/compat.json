@@ -3,6 +3,17 @@
   "note": "只记录人工确认的 verified / incompatible。equivalent 由「同模型文件 + 同图结构」自动推导；其余一律 experimental（默认拒绝执行）。",
   "entries": [
     {
+      "workflow": "detail_polish",
+      "model": "sdxl_juggernaut",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261103T1247-30c13c"
+      ],
+      "verified_at": "2026-11-03",
+      "notes": "低 denoise 0.25 重绘 + 4x 放大：768x1024 → 3072x4096，细节清晰，PASS"
+    },
+    {
       "workflow": "h3_t2v_121f",
       "model": "h3",
       "status": "verified",
@@ -69,6 +80,28 @@
       ],
       "verified_at": "2026-11-03",
       "notes": "M1 D2 首次真机：batch=2 两张 1024²，26s 推理，DONE+双 PASS，质量人工验收通过"
+    },
+    {
+      "workflow": "sdxl_t2i_lora",
+      "model": "sdxl_juggernaut",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261103T1252-d9b765"
+      ],
+      "verified_at": "2026-11-03",
+      "notes": "A/B 同 seed 同 prompt：strength 0 vs 1.2，PSNR 13.5dB / SSIM 0.33，LoRA 明显生效（厚涂）；对照作业 p1-20261103T1250-5a78db"
+    },
+    {
+      "workflow": "upscale_4x",
+      "model": "upscale_ultrasharp",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261103T1259-551e20"
+      ],
+      "verified_at": "2026-11-03",
+      "notes": "768x1024 → 3072x4096，13.2MB，PASS；修复 COMBO 选项解析后资产可见"
     },
     {
       "workflow": "wan21_i2v_480p",
