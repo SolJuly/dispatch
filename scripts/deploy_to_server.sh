@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# 把控制台部署到独立服务器（从开发机执行）。
+#
+#   bash scripts/deploy_to_server.sh --check                 # 只体检目标机
+#   bash scripts/deploy_to_server.sh                         # B 模式：传包 + 安装 + 验证
+#   HOST=1.2.3.4 SSH_PORT=22 KEY=... bash scripts/deploy_to_server.sh
+#
+# 需要：目标机 root 已授权本机公钥（.compshare/ssh/p21_deploy_ed25519.pub），
+#       安全组放行 80（部署后再放行 443 上证书）。
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+HOST=${HOST:?请设置 HOST=服务器IP}
+SSH_USER=${SSH_USER:-root}
+SSH_PORT=${SSH_PORT:-22}
+KEY=${KEY:-.compshare/ssh/p21_deploy_ed25519}
+REMOTE_DIR=${REMOTE_DIR:-/root/智云视频工作流}
+BUNDLE=${BUNDLE:-$(ls -t dist/p21-deploy-*.tar.gz 2>/dev/null | head -1 || true)}
+CHECK=0
+[[ "${1:-}" == "--check" ]] && CHECK=1
+
+SSH_OPTS=(-p "$SSH_PORT" -i "$KEY" -o BatchMode=yes -o ConnectTimeout=10
+          -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$HOME/.ssh/p21_known_hosts")
+ssh_() { ssh "${SSH_OPTS[@]}" "$SSH_USER@$HOST" "$@"; }
+scp_() { scp -P "$SSH_PORT" -i "$KEY" -o BatchMode=yes -o ConnectTimeout=10 \
+             -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$HOME/.ssh/p21_known_hosts" "$@"; }
+
+say() { printf '\033[36m==>\033[0m %s\n' "$*"; }
+
+say "连通性"
+ssh_ 'echo "  target: $(hostname)  $(. /etc/os-release; echo "$PRETTY_NAME")"' || {
+  echo "✗ SSH 不通：确认公钥已加到 $SSH_USER@$HOST 的 ~/.ssh/authorized_keys，端口 $SSH_PORT 放行" >&2
+  exit 1
+}
+
+if [ "$CHECK" = 1 ]; then
+  say "目标机体检（只读）"
+  ssh_ 'bash -s -- --check' < deploy/remote/install_cs.sh || true
+  exit 0
+fi
+
+[ -n "$BUNDLE" ] && [ -f "$BUNDLE" ] || { echo "✗ 找不到部署包，先跑 bash scripts/deploy_bundle.sh" >&2; exit 1; }
+TOKEN=$(cat .share_token)
+say "上传 $(basename "$BUNDLE")（$(du -h "$BUNDLE" | cut -f1)）"
+scp_ "$BUNDLE" "$SSH_USER@$HOST:/root/_p21_deploy.tar.gz"
+scp_ deploy/remote/install_cs.sh "$SSH_USER@$HOST:/root/_p21_install.sh"
+scp_ .share_token "$SSH_USER@$HOST:/root/_p21_token"
+
+say "解包到 $REMOTE_DIR"
+ssh_ "set -e; mkdir -p '$REMOTE_DIR'; tar xzf /root/_p21_deploy.tar.gz -C '$REMOTE_DIR'; \
+      install -m 600 /root/_p21_token '$REMOTE_DIR/.share_token'; \
+      rm -f /root/_p21_deploy.tar.gz /root/_p21_token; \
+      ls '$REMOTE_DIR/fileserver.py' '$REMOTE_DIR/.share_token'"
+
+say "安装服务（systemd + nginx）"
+ssh_ "bash /root/_p21_install.sh --dir '$REMOTE_DIR' --token-file '$REMOTE_DIR/.share_token'" \
+  < /dev/null || { echo "✗ 远程安装失败（见上）" >&2; exit 1; }
+
+say "公网验证"
+for p in "api/p2/version" "app/create" "api/p2/jobs"; do
+  printf '  %-20s ' "$p"
+  curl -s -o /dev/null -m 10 -w '%{http_code}\n' "http://$HOST/files/$TOKEN/$p" || echo "unreachable"
+done
+echo
+echo "  控制台：http://$HOST/files/$TOKEN/"
+echo "  版本  ：http://$HOST/files/$TOKEN/api/p2/version"
+echo "  若公网 404：安全组放行 80 端口（当前只有 22 可达）"
