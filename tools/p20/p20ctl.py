@@ -36,6 +36,7 @@ from tools.p20 import registry, render  # noqa: E402
 JOBCTL = ROOT / "tools" / "p1" / "jobctl.py"
 RUNNER = ROOT / "tools" / "p1" / "run.py"
 SPEC_DIR = ROOT / "reports" / "p2" / "p20" / "specs"
+INPUTS_DIR = ROOT / "reports" / "p2" / "p21" / "inputs"
 JOB_ID_RE = re.compile(r"p1-\d{8}T\d{4}-[0-9a-f]{6}")
 
 
@@ -228,8 +229,34 @@ def cmd_resolve(a) -> int:
     return 0
 
 
+def _normalize_image(params: dict) -> dict:
+    """把本地图片归一成「实例 input/ 下的文件名」。
+
+    实现：按内容哈希命名，复制到 reports/p2/p21/inputs/<name>；
+    params.image 只留文件名（参与渲染与 params_hash），不额外塞参数键
+    （registry 的参数契约是严格校验的，多一个键就会被拒）。
+    """
+    raw = params.get("image")
+    if not isinstance(raw, str) or not raw:
+        return params
+    p = Path(raw)
+    if not p.is_absolute():
+        p = ROOT / raw
+    if not p.is_file():
+        return params
+    import hashlib
+    import shutil
+    h = hashlib.sha256(p.read_bytes()).hexdigest()[:8]
+    name = f"in-{h}{p.suffix.lower() or '.png'}"
+    INPUTS_DIR.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(p, INPUTS_DIR / name)
+    params["image"] = name
+    return params
+
+
 def _make_spec(r: dict, *, job_key: str, task_ref: str | None) -> dict:
     wf, model = r["workflow"], r["model"]
+    r["params"] = _normalize_image(dict(r["params"]))
     slots = (wf.get("model") or {}).get("slots") or {}
     files = model.get("files") or {}
     primary = model.get("primary") or next(iter(slots))

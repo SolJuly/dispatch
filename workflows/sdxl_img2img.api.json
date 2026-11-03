@@ -1,0 +1,111 @@
+{
+  "ckpt": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "juggernautXL_v8Rundiffusion_V8.safetensors"
+    }
+  },
+  "load": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{IMAGE}}",
+      "upload": "image"
+    }
+  },
+  "scale": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": [
+        "load",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "width": 1024,
+      "height": 1024,
+      "crop": "disabled"
+    }
+  },
+  "enc": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "scale",
+        0
+      ],
+      "vae": [
+        "ckpt",
+        2
+      ]
+    }
+  },
+  "pos": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "{{PROMPT}}",
+      "clip": [
+        "ckpt",
+        1
+      ]
+    }
+  },
+  "neg": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "{{NEG_PROMPT}}",
+      "clip": [
+        "ckpt",
+        1
+      ]
+    }
+  },
+  "ks": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": "{{SEED}}",
+      "steps": 25,
+      "cfg": 6.0,
+      "sampler_name": "{{SAMPLER}}",
+      "scheduler": "{{SCHEDULER}}",
+      "denoise": "{{DENOISE}}",
+      "model": [
+        "ckpt",
+        0
+      ],
+      "positive": [
+        "pos",
+        0
+      ],
+      "negative": [
+        "neg",
+        0
+      ],
+      "latent_image": [
+        "enc",
+        0
+      ]
+    }
+  },
+  "dec": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "ks",
+        0
+      ],
+      "vae": [
+        "ckpt",
+        2
+      ]
+    }
+  },
+  "save": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "{{OUTPUT_PREFIX}}",
+      "images": [
+        "dec",
+        0
+      ]
+    }
+  }
+}

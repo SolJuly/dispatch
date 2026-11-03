@@ -38,6 +38,17 @@
       "notes": "Qwen-Image 1024×1024 实跑 PASS，成本 ¥0.0681"
     },
     {
+      "workflow": "sdxl_img2img",
+      "model": "sdxl_juggernaut",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261103T1137-f17e27"
+      ],
+      "verified_at": "2026-11-03",
+      "notes": "M2 首次真机：原图上传→ImageScale→VAEEncode→denoise 0.55，27s PASS，构图保持、光线按 prompt 改变"
+    },
+    {
       "workflow": "sdxl_t2i",
       "model": "sdxl_juggernaut",
       "status": "verified",

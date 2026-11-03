@@ -55,3 +55,6 @@ registry/registry.db-shm
 
 # P2.1 连测产物（44 张 PNG 约 48MB，已发布到 /pub/bench/，不入库）
 reports/p2/p21/bench/
+
+# P2.1 输入图副本（按内容哈希命名，可由原图重建）
+reports/p2/p21/inputs/

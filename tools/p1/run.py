@@ -168,6 +168,18 @@ SCP_TIMEOUT = 300      # 单文件 5 分钟：100MB@10MB/s 只需 10s，留足�
 SCP_RETRY = 2          # 失败重试次数（网络抖动很常见）
 
 
+def _scp_put(host: str, port: str, password: str, local: Path, remote: str,
+             timeout: int = 180) -> bool:
+    """把本地文件推到实例（img2img / inpaint 的输入图）。"""
+    cmd = ["sshpass", "-p", password, "scp", "-q", "-P", str(port),
+           "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+           str(local), f"root@{host}:{remote}"]
+    p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    if p.returncode != 0:
+        _say(f"  scp 上传失败：{(p.stderr or '')[:160]}")
+    return p.returncode == 0
+
+
 def _scp_get(host: str, port: str, password: str, remote: str, local: Path,
              timeout: int = SCP_TIMEOUT, retries: int = SCP_RETRY) -> bool:
     """scp 拉单个文件。失败会重试；仍失败返回 False（由调用方决定状态）。"""
@@ -420,6 +432,17 @@ def step_submit(job: dict, opts, ctx: dict) -> None:
         graph = _render_workflow(wf, job.get("params") or {}, job["job_id"])
 
     host, port, pwd = ctx["host"], ctx["port"], ctx["password"]
+
+    # img2img / inpaint：把本地输入图推到实例 input/（job.params.image_local 由 spec 归一化写入）
+    params = job.get("params") or {}
+    remote_name = params.get("image")
+    local_path = ROOT / "reports/p2/p21/inputs" / remote_name if remote_name else None
+    if local_path is not None and local_path.is_file():
+        _ssh_run(host, port, pwd, "mkdir -p /root/ComfyUI/input", timeout=60)
+        if not _scp_put(host, port, pwd, local_path, f"/root/ComfyUI/input/{remote_name}"):
+            raise RunError(f"输入图上传失败：{remote_name}", state.FAILED_RUN)
+        _say(f"输入图已上传：{remote_name}")
+
     payload = json.dumps({"prompt": graph, "client_id": "p1"}, ensure_ascii=False)
     cmd = ("source /root/miniconda3/bin/activate && python3 -c \""
            "import json,sys,urllib.request;"
