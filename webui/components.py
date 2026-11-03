@@ -32,6 +32,19 @@ def compat_badge(status: str) -> str:
 def _input(name: str, spec: dict, value) -> str:
     typ = spec.get("type")
     attrs = f'data-param="{esc(name)}"'
+    if typ == "image" and name == "mask":
+        return (
+            f'<div class="maskwrap"><canvas class="maskcanvas" data-mask="{esc(name)}" '
+            f'width="512" height="512"></canvas></div>'
+            f'<div class="row" style="margin-top:6px">'
+            f'<span class="hint">笔刷</span>'
+            f'<input type="range" data-mask-size min="6" max="80" value="28" style="width:120px">'
+            f'<button class="btn" type="button" data-mask-clear>清空</button>'
+            f'<button class="btn" type="button" data-mask-invert>反选</button>'
+            f'<span class="hint" data-mask-state>白色=重绘区域</span></div>'
+            f'<input type="file" data-upload="{esc(name)}" accept="image/png" style="margin-top:6px">'
+            f'<input type="hidden" {attrs} value="{esc(value or "")}">'
+            f'<div class="hint" data-preview="{esc(name)}">也可以直接上传黑白蒙版 PNG</div>')
     if typ == "image":
         return (f'<input type="file" data-upload="{esc(name)}" accept="image/png,image/jpeg,image/webp">'
                 f'<input type="hidden" {attrs} value="{esc(value or "")}">'

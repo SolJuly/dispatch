@@ -435,13 +435,17 @@ def step_submit(job: dict, opts, ctx: dict) -> None:
 
     # img2img / inpaint：把本地输入图推到实例 input/（job.params.image_local 由 spec 归一化写入）
     params = job.get("params") or {}
-    remote_name = params.get("image")
-    local_path = ROOT / "reports/p2/p21/inputs" / remote_name if remote_name else None
-    if local_path is not None and local_path.is_file():
-        _ssh_run(host, port, pwd, "mkdir -p /root/ComfyUI/input", timeout=60)
+    _ssh_run(host, port, pwd, "mkdir -p /root/ComfyUI/input", timeout=60)
+    for key in ("image", "mask"):
+        remote_name = params.get(key)
+        if not remote_name:
+            continue
+        local_path = ROOT / "reports/p2/p21/inputs" / remote_name
+        if not local_path.is_file():
+            continue
         if not _scp_put(host, port, pwd, local_path, f"/root/ComfyUI/input/{remote_name}"):
-            raise RunError(f"输入图上传失败：{remote_name}", state.FAILED_RUN)
-        _say(f"输入图已上传：{remote_name}")
+            raise RunError(f"输入文件上传失败：{remote_name}", state.FAILED_RUN)
+        _say(f"输入已上传：{key}={remote_name}")
 
     payload = json.dumps({"prompt": graph, "client_id": "p1"}, ensure_ascii=False)
     cmd = ("source /root/miniconda3/bin/activate && python3 -c \""

@@ -236,21 +236,22 @@ def _normalize_image(params: dict) -> dict:
     params.image 只留文件名（参与渲染与 params_hash），不额外塞参数键
     （registry 的参数契约是严格校验的，多一个键就会被拒）。
     """
-    raw = params.get("image")
-    if not isinstance(raw, str) or not raw:
-        return params
-    p = Path(raw)
-    if not p.is_absolute():
-        p = ROOT / raw
-    if not p.is_file():
-        return params
     import hashlib
     import shutil
-    h = hashlib.sha256(p.read_bytes()).hexdigest()[:8]
-    name = f"in-{h}{p.suffix.lower() or '.png'}"
-    INPUTS_DIR.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(p, INPUTS_DIR / name)
-    params["image"] = name
+    for key in ("image", "mask"):
+        raw = params.get(key)
+        if not isinstance(raw, str) or not raw:
+            continue
+        p = Path(raw)
+        if not p.is_absolute():
+            p = ROOT / raw
+        if not p.is_file():
+            continue
+        h = hashlib.sha256(p.read_bytes()).hexdigest()[:8]
+        name = f"in-{h}{p.suffix.lower() or '.png'}"
+        INPUTS_DIR.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(p, INPUTS_DIR / name)
+        params[key] = name
     return params
 
 

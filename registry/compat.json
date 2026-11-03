@@ -49,6 +49,17 @@
       "notes": "M2 首次真机：原图上传→ImageScale→VAEEncode→denoise 0.55，27s PASS，构图保持、光线按 prompt 改变"
     },
     {
+      "workflow": "sdxl_inpaint",
+      "model": "sdxl_juggernaut",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261103T1219-b2df1a"
+      ],
+      "verified_at": "2026-11-03",
+      "notes": "M3 首次真机：底图+蒙版(白框+模糊16) denoise 0.85，24s PASS；蒙版外平均差 1.17/255、蒙版内 69.4/255"
+    },
+    {
       "workflow": "sdxl_t2i",
       "model": "sdxl_juggernaut",
       "status": "verified",

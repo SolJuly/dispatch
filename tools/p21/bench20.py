@@ -82,13 +82,16 @@ def sha256(p: Path) -> str:
 
 
 class Bench:
-    def __init__(self, wf_key: str, model_key: str, n: int, gpu: str, image: str = ""):
+    def __init__(self, wf_key: str, model_key: str, n: int, gpu: str, image: str = "",
+                 mask: str = ""):
         self.wf = p20registry.get_workflow(wf_key)
         self.model = p20registry.get_model(model_key)
         self.wf_key, self.model_key = wf_key, model_key
         self.n, self.gpu = n, gpu
         self.image = image
+        self.mask = mask
         self.img_name = ""
+        self.mask_name = ""
         self.ctx: dict = {}
         self.hourly = 0.0
         self.uid = ""
@@ -125,13 +128,16 @@ class Bench:
         print(f"[2] ssh 就绪 {host}")
         p1run.run_setup(self.uid, "all", self.ctx)
         if self.image:
-            from tools.p20 import p20ctl as _p20ctl
-            self.img_name = _p20ctl._normalize_image({"image": self.image})["image"]
             local = ROOT / "reports/p2/p21/inputs" / self.img_name
             p1run._ssh_run(host, port, pwd, "mkdir -p /root/ComfyUI/input", timeout=60)
             if not p1run._scp_put(host, port, pwd, local, f"/root/ComfyUI/input/{self.img_name}"):
                 raise SystemExit(f"输入图上传失败：{self.img_name}")
             print(f"[2.5] 输入图已上传 {self.img_name}")
+        if self.mask:
+            local = ROOT / "reports/p2/p21/inputs" / self.mask_name
+            if not p1run._scp_put(host, port, pwd, local, f"/root/ComfyUI/input/{self.mask_name}"):
+                raise SystemExit(f"蒙版上传失败：{self.mask_name}")
+            print(f"[2.6] 蒙版已上传 {self.mask_name}")
         threading.Thread(target=self._vram_loop, daemon=True).start()
 
     def _vram_loop(self) -> None:
@@ -196,31 +202,53 @@ class Bench:
             time.sleep(2)
         raise RuntimeError(f"超时 {limit_s}s")
 
+    def _params(self, idx: int, prompt: str, w: int, h: int, *, seed=None,
+                batch: int = 1, denoise=None) -> dict:
+        """按工作流实际声明的参数构造 params（严格契约，多一个键都会被拒）。"""
+        spec = self.wf.get("params") or {}
+        params = {"prompt": prompt, "neg_prompt": "blurry, lowres, watermark, text artifacts",
+                  "seed": seed if seed is not None else 1, "steps": 20, "cfg": 2.5,
+                  "sampler": "euler", "scheduler": "simple"}
+        if "width" in spec:
+            params["width"] = w
+        if "height" in spec:
+            params["height"] = h
+        if "denoise" in spec:
+            if self.img_name:
+                params["denoise"] = denoise if denoise is not None else [0.35, 0.55, 0.75][(idx - 1) % 3]
+            elif self.mask_name:
+                params["denoise"] = denoise if denoise is not None else [0.7, 0.85, 0.95][(idx - 1) % 3]
+            else:
+                params["denoise"] = denoise if denoise is not None else 0.85
+        if "batch_size" in spec:
+            params["batch_size"] = batch
+        if self.img_name:
+            params["image"] = self.img_name
+        if self.mask_name:
+            params["mask"] = self.mask_name
+        if self.wf_key == "sdxl_t2i":
+            params.update({"steps": 25, "cfg": 6.0, "sampler": "dpmpp_2m", "scheduler": "karras"})
+        return params
+
+    def prepare(self) -> None:
+        """本地归一化输入图/蒙版（不需要实例）。"""
+        from tools.p20 import p20ctl as _p20ctl
+        if self.image:
+            self.img_name = _p20ctl._normalize_image({"image": self.image})["image"]
+        if self.mask:
+            self.mask_name = _p20ctl._normalize_image({"mask": self.mask})["mask"]
+
+    def preflight(self) -> None:
+        """不起机先做参数/渲染预检，避免为契约错误付开机费。"""
+        for i, (cat, prompt, w, h) in enumerate(CASES[:5], 1):
+            params = self._params(i, prompt, w, h, seed=1)
+            p20render.render_job(self._job(params, f"pre-{i:02d}"))
+
     def run_case(self, idx: int, cat: str, prompt: str, w: int, h: int,
                  seed: int | None = None, tag: str = "", prefix: str = "",
                  batch: int = 1, denoise: float | None = None) -> dict:
         seed = seed if seed is not None else random.SystemRandom().randint(1, 2**31 - 1)
-        params = {"prompt": prompt, "neg_prompt": "blurry, lowres, watermark, text artifacts",
-                  "seed": seed, "width": w, "height": h, "steps": 20, "cfg": 2.5,
-                  "sampler": "euler", "scheduler": "simple"}
-        if "batch_size" in (self.wf.get("params") or {}):
-            params["batch_size"] = batch
-        if self.img_name:
-            params["image"] = self.img_name
-            params["denoise"] = denoise if denoise is not None else [0.35, 0.55, 0.75][(idx - 1) % 3]
-        if self.wf_key == "sdxl_t2i":
-            params.update({"steps": 25, "cfg": 6.0, "sampler": "dpmpp_2m", "scheduler": "karras"})
-        # 按模型约束夹紧尺寸（如 SDXL 上限 1536），避免个别 case 把整轮打断
-        cons = (self.model or {}).get("constraints") or {}
-        for k, v in (("width", w), ("height", h)):
-            c = cons.get(k) or {}
-            mult = int(c.get("multiple") or 8)
-            v = max(int(c.get("min") or 256), min(int(c.get("max") or 2048), v))
-            if k == "width":
-                w = v - v % mult
-            else:
-                h = v - v % mult
-        params.update({"width": w, "height": h})
+        params = self._params(idx, prompt, w, h, seed=seed, batch=batch, denoise=denoise)
 
         prefix = prefix or f"bench{tag}-{idx:02d}"
         job = self._job(params, prefix)
@@ -290,7 +318,8 @@ def main() -> int:
     ap.add_argument("--model", default="qwen_image")
     ap.add_argument("--n", type=int, default=20)
     ap.add_argument("--gpu", default="4090")
-    ap.add_argument("--image", default="", help="img2img 的输入图（本地路径）")
+    ap.add_argument("--image", default="", help="img2img/inpaint 的输入图（本地路径）")
+    ap.add_argument("--mask", default="", help="inpaint 的蒙版图（本地路径）")
     ap.add_argument("--no-seed-check", action="store_true")
     ap.add_argument("--seed-only", action="store_true", help="只做 seed 复现验证")
     ap.add_argument("--batch-scan", action="store_true", help="扫描 batch×分辨率 的显存上限")
@@ -298,11 +327,15 @@ def main() -> int:
     a = ap.parse_args()
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    b = Bench(a.workflow, a.model, a.n, a.gpu, a.image)
+    b = Bench(a.workflow, a.model, a.n, a.gpu, a.image, a.mask)
     ts = dt.datetime.now().astimezone().strftime("%Y%m%dT%H%M%S")
     payload = {"schema": "p21.bench/v1", "workflow": a.workflow, "model": a.model,
                "gpu": a.gpu, "started_at": ts, "cases": []}
     try:
+        b.prepare()
+        print("[0.5] 参数/渲染预检 …")
+        b.preflight()
+        print("      通过")
         b.provision()
         if a.batch_scan:
             if a.combo:

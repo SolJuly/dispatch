@@ -67,6 +67,8 @@ border-radius:10px;font-size:13px;opacity:0;transform:translateY(8px);transition
 .cmp input[type=range]{position:absolute;left:0;right:0;bottom:8px;width:calc(100% - 16px);margin:0 8px}
 .cmp .lbl{position:absolute;top:8px;font-size:12px;background:rgba(0,0,0,.55);color:#fff;padding:2px 8px;border-radius:6px}
 .cmp .lbl.a{left:8px}.cmp .lbl.b{right:8px}
+.maskwrap{display:inline-block;background:#000;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+canvas.maskcanvas{display:block;width:100%;max-width:360px;height:auto;cursor:crosshair;touch-action:none}
 """
 
 JS = r"""
@@ -100,6 +102,46 @@ JS = r"""
     });
     return out;
   }
+  function initMask(cv){
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 28; ctx.lineCap = "round";
+    let drawing = false, dirty = false;
+    const pos = e => {
+      const r = cv.getBoundingClientRect();
+      const x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+      const y = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+      return [x * cv.width / r.width, y * cv.height / r.height];
+    };
+    const down = e => { drawing = true; dirty = true; const [x,y]=pos(e); ctx.beginPath(); ctx.moveTo(x,y); e.preventDefault(); };
+    const move = e => { if(!drawing) return; const [x,y]=pos(e); ctx.lineTo(x,y); ctx.stroke(); e.preventDefault(); };
+    const up = () => { drawing = false; };
+    ["mousedown","touchstart"].forEach(k=>cv.addEventListener(k,down,{passive:false}));
+    ["mousemove","touchmove"].forEach(k=>cv.addEventListener(k,move,{passive:false}));
+    ["mouseup","mouseleave","touchend"].forEach(k=>cv.addEventListener(k,up));
+    const wrap = cv.closest(".field");
+    const size = wrap.querySelector("[data-mask-size]");
+    if(size) size.addEventListener("input", ()=>{ ctx.lineWidth = Number(size.value); });
+    wrap.querySelector("[data-mask-clear]")?.addEventListener("click", ()=>{
+      ctx.fillStyle="#000"; ctx.fillRect(0,0,cv.width,cv.height); dirty=true; });
+    wrap.querySelector("[data-mask-invert]")?.addEventListener("click", ()=>{
+      const img = ctx.getImageData(0,0,cv.width,cv.height);
+      for(let i=0;i<img.data.length;i+=4){ const v = 255 - img.data[i];
+        img.data[i]=img.data[i+1]=img.data[i+2]=v; }
+      ctx.putImageData(img,0,0); dirty=true; });
+    cv._dirty = () => dirty;
+    return cv;
+  }
+  const masks = Array.from(document.querySelectorAll("canvas[data-mask]")).map(initMask);
+
+  function maskBlob(){
+    return new Promise(res => {
+      const cv = masks.find(c => c._dirty && c._dirty());
+      if(!cv){ res(null); return; }
+      cv.toBlob(b => res(b), "image/png");
+    });
+  }
+
   async function uploadImage(el){
     const f = (el.files || [])[0];
     if(!f) return el.closest(".field").querySelector("[data-param]").value;
@@ -171,6 +213,15 @@ JS = r"""
     const btn = $("#submit-btn"); btn.disabled = true;
     let params = collect();
     try{
+      const mb = await maskBlob();
+      if(mb){
+        const fd = new FormData(); fd.append("file", mb, "mask.png");
+        const r = await fetch(`${BASE}/api/p2/uploads`, {method:"POST", body: fd});
+        const data = await r.json();
+        if(!r.ok) throw new Error(data.error || ("HTTP "+r.status));
+        const hidden = document.querySelector('[data-param="mask"]');
+        if(hidden) hidden.value = data.name;
+      }
       for(const el of document.querySelectorAll("[data-upload]")){
         if(el.files && el.files.length) await uploadImage(el);
       }

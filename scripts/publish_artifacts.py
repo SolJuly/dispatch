@@ -48,6 +48,13 @@ def publish_one(job_dir: Path) -> dict | None:
     out.mkdir(parents=True, exist_ok=True)
     for p in files:
         shutil.copy2(p, out / p.name)
+    # img2img / inpaint：把输入图与蒙版一并发布，对比页面/追溯不依赖运行时进程
+    params = job.get("params") or {}
+    inputs_dir = ROOT / "reports/p2/p21/inputs"
+    for key, dst in (("image", "original"), ("mask", "mask")):
+        name = params.get(key)
+        if name and (inputs_dir / name).is_file():
+            shutil.copy2(inputs_dir / name, out / f"{dst}{(inputs_dir / name).suffix}")
     reg = (job.get("model") or {}).get("registry") or {}
     summary = {
         "job_id": jid, "state": job.get("state"), "kind": job.get("kind"),

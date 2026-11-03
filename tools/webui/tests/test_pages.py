@@ -47,6 +47,12 @@ class TestCreatePage(unittest.TestCase):
         self.assertIn('data-upload="image"', html)
         self.assertIn('data-param="denoise"', html)
 
+    def test_inpaint_tab_has_mask_canvas(self):
+        html = pages.create_page("/files", "tok", "sdxl_inpaint")
+        self.assertIn('data-mask="mask"', html)
+        self.assertIn("data-mask-invert", html)
+        self.assertIn("data-mask-clear", html)
+
     def test_recent_jobs_strip(self):
         html = pages.create_page("/files", "tok")
         self.assertIn("最近作业", html)
