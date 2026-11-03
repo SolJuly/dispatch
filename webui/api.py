@@ -68,15 +68,22 @@ def _workflow_key(job: dict) -> str:
 
 
 def _artifacts(job_id: str, jobs_dir: Path | None) -> list[dict]:
-    d = _jobs_dir(jobs_dir) / job_id / "artifacts"
-    if not d.is_dir():
+    """作业产物列表。
+
+    优先作业目录里的原件；只读部署（台账迁过来了、产物没迁）时回退到发布副本
+    `/srv/dsh-pub/jobs/<job_id>`，这样缩略图/下载仍然可用。
+    """
+    local = _jobs_dir(jobs_dir) / job_id / "artifacts"
+    pub = PUB_DIR / job_id
+    src = local if local.is_dir() else pub
+    if not src.is_dir():
         return []
     out = []
-    for p in sorted(d.iterdir()):
+    for p in sorted(src.iterdir()):
         if p.is_file() and p.suffix.lower() in ART_SUFFIX:
             out.append({"name": p.name, "bytes": p.stat().st_size,
                         "url": f"/pub/jobs/{job_id}/{p.name}",
-                        "published": (PUB_DIR / job_id / p.name).exists()})
+                        "published": (pub / p.name).exists()})
     return out
 
 

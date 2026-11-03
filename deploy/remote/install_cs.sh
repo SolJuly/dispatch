@@ -15,16 +15,18 @@ BASE=/files
 TOKEN_FILE=$DIR/.share_token
 NO_NGINX=0
 CHECK=0
-for a in "$@"; do
-  case "$a" in
-    --token-file=*) TOKEN_FILE="${a#*=}" ;;
-    --token-file)   shift; TOKEN_FILE="${1:-}" ;;
-    --dir=*)        DIR="${a#*=}" ;;
-    --port=*)       PORT="${a#*=}" ;;
-    --no-nginx)     NO_NGINX=1 ;;
-    --check)        CHECK=1 ;;
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --token-file=*) TOKEN_FILE="${1#*=}"; shift ;;
+    --token-file)   TOKEN_FILE="${2:-}"; shift; shift || true ;;
+    --dir=*)        DIR="${1#*=}"; shift ;;
+    --dir)          DIR="${2:-}"; shift; shift || true ;;
+    --port=*)       PORT="${1#*=}"; shift ;;
+    --port)         PORT="${2:-}"; shift; shift || true ;;
+    --no-nginx)     NO_NGINX=1; shift ;;
+    --check)        CHECK=1; shift ;;
     -h|--help)      sed -n '2,12p' "$0"; exit 0 ;;
-    *) echo "未知参数：$a" >&2; exit 2 ;;
+    *) echo "未知参数：$1" >&2; exit 2 ;;
   esac
 done
 
@@ -35,7 +37,7 @@ need() { command -v "$1" >/dev/null 2>&1 || echo "  缺少：$1"; }
 
 say "环境体检"
 [ "$(id -u)" = 0 ] || die "请用 root 执行"
-[ -f "$DIR/fileserver.py" ] || die "$DIR 里没有 fileserver.py（先把部署包解压到这里）"
+[ "$CHECK" = 1 ] || [ -f "$DIR/fileserver.py" ] || die "$DIR 里没有 fileserver.py（先把部署包解压到这里）"
 PYV=$(python3 -c 'import sys;print("%d.%d"%sys.version_info[:2])' 2>/dev/null || echo none)
 echo "  python3      : $PYV"
 python3 -c 'import sys; raise SystemExit(0 if sys.version_info>=(3,10) else 1)' 2>/dev/null \
@@ -127,11 +129,18 @@ EOF
   fi
   echo "}" >>/etc/nginx/sites-available/cs-p21
   ln -sf /etc/nginx/sites-available/cs-p21 /etc/nginx/sites-enabled/cs-p21
-  # 已有 default 站点会和我们的 default_server 冲突
+  # 已有 default 站点会和我们的 default_server 冲突。
+  # 注意：备份必须移出 sites-enabled/，否则 nginx.conf 的 include sites-enabled/* 仍会加载它，
+  # 报 "duplicate default server for 0.0.0.0:80"。
+  mkdir -p /var/backups/nginx
   if [ -e /etc/nginx/sites-enabled/default ]; then
-    mv /etc/nginx/sites-enabled/default "/etc/nginx/sites-enabled/default.disabled.$(date +%s)"
-    echo "  已停用 sites-enabled/default（备份保留）"
+    mv /etc/nginx/sites-enabled/default "/var/backups/nginx/default.disabled.$(date +%s)"
+    echo "  已停用 sites-enabled/default（备份在 /var/backups/nginx/）"
   fi
+  for f in /etc/nginx/sites-enabled/default.disabled.*; do
+    [ -e "$f" ] || continue
+    mv "$f" /var/backups/nginx/ && echo "  已移走遗留备份 $(basename "$f")"
+  done
   nginx -t || die "nginx 配置校验失败（见上）"
   systemctl reload nginx 2>/dev/null || systemctl restart nginx
   sleep 1

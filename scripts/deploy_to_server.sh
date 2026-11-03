@@ -54,16 +54,25 @@ ssh_ "set -e; mkdir -p '$REMOTE_DIR'; tar xzf /root/_p21_deploy.tar.gz -C '$REMO
       rm -f /root/_p21_deploy.tar.gz /root/_p21_token; \
       ls '$REMOTE_DIR/fileserver.py' '$REMOTE_DIR/.share_token'"
 
+if [ "${WITH_PUB:-0}" = 1 ]; then
+  say "同步 /srv/dsh-pub（产物图 + /pub 文档，约 56 MB）"
+  ssh_ "mkdir -p /srv/dsh-pub"
+  rsync -az --delete-excluded \
+    -e "ssh -p $SSH_PORT -i $KEY -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$KNOWN_HOSTS" \
+    /srv/dsh-pub/jobs /srv/dsh-pub/api /srv/dsh-pub/p20 /srv/dsh-pub/p21 \
+    "$SSH_USER@$HOST:/srv/dsh-pub/" || { echo "✗ /srv/dsh-pub 同步失败" >&2; exit 1; }
+  ssh_ "chmod -R a+rX /srv/dsh-pub"
+fi
+
 say "安装服务（systemd + nginx）"
 ssh_ "bash /root/_p21_install.sh --dir '$REMOTE_DIR' --token-file '$REMOTE_DIR/.share_token'" \
   < /dev/null || { echo "✗ 远程安装失败（见上）" >&2; exit 1; }
 
 say "公网验证"
-for p in "api/p2/version" "app/create" "api/p2/jobs"; do
+for p in "api/p2/version" "app/create" "app/jobs" "api/p2/jobs" "api/p2/registry/stats"; do
   printf '  %-20s ' "$p"
   curl -s -o /dev/null -m 10 -w '%{http_code}\n' "http://$HOST/files/$TOKEN/$p" || echo "unreachable"
 done
 echo
 echo "  控制台：http://$HOST/files/$TOKEN/"
 echo "  版本  ：http://$HOST/files/$TOKEN/api/p2/version"
-echo "  若公网 404：安全组放行 80 端口（当前只有 22 可达）"

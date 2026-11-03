@@ -236,5 +236,38 @@ class TestCreate(unittest.TestCase):
         self.assertEqual(cm.exception.code, 409)
 
 
+
+class TestArtifactFallback(unittest.TestCase):
+    """只读部署：台账有、产物没迁，缩略图回退到 /srv/dsh-pub 的发布副本。"""
+
+    JID = "p1-20260101T0000-aaaaaa"
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        base = Path(self.tmp.name)
+        self.jobs = base / "jobs"
+        self.pub = base / "pub"
+        (self.jobs / self.JID).mkdir(parents=True)
+        self._pub = api.PUB_DIR
+        api.PUB_DIR = self.pub
+
+    def tearDown(self):
+        api.PUB_DIR = self._pub
+        self.tmp.cleanup()
+
+    def test_falls_back_to_published_copy(self):
+        d = self.pub / self.JID
+        d.mkdir(parents=True)
+        (d / "01-a.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+        (d / "job-summary.json").write_text("{}", encoding="utf-8")
+        arts = api._artifacts(self.JID, self.jobs)
+        self.assertEqual([a["name"] for a in arts], ["01-a.png"])
+        self.assertTrue(arts[0]["published"])
+        self.assertEqual(arts[0]["url"], f"/pub/jobs/{self.JID}/01-a.png")
+
+    def test_empty_when_neither_side_has_files(self):
+        self.assertEqual(api._artifacts(self.JID, self.jobs), [])
+
+
 if __name__ == "__main__":
     unittest.main()
