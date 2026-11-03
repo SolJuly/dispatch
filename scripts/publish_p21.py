@@ -40,6 +40,8 @@ DOCS = [
      "两工作流各 20 条：成功率/耗时/显存/成本 + seed 复现，Qwen 显存贴边"),
     ("07-API契约与Mock.md", "07-API契约与Mock.html", "API 契约与 Mock",
      "OpenAPI 3.1 契约、Mock 用法、接口清单与前端待确认项"),
+    ("08-后端版本探测与恢复.md", "08-后端版本探测与恢复.html", "后端版本探测与线上恢复",
+     "/api/p2/version 契约、8081 泄漏进程复盘、cs-files 恢复脚本"),
 ]
 
 INDEX = """<!doctype html>

@@ -250,6 +250,42 @@ SCHEMAS = {
                       "evidence": ["p1-20261103T1219-b2df1a"],
                       "notes": "M3 首次真机：蒙版外平均差 1.17/255"}],
     },
+    "VersionInfo": {
+        "type": "object", "required": ["service", "api", "contract", "features"],
+        "properties": {
+            "service": {"type": "string"},
+            "ok": {"type": "boolean"},
+            "api": {"type": "string", "description": "后端 API 版本；P2.1 = \"p2.1\""},
+            "contract": {"type": "string", "description": "配套契约版本（与本文档同源）"},
+            "build": {"type": "object", "additionalProperties": True,
+                      "description": "commit / branch / dirty / dirty_files"},
+            "started_at": {"type": "string", "format": "date-time"},
+            "uptime_s": {"type": "integer"},
+            "pid": {"type": "integer"},
+            "bind": {"type": "string", "description": "监听地址，便于确认打的是哪个进程"},
+            "base": {"type": "string"},
+            "root": {"type": "string", "description": "分享根目录"},
+            "capabilities": {"type": "array", "items": {"type": "string"}},
+            "features": {"type": "object", "additionalProperties": {"type": "boolean"},
+                         "description": "能力表；前端按它判断能不能用某一组路由"},
+            "registry": {"type": "object", "additionalProperties": True},
+            "docs": {"type": "object", "additionalProperties": {"type": "string"}},
+        },
+        "examples": [{
+            "service": "dsh-share", "ok": True, "api": "p2.1", "contract": "openapi-3.1",
+            "build": {"commit": "3180f15", "branch": "feature-/creative-engine",
+                      "dirty": True, "dirty_files": 4},
+            "started_at": "2026-11-03T13:34:34+08:00", "uptime_s": 42, "pid": 8123,
+            "bind": "127.0.0.1:8081", "base": "/files",
+            "root": "/root/智云视频工作流/share",
+            "capabilities": ["console", "registry", "jobs", "uploads", "zip", "version"],
+            "features": {"console": True, "registry": True, "jobs": True,
+                         "uploads": True, "zip": True, "version": True},
+            "registry": {"workflows": 13, "models": 6},
+            "docs": {"openapi": "/pub/api/openapi.json",
+                     "handoff": "/pub/p21/07-API契约与Mock.html"},
+        }],
+    },
     "RegistrySummary": {
         "type": "object",
         "properties": {"workflows": {"type": "integer"}, "models": {"type": "integer"},
@@ -388,6 +424,12 @@ PATHS = {
         "get": op(oid="listEvents", tag="queue", summary="事件流（增量拉取）",
                   desc="轮询用 `since` 游标（events seq）。", resp="JobList"),
     },
+    "/api/p2/version": {
+        "get": op(oid="getVersion", tag="status", summary="后端版本与能力探测（前端启动先打）",
+                  desc="返回构建 commit、API/契约版本、features 能力表。旧后端（P2.1 之前）"
+                       "没有这条路由 → 404，前端应提示改用 Mock 或等待重新部署。",
+                  resp="VersionInfo"),
+    },
     "/api/p2/status": {
         "get": op(oid="getStatus", tag="status", summary="系统状态（队列/成本/实例数）", resp="RegistrySummary"),
     },
@@ -444,6 +486,8 @@ def build() -> dict:
             "description": (
                 "覆盖 P2 只读接口、P2.0 Registry、P2.1 图片控制台（作业/上传/下载）。\n\n"
                 "**鉴权**：token 在路径里（`/api/p2/...` 前一段），不是 Cookie/Header。\n\n"
+                "**套接字**：见 `servers`。`/files/<TOKEN>` 由 cs-files 进程提供。\n\n"
+                "**版本探测**：前端启动先打 `GET /api/p2/version`；404 就说明线上是旧后端，别继续调。\n\n"
                 "**x-status**：`implemented` = 已上线可直接联调；`planned` = 契约先定，前端先用 Mock。\n\n"
                 "**Mock**：`python3 scripts/mock_api.py` 会按本文件的 examples 起一个可写假的本地服务。\n\n"
                 "**产物 URL**：`artifact.url` 指向 `/pub/jobs/...` 静态路径，服务重启后仍可访问。"

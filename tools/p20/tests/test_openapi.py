@@ -24,6 +24,7 @@ IMPL_MARKERS = {
     "/api/p2/queue/jobs": 'rest[2:5] == ["queue", "jobs"]',
     "/api/p2/registry": "def _api_registry",
     "/api/p2/status": 'rest[1] == "status"',
+    "/api/p2/version": "def _api_version",
 }
 
 

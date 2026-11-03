@@ -25,10 +25,45 @@ https://<host>/files/<TOKEN>/api/p2/...
 
 ---
 
+## 0.1 先探测版本：`GET /api/p2/version`
+
+前端启动时**先打这条**。它返回构建标识与能力表；旧后端（P2.1 之前）没有这条路由，
+直接 404 —— 这时不要继续调其它接口，提示「线上后端是旧版本，请用 Mock 联调或等待部署」。
+
+```bash
+curl -s "https://123.207.74.155/files/<TOKEN>/api/p2/version"
+```
+
+```json
+{
+  "service": "dsh-share", "ok": true, "api": "p2.1", "contract": "openapi-3.1",
+  "build": {"commit": "3180f15", "branch": "feature-/creative-engine", "dirty": true, "dirty_files": 4},
+  "started_at": "2026-11-03T13:34:34+08:00", "uptime_s": 42, "pid": 8123,
+  "bind": "127.0.0.1:8081", "base": "/files",
+  "capabilities": ["console", "registry", "jobs", "uploads", "zip", "version"],
+  "features": {"console": true, "registry": true, "jobs": true, "uploads": true, "zip": true, "version": true},
+  "registry": {"workflows": 13, "models": 6},
+  "docs": {"openapi": "/pub/api/openapi.json", "handoff": "/pub/p21/07-API契约与Mock.html"}
+}
+```
+
+前端判定建议：
+
+```js
+const v = await fetch(`${BASE}/api/p2/version`).then(r => r.ok ? r.json() : null);
+if (!v) throw new Error("线上后端是旧版本（无 /api/p2/version），请改用 Mock");
+if (!v.features.console) throw new Error("后端缺控制台页面，请重新部署");
+```
+
+`uptime_s` 很小、`build.commit` 与预期不符时，说明进程刚被重启或跑的还是旧代码。
+
+---
+
 ## 1. 接口清单
 
 | 方法 | 路径 | 用途 |
 |---|---|---|
+| GET | `/api/p2/version` | 后端版本/能力探测（前端启动先打） |
 | GET | `/api/p2/queue` | 队列汇总 + 全部条目（轻量字段） |
 | GET | `/api/p2/jobs` | 作业列表（含判定/复验/产物） |
 | GET | `/api/p2/jobs/<job_id>` | 单作业详情 + 状态机事件 |

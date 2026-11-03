@@ -1,0 +1,55 @@
+{
+  "kind": "image",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "sdxl_juggernaut",
+    "workflow": "workflows/sdxl_t2i_lora.api.json",
+    "checkpoint": "juggernautXL_v8Rundiffusion_V8.safetensors",
+    "workflow_sha256": "ed2e6749ca86a41b1d4970cab64dbaaebcc308fbdd66319ff5788097f575d83e",
+    "registry": {
+      "workflow_key": "sdxl_t2i_lora",
+      "workflow_version": 1,
+      "model_key": "sdxl_juggernaut",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "all",
+      "graph_sha256": "ed2e6749ca86a41b1d4970cab64dbaaebcc308fbdd66319ff5788097f575d83e"
+    }
+  },
+  "params": {
+    "batch_size": 1,
+    "cfg": 6,
+    "height": 1024,
+    "lora": "Sdxl/绪儿_厚涂构图光影质感增强V3.safetensors",
+    "lora_strength": 0.8,
+    "neg_prompt": "blurry, lowres, watermark",
+    "prompt": "一个蓝色头发女生坐在台阶上，微笑看着镜头",
+    "sampler": "dpmpp_2m",
+    "scheduler": "karras",
+    "seed": 569996947,
+    "steps": 25,
+    "width": 1024
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "min_bytes": 20000,
+    "width": [
+      1024
+    ],
+    "height": [
+      1024
+    ]
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

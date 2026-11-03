@@ -57,11 +57,21 @@ def _wf_picker(base: str, token: str, workflows: list[dict], current: str) -> st
 
 def create_page(base: str, token: str, workflow: str = "") -> str:
     wfs = api.image_workflows()
-    aliases = {"t2i": next((w["key"] for w in wfs if "img2img" not in w["key"]), ""),
-               "i2i": next((w["key"] for w in wfs if "img2img" in w["key"]), "")}
-    workflow = aliases.get(workflow, workflow)
-    wfs = ([w for w in wfs if "img2img" in w["key"] or True] if workflow else wfs)
-    if not wfs:
+
+    def _has(w: dict, name: str) -> bool:
+        return name in (w.get("params") or {})
+
+    # 用参数契约判断页签，而不是 key 里有没有 "img2img"：
+    # M4 加了 detail_polish/upscale 之后，"第一个不含 img2img 的" 会落到细节增强上，
+    # 文生图页签就显示错模型了。
+    aliases: dict[str, str] = {}
+    if wfs:
+        t2i = next((w["key"] for w in wfs if not _has(w, "image")), wfs[0]["key"])
+        i2i = next((w["key"] for w in wfs if _has(w, "image") and not _has(w, "mask")),
+                   wfs[0]["key"])
+        aliases = {"t2i": t2i, "i2i": i2i}
+        workflow = aliases.get(workflow or "", workflow) or t2i
+    else:
         body = '<div class="card"><p class="empty">还没有 image 类工作流，先跑 <code>p20ctl import</code>。</p></div>'
         return shell(base, token, "/app/create", "创作台", body)
     wf = next((w for w in wfs if w["key"] == workflow), wfs[0])

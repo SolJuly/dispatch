@@ -59,6 +59,50 @@ def load_token() -> str:
 
 TOKEN = load_token()
 
+# ------------------------------------------------------------------ 构建标识
+# 线上 /files/ 曾被一个残留的旧进程占着（对外的 /app 页面 404，但看起来"服务还在"）。
+# /api/p2/version 让人一眼判断"这个后端到底是哪一版、支持哪些路由"，
+# 而不是对着旧响应调 UI。
+API_VERSION = "p2.1"
+API_CONTRACT = "openapi-3.1"
+CAPABILITIES = ["console", "registry", "jobs", "uploads", "zip", "version"]
+STARTED_AT = time.time()
+_BUILD: dict = {}
+
+
+def _iso(ts: float) -> str:
+    s = time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(ts))
+    return f"{s[:-2]}:{s[-2:]}" if len(s) > 5 else s
+
+
+def build_info() -> dict:
+    """启动后读一次 git 信息（git 不可用也不影响服务）。"""
+    if _BUILD:
+        return _BUILD
+    info: dict = {"commit": None, "branch": None, "dirty": None, "dirty_files": None}
+    try:
+        def _git(*args: str) -> tuple[int, str]:
+            try:
+                r = subprocess.run(["git", "-C", str(PROJ), *args], capture_output=True,
+                                   text=True, timeout=5)
+            except (OSError, subprocess.SubprocessError):
+                return 1, ""
+            return r.returncode, (r.stdout or "").strip()
+
+        rc, sha = _git("rev-parse", "--short", "HEAD")
+        if rc == 0 and sha:
+            info["commit"] = sha
+            _, br = _git("rev-parse", "--abbrev-ref", "HEAD")
+            info["branch"] = br or None
+            _, st = _git("status", "--porcelain")
+            files = [ln for ln in st.splitlines() if ln.strip()]
+            info["dirty"] = bool(files)
+            info["dirty_files"] = len(files)
+    except Exception:  # noqa: BLE001 - 仅展示用
+        pass
+    _BUILD.update(info)
+    return _BUILD
+
 
 def human(n: float) -> str:
     for unit in ("B", "KB", "MB", "GB"):
@@ -330,6 +374,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._arch_page()
         if kind == "api" and len(rest) >= 2:
             if rest[1] == "p2":
+                # 版本探测：旧后端没有这条路由（404），前端据此识别"线上是旧进程"
+                if rest[2:3] == ["version"]:
+                    return self._api_version()
                 # 兼容旧契约：队列视角的 jobs 挪到 /api/p2/queue/jobs*
                 if rest[2:5] == ["queue", "jobs"]:
                     return self._api_p2(["jobs"] + rest[5:], q)
@@ -608,6 +655,41 @@ class Handler(BaseHTTPRequestHandler):
             return _json({"error": "JSON 解析失败"}, 400)
         except Exception as e:  # noqa: BLE001
             return _json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+    def _api_version(self):
+        """GET /api/p2/version —— 前端启动时探测后端版本。
+
+        为什么要有：线上 /files/ 可能指向一个还没更新的旧进程。前端打到旧进程时，
+        /app/* 和 /api/p2/registry 会 404，但其它接口仍返回旧形状的数据，很容易被
+        误当成"新后端有 bug"。这里一次性返回构建标识 + 能力清单，前端据此提示。
+        """
+        reg_stats: dict = {}
+        try:
+            from tools.p20 import registry as reg
+            reg_stats = reg.stats()
+        except Exception as e:  # noqa: BLE001
+            reg_stats = {"error": f"{type(e).__name__}: {e}"}
+        payload = {
+            "service": "dsh-share",
+            "ok": True,
+            "api": API_VERSION,
+            "contract": API_CONTRACT,
+            "build": build_info(),
+            "started_at": _iso(STARTED_AT),
+            "uptime_s": int(time.time() - STARTED_AT),
+            "pid": os.getpid(),
+            "bind": f"{BIND}:{PORT}",
+            "base": BASE,
+            "root": str(ROOT),
+            "capabilities": CAPABILITIES,
+            "features": {"console": True, "registry": True, "jobs": True,
+                         "uploads": True, "zip": True, "version": True},
+            "registry": reg_stats,
+            "docs": {"openapi": "/pub/api/openapi.json",
+                     "handoff": "/pub/p21/07-API契约与Mock.html"},
+        }
+        self._send(200, json.dumps(payload, ensure_ascii=False, default=str).encode(),
+                   "application/json; charset=utf-8")
 
     def _api_registry(self, sub: list[str], q: dict):
         """Workflow/Model Registry 只读 API（UI 用）。

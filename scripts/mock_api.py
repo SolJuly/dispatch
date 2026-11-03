@@ -15,6 +15,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import time
 import re
 import struct
 import threading
@@ -29,6 +31,9 @@ ROOT = Path(__file__).resolve().parent.parent
 SPEC = json.loads((ROOT / "docs" / "openapi.json").read_text(encoding="utf-8"))
 TOKEN = SPEC.get("x-mock", {}).get("token", "23e00ec2")
 TZ = timezone(timedelta(hours=8))
+PORT = 8099
+STARTED_AT = ""
+STARTED_TS = time.time()
 
 STATE_LOCK = threading.Lock()
 JOBS: dict[str, dict] = {}
@@ -143,6 +148,21 @@ class Handler(BaseHTTPRequestHandler):
 
     def _api_get(self, sub: list[str]) -> None:
         with STATE_LOCK:
+            if sub == ["version"]:
+                # 动态返回，前端看 features 一眼确认"这是 Mock，不是线上"
+                return self._json({
+                    "service": "mock", "ok": True, "api": "p2.1", "contract": "openapi-3.1",
+                    "build": {"commit": "mock", "branch": None, "dirty": None, "dirty_files": None},
+                    "started_at": STARTED_AT or now(), "uptime_s": int(time.time() - STARTED_TS),
+                    "pid": os.getpid(), "bind": f"127.0.0.1:{PORT}", "base": "/files",
+                    "root": str(ROOT), "capabilities": ["console", "registry", "jobs",
+                                                       "uploads", "zip", "version"],
+                    "features": {"console": False, "registry": True, "jobs": True,
+                                 "uploads": True, "zip": True, "version": True},
+                    "registry": {"workflows": 13, "models": 6},
+                    "docs": {"openapi": "/pub/api/openapi.json",
+                             "handoff": "/pub/p21/07-API契约与Mock.html"},
+                })
             if sub == ["jobs"]:
                 items = sorted((job_summary(v["detail"]) for v in JOBS.values()),
                                key=lambda x: x.get("created_at") or "", reverse=True)
@@ -264,7 +284,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8099)
     ap.add_argument("--host", default="127.0.0.1")
+    global PORT, STARTED_AT
     a = ap.parse_args()
+    PORT = a.port
+    STARTED_AT = now()
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
     print(f"[mock] http://{a.host}:{a.port}/files/{TOKEN}/  （Ctrl-C 退出）")
     try:

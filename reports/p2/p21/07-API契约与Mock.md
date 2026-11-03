@@ -10,6 +10,7 @@
 1. **鉴权在路径里**：`/files/<token>/api/p2/...`，不是 Header/Cookie。前端把 `token` 当常量拼在 baseURL。
 2. **`x-status` 标注**：`implemented` 可直接联调；`planned` 契约先定、先用 Mock，联调前会补实现（预计 P2.2）。
 3. **产物地址是静态的**：`artifact.url` 形如 `/pub/jobs/<job_id>/<file>`，与后端进程无关；控制台页面（`/files/.../app/*`）依赖进程，产物不依赖。
+4. **先探测版本**：前端启动时先打 `GET /api/p2/version`。返回 `api: "p2.1"` + `features` 才是新后端；**404 说明线上是旧进程**，别继续调其它接口（旧进程的 `/app/*` 也会 404，但 jobs 仍返回旧形状数据，很容易误判）。详见 `08-后端版本探测与恢复.md`。
 
 ## 2. Mock 怎么用
 
