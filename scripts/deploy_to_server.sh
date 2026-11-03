@@ -68,6 +68,17 @@ say "安装服务（systemd + nginx）"
 ssh_ "bash /root/_p21_install.sh --dir '$REMOTE_DIR' --token-file '$REMOTE_DIR/.share_token'" \
   < /dev/null || { echo "✗ 远程安装失败（见上）" >&2; exit 1; }
 
+if [ "${WITH_GPU:-0}" = 1 ]; then
+  say "C 模式：上传 GPU 凭证并安装执行链"
+  [ -f compshare/credentials.env ] || { echo "✗ 开发机没有 compshare/credentials.env" >&2; exit 1; }
+  ssh_ "mkdir -p '$REMOTE_DIR/compshare'"
+  scp_ compshare/credentials.env "$SSH_USER@$HOST:$REMOTE_DIR/compshare/credentials.env"
+  ssh_ "chmod 600 '$REMOTE_DIR/compshare/credentials.env'"
+  scp_ deploy/remote/install_c_mode.sh "$SSH_USER@$HOST:/root/_p21_c.sh"
+  ssh_ "bash /root/_p21_c.sh; rc=\$?; rm -f /root/_p21_c.sh; exit \$rc" < /dev/null \
+    || { echo "✗ C 模式安装失败（见上）" >&2; exit 1; }
+fi
+
 say "公网验证"
 for p in "api/p2/version" "app/create" "app/jobs" "api/p2/jobs" "api/p2/registry/stats"; do
   printf '  %-20s ' "$p"
