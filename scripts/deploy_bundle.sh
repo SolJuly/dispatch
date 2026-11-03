@@ -7,6 +7,8 @@
 #
 # 不包含：.git / share（由 sync_share 重建）/ 连测图（reports/p2/p21/bench, inputs）
 #         / 演示图 / 凭证（credentials.env）/ token（.share_token）/ 日志 / 缓存
+#         / **线上运行态**（reports/p1/jobs、reports/p2/queue.db、status2.json）——
+#         这些在目标机上是活的，重新部署绝不能覆盖（要带历史用 WITH_SEED=1）
 # 目标机解包后：python3 fileserver.py 即可起（stdlib，无第三方依赖）。
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -30,6 +32,11 @@ tar cf "$OUT.tmp" \
   --exclude=reports/p2/p21/inputs \
   --exclude=reports/p2/concat-demo \
   --exclude=reports/p1/jobs/*/artifacts \
+  --exclude='reports/p1/jobs' \
+  --exclude='reports/p2/queue.db' \
+  --exclude='reports/p2/queue.db-wal' \
+  --exclude='reports/p2/queue.db-shm' \
+  --exclude='reports/p2/status2.json' \
   --exclude=reports/image-test \
   --exclude=reports/video \
   --exclude=reports/lab \

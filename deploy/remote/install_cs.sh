@@ -56,7 +56,7 @@ if [ "$CHECK" = 1 ]; then
 fi
 
 say "服务用户与目录"
-mkdir -p "$DIR/share"
+mkdir -p "$DIR/share" "$DIR/reports/p1/jobs" "$DIR/reports/p2"
 [ -f "$TOKEN_FILE" ] || die "缺 token 文件：$TOKEN_FILE（部署脚本会 scp 过来）"
 
 say "同步 share/"
@@ -106,7 +106,26 @@ server {
     client_max_body_size 200m;
 
     location = / {
-        return 302 $BASE/$TOKEN/;
+        return 302 $BASE/$TOKEN/app/create;
+    }
+
+    # 不带 token 的常用入口：内部补上 token 段再转给后端。
+    # 用 rewrite + proxy_pass（而不是 302），这样 POST /api/p2/jobs 不会退化成 GET。
+    location /app/ {
+        rewrite ^/app/(.*)$ /$TOKEN/app/\$1 break;
+        proxy_pass http://127.0.0.1:$PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_read_timeout 300s;
+    }
+
+    location /api/p2/ {
+        rewrite ^/api/p2/(.*)$ /$TOKEN/api/p2/\$1 break;
+        proxy_pass http://127.0.0.1:$PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
     }
 
     location $BASE/ {
@@ -123,7 +142,7 @@ EOF
 
     location /pub/ {
         alias /srv/dsh-pub/;
-        autoindex off;
+        autoindex on;
     }
 EOF
   fi
