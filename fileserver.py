@@ -100,6 +100,15 @@ def build_info() -> dict:
             info["dirty_files"] = len(files)
     except Exception:  # noqa: BLE001 - 仅展示用
         pass
+    if not info["commit"]:
+        # 部署包没有 .git：读包内 BUILD（deploy_bundle.sh 生成），至少能对上提交号
+        try:
+            raw = (PROJ / "BUILD").read_text(encoding="utf-8").strip().splitlines()
+            if raw and raw[0]:
+                info["commit"] = raw[0][:40]
+                info["packaged"] = True
+        except OSError:
+            pass
     _BUILD.update(info)
     return _BUILD
 

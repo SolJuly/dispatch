@@ -58,3 +58,6 @@ reports/p2/p21/bench/
 
 # P2.1 输入图副本（按内容哈希命名，可由原图重建）
 reports/p2/p21/inputs/
+
+# 部署运行时包（脚本生成，不入库）
+dist/
