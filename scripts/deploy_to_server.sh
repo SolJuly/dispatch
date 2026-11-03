@@ -14,16 +14,17 @@ HOST=${HOST:?请设置 HOST=服务器IP}
 SSH_USER=${SSH_USER:-root}
 SSH_PORT=${SSH_PORT:-22}
 KEY=${KEY:-.compshare/ssh/p21_deploy_ed25519}
+KNOWN_HOSTS=${KNOWN_HOSTS:-.compshare/ssh/p21_known_hosts}
 REMOTE_DIR=${REMOTE_DIR:-/root/智云视频工作流}
 BUNDLE=${BUNDLE:-$(ls -t dist/p21-deploy-*.tar.gz 2>/dev/null | head -1 || true)}
 CHECK=0
 [[ "${1:-}" == "--check" ]] && CHECK=1
 
 SSH_OPTS=(-p "$SSH_PORT" -i "$KEY" -o BatchMode=yes -o ConnectTimeout=10
-          -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$HOME/.ssh/p21_known_hosts")
+          -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS")
 ssh_() { ssh "${SSH_OPTS[@]}" "$SSH_USER@$HOST" "$@"; }
 scp_() { scp -P "$SSH_PORT" -i "$KEY" -o BatchMode=yes -o ConnectTimeout=10 \
-             -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$HOME/.ssh/p21_known_hosts" "$@"; }
+             -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS" "$@"; }
 
 say() { printf '\033[36m==>\033[0m %s\n' "$*"; }
 
