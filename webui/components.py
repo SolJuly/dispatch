@@ -32,6 +32,10 @@ def compat_badge(status: str) -> str:
 def _input(name: str, spec: dict, value) -> str:
     typ = spec.get("type")
     attrs = f'data-param="{esc(name)}"'
+    if typ == "image":
+        return (f'<input type="file" data-upload="{esc(name)}" accept="image/png,image/jpeg,image/webp">'
+                f'<input type="hidden" {attrs} value="{esc(value or "")}">'
+                f'<div class="hint" data-preview="{esc(name)}">上传后自动生成内容哈希文件名</div>')
     if typ == "enum":
         vals = spec.get("values") or []
         cur = value if value is not None else spec.get("default")

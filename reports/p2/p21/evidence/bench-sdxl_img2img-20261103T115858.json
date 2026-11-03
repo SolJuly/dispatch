@@ -1,0 +1,497 @@
+{
+  "schema": "p21.bench/v1",
+  "workflow": "sdxl_img2img",
+  "model": "sdxl_juggernaut",
+  "gpu": "4090",
+  "started_at": "20261103T115858",
+  "cases": [
+    {
+      "i": 1,
+      "category": "人像",
+      "seed": 1286074028,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 24.8,
+      "total_s": 27.3,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "353c21ae5777aa25e79fff37e749fef95d2d56b4f46005993bd69e00b429d4ba"
+      ],
+      "pixel_sha256": [
+        "1d432968ac28f8bd319820909a6a5b472dab1ef12d68312d6c4c5134f94361c5"
+      ]
+    },
+    {
+      "i": 2,
+      "category": "人像",
+      "seed": 126128250,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "young woman in hanfu, bamboo forest, soft rim light, cinematic",
+      "inference_s": 4.6,
+      "total_s": 7.0,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "beaff68ff8b7997d06b94ec275218c3adc9fe6bf0fc98b7a406bba5d8c29ef33"
+      ],
+      "pixel_sha256": [
+        "2a271fd143683ebf7b386a18534969d12fb5f0ee36ba156b393c3f0027732e14"
+      ]
+    },
+    {
+      "i": 3,
+      "category": "人像",
+      "seed": 2120730667,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "street portrait, neon rain, shallow depth of field, 50mm",
+      "inference_s": 4.6,
+      "total_s": 7.1,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "8197643a1c8c4f61716c1fd75537d6c9059a6f2c94ff77315a32f3743cd1ced2"
+      ],
+      "pixel_sha256": [
+        "8c4ef1457357e11c0ad3d8ab43c13cca30772abb742720f69cbaa28a64aa2860"
+      ]
+    },
+    {
+      "i": 4,
+      "category": "人像",
+      "seed": 1104610687,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "ballet dancer mid-air, studio strobe, high detail fabric",
+      "inference_s": 4.6,
+      "total_s": 7.1,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "c34b72d7acfbfdc5d796dd88b2fae874ebdbe90c028931ca415a4f09867e4554"
+      ],
+      "pixel_sha256": [
+        "12a74774fa130ef8b7212172c5ede3a6d00af1b2dd19084abe7050a0c11fff44"
+      ]
+    },
+    {
+      "i": 5,
+      "category": "人像",
+      "seed": 1065748962,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "elderly craftsman hands, macro detail, warm tungsten light",
+      "inference_s": 4.5,
+      "total_s": 7.0,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "bfd86e41c988b00a3d57786bf9b8941fddf0a8306a6931edfe1cd1ab32af5071"
+      ],
+      "pixel_sha256": [
+        "78c75f42b90b40a4f2ac0a540be5d587a0da5dd2c04eb7282fafb489a5b6be40"
+      ]
+    },
+    {
+      "i": 6,
+      "category": "场景",
+      "seed": 1435047911,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "misty mountain lake at dawn, pine forest, long exposure",
+      "inference_s": 4.5,
+      "total_s": 7.0,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "cda8dc0822b4313881df4a729cceb70d3fbc63a6e404bf2c00d63830546b0cc9"
+      ],
+      "pixel_sha256": [
+        "33f6a701fc107590953ee900a2e251d1b307d7d1b5ee48d87d5801f3a49de04c"
+      ]
+    },
+    {
+      "i": 7,
+      "category": "场景",
+      "seed": 1845380679,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "tokyo alley at night, wet asphalt reflections, film grain",
+      "inference_s": 4.4,
+      "total_s": 6.9,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "6a7db83bf579ea16e9b689fec9011f5d33986cbff533850f68045db6d5bd3873"
+      ],
+      "pixel_sha256": [
+        "2549ece6ea562ff8aafe05f21a1ea7552b817f3581c21bc3f2036c87048fd697"
+      ]
+    },
+    {
+      "i": 8,
+      "category": "场景",
+      "seed": 2078941125,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "desert dunes, low sun, long shadows, minimal composition",
+      "inference_s": 4.4,
+      "total_s": 6.9,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "e492e8ae422ea7cf9e839d4c3c7d0cdd1d46f0ee8bb90eb7004a2a979bbe513b"
+      ],
+      "pixel_sha256": [
+        "db16a3fb37a5216263566d05a081aedac310763b8aad660947cda9c7fb54b9b4"
+      ]
+    },
+    {
+      "i": 9,
+      "category": "场景",
+      "seed": 1995241966,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "abandoned factory, god rays through broken roof, dust",
+      "inference_s": 4.6,
+      "total_s": 7.2,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "6f720b56d5f9d4abe329484d33c69a7c3258dadb88ab80139c9bab92b9281b12"
+      ],
+      "pixel_sha256": [
+        "15f394ce6b46c60004acd35093baf71991b8be6a3044d5fb84c66ba9b9f77622"
+      ]
+    },
+    {
+      "i": 10,
+      "category": "场景",
+      "seed": 2126027051,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "snow cabin window, warm interior, cold blue exterior",
+      "inference_s": 4.5,
+      "total_s": 7.1,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "799b8cdcb4655efd424ffd4c682e7d121a25acf3f04451a2fcb7f1e9aceaf0a3"
+      ],
+      "pixel_sha256": [
+        "28574e1b69ae2ea276d3b6d073274770f9315482939f573e60de66822579aa71"
+      ]
+    },
+    {
+      "i": 11,
+      "category": "文字排版",
+      "seed": 249011368,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "poster with the words \"SILENT SPRING\", bold grotesque type, off-white paper",
+      "inference_s": 4.5,
+      "total_s": 7.0,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "cb76fba05c2538965a63a9eb8052c1888ac4c29f2484e7e6d45ab58167d59533"
+      ],
+      "pixel_sha256": [
+        "e096aaa93804088f9fc105fe2edeab8183eff1ac9e22041bea41280bc982e6dd"
+      ]
+    },
+    {
+      "i": 12,
+      "category": "文字排版",
+      "seed": 1628661826,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "vintage book cover, title \"NORTH\", serif type, muted palette",
+      "inference_s": 4.6,
+      "total_s": 7.3,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "4b1133698408fa5c794a5a20579b97c8296b42273d2b32b16481f282a7225511"
+      ],
+      "pixel_sha256": [
+        "0927a6b8a1040dab066afc8bc23eda9343950605403694b75e79ffcdacd5f697"
+      ]
+    },
+    {
+      "i": 13,
+      "category": "文字排版",
+      "seed": 690431860,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "neon sign reading \"OPEN 24H\", rain, bokeh, night street",
+      "inference_s": 4.6,
+      "total_s": 7.1,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "a99f4ef96658f5e879be4becae0a6cad59653eae6f175abf30eb3390049c05c5"
+      ],
+      "pixel_sha256": [
+        "b6917094bfa2f61dbd73f571478ea6e8fdd5f6747b683a1c166de900f185cc25"
+      ]
+    },
+    {
+      "i": 14,
+      "category": "风格化",
+      "seed": 1824696112,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "ukiyo-e style great wave, indigo and cream, woodblock texture",
+      "inference_s": 4.5,
+      "total_s": 7.1,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "487a52a6be6f779a1956e27e9ba03a7b7a36489dd6118af50aaf15af271dfa80"
+      ],
+      "pixel_sha256": [
+        "da981500fca297bb8ee141685c5b446cd55bcfe04390f3dc41547c1c89ed058d"
+      ]
+    },
+    {
+      "i": 15,
+      "category": "风格化",
+      "seed": 1618198027,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "impasto oil painting, sunflower field, thick brush strokes",
+      "inference_s": 4.6,
+      "total_s": 7.2,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "c7b3982d2656ec0448a7349ad6e036de87f4a5318a4929bd6f14fba17d69e1f1"
+      ],
+      "pixel_sha256": [
+        "f6e26a682230d2e95299cac6aa304a006b68425dd6fc501349742285e02b228b"
+      ]
+    },
+    {
+      "i": 16,
+      "category": "风格化",
+      "seed": 610640267,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "isometric miniature city block, pastel, soft shadows",
+      "inference_s": 4.6,
+      "total_s": 7.1,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "8a073622900c36d73cf51627194e9a76f205cc79fa1284824ba8af4422c8c80a"
+      ],
+      "pixel_sha256": [
+        "a7dfe1ef8013f22e902f25e582388a9c435e100164d4df0e5359db049b86a2d0"
+      ]
+    },
+    {
+      "i": 17,
+      "category": "风格化",
+      "seed": 1493036942,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "pixel art forest shrine, 32 colors, dithering",
+      "inference_s": 4.5,
+      "total_s": 7.2,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "77ba0d40ef704f7c11aaaf09c4338a3aab4f56f9b49ea6847b7acd995d1f4bd0"
+      ],
+      "pixel_sha256": [
+        "b68949e05fd419bfbb34090e7be2a4d93ef1c580afccf92b48d84d6b2effc06c"
+      ]
+    },
+    {
+      "i": 18,
+      "category": "风格化",
+      "seed": 426512326,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "claymation astronaut, felt texture, studio lighting",
+      "inference_s": 4.5,
+      "total_s": 7.1,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "6fa4a5fba2789f41c0ee948581829845fdcb731760715cec6b4e0eae5f44317a"
+      ],
+      "pixel_sha256": [
+        "0d379bd038883d4a9e2073cdc9389917697361296d0318a830f0f6f11853339f"
+      ]
+    },
+    {
+      "i": 19,
+      "category": "边界",
+      "seed": 533810842,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "very long prompt: lush botanical garden with ferns, orchids, mossy stones, dappl",
+      "inference_s": 7.8,
+      "total_s": 10.2,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "ef228551b9ce978895eec04fe01be80be01e86cbcbc92adcc219c346b681f101"
+      ],
+      "pixel_sha256": [
+        "461d073274943f537be7ac754fd4a5a717811dd24273319798c9f9cca4364a48"
+      ]
+    },
+    {
+      "i": 20,
+      "category": "边界",
+      "seed": 717560690,
+      "size": [
+        1536,
+        512
+      ],
+      "prompt": "extreme aspect ratio test, lighthouse on cliff, wide panorama",
+      "inference_s": 5.4,
+      "total_s": 8.0,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "5e15e0150ed2c6ece50b954a11a3120af67678c763a69313aefc2984a2e7ce77"
+      ],
+      "pixel_sha256": [
+        "cbc04352da308393434dfb75e5b2ed589a3037b12d99e4bba88414c2cc658fbd"
+      ]
+    },
+    {
+      "i": 90,
+      "category": "seed",
+      "seed": 12345,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 4.6,
+      "total_s": 10.0,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "b565129c7127a1fd01c96e7678c39c9a9d96ba5111d23ecc71052d94bdb7ec5c"
+      ],
+      "pixel_sha256": [
+        "c0c1229dc06cf68df5f01169ba784c5a2147fa5768788da88890225bba9abf9e"
+      ]
+    },
+    {
+      "i": 91,
+      "category": "seed",
+      "seed": 12345,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 4.7,
+      "total_s": 7.6,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "efaeb989c43070d36442a08663d2bed5a284d56a95a4a5b66b05757e0745843c"
+      ],
+      "pixel_sha256": [
+        "13c307ca625143dfefce291141051f020ab871a1d6a2a58cacd2714eb170846f"
+      ]
+    }
+  ],
+  "seed_check": {
+    "seed": 12345,
+    "same_file": false,
+    "same_pixels": false,
+    "sha_a": [
+      "b565129c7127a1fd01c96e7678c39c9a9d96ba5111d23ecc71052d94bdb7ec5c"
+    ],
+    "sha_b": [
+      "efaeb989c43070d36442a08663d2bed5a284d56a95a4a5b66b05757e0745843c"
+    ],
+    "pixel_sha_a": [
+      "c0c1229dc06cf68df5f01169ba784c5a2147fa5768788da88890225bba9abf9e"
+    ],
+    "pixel_sha_b": [
+      "13c307ca625143dfefce291141051f020ab871a1d6a2a58cacd2714eb170846f"
+    ]
+  },
+  "vram_peak_mb": 7716,
+  "finished_at": "2026-11-03T12:04:07+08:00",
+  "total": 22,
+  "pass": 22,
+  "success_rate": 1.0,
+  "inference_p50_s": 4.6,
+  "inference_p95_s": 7.8,
+  "elapsed_min": 5.2,
+  "est_cost": 0.185
+}

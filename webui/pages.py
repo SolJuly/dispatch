@@ -57,6 +57,10 @@ def _wf_picker(base: str, token: str, workflows: list[dict], current: str) -> st
 
 def create_page(base: str, token: str, workflow: str = "") -> str:
     wfs = api.image_workflows()
+    aliases = {"t2i": next((w["key"] for w in wfs if "img2img" not in w["key"]), ""),
+               "i2i": next((w["key"] for w in wfs if "img2img" in w["key"]), "")}
+    workflow = aliases.get(workflow, workflow)
+    wfs = ([w for w in wfs if "img2img" in w["key"] or True] if workflow else wfs)
     if not wfs:
         body = '<div class="card"><p class="empty">还没有 image 类工作流，先跑 <code>p20ctl import</code>。</p></div>'
         return shell(base, token, "/app/create", "创作台", body)
@@ -76,9 +80,9 @@ def create_page(base: str, token: str, workflow: str = "") -> str:
     body = f"""
 <h1>创作台</h1>
 <div class="row" style="margin-bottom:14px">
-  <button class="btn pri" type="button" disabled>文生图</button>
-  <button class="btn" type="button" disabled title="M2">图生图 · M2</button>
-  <button class="btn" type="button" disabled title="M3">局部重绘 · M3</button>
+  <a class="btn {'pri' if 'img2img' not in wf['key'] else ''}" href="{base}/{token}/app/create?workflow=t2i">文生图</a>
+  <a class="btn {'pri' if 'img2img' in wf['key'] else ''}" href="{base}/{token}/app/create?workflow=i2i">图生图</a>
+  <a class="btn" href="#" onclick="return false" title="M3">局部重绘 · M3</a>
 </div>
 <div class="grid">
   <form class="card" id="create-form">

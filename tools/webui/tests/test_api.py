@@ -122,6 +122,41 @@ class TestCancel(unittest.TestCase):
         self.assertEqual(cm.exception.code, 409)
 
 
+class TestUpload(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self._i, self._s = api.INPUTS_DIR, api.SHARE_INPUTS
+        api.INPUTS_DIR = self.root / "inputs"
+        api.SHARE_INPUTS = self.root / "share"
+
+    def tearDown(self):
+        api.INPUTS_DIR, api.SHARE_INPUTS = self._i, self._s
+        self.tmp.cleanup()
+
+    def test_png_saved_twice(self):
+        png = b"\x89PNG\r\n\x1a\n" + b"0" * 100
+        info = api.save_upload("photo.png", png)
+        self.assertRegex(info["name"], r"^in-[0-9a-f]{8}\.png$")
+        self.assertTrue((api.INPUTS_DIR / info["name"]).is_file())
+        self.assertTrue((api.SHARE_INPUTS / info["name"]).is_file())
+        self.assertEqual(info["url"], f"/f/inputs/{info['name']}")
+
+    def test_jpeg_detected(self):
+        info = api.save_upload("x.jpg", b"\xff\xd8\xff" + b"1" * 50)
+        self.assertTrue(info["name"].endswith(".jpg"))
+
+    def test_non_image_rejected(self):
+        with self.assertRaises(api.ApiError) as cm:
+            api.save_upload("x.txt", b"hello")
+        self.assertEqual(cm.exception.code, 415)
+
+    def test_oversize_rejected(self):
+        with self.assertRaises(api.ApiError) as cm:
+            api.save_upload("big.png", b"\x89PNG\r\n\x1a\n" + b"0" * (21 * 1048576))
+        self.assertEqual(cm.exception.code, 413)
+
+
 class TestZip(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

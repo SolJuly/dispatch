@@ -61,6 +61,12 @@ border-radius:10px;font-size:13px;opacity:0;transform:translateY(8px);transition
 .rec img{display:block;width:100%;height:110px;object-fit:cover;background:#11151a}
 .rec .ph{display:flex;align-items:center;justify-content:center;height:110px;color:var(--mut);font-size:12px}
 .rec .recm{display:flex;gap:6px;align-items:center;padding:6px 8px;font-size:12px;flex-wrap:wrap}
+.cmp{position:relative;border-radius:12px;overflow:hidden;background:#11151a;margin-top:12px}
+.cmp img{display:block;width:100%;height:auto}
+.cmp .after{position:absolute;inset:0;clip-path:inset(0 0 0 50%)}
+.cmp input[type=range]{position:absolute;left:0;right:0;bottom:8px;width:calc(100% - 16px);margin:0 8px}
+.cmp .lbl{position:absolute;top:8px;font-size:12px;background:rgba(0,0,0,.55);color:#fff;padding:2px 8px;border-radius:6px}
+.cmp .lbl.a{left:8px}.cmp .lbl.b{right:8px}
 """
 
 JS = r"""
@@ -94,6 +100,31 @@ JS = r"""
     });
     return out;
   }
+  async function uploadImage(el){
+    const f = (el.files || [])[0];
+    if(!f) return el.closest(".field").querySelector("[data-param]").value;
+    const fd = new FormData();
+    fd.append("file", f, f.name);
+    const r = await fetch(`${BASE}/api/p2/uploads`, {method:"POST", body: fd});
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error || ("HTTP "+r.status));
+    const hidden = el.closest(".field").querySelector("[data-param]");
+    hidden.value = data.name;
+    const pv = el.closest(".field").querySelector("[data-preview]");
+    if(pv) pv.innerHTML = `已上传 <code>${esc(data.name)}</code> · ${(data.bytes/1024).toFixed(0)} KB`;
+    return data.name;
+  }
+
+  function paintCompare(params, artifacts, id){
+    if(!params || !params.image || !artifacts.length) return "";
+    const orig = `${BASE}/f/inputs/${encodeURIComponent(params.image)}`;
+    const out = artifacts[0].url;
+    return `<div class="cmp"><img src="${orig}" alt="原图">` +
+      `<img class="after" id="cmp-after" src="${out}" alt="结果">` +
+      `<span class="lbl a">原图</span><span class="lbl b">结果</span>` +
+      `<input type="range" min="0" max="100" value="50" oninput="document.getElementById('cmp-after').style.clipPath='inset(0 0 0 '+this.value+'%)';document.getElementById('cmp-after').style.clipPath='inset(0 0 0 '+this.value+'%)'"></div>`;
+  }
+
   function paint(job){
     const st = job.job || job;
     const id = st.job_id || st.id;
@@ -101,6 +132,8 @@ JS = r"""
     $("#state").innerHTML = `<span class="muted">作业</span> <code>${esc(id||"")}</code> ` +
       `<span class="pill ${/^DONE$/.test(st.state)?"ok":/FAILED|ABORTED/.test(st.state||"")?"bad":"run"}">${esc(st.state||"")}</span>`;
     if(artifacts.length){
+      const cmp = paintCompare(st.params, artifacts, id);
+      if(cmp) $("#results").insertAdjacentHTML("beforebegin", cmp);
       $("#results").innerHTML = artifacts.map(a =>
         `<figure class="thumb"><a href="${esc(a.url)}" target="_blank">` +
         `<img src="${esc(a.url)}" alt="${esc(a.name)}" loading="lazy"></a>` +
@@ -136,7 +169,13 @@ JS = r"""
     if(!form) return;
     e.preventDefault();
     const btn = $("#submit-btn"); btn.disabled = true;
-    const params = collect();
+    let params = collect();
+    try{
+      for(const el of document.querySelectorAll("[data-upload]")){
+        if(el.files && el.files.length) await uploadImage(el);
+      }
+      params = collect();
+    }catch(err){ toast("上传失败：" + err.message); btn.disabled = false; return; }
     const run = $("#run-now").checked;
     try{
       const r = await fetch(`${BASE}/api/p2/jobs`, {

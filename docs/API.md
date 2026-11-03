@@ -294,3 +294,19 @@ Registry 配置只在 `p20ctl import` 后变化，UI 首屏拉一次即可；`wo
 - 写接口只做"建作业/取消"，**不暴露**改作业、删产物、改 registry。
 - 上传（图生图/蒙版）在 M2/M3 提供 `POST /api/p2/uploads`。
 - 页面无构建链：改 `webui/assets.py` 即生效，无需打包。
+
+### 7.6 `POST /api/p2/uploads`（M2）
+
+multipart，字段名 `file`。校验 magic number（PNG/JPEG/WebP）、上限 20MB，按内容哈希命名
+`in-<sha8>.<ext>`，同时写 `reports/p2/p21/inputs/`（作业用）与 `share/inputs/`（`/f/inputs/...` 预览）。
+返回 `201 {name, bytes, url}`；非图片 415，超限 413。
+
+### 7.7 `GET /api/p2/jobs/zip?ids=a,b,c`
+
+把选中作业的产物打成 zip（内存中，优先取 `/pub/jobs/` 已发布副本），返回 `application/zip`。
+非法/不存在 id 直接跳过；一个都没有时 404。
+
+### 7.8 图生图（M2）
+
+创作台切换 `?workflow=i2i`：上传原图 → `POST /api/p2/uploads` → 提交时 `params.image=in-<sha8>.png`；
+`denoise` 0.05–1.0；结果区出现「原图 / 结果」对比滑杆（原图走 `/f/inputs/<name>`）。

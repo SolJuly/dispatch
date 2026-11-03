@@ -82,11 +82,13 @@ def sha256(p: Path) -> str:
 
 
 class Bench:
-    def __init__(self, wf_key: str, model_key: str, n: int, gpu: str):
+    def __init__(self, wf_key: str, model_key: str, n: int, gpu: str, image: str = ""):
         self.wf = p20registry.get_workflow(wf_key)
         self.model = p20registry.get_model(model_key)
         self.wf_key, self.model_key = wf_key, model_key
         self.n, self.gpu = n, gpu
+        self.image = image
+        self.img_name = ""
         self.ctx: dict = {}
         self.hourly = 0.0
         self.uid = ""
@@ -122,6 +124,14 @@ class Bench:
             time.sleep(6)
         print(f"[2] ssh 就绪 {host}")
         p1run.run_setup(self.uid, "all", self.ctx)
+        if self.image:
+            from tools.p20 import p20ctl as _p20ctl
+            self.img_name = _p20ctl._normalize_image({"image": self.image})["image"]
+            local = ROOT / "reports/p2/p21/inputs" / self.img_name
+            p1run._ssh_run(host, port, pwd, "mkdir -p /root/ComfyUI/input", timeout=60)
+            if not p1run._scp_put(host, port, pwd, local, f"/root/ComfyUI/input/{self.img_name}"):
+                raise SystemExit(f"输入图上传失败：{self.img_name}")
+            print(f"[2.5] 输入图已上传 {self.img_name}")
         threading.Thread(target=self._vram_loop, daemon=True).start()
 
     def _vram_loop(self) -> None:
@@ -188,11 +198,16 @@ class Bench:
 
     def run_case(self, idx: int, cat: str, prompt: str, w: int, h: int,
                  seed: int | None = None, tag: str = "", prefix: str = "",
-                 batch: int = 1) -> dict:
+                 batch: int = 1, denoise: float | None = None) -> dict:
         seed = seed if seed is not None else random.SystemRandom().randint(1, 2**31 - 1)
         params = {"prompt": prompt, "neg_prompt": "blurry, lowres, watermark, text artifacts",
                   "seed": seed, "width": w, "height": h, "steps": 20, "cfg": 2.5,
-                  "sampler": "euler", "scheduler": "simple", "batch_size": batch}
+                  "sampler": "euler", "scheduler": "simple"}
+        if "batch_size" in (self.wf.get("params") or {}):
+            params["batch_size"] = batch
+        if self.img_name:
+            params["image"] = self.img_name
+            params["denoise"] = denoise if denoise is not None else [0.35, 0.55, 0.75][(idx - 1) % 3]
         if self.wf_key == "sdxl_t2i":
             params.update({"steps": 25, "cfg": 6.0, "sampler": "dpmpp_2m", "scheduler": "karras"})
         # 按模型约束夹紧尺寸（如 SDXL 上限 1536），避免个别 case 把整轮打断
@@ -219,7 +234,8 @@ class Bench:
         except Exception as e:  # noqa: BLE001
             rec = {"i": idx, "category": cat, "seed": seed, "size": [w, h],
                    "prompt": prompt[:80], "inference_s": 0, "total_s": 0, "files": 0,
-                   "verdict": "FAIL", "error": f"{type(e).__name__}: {e}", "sha256": []}
+                   "verdict": "FAIL", "error": f"{type(e).__name__}: {e}",
+                   "sha256": [], "pixel_sha256": []}
             self.results.append(rec)
             print(f"  ✗ {idx:02d} {cat:<5}  参数错误 {e}", flush=True)
             return rec
@@ -274,6 +290,7 @@ def main() -> int:
     ap.add_argument("--model", default="qwen_image")
     ap.add_argument("--n", type=int, default=20)
     ap.add_argument("--gpu", default="4090")
+    ap.add_argument("--image", default="", help="img2img 的输入图（本地路径）")
     ap.add_argument("--no-seed-check", action="store_true")
     ap.add_argument("--seed-only", action="store_true", help="只做 seed 复现验证")
     ap.add_argument("--batch-scan", action="store_true", help="扫描 batch×分辨率 的显存上限")
@@ -281,7 +298,7 @@ def main() -> int:
     a = ap.parse_args()
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    b = Bench(a.workflow, a.model, a.n, a.gpu)
+    b = Bench(a.workflow, a.model, a.n, a.gpu, a.image)
     ts = dt.datetime.now().astimezone().strftime("%Y%m%dT%H%M%S")
     payload = {"schema": "p21.bench/v1", "workflow": a.workflow, "model": a.model,
                "gpu": a.gpu, "started_at": ts, "cases": []}
@@ -312,16 +329,16 @@ def main() -> int:
         if not a.no_seed_check:
             print("[4] seed 复现（同 seed 跑两次，逐张 sha256 比对）…")
             r1 = b.run_case(90, "seed", CASES[0][1], CASES[0][2], CASES[0][3],
-                            seed=12345, tag="a", prefix="benchseed")
+                            seed=12345, tag="a", prefix="benchseed", denoise=0.55)
             r2 = b.run_case(91, "seed", CASES[0][1], CASES[0][2], CASES[0][3],
-                            seed=12345, tag="b", prefix="benchseed")
+                            seed=12345, tag="b", prefix="benchseed", denoise=0.55)
             same_file = bool(r1["sha256"]) and r1["sha256"] == r2["sha256"]
-            same_pix = bool(r1["pixel_sha256"]) and r1["pixel_sha256"] == r2["pixel_sha256"]
+            same_pix = bool(r1.get("pixel_sha256")) and r1.get("pixel_sha256") == r2.get("pixel_sha256")
             payload["seed_check"] = {"seed": 12345, "same_file": same_file,
                                      "same_pixels": same_pix,
-                                     "sha_a": r1["sha256"], "sha_b": r2["sha256"],
-                                     "pixel_sha_a": r1["pixel_sha256"],
-                                     "pixel_sha_b": r2["pixel_sha256"]}
+                                     "sha_a": r1.get("sha256"), "sha_b": r2.get("sha256"),
+                                     "pixel_sha_a": r1.get("pixel_sha256"),
+                                     "pixel_sha_b": r2.get("pixel_sha256")}
             print(f"    文件哈希{'一致' if same_file else '不一致'} · "
                   f"像素哈希{'一致' if same_pix else '不一致'}")
         payload["vram_peak_mb"] = b.vram_peak

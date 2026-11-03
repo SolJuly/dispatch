@@ -379,6 +379,8 @@ class Handler(BaseHTTPRequestHandler):
         if len(parts) == 6 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"] \
                 and parts[5] == "cancel":
             return self._api_jobs([parts[4], "cancel"], {})
+        if len(parts) == 4 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "uploads"]:
+            return self._api_upload()
         if len(parts) == 4 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"]:
             return self._api_job_create()
         return self._err(404, "路径不存在")
@@ -548,6 +550,37 @@ class Handler(BaseHTTPRequestHandler):
             return _json({"error": e.msg}, e.code)
         except Exception as e:  # noqa: BLE001
             return _json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+    def _api_upload(self):
+        """multipart 上传输入图（img2img / inpaint），返回内容寻址文件名。"""
+        from webui import api as webapi
+
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False).encode(),
+                              "application/json; charset=utf-8")
+        ctype = self.headers.get("Content-Type", "")
+        length = int(self.headers.get("Content-Length") or 0)
+        if "boundary=" not in ctype or length <= 0:
+            return _json({"error": "需要 multipart 上传"}, 400)
+        if length > 25 * 1048576:
+            return _json({"error": "请求体过大"}, 413)
+        boundary = ctype.split("boundary=", 1)[1].strip().strip('"')
+        raw = self.rfile.read(length if length < 25 * 1048576 else 25 * 1048576)
+        for chunk in raw.split(b"--" + boundary.encode()):
+            if b"\r\n\r\n" not in chunk:
+                continue
+            head, data = chunk.split(b"\r\n\r\n", 1)
+            if b"filename=" not in head:
+                continue
+            m = re.search(rb'filename="([^"]*)"', head)
+            name = m.group(1).decode("utf-8", "ignore") if m else "upload.png"
+            data = data[:-2] if data.endswith(b"\r\n") else data
+            try:
+                info = webapi.save_upload(name, data)
+            except webapi.ApiError as e:
+                return _json({"error": e.msg}, e.code)
+            return _json(info, 201)
+        return _json({"error": "没有文件字段"}, 400)
 
     def _api_job_create(self):
         from webui import api as webapi

@@ -31,6 +31,9 @@ RUN_PY = ROOT / "tools/p1/run.py"
 JOBCTL = ROOT / "tools/p1/jobctl.py"
 JOB_ID_RE = re.compile(r"(p1-\d{8}T\d{4}-[0-9a-f]{6})")
 ART_SUFFIX = (".png", ".jpg", ".jpeg", ".webp", ".mp4")
+INPUTS_DIR = ROOT / "reports/p2/p21/inputs"
+SHARE_INPUTS = Path(os.environ.get("P21_SHARE_INPUTS", ROOT / "share" / "inputs"))
+MAX_UPLOAD = 20 * 1048576
 
 
 class ApiError(Exception):
@@ -80,6 +83,30 @@ def _artifacts(job_id: str, jobs_dir: Path | None) -> list[dict]:
 def _first_artifact_url(job_id: str, jobs_dir: Path | None) -> str:
     arts = _artifacts(job_id, jobs_dir)
     return arts[0]["url"] if arts else ""
+
+
+def save_upload(filename: str, data: bytes) -> dict:
+    """上传输入图：校验格式/大小 → 内容寻址命名 → 两份副本（作业用 + 静态可看）。"""
+    if not data:
+        raise ApiError("空文件", 400)
+    if len(data) > MAX_UPLOAD:
+        raise ApiError(f"文件太大（上限 {MAX_UPLOAD // 1048576} MB）", 413)
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        ext = ".png"
+    elif data.startswith(b"\xff\xd8\xff"):
+        ext = ".jpg"
+    elif data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        ext = ".webp"
+    else:
+        raise ApiError("只支持 PNG / JPEG / WebP", 415)
+    import hashlib
+    h = hashlib.sha256(data).hexdigest()[:8]
+    name = f"in-{h}{ext}"
+    for d in (INPUTS_DIR, SHARE_INPUTS):
+        d.mkdir(parents=True, exist_ok=True)
+        (d / name).write_bytes(data)
+        (d / name).chmod(0o644)
+    return {"name": name, "bytes": len(data), "url": f"/f/inputs/{name}"}
 
 
 def list_jobs(limit: int = 20, *, state_prefix: str = "", workflow: str = "",

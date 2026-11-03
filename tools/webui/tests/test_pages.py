@@ -41,6 +41,12 @@ class TestCreatePage(unittest.TestCase):
         self.assertIn("window.__WF__", html)
         self.assertIn("/files/tok/static/app.js", html)
 
+    def test_img2img_tab_has_upload(self):
+        html = pages.create_page("/files", "tok", "sdxl_img2img")
+        self.assertIn('type="file"', html)
+        self.assertIn('data-upload="image"', html)
+        self.assertIn('data-param="denoise"', html)
+
     def test_recent_jobs_strip(self):
         html = pages.create_page("/files", "tok")
         self.assertIn("最近作业", html)
