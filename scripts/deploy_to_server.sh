@@ -13,7 +13,8 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 HOST=${HOST:?请设置 HOST=服务器IP}
 SSH_USER=${SSH_USER:-root}
 SSH_PORT=${SSH_PORT:-22}
-KEY=${KEY:-.compshare/ssh/p21_deploy_ed25519}
+# 阿里云轻量/ECS 的「密钥对」只收 RSA/ECDSA（不支持 ed25519），默认用 RSA
+KEY=${KEY:-.compshare/ssh/p21_deploy_rsa}
 KNOWN_HOSTS=${KNOWN_HOSTS:-.compshare/ssh/p21_known_hosts}
 REMOTE_DIR=${REMOTE_DIR:-/root/智云视频工作流}
 BUNDLE=${BUNDLE:-$(ls -t dist/p21-deploy-*.tar.gz 2>/dev/null | head -1 || true)}
