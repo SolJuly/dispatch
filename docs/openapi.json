@@ -1,0 +1,2503 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AI 图片/视频生产平台 · 后端接口",
+    "version": "1.0.0",
+    "description": "覆盖 P2 只读接口、P2.0 Registry、P2.1 图片控制台（作业/上传/下载）。\n\n**鉴权**：token 在路径里（`/api/p2/...` 前一段），不是 Cookie/Header。\n\n**x-status**：`implemented` = 已上线可直接联调；`planned` = 契约先定，前端先用 Mock。\n\n**Mock**：`python3 scripts/mock_api.py` 会按本文件的 examples 起一个可写假的本地服务。\n\n**产物 URL**：`artifact.url` 指向 `/pub/jobs/...` 静态路径，服务重启后仍可访问。"
+  },
+  "servers": [
+    {
+      "url": "https://123.207.74.155/files/23e00ec2",
+      "description": "线上（临时进程，可能重启）"
+    },
+    {
+      "url": "http://127.0.0.1:8099/files/23e00ec2",
+      "description": "本地 Mock（scripts/mock_api.py）"
+    }
+  ],
+  "tags": [
+    {
+      "name": "jobs",
+      "description": "作业创建/查询/取消"
+    },
+    {
+      "name": "uploads",
+      "description": "输入图与蒙版"
+    },
+    {
+      "name": "files",
+      "description": "产物下载"
+    },
+    {
+      "name": "queue",
+      "description": "队列与审计（旧契约）"
+    },
+    {
+      "name": "status",
+      "description": "系统状态"
+    },
+    {
+      "name": "registry",
+      "description": "工作流/模型注册表"
+    },
+    {
+      "name": "presets",
+      "description": "参数预设（规划中）"
+    },
+    {
+      "name": "share",
+      "description": "公开分享（规划中）"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "可直接展示给用户的错误文案"
+          }
+        },
+        "examples": [
+          {
+            "error": "参数/工作流校验失败：params.batch_size 不在工作流 sdxl_inpaint 的参数契约里"
+          }
+        ]
+      },
+      "Artifact": {
+        "type": "object",
+        "required": [
+          "name",
+          "bytes",
+          "url"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "url": {
+            "type": "string",
+            "description": "静态路径，进程重启后仍可访问"
+          },
+          "published": {
+            "type": "boolean",
+            "description": "是否已复制到 /pub/jobs（false 时可能 404 几秒）"
+          },
+          "sha256": {
+            "type": "string",
+            "nullable": true
+          },
+          "width": {
+            "type": "integer",
+            "nullable": true
+          },
+          "height": {
+            "type": "integer",
+            "nullable": true
+          }
+        },
+        "examples": [
+          {
+            "name": "01-p1-20261103T1219-b2df1a_00001_.png",
+            "bytes": 748650,
+            "url": "/pub/jobs/p1-20261103T1219-b2df1a/01-p1-20261103T1219-b2df1a_00001_.png",
+            "published": true,
+            "sha256": "c65f4c5da2976cdacefbef69fac7318abf97527d9da3e593515f379623f8d857",
+            "width": 1024,
+            "height": 1024
+          }
+        ]
+      },
+      "JobSummary": {
+        "type": "object",
+        "required": [
+          "job_id",
+          "state",
+          "workflow",
+          "created_at"
+        ],
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "pattern": "^p1-[0-9]{8}T[0-9]{4}-[0-9a-f]{6}$"
+          },
+          "state": {
+            "type": "string",
+            "description": "CREATED/PROVISIONING/READY/SUBMITTED/RUNNING/FETCHING/VERIFYING/PERSISTED/RELEASING/DONE/FAILED_*/ABORTED"
+          },
+          "workflow": {
+            "type": "string"
+          },
+          "workflow_version": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image",
+              "video"
+            ]
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "artifacts": {
+            "type": "integer",
+            "description": "产物数量"
+          },
+          "first_artifact_url": {
+            "type": "string",
+            "description": "首图静态 URL，空串表示暂无"
+          }
+        },
+        "examples": [
+          {
+            "job_id": "p1-20261103T1219-b2df1a",
+            "state": "DONE",
+            "workflow": "sdxl_inpaint",
+            "workflow_version": 1,
+            "model": "sdxl_juggernaut",
+            "created_at": "2026-11-03T12:19:47+08:00",
+            "kind": "image",
+            "prompt": "a green pear on wooden table, warm sunset light",
+            "artifacts": 1,
+            "first_artifact_url": "/pub/jobs/p1-20261103T1219-b2df1a/01-p1-20261103T1219-b2df1a_00001_.png"
+          }
+        ]
+      },
+      "JobList": {
+        "type": "object",
+        "required": [
+          "items",
+          "count"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobSummary"
+            }
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "examples": [
+          {
+            "count": 2,
+            "items": [
+              {
+                "job_id": "p1-20261103T1219-b2df1a",
+                "state": "DONE",
+                "workflow": "sdxl_inpaint",
+                "workflow_version": 1,
+                "model": "sdxl_juggernaut",
+                "created_at": "2026-11-03T12:19:47+08:00",
+                "kind": "image",
+                "prompt": "a green pear on wooden table",
+                "artifacts": 1,
+                "first_artifact_url": "/pub/jobs/p1-20261103T1219-b2df1a/01-p1-20261103T1219-b2df1a_00001_.png"
+              },
+              {
+                "job_id": "p1-20261103T1245-a47eee",
+                "state": "FAILED_PROVISION",
+                "workflow": "upscale_4x",
+                "workflow_version": 1,
+                "model": "upscale_ultrasharp",
+                "created_at": "2026-11-03T12:45:11+08:00",
+                "kind": "image",
+                "prompt": "",
+                "artifacts": 0,
+                "first_artifact_url": ""
+              }
+            ]
+          }
+        ]
+      },
+      "JobDetail": {
+        "type": "object",
+        "required": [
+          "job",
+          "artifacts"
+        ],
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/Job"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Artifact"
+            }
+          },
+          "workflow": {
+            "type": "string"
+          },
+          "terminal": {
+            "type": "boolean",
+            "description": "是否终态（DONE/FAILED/ABORTED）"
+          }
+        },
+        "examples": [
+          {
+            "job": {
+              "job_id": "p1-20261103T1219-b2df1a",
+              "state": "DONE",
+              "created_at": "2026-11-03T12:19:47+08:00",
+              "kind": "image",
+              "model": {
+                "key": "sdxl_juggernaut",
+                "workflow": "workflows/sdxl_inpaint.api.json",
+                "registry": {
+                  "workflow_key": "sdxl_inpaint",
+                  "workflow_version": 1,
+                  "model_key": "sdxl_juggernaut",
+                  "model_version": 1
+                }
+              },
+              "params": {
+                "image": "in-a6891d7b.png",
+                "mask": "in-5935a044.png",
+                "prompt": "a green pear on wooden table",
+                "denoise": 0.85,
+                "seed": 11,
+                "steps": 25,
+                "cfg": 6.0
+              },
+              "params_hash": "sha256:49895ef17c1f...",
+              "expect": {
+                "ext": "png",
+                "min_bytes": 20000
+              },
+              "steps": {
+                "provision": {
+                  "done": true,
+                  "at": "2026-11-03T12:20:07+08:00"
+                },
+                "submit": {
+                  "done": true,
+                  "at": "2026-11-03T12:21:05+08:00"
+                },
+                "wait": {
+                  "done": true,
+                  "at": "2026-11-03T12:21:30+08:00"
+                }
+              },
+              "state_seq": 11
+            },
+            "artifacts": [
+              {
+                "name": "01-p1-20261103T1219-b2df1a_00001_.png",
+                "bytes": 748650,
+                "url": "/pub/jobs/p1-20261103T1219-b2df1a/01-p1-20261103T1219-b2df1a_00001_.png",
+                "published": true,
+                "sha256": "c65f4c5d...",
+                "width": 1024,
+                "height": 1024
+              }
+            ],
+            "workflow": "sdxl_inpaint",
+            "terminal": true
+          }
+        ]
+      },
+      "Job": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "model": {
+            "type": "object"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "params_hash": {
+            "type": "string"
+          },
+          "expect": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "steps": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "state_seq": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateJobRequest": {
+        "type": "object",
+        "required": [
+          "workflow",
+          "params"
+        ],
+        "properties": {
+          "workflow": {
+            "type": "string",
+            "description": "registry 里的工作流 key"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "按工作流参数契约传；服务端补默认值并校验，多传键会被拒"
+          },
+          "run": {
+            "type": "boolean",
+            "default": false,
+            "description": "true 时后台立即执行（占 GPU、产生费用）"
+          },
+          "note": {
+            "type": "string",
+            "description": "备注，写入 task_ref"
+          }
+        },
+        "examples": [
+          {
+            "workflow": "sdxl_t2i",
+            "run": false,
+            "params": {
+              "prompt": "a red apple on a wooden table",
+              "seed": 42,
+              "width": 1024,
+              "height": 1024,
+              "steps": 25,
+              "cfg": 6.0,
+              "sampler": "dpmpp_2m",
+              "scheduler": "karras",
+              "batch_size": 2
+            }
+          }
+        ]
+      },
+      "CreateJobResponse": {
+        "type": "object",
+        "required": [
+          "job_id",
+          "state"
+        ],
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "run": {
+            "type": "boolean"
+          },
+          "workflow": {
+            "type": "string"
+          },
+          "workflow_version": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "params_hash": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "补全默认值后的最终参数"
+          },
+          "expect": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "examples": [
+          {
+            "job_id": "p1-20261103T130000-a1b2c3",
+            "state": "CREATED",
+            "run": false,
+            "workflow": "sdxl_t2i",
+            "workflow_version": 1,
+            "model": "sdxl_juggernaut",
+            "params_hash": "sha256:2de9ed823a22...",
+            "params": {
+              "prompt": "a red apple on a wooden table",
+              "seed": 42,
+              "width": 1024,
+              "height": 1024,
+              "steps": 25,
+              "cfg": 6.0,
+              "sampler": "dpmpp_2m",
+              "scheduler": "karras",
+              "batch_size": 2,
+              "neg_prompt": ""
+            },
+            "expect": {
+              "ext": "png",
+              "min_bytes": 20000,
+              "images": 2,
+              "width": [
+                1024
+              ],
+              "height": [
+                1024
+              ],
+              "black_ratio_max": 0.5
+            }
+          }
+        ]
+      },
+      "UploadResponse": {
+        "type": "object",
+        "required": [
+          "name",
+          "bytes",
+          "url"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "内容哈希文件名，提交时作为 params.image / params.mask"
+          },
+          "bytes": {
+            "type": "integer"
+          },
+          "url": {
+            "type": "string",
+            "description": "原图预览地址（/f/inputs/...）"
+          }
+        },
+        "examples": [
+          {
+            "name": "in-a6891d7b.png",
+            "bytes": 810226,
+            "url": "/f/inputs/in-a6891d7b.png"
+          }
+        ]
+      },
+      "QueueStats": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "running": {
+            "type": "integer"
+          },
+          "queued": {
+            "type": "integer"
+          },
+          "done": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          }
+        },
+        "examples": [
+          {
+            "total": 19,
+            "running": 0,
+            "queued": 0,
+            "done": 15,
+            "failed": 4
+          }
+        ]
+      },
+      "QueueJob": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "attempts": {
+            "type": "integer"
+          },
+          "defers": {
+            "type": "integer"
+          },
+          "cost": {
+            "type": "number"
+          },
+          "gpu_minutes": {
+            "type": "number"
+          },
+          "verdict": {
+            "type": "string",
+            "nullable": true
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enqueued_at": {
+            "type": "string"
+          },
+          "ended_at": {
+            "type": "string"
+          }
+        },
+        "examples": [
+          {
+            "job_id": "p1-20261103T1219-b2df1a",
+            "queue_state": "DONE",
+            "job_state": "DONE",
+            "model": "sdxl_juggernaut",
+            "kind": "image",
+            "attempts": 1,
+            "defers": 0,
+            "cost": 0.08,
+            "gpu_minutes": 2.2,
+            "verdict": "PASS",
+            "artifacts": [
+              "reports/p1/jobs/p1-20261103T1219-b2df1a/artifacts/01-....png"
+            ],
+            "enqueued_at": "2026-11-03T12:19:47+08:00",
+            "ended_at": "2026-11-03T12:22:10+08:00"
+          }
+        ]
+      },
+      "RegistryWorkflow": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object",
+            "description": "参数契约（type/default/min/max/values/bindings）",
+            "additionalProperties": true
+          },
+          "compat": {
+            "$ref": "#/components/schemas/Compat"
+          }
+        },
+        "examples": [
+          {
+            "key": "sdxl_t2i",
+            "name": "SDXL 文生图 1024×1024（快速基线）",
+            "version": 1,
+            "kind": "image",
+            "params": {
+              "prompt": {
+                "type": "string",
+                "required": true
+              },
+              "batch_size": {
+                "type": "int",
+                "default": 1,
+                "min": 1,
+                "max": 4
+              }
+            },
+            "compat": {
+              "status": "verified",
+              "basis": "real-run",
+              "evidence": [
+                "p1-20261103T0059-998e34"
+              ]
+            }
+          }
+        ]
+      },
+      "RegistryModel": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "family": {
+            "type": "string"
+          },
+          "files": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "constraints": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "examples": [
+          {
+            "key": "sdxl_juggernaut",
+            "name": "SDXL juggernautXL v8",
+            "version": 1,
+            "kind": "image",
+            "family": "sdxl",
+            "files": {
+              "ckpt": {
+                "name": "juggernautXL_v8Rundiffusion_V8.safetensors",
+                "loader": "CheckpointLoaderSimple",
+                "input": "ckpt_name"
+              }
+            },
+            "constraints": {
+              "width": {
+                "min": 512,
+                "max": 1536,
+                "multiple": 8
+              }
+            }
+          }
+        ]
+      },
+      "Compat": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "equivalent",
+              "experimental",
+              "incompatible"
+            ]
+          },
+          "basis": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "examples": [
+          {
+            "status": "verified",
+            "basis": "real-run",
+            "evidence": [
+              "p1-20261103T1219-b2df1a"
+            ],
+            "notes": "M3 首次真机：蒙版外平均差 1.17/255"
+          }
+        ]
+      },
+      "RegistrySummary": {
+        "type": "object",
+        "properties": {
+          "workflows": {
+            "type": "integer"
+          },
+          "models": {
+            "type": "integer"
+          },
+          "compat": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          }
+        },
+        "examples": [
+          {
+            "workflows": 13,
+            "models": 6,
+            "compat": {
+              "verified": 10,
+              "equivalent": 2,
+              "experimental": 1
+            }
+          }
+        ]
+      },
+      "ResolveResponse": {
+        "type": "object",
+        "properties": {
+          "workflow": {
+            "type": "string"
+          },
+          "workflow_version": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "compat": {
+            "$ref": "#/components/schemas/Compat"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "defaults_applied": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expect": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "render": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "examples": [
+          {
+            "workflow": "sdxl_t2i",
+            "workflow_version": 1,
+            "model": "sdxl_juggernaut",
+            "compat": {
+              "status": "verified",
+              "basis": "real-run",
+              "evidence": []
+            },
+            "params": {
+              "prompt": "a red apple",
+              "seed": 42,
+              "batch_size": 2,
+              "steps": 25
+            },
+            "defaults_applied": [
+              "cfg",
+              "height",
+              "width",
+              "sampler",
+              "scheduler"
+            ],
+            "expect": {
+              "ext": "png",
+              "images": 2,
+              "width": [
+                1024
+              ],
+              "height": [
+                1024
+              ]
+            },
+            "render": {
+              "nodes": 7,
+              "graph_sha256": "e7174e489b254c72..."
+            }
+          }
+        ]
+      },
+      "Preset": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "workflow": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "examples": [
+          {
+            "id": "pre_01",
+            "name": "厚涂人像",
+            "workflow": "sdxl_t2i_lora",
+            "params": {
+              "lora": "Sdxl/绪儿_厚涂构图光影质感增强V3.safetensors",
+              "lora_strength": 1.0
+            },
+            "created_at": "2026-11-03T13:00:00+08:00"
+          }
+        ]
+      }
+    },
+    "parameters": {
+      "token": {
+        "name": "token",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "访问 token（路径鉴权，不是 Cookie）"
+      },
+      "job_id": {
+        "name": "job_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^p1-[0-9]{8}T[0-9]{4}-[0-9a-f]{6}$"
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "参数/契约错误",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "default": {
+                "value": {
+                  "error": "参数校验失败：params.batch_size 不在工作流契约里"
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "不存在",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "default": {
+                "value": {
+                  "error": "作业不存在：p1-20260101T0000-ffffff"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "服务端错误",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "default": {
+                "value": {
+                  "error": "RuntimeError: ..."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/p2/jobs": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "作业列表（文件视角）",
+        "operationId": "listJobs",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobList"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "count": 2,
+                      "items": [
+                        {
+                          "job_id": "p1-20261103T1219-b2df1a",
+                          "state": "DONE",
+                          "workflow": "sdxl_inpaint",
+                          "workflow_version": 1,
+                          "model": "sdxl_juggernaut",
+                          "created_at": "2026-11-03T12:19:47+08:00",
+                          "kind": "image",
+                          "prompt": "a green pear on wooden table",
+                          "artifacts": 1,
+                          "first_artifact_url": "/pub/jobs/p1-20261103T1219-b2df1a/01-p1-20261103T1219-b2df1a_00001_.png"
+                        },
+                        {
+                          "job_id": "p1-20261103T1245-a47eee",
+                          "state": "FAILED_PROVISION",
+                          "workflow": "upscale_4x",
+                          "workflow_version": 1,
+                          "model": "upscale_ultrasharp",
+                          "created_at": "2026-11-03T12:45:11+08:00",
+                          "kind": "image",
+                          "prompt": "",
+                          "artifacts": 0,
+                          "first_artifact_url": ""
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "按创建时间倒序。`state=FAILED` 会前缀匹配所有 FAILED_*。"
+      },
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "创建作业（唯一写入口）",
+        "operationId": "createJob",
+        "x-status": "implemented",
+        "responses": {
+          "201": {
+            "description": "已创建",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateJobResponse"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "job_id": "p1-20261103T130000-a1b2c3",
+                      "state": "CREATED",
+                      "run": false,
+                      "workflow": "sdxl_t2i",
+                      "workflow_version": 1,
+                      "model": "sdxl_juggernaut",
+                      "params_hash": "sha256:2de9ed823a22...",
+                      "params": {
+                        "prompt": "a red apple on a wooden table",
+                        "seed": 42,
+                        "width": 1024,
+                        "height": 1024,
+                        "steps": 25,
+                        "cfg": 6.0,
+                        "sampler": "dpmpp_2m",
+                        "scheduler": "karras",
+                        "batch_size": 2,
+                        "neg_prompt": ""
+                      },
+                      "expect": {
+                        "ext": "png",
+                        "min_bytes": 20000,
+                        "images": 2,
+                        "width": [
+                          1024
+                        ],
+                        "height": [
+                          1024
+                        ],
+                        "black_ratio_max": 0.5
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "服务端用 registry 补默认值并校验；experimental 组合返回 409。`run=true` 时后台起 run.py，日志写 job 目录 run.log。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJobRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "workflow": "sdxl_t2i",
+                    "run": false,
+                    "params": {
+                      "prompt": "a red apple on a wooden table",
+                      "seed": 42,
+                      "width": 1024,
+                      "height": 1024,
+                      "steps": 25,
+                      "cfg": 6.0,
+                      "sampler": "dpmpp_2m",
+                      "scheduler": "karras",
+                      "batch_size": 2
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/p2/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "作业详情（含产物与时间线）",
+        "operationId": "getJob",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobDetail"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "job": {
+                        "job_id": "p1-20261103T1219-b2df1a",
+                        "state": "DONE",
+                        "created_at": "2026-11-03T12:19:47+08:00",
+                        "kind": "image",
+                        "model": {
+                          "key": "sdxl_juggernaut",
+                          "workflow": "workflows/sdxl_inpaint.api.json",
+                          "registry": {
+                            "workflow_key": "sdxl_inpaint",
+                            "workflow_version": 1,
+                            "model_key": "sdxl_juggernaut",
+                            "model_version": 1
+                          }
+                        },
+                        "params": {
+                          "image": "in-a6891d7b.png",
+                          "mask": "in-5935a044.png",
+                          "prompt": "a green pear on wooden table",
+                          "denoise": 0.85,
+                          "seed": 11,
+                          "steps": 25,
+                          "cfg": 6.0
+                        },
+                        "params_hash": "sha256:49895ef17c1f...",
+                        "expect": {
+                          "ext": "png",
+                          "min_bytes": 20000
+                        },
+                        "steps": {
+                          "provision": {
+                            "done": true,
+                            "at": "2026-11-03T12:20:07+08:00"
+                          },
+                          "submit": {
+                            "done": true,
+                            "at": "2026-11-03T12:21:05+08:00"
+                          },
+                          "wait": {
+                            "done": true,
+                            "at": "2026-11-03T12:21:30+08:00"
+                          }
+                        },
+                        "state_seq": 11
+                      },
+                      "artifacts": [
+                        {
+                          "name": "01-p1-20261103T1219-b2df1a_00001_.png",
+                          "bytes": 748650,
+                          "url": "/pub/jobs/p1-20261103T1219-b2df1a/01-p1-20261103T1219-b2df1a_00001_.png",
+                          "published": true,
+                          "sha256": "c65f4c5d...",
+                          "width": 1024,
+                          "height": 1024
+                        }
+                      ],
+                      "workflow": "sdxl_inpaint",
+                      "terminal": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/token"
+          },
+          {
+            "$ref": "#/components/parameters/job_id"
+          }
+        ]
+      }
+    },
+    "/api/p2/jobs/{job_id}/cancel": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "取消尚未开始的作业",
+        "operationId": "cancelJob",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateJobResponse"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "job_id": "p1-20261103T130000-a1b2c3",
+                      "state": "CREATED",
+                      "run": false,
+                      "workflow": "sdxl_t2i",
+                      "workflow_version": 1,
+                      "model": "sdxl_juggernaut",
+                      "params_hash": "sha256:2de9ed823a22...",
+                      "params": {
+                        "prompt": "a red apple on a wooden table",
+                        "seed": 42,
+                        "width": 1024,
+                        "height": 1024,
+                        "steps": 25,
+                        "cfg": 6.0,
+                        "sampler": "dpmpp_2m",
+                        "scheduler": "karras",
+                        "batch_size": 2,
+                        "neg_prompt": ""
+                      },
+                      "expect": {
+                        "ext": "png",
+                        "min_bytes": 20000,
+                        "images": 2,
+                        "width": [
+                          1024
+                        ],
+                        "height": [
+                          1024
+                        ],
+                        "black_ratio_max": 0.5
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "仅 CREATED 可取消（置 ABORTED，state_seq+1）；已执行返回 409。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/token"
+          },
+          {
+            "$ref": "#/components/parameters/job_id"
+          }
+        ]
+      }
+    },
+    "/api/p2/jobs/{job_id}/rerun": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "同参重跑（P2.2 计划）",
+        "operationId": "rerunJob",
+        "x-status": "planned",
+        "responses": {
+          "201": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateJobResponse"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "job_id": "p1-20261103T130000-a1b2c3",
+                      "state": "CREATED",
+                      "run": false,
+                      "workflow": "sdxl_t2i",
+                      "workflow_version": 1,
+                      "model": "sdxl_juggernaut",
+                      "params_hash": "sha256:2de9ed823a22...",
+                      "params": {
+                        "prompt": "a red apple on a wooden table",
+                        "seed": 42,
+                        "width": 1024,
+                        "height": 1024,
+                        "steps": 25,
+                        "cfg": 6.0,
+                        "sampler": "dpmpp_2m",
+                        "scheduler": "karras",
+                        "batch_size": 2,
+                        "neg_prompt": ""
+                      },
+                      "expect": {
+                        "ext": "png",
+                        "min_bytes": 20000,
+                        "images": 2,
+                        "width": [
+                          1024
+                        ],
+                        "height": [
+                          1024
+                        ],
+                        "black_ratio_max": 0.5
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "复制原作业参数生成新作业；`overrides` 可覆盖部分参数。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/token"
+          },
+          {
+            "$ref": "#/components/parameters/job_id"
+          }
+        ]
+      }
+    },
+    "/api/p2/jobs/{job_id}/artifacts/{name}": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "下载单个产物（P2.2 计划）",
+        "operationId": "getArtifact",
+        "x-status": "planned",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Artifact"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "name": "01-p1-20261103T1219-b2df1a_00001_.png",
+                      "bytes": 748650,
+                      "url": "/pub/jobs/p1-20261103T1219-b2df1a/01-p1-20261103T1219-b2df1a_00001_.png",
+                      "published": true,
+                      "sha256": "c65f4c5da2976cdacefbef69fac7318abf97527d9da3e593515f379623f8d857",
+                      "width": 1024,
+                      "height": 1024
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "当前前端直接用 artifact.url（/pub/jobs/...）静态地址；此接口用于鉴权下载。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/token"
+          },
+          {
+            "$ref": "#/components/parameters/job_id"
+          }
+        ]
+      }
+    },
+    "/api/p2/jobs/zip": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "批量下载选中作业的产物",
+        "operationId": "downloadJobsZip",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "`ids` 逗号分隔；内存打包，优先取已发布静态副本；一个都没有时 404。"
+      }
+    },
+    "/api/p2/uploads": {
+      "post": {
+        "tags": [
+          "uploads"
+        ],
+        "summary": "上传输入图/蒙版（multipart）",
+        "operationId": "uploadImage",
+        "x-status": "implemented",
+        "responses": {
+          "201": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "name": "in-a6891d7b.png",
+                      "bytes": 810226,
+                      "url": "/f/inputs/in-a6891d7b.png"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "字段名 `file`；PNG/JPEG/WebP，≤20MB，按内容哈希命名 `in-<sha8>.<ext>`；同时写作业输入目录与 /f/inputs/。非图片 415，超限 413。"
+      }
+    },
+    "/api/p2/queue": {
+      "get": {
+        "tags": [
+          "queue"
+        ],
+        "summary": "队列统计（旧契约）",
+        "operationId": "getQueue",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStats"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "total": 19,
+                      "running": 0,
+                      "queued": 0,
+                      "done": 15,
+                      "failed": 4
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/p2/queue/jobs": {
+      "get": {
+        "tags": [
+          "queue"
+        ],
+        "summary": "队列视角的作业列表（旧契约）",
+        "operationId": "listQueueJobs",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobList"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "count": 2,
+                      "items": [
+                        {
+                          "job_id": "p1-20261103T1219-b2df1a",
+                          "state": "DONE",
+                          "workflow": "sdxl_inpaint",
+                          "workflow_version": 1,
+                          "model": "sdxl_juggernaut",
+                          "created_at": "2026-11-03T12:19:47+08:00",
+                          "kind": "image",
+                          "prompt": "a green pear on wooden table",
+                          "artifacts": 1,
+                          "first_artifact_url": "/pub/jobs/p1-20261103T1219-b2df1a/01-p1-20261103T1219-b2df1a_00001_.png"
+                        },
+                        {
+                          "job_id": "p1-20261103T1245-a47eee",
+                          "state": "FAILED_PROVISION",
+                          "workflow": "upscale_4x",
+                          "workflow_version": 1,
+                          "model": "upscale_ultrasharp",
+                          "created_at": "2026-11-03T12:45:11+08:00",
+                          "kind": "image",
+                          "prompt": "",
+                          "artifacts": 0,
+                          "first_artifact_url": ""
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "P2.1 之前 `/api/p2/jobs` 的契约，现在挪到这里；新前端请用 `/api/p2/jobs`。"
+      }
+    },
+    "/api/p2/queue/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "queue"
+        ],
+        "summary": "队列视角的作业详情（旧契约）",
+        "operationId": "getQueueJob",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueJob"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "job_id": "p1-20261103T1219-b2df1a",
+                      "queue_state": "DONE",
+                      "job_state": "DONE",
+                      "model": "sdxl_juggernaut",
+                      "kind": "image",
+                      "attempts": 1,
+                      "defers": 0,
+                      "cost": 0.08,
+                      "gpu_minutes": 2.2,
+                      "verdict": "PASS",
+                      "artifacts": [
+                        "reports/p1/jobs/p1-20261103T1219-b2df1a/artifacts/01-....png"
+                      ],
+                      "enqueued_at": "2026-11-03T12:19:47+08:00",
+                      "ended_at": "2026-11-03T12:22:10+08:00"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/token"
+          },
+          {
+            "$ref": "#/components/parameters/job_id"
+          }
+        ]
+      }
+    },
+    "/api/p2/audit": {
+      "get": {
+        "tags": [
+          "queue"
+        ],
+        "summary": "审计事件（增量拉取）",
+        "operationId": "listAudit",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobList"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "count": 2,
+                      "items": [
+                        {
+                          "job_id": "p1-20261103T1219-b2df1a",
+                          "state": "DONE",
+                          "workflow": "sdxl_inpaint",
+                          "workflow_version": 1,
+                          "model": "sdxl_juggernaut",
+                          "created_at": "2026-11-03T12:19:47+08:00",
+                          "kind": "image",
+                          "prompt": "a green pear on wooden table",
+                          "artifacts": 1,
+                          "first_artifact_url": "/pub/jobs/p1-20261103T1219-b2df1a/01-p1-20261103T1219-b2df1a_00001_.png"
+                        },
+                        {
+                          "job_id": "p1-20261103T1245-a47eee",
+                          "state": "FAILED_PROVISION",
+                          "workflow": "upscale_4x",
+                          "workflow_version": 1,
+                          "model": "upscale_ultrasharp",
+                          "created_at": "2026-11-03T12:45:11+08:00",
+                          "kind": "image",
+                          "prompt": "",
+                          "artifacts": 0,
+                          "first_artifact_url": ""
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "轮询用 `since` 游标（audit id）。"
+      }
+    },
+    "/api/p2/events": {
+      "get": {
+        "tags": [
+          "queue"
+        ],
+        "summary": "事件流（增量拉取）",
+        "operationId": "listEvents",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobList"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "count": 2,
+                      "items": [
+                        {
+                          "job_id": "p1-20261103T1219-b2df1a",
+                          "state": "DONE",
+                          "workflow": "sdxl_inpaint",
+                          "workflow_version": 1,
+                          "model": "sdxl_juggernaut",
+                          "created_at": "2026-11-03T12:19:47+08:00",
+                          "kind": "image",
+                          "prompt": "a green pear on wooden table",
+                          "artifacts": 1,
+                          "first_artifact_url": "/pub/jobs/p1-20261103T1219-b2df1a/01-p1-20261103T1219-b2df1a_00001_.png"
+                        },
+                        {
+                          "job_id": "p1-20261103T1245-a47eee",
+                          "state": "FAILED_PROVISION",
+                          "workflow": "upscale_4x",
+                          "workflow_version": 1,
+                          "model": "upscale_ultrasharp",
+                          "created_at": "2026-11-03T12:45:11+08:00",
+                          "kind": "image",
+                          "prompt": "",
+                          "artifacts": 0,
+                          "first_artifact_url": ""
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "轮询用 `since` 游标（events seq）。"
+      }
+    },
+    "/api/p2/status": {
+      "get": {
+        "tags": [
+          "status"
+        ],
+        "summary": "系统状态（队列/成本/实例数）",
+        "operationId": "getStatus",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrySummary"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "workflows": 13,
+                      "models": 6,
+                      "compat": {
+                        "verified": 10,
+                        "equivalent": 2,
+                        "experimental": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/p2/registry": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "Registry 统计摘要",
+        "operationId": "getRegistrySummary",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrySummary"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "workflows": 13,
+                      "models": 6,
+                      "compat": {
+                        "verified": 10,
+                        "equivalent": 2,
+                        "experimental": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/p2/registry/workflows": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "工作流列表（含参数契约与兼容性）",
+        "operationId": "listWorkflows",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryWorkflow"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "key": "sdxl_t2i",
+                      "name": "SDXL 文生图 1024×1024（快速基线）",
+                      "version": 1,
+                      "kind": "image",
+                      "params": {
+                        "prompt": {
+                          "type": "string",
+                          "required": true
+                        },
+                        "batch_size": {
+                          "type": "int",
+                          "default": 1,
+                          "min": 1,
+                          "max": 4
+                        }
+                      },
+                      "compat": {
+                        "status": "verified",
+                        "basis": "real-run",
+                        "evidence": [
+                          "p1-20261103T0059-998e34"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "控制台的模型下拉数据源；`kind=image` 可过滤。"
+      }
+    },
+    "/api/p2/registry/workflows/{key}": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "工作流详情",
+        "operationId": "getWorkflow",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryWorkflow"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "key": "sdxl_t2i",
+                      "name": "SDXL 文生图 1024×1024（快速基线）",
+                      "version": 1,
+                      "kind": "image",
+                      "params": {
+                        "prompt": {
+                          "type": "string",
+                          "required": true
+                        },
+                        "batch_size": {
+                          "type": "int",
+                          "default": 1,
+                          "min": 1,
+                          "max": 4
+                        }
+                      },
+                      "compat": {
+                        "status": "verified",
+                        "basis": "real-run",
+                        "evidence": [
+                          "p1-20261103T0059-998e34"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/token"
+          }
+        ]
+      }
+    },
+    "/api/p2/registry/models": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "模型列表",
+        "operationId": "listModels",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryModel"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "key": "sdxl_juggernaut",
+                      "name": "SDXL juggernautXL v8",
+                      "version": 1,
+                      "kind": "image",
+                      "family": "sdxl",
+                      "files": {
+                        "ckpt": {
+                          "name": "juggernautXL_v8Rundiffusion_V8.safetensors",
+                          "loader": "CheckpointLoaderSimple",
+                          "input": "ckpt_name"
+                        }
+                      },
+                      "constraints": {
+                        "width": {
+                          "min": 512,
+                          "max": 1536,
+                          "multiple": 8
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/p2/registry/models/{key}": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "模型详情",
+        "operationId": "getModel",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryModel"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "key": "sdxl_juggernaut",
+                      "name": "SDXL juggernautXL v8",
+                      "version": 1,
+                      "kind": "image",
+                      "family": "sdxl",
+                      "files": {
+                        "ckpt": {
+                          "name": "juggernautXL_v8Rundiffusion_V8.safetensors",
+                          "loader": "CheckpointLoaderSimple",
+                          "input": "ckpt_name"
+                        }
+                      },
+                      "constraints": {
+                        "width": {
+                          "min": 512,
+                          "max": 1536,
+                          "multiple": 8
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/token"
+          }
+        ]
+      }
+    },
+    "/api/p2/registry/compat": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "兼容性矩阵",
+        "operationId": "getCompatMatrix",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrySummary"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "workflows": 13,
+                      "models": 6,
+                      "compat": {
+                        "verified": 10,
+                        "equivalent": 2,
+                        "experimental": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/p2/registry/stats": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "Registry 统计",
+        "operationId": "getRegistryStats",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrySummary"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "workflows": 13,
+                      "models": 6,
+                      "compat": {
+                        "verified": 10,
+                        "equivalent": 2,
+                        "experimental": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/p2/registry/resolve": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "预演：补默认值 + 渲染 + 期望值",
+        "operationId": "resolveWorkflow",
+        "x-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolveResponse"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "workflow": "sdxl_t2i",
+                      "workflow_version": 1,
+                      "model": "sdxl_juggernaut",
+                      "compat": {
+                        "status": "verified",
+                        "basis": "real-run",
+                        "evidence": []
+                      },
+                      "params": {
+                        "prompt": "a red apple",
+                        "seed": 42,
+                        "batch_size": 2,
+                        "steps": 25
+                      },
+                      "defaults_applied": [
+                        "cfg",
+                        "height",
+                        "width",
+                        "sampler",
+                        "scheduler"
+                      ],
+                      "expect": {
+                        "ext": "png",
+                        "images": 2,
+                        "width": [
+                          1024
+                        ],
+                        "height": [
+                          1024
+                        ]
+                      },
+                      "render": {
+                        "nodes": 7,
+                        "graph_sha256": "e7174e489b254c72..."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "不落盘、不建作业；`params` 为 URL-encoded JSON，`graph=1` 返回完整图。"
+      }
+    },
+    "/api/p2/presets": {
+      "get": {
+        "tags": [
+          "presets"
+        ],
+        "summary": "参数预设列表（P2.2 计划）",
+        "operationId": "listPresets",
+        "x-status": "planned",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preset"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "id": "pre_01",
+                      "name": "厚涂人像",
+                      "workflow": "sdxl_t2i_lora",
+                      "params": {
+                        "lora": "Sdxl/绪儿_厚涂构图光影质感增强V3.safetensors",
+                        "lora_strength": 1.0
+                      },
+                      "created_at": "2026-11-03T13:00:00+08:00"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "presets"
+        ],
+        "summary": "保存参数预设（P2.2 计划）",
+        "operationId": "createPreset",
+        "x-status": "planned",
+        "responses": {
+          "201": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preset"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "id": "pre_01",
+                      "name": "厚涂人像",
+                      "workflow": "sdxl_t2i_lora",
+                      "params": {
+                        "lora": "Sdxl/绪儿_厚涂构图光影质感增强V3.safetensors",
+                        "lora_strength": 1.0
+                      },
+                      "created_at": "2026-11-03T13:00:00+08:00"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Preset"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "id": "pre_01",
+                    "name": "厚涂人像",
+                    "workflow": "sdxl_t2i_lora",
+                    "params": {
+                      "lora": "Sdxl/绪儿_厚涂构图光影质感增强V3.safetensors",
+                      "lora_strength": 1.0
+                    },
+                    "created_at": "2026-11-03T13:00:00+08:00"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/p2/share/{job_id}": {
+      "get": {
+        "tags": [
+          "share"
+        ],
+        "summary": "公开分享页数据（P2.2 计划）",
+        "operationId": "getSharedJob",
+        "x-status": "planned",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobDetail"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "job": {
+                        "job_id": "p1-20261103T1219-b2df1a",
+                        "state": "DONE",
+                        "created_at": "2026-11-03T12:19:47+08:00",
+                        "kind": "image",
+                        "model": {
+                          "key": "sdxl_juggernaut",
+                          "workflow": "workflows/sdxl_inpaint.api.json",
+                          "registry": {
+                            "workflow_key": "sdxl_inpaint",
+                            "workflow_version": 1,
+                            "model_key": "sdxl_juggernaut",
+                            "model_version": 1
+                          }
+                        },
+                        "params": {
+                          "image": "in-a6891d7b.png",
+                          "mask": "in-5935a044.png",
+                          "prompt": "a green pear on wooden table",
+                          "denoise": 0.85,
+                          "seed": 11,
+                          "steps": 25,
+                          "cfg": 6.0
+                        },
+                        "params_hash": "sha256:49895ef17c1f...",
+                        "expect": {
+                          "ext": "png",
+                          "min_bytes": 20000
+                        },
+                        "steps": {
+                          "provision": {
+                            "done": true,
+                            "at": "2026-11-03T12:20:07+08:00"
+                          },
+                          "submit": {
+                            "done": true,
+                            "at": "2026-11-03T12:21:05+08:00"
+                          },
+                          "wait": {
+                            "done": true,
+                            "at": "2026-11-03T12:21:30+08:00"
+                          }
+                        },
+                        "state_seq": 11
+                      },
+                      "artifacts": [
+                        {
+                          "name": "01-p1-20261103T1219-b2df1a_00001_.png",
+                          "bytes": 748650,
+                          "url": "/pub/jobs/p1-20261103T1219-b2df1a/01-p1-20261103T1219-b2df1a_00001_.png",
+                          "published": true,
+                          "sha256": "c65f4c5d...",
+                          "width": 1024,
+                          "height": 1024
+                        }
+                      ],
+                      "workflow": "sdxl_inpaint",
+                      "terminal": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "签名访问（`sig`），不暴露主 token；只返回该作业的产物与参数摘要。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/token"
+          },
+          {
+            "$ref": "#/components/parameters/job_id"
+          }
+        ]
+      }
+    }
+  },
+  "x-mock": {
+    "token": "23e00ec2",
+    "note": "scripts/mock_api.py 读取本字段决定 token 段"
+  }
+}

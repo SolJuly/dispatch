@@ -1,5 +1,11 @@
 # P2 只读 API（UI 对接文档）
 
+> **机器可读契约（推荐）**：`docs/openapi.json`（OpenAPI 3.1，由 `scripts/build_openapi.py` 生成）
+> 在线：https://123.207.74.155/pub/api/openapi.json · 清单页：https://123.207.74.155/pub/api/
+> 前端联调可用 `python3 scripts/mock_api.py` 起本地 Mock（有状态：建作业/取消/上传）。
+> 本文档保留为人读说明；接口以 openapi.json 为准。
+
+
 > 版本：`v0.4-p20-registry` · 2026-11-01
 > 全部 **GET / 只读 / JSON**，沿用文件服务的 token 鉴权；无写接口（提交/取消仍走 `batchctl`，Registry 导入仍走 `p20ctl`）。
 

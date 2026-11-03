@@ -38,6 +38,8 @@ DOCS = [
      "共享库模型清单、Qwen impaint ControlNet、SDXL 确切权重、5.4 方案修正"),
     ("06-M1-连测报告.md", "06-M1-连测报告.html", "M1 连测报告",
      "两工作流各 20 条：成功率/耗时/显存/成本 + seed 复现，Qwen 显存贴边"),
+    ("07-API契约与Mock.md", "07-API契约与Mock.html", "API 契约与 Mock",
+     "OpenAPI 3.1 契约、Mock 用法、接口清单与前端待确认项"),
 ]
 
 INDEX = """<!doctype html>

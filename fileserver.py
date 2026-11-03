@@ -330,6 +330,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._arch_page()
         if kind == "api" and len(rest) >= 2:
             if rest[1] == "p2":
+                # 兼容旧契约：队列视角的 jobs 挪到 /api/p2/queue/jobs*
+                if rest[2:5] == ["queue", "jobs"]:
+                    return self._api_p2(["jobs"] + rest[5:], q)
                 if rest[2:3] == ["jobs"]:
                     return self._api_jobs(rest[3:], q)
                 if rest[2:3] == ["registry"]:
