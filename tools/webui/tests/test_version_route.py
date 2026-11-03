@@ -27,6 +27,10 @@ class TestVersionRoute(unittest.TestCase):
         os.environ["SHARE_TOKEN_FILE"] = str(root / ".share_token")
         os.environ["SHARE_PORT"] = "0"
         os.environ["SHARE_BASE"] = "/files"
+        os.environ["P21_PUB_DIR"] = str(root / "pub")
+        (root / "pub" / "jobs" / "p1-20260101T0000-aaaaaa").mkdir(parents=True)
+        (root / "pub" / "jobs" / "p1-20260101T0000-aaaaaa" / "01-a.png").write_bytes(
+            b"\x89PNG\r\n\x1a\n")
         cls.mod = importlib.import_module("fileserver")
         cls.srv = ThreadingHTTPServer(("127.0.0.1", 0), cls.mod.Handler)
         cls.port = cls.srv.server_address[1]
@@ -37,7 +41,7 @@ class TestVersionRoute(unittest.TestCase):
         cls.srv.shutdown()
         cls.srv.server_close()
         cls._tmp.cleanup()
-        for k in ("SHARE_ROOT", "SHARE_TOKEN_FILE", "SHARE_PORT", "SHARE_BASE"):
+        for k in ("SHARE_ROOT", "SHARE_TOKEN_FILE", "SHARE_PORT", "SHARE_BASE", "P21_PUB_DIR"):
             os.environ.pop(k, None)
 
     def _get(self, path: str, method: str = "GET"):
@@ -66,6 +70,19 @@ class TestVersionRoute(unittest.TestCase):
         code, _, _ = self._get("/api/p2/version")
         self.assertEqual(code, 404)
         code, _, _ = self._get("/deadbeef/api/p2/version")
+        self.assertEqual(code, 404)
+
+    def test_pub_route_serves_published_artifact(self):
+        code, body, headers = self._get(
+            f"/{self.mod.TOKEN}/pub/jobs/p1-20260101T0000-aaaaaa/01-a.png")
+        self.assertEqual(code, 200)
+        self.assertTrue(headers.get("Content-Type", "").startswith("image/png"))
+        self.assertEqual(body, b"\x89PNG\r\n\x1a\n")
+
+    def test_pub_route_blocks_traversal_and_missing(self):
+        code, _, _ = self._get(f"/{self.mod.TOKEN}/pub/jobs/../secret.txt")
+        self.assertEqual(code, 404)
+        code, _, _ = self._get(f"/{self.mod.TOKEN}/pub/jobs/nope.png")
         self.assertEqual(code, 404)
 
     def test_unknown_p2_path_is_404(self):

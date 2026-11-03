@@ -29,6 +29,9 @@ BIND = os.environ.get("SHARE_BIND", "127.0.0.1")
 MAX_UPLOAD = int(os.environ.get("SHARE_MAX_UPLOAD_MB", "200")) * 1024 * 1024
 BASE = os.environ.get("SHARE_BASE", "/files")  # nginx 反代的路径前缀
 PROJ = ROOT.parent
+# 产物/文档的发布根：nginx 用 /pub/ 直接静态服务，这里再给 /files/<token>/pub/ 一条等价路由，
+# 这样没有 nginx 时（本地起服务、只读部署）控制台缩略图也能出图。
+PUB_ROOT = Path(os.environ.get("P21_PUB_DIR", "/srv/dsh-pub")).resolve()
 ARCH_SVG = PROJ / "reports" / "architecture.svg"
 ARCH_TS = {"t": 0.0}
 LOG_FILES = {
@@ -426,6 +429,8 @@ class Handler(BaseHTTPRequestHandler):
             rel = "/".join(rest[1:])
             return self._file(rel, inline=(kind == "raw" or q.get("raw") == ["1"]),
                               force_dl=q.get("dl") == ["1"])
+        if kind == "pub" and len(rest) >= 2:
+            return self._pub_file(rest[1:], force_dl=q.get("dl") == ["1"])
         if kind == "upload":
             return self._upload_page(q.get("ok", [""])[0])
         return self._err(404, "路径不存在")
@@ -483,6 +488,24 @@ class Handler(BaseHTTPRequestHandler):
 <div class="hint">这是服务器上工作目录的只读副本。要看/改源文件，直接在对话里说。</div>"""
         extra = f'<a class="btn p" href="{BASE}/{TOKEN}/zip">全部 zip</a>'
         self._send(200, page("文件 · 智云视频工作流", body, extra_btn=extra))
+
+    def _pub_file(self, parts: list[str], force_dl: bool = False):
+        """GET /<token>/pub/<rel>：等价于 nginx 的 `/pub/`，读 PUB_ROOT（/srv/dsh-pub）。
+
+        控制台缩略图用的是 `/<token>/pub/jobs/<id>/<file>`，没有这条路由就会 404。
+        """
+        rel = urllib.parse.unquote("/".join(parts)).lstrip("/")
+        p = (PUB_ROOT / rel).resolve()
+        if not str(p).startswith(str(PUB_ROOT)) or not p.is_file():
+            return self._err(404, "文件不存在")
+        ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
+        headers = {}
+        if force_dl:
+            fn = p.name.encode("ascii", "ignore").decode() or "file"
+            headers["Content-Disposition"] = (
+                "attachment; filename=\"%s\"; filename*=UTF-8''%s"
+                % (fn, urllib.parse.quote(p.name)))
+        return self._send(200, p.read_bytes(), ctype, headers)
 
     def _file(self, rel: str, inline: bool, force_dl: bool):
         p = self._safe(rel)
