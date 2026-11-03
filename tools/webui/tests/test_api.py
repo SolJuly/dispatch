@@ -2,8 +2,10 @@
 """控制台数据层单测：列表/详情/取消 用临时 jobs 目录；创建用假 jobctl 走全流程。"""
 from __future__ import annotations
 
+import io
 import json
 import sys
+import zipfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -66,6 +68,7 @@ class TestListGet(unittest.TestCase):
         self.assertEqual(len(rows), 3)
         self.assertEqual(rows[0]["job_id"], "p1-20260101T0002-cccccc")   # created_at 倒序
         self.assertEqual(rows[0]["artifacts"], 1)
+        self.assertTrue(rows[0]["first_artifact_url"].endswith("01-a.png"))
 
     def test_filter_failed_prefix(self):
         rows = api.list_jobs(state_prefix="FAILED", jobs_dir=self.root)
@@ -117,6 +120,42 @@ class TestCancel(unittest.TestCase):
         with self.assertRaises(api.ApiError) as cm:
             api.cancel_job("p1-20260101T0001-bbbbbb", jobs_dir=self.root)
         self.assertEqual(cm.exception.code, 409)
+
+
+class TestZip(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.pub = self.root / "pub"
+        for jid, names in (("p1-20260101T0000-aaaaaa", ["a.png", "b.png"]),
+                           ("p1-20260101T0001-bbbbbb", ["c.png"])):
+            d = self.pub / jid
+            d.mkdir(parents=True)
+            for n in names:
+                (d / n).write_bytes(b"\x89PNG\r\n\x1a\n")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_zip_two_jobs(self):
+        data = api.zip_artifacts(["p1-20260101T0000-aaaaaa", "p1-20260101T0001-bbbbbb"],
+                                 pub_dir=self.pub)
+        with zipfile.ZipFile(io.BytesIO(data)) as zf:
+            names = zf.namelist()
+        self.assertEqual(len(names), 3)
+        self.assertIn("p1-20260101T0000-aaaaaa/a.png", names)
+        self.assertIn("p1-20260101T0001-bbbbbb/c.png", names)
+
+    def test_zip_ignores_bad_ids(self):
+        data = api.zip_artifacts(["../../etc/passwd", "p1-20260101T0001-bbbbbb"],
+                                 pub_dir=self.pub)
+        with zipfile.ZipFile(io.BytesIO(data)) as zf:
+            self.assertEqual(len(zf.namelist()), 1)
+
+    def test_zip_empty_raises(self):
+        with self.assertRaises(api.ApiError) as cm:
+            api.zip_artifacts(["p1-20990101T0000-ffffff"], pub_dir=self.pub)
+        self.assertEqual(cm.exception.code, 404)
 
 
 class TestCreate(unittest.TestCase):

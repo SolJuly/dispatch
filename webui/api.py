@@ -6,8 +6,10 @@
 from __future__ import annotations
 
 import datetime as dt
+import io
 import json
 import os
+import zipfile
 import re
 import subprocess
 import sys
@@ -75,6 +77,11 @@ def _artifacts(job_id: str, jobs_dir: Path | None) -> list[dict]:
     return out
 
 
+def _first_artifact_url(job_id: str, jobs_dir: Path | None) -> str:
+    arts = _artifacts(job_id, jobs_dir)
+    return arts[0]["url"] if arts else ""
+
+
 def list_jobs(limit: int = 20, *, state_prefix: str = "", workflow: str = "",
               q: str = "", jobs_dir: Path | None = None) -> list[dict]:
     root = _jobs_dir(jobs_dir)
@@ -113,6 +120,7 @@ def list_jobs(limit: int = 20, *, state_prefix: str = "", workflow: str = "",
             "kind": job.get("kind"),
             "prompt": (job.get("params") or {}).get("prompt", ""),
             "artifacts": len(_artifacts(job.get("job_id"), jobs_dir)),
+            "first_artifact_url": _first_artifact_url(job.get("job_id"), jobs_dir),
         })
     rows.sort(key=lambda r: r.get("created_at") or "", reverse=True)
     return rows[:max(1, min(int(limit or 20), 200))]
@@ -211,6 +219,33 @@ def cancel_job(job_id: str, jobs_dir: Path | None = None) -> dict:
     job["aborted_by"] = "web"
     store.atomic_write_json(_job_path(job_id, jobs_dir), job)
     return {"job_id": job_id, "state": jobstate.ABORTED}
+
+
+def zip_artifacts(job_ids: list[str], jobs_dir: Path | None = None,
+                  pub_dir: Path | None = None) -> bytes:
+    """把多个作业的产物打成一个 zip（内存中，不落临时文件）。
+
+    优先取已发布的静态副本；没有则回落作业目录。
+    """
+    pub = Path(pub_dir) if pub_dir else PUB_DIR
+    buf = io.BytesIO()
+    n = 0
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for jid in job_ids:
+            if not re.fullmatch(r"p1-\d{8}T\d{4}-[0-9a-f]{6}", jid or ""):
+                continue
+            src = pub / jid
+            if not src.is_dir():
+                src = _jobs_dir(jobs_dir) / jid / "artifacts"
+            if not src.is_dir():
+                continue
+            for f in sorted(src.iterdir()):
+                if f.is_file() and f.suffix.lower() in ART_SUFFIX:
+                    zf.write(f, arcname=f"{jid}/{f.name}")
+                    n += 1
+    if n == 0:
+        raise ApiError("选中的作业没有可下载的产物", 404)
+    return buf.getvalue()
 
 
 def image_workflows() -> list[dict]:

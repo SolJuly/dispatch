@@ -526,6 +526,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(code, json.dumps(obj, ensure_ascii=False, default=str).encode(),
                               "application/json; charset=utf-8")
         try:
+            if rest == ["zip"]:
+                ids = [x for x in ((q.get("ids") or [""])[0]).split(",") if x]
+                data = webapi.zip_artifacts(ids)
+                return self._send(200, data, "application/zip",
+                                  {"Content-Disposition": 'attachment; filename="jobs.zip"'})
             if not rest:
                 items = webapi.list_jobs(
                     limit=int((q.get("limit") or ["20"])[0] or 20),

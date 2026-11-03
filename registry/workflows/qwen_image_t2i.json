@@ -185,5 +185,5 @@
     "4090",
     "4090_48G"
   ],
-  "notes": "v2：补齐 sampler/scheduler/batch_size 与多图输出契约（P2.1 5.1）。"
+  "notes": "v2：补齐 sampler/scheduler/batch_size 与多图输出契约（P2.1 5.1）。显存：1024² batch=1 峰值 23.7GB，batch 1–4 均可跑（20.8–23.7GB），并发或多进程需 4090_48G；768×1024 batch=4 吞吐最优。"
 }

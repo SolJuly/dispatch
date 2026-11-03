@@ -1,0 +1,78 @@
+{
+  "schema": "p21.bench/v1",
+  "workflow": "qwen_image_t2i",
+  "model": "qwen_image",
+  "gpu": "4090",
+  "started_at": "20261103T110941",
+  "cases": [
+    {
+      "i": 1,
+      "category": "batch",
+      "seed": 777,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 146.6,
+      "total_s": 153.1,
+      "files": 4,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "f88968d7dddee61a7826bfb7e0f2288495dadf39be0e8103ea1e9c57145ffb9e",
+        "06631c39bd7f660d6f6403cce09e45e123d2e7e5d6f7677824c58342df352d06",
+        "2c2f57b8d061a4196b269767cc0dd7504ca0b73a5b8acd4efd2f2e81f7c59307",
+        "ec2db05c3cb5363f4df9a57a30aa76f4a881fb0a02676ac28e1e66cdcfe752b1"
+      ],
+      "pixel_sha256": [
+        "2d3771420cf773130d0734a1ebe17fa5061d723a8c53b415eacc423d2cdaed16",
+        "7d746c94e7c4f284c3f751b4f7eed592d2189adda5e6896f4ac4766d0672a8e5",
+        "b6c0aa9ab838a00f3d1c9336a69d3b3b516069bd857c8df6b06204fa8cc5f2bb",
+        "99c02dbbf8f108b70ea3fdc66df58bc3b9fef97d7aba816c8ad9759b50148ac1"
+      ],
+      "batch": 4,
+      "vram_peak_mb": 23150
+    }
+  ],
+  "batch_scan": [
+    {
+      "i": 1,
+      "category": "batch",
+      "seed": 777,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 146.6,
+      "total_s": 153.1,
+      "files": 4,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "f88968d7dddee61a7826bfb7e0f2288495dadf39be0e8103ea1e9c57145ffb9e",
+        "06631c39bd7f660d6f6403cce09e45e123d2e7e5d6f7677824c58342df352d06",
+        "2c2f57b8d061a4196b269767cc0dd7504ca0b73a5b8acd4efd2f2e81f7c59307",
+        "ec2db05c3cb5363f4df9a57a30aa76f4a881fb0a02676ac28e1e66cdcfe752b1"
+      ],
+      "pixel_sha256": [
+        "2d3771420cf773130d0734a1ebe17fa5061d723a8c53b415eacc423d2cdaed16",
+        "7d746c94e7c4f284c3f751b4f7eed592d2189adda5e6896f4ac4766d0672a8e5",
+        "b6c0aa9ab838a00f3d1c9336a69d3b3b516069bd857c8df6b06204fa8cc5f2bb",
+        "99c02dbbf8f108b70ea3fdc66df58bc3b9fef97d7aba816c8ad9759b50148ac1"
+      ],
+      "batch": 4,
+      "vram_peak_mb": 23150
+    }
+  ],
+  "vram_peak_mb": 23150,
+  "finished_at": "2026-11-03T11:14:15+08:00",
+  "total": 1,
+  "pass": 1,
+  "success_rate": 1.0,
+  "inference_p50_s": 146.6,
+  "inference_p95_s": 146.6,
+  "elapsed_min": 4.6,
+  "est_cost": 0.163
+}

@@ -135,7 +135,7 @@ class Bench:
                     self.vram_peak = max(self.vram_peak, mb)
                 except (ValueError, IndexError):
                     pass
-            self._stop.wait(4)
+            self._stop.wait(2)
 
     # ---------- 单条
     def _job(self, params: dict, prefix: str) -> dict:
@@ -187,11 +187,12 @@ class Bench:
         raise RuntimeError(f"超时 {limit_s}s")
 
     def run_case(self, idx: int, cat: str, prompt: str, w: int, h: int,
-                 seed: int | None = None, tag: str = "", prefix: str = "") -> dict:
+                 seed: int | None = None, tag: str = "", prefix: str = "",
+                 batch: int = 1) -> dict:
         seed = seed if seed is not None else random.SystemRandom().randint(1, 2**31 - 1)
         params = {"prompt": prompt, "neg_prompt": "blurry, lowres, watermark, text artifacts",
                   "seed": seed, "width": w, "height": h, "steps": 20, "cfg": 2.5,
-                  "sampler": "euler", "scheduler": "simple", "batch_size": 1}
+                  "sampler": "euler", "scheduler": "simple", "batch_size": batch}
         if self.wf_key == "sdxl_t2i":
             params.update({"steps": 25, "cfg": 6.0, "sampler": "dpmpp_2m", "scheduler": "karras"})
         # 按模型约束夹紧尺寸（如 SDXL 上限 1536），避免个别 case 把整轮打断
@@ -275,6 +276,8 @@ def main() -> int:
     ap.add_argument("--gpu", default="4090")
     ap.add_argument("--no-seed-check", action="store_true")
     ap.add_argument("--seed-only", action="store_true", help="只做 seed 复现验证")
+    ap.add_argument("--batch-scan", action="store_true", help="扫描 batch×分辨率 的显存上限")
+    ap.add_argument("--combo", default="", help="只测一个组合 WxHxB，如 1024x1024x4")
     a = ap.parse_args()
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -284,7 +287,25 @@ def main() -> int:
                "gpu": a.gpu, "started_at": ts, "cases": []}
     try:
         b.provision()
-        if not a.seed_only:
+        if a.batch_scan:
+            if a.combo:
+                w0, h0, b0 = (int(x) for x in a.combo.lower().split("x"))
+                combos = [(w0, h0, b0)]
+            else:
+                combos = [(1024, 1024, 1), (768, 1024, 2), (768, 1024, 4),
+                          (512, 512, 4), (1024, 1024, 2)]
+            payload["batch_scan"] = []
+            print("[3] batch × 分辨率 扫描 …")
+            for w, h, batch in combos:
+                b.vram_peak = 0
+                rec = b.run_case(1, "batch", CASES[0][1], w, h, seed=777,
+                                 prefix=f"batch-{w}x{h}-b{batch}", batch=batch)
+                rec["batch"] = batch
+                rec["vram_peak_mb"] = b.vram_peak
+                payload["batch_scan"].append(rec)
+                print(f"    {w}x{h} batch={batch}: {rec['verdict']} "
+                      f"显存 {b.vram_peak}MB {rec['error'][:60]}", flush=True)
+        if not a.seed_only and not a.batch_scan:
             print(f"[3] 连测 {a.n} 条 …")
             for i, (cat, prompt, w, h) in enumerate(CASES[:a.n], 1):
                 b.run_case(i, cat, prompt, w, h)

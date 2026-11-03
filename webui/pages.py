@@ -63,6 +63,16 @@ def create_page(base: str, token: str, workflow: str = "") -> str:
     wf = next((w for w in wfs if w["key"] == workflow), wfs[0])
     fields = "".join(C.field(name, spec) for name, spec in (wf["params"] or {}).items())
     wf_json = json.dumps({"key": wf["key"], "params": wf["params"]}, ensure_ascii=False)
+    recent = api.list_jobs(limit=8)
+    rec_items = []
+    for r in recent:
+        thumb = (f'<img src="{base}/{token}{r["first_artifact_url"]}" loading="lazy">'
+                 if r.get("first_artifact_url") else '<span class="ph">无图</span>')
+        rec_items.append(
+            f'<a class="rec" href="{base}/{token}/app/jobs/{r["job_id"]}">{thumb}'
+            f'<span class="recm">{C.badge(r["state"])}<b>{C.esc(r["workflow"])}</b>'
+            f'<span class="muted">{C.esc(C.human_time(r["created_at"]))}</span></span></a>')
+    recent_html = "".join(rec_items) or '<p class="empty">还没有作业</p>'
     body = f"""
 <h1>创作台</h1>
 <div class="row" style="margin-bottom:14px">
@@ -89,6 +99,8 @@ def create_page(base: str, token: str, workflow: str = "") -> str:
     <div id="results" class="results"></div>
   </section>
 </div>
+<h2 style="margin-top:26px;font-size:16px">最近作业</h2>
+<div class="recs">{recent_html}</div>
 <script>window.__WF__ = {wf_json};</script>
 """
     return shell(base, token, "/app/create", f"创作台 · {wf['key']}", body)
@@ -100,15 +112,20 @@ def jobs_page(base: str, token: str, state: str = "", q: str = "") -> str:
     for r in rows:
         jid = r["job_id"]
         trs.append(
-            f'<tr><td><a href="{base}/{token}/app/jobs/{jid}"><code>{C.esc(jid)}</code></a></td>'
+            f'<tr><td><input type="checkbox" class="job-check" value="{jid}" style="width:auto"></td>'
+            f'<td><a href="{base}/{token}/app/jobs/{jid}"><code>{C.esc(jid)}</code></a></td>'
             f'<td>{C.badge(r["state"])}</td><td>{C.esc(r["workflow"])} v{C.esc(r["workflow_version"])}</td>'
             f'<td>{C.esc(r["model"])}</td><td>{r["artifacts"]} 张</td>'
             f'<td>{C.esc(C.human_time(r["created_at"]))}</td>'
             f'<td><a href="{base}/{token}/app/jobs/{jid}">详情</a></td></tr>')
-    table = (f'<table><tr><th>作业</th><th>状态</th><th>工作流</th><th>模型</th>'
+    table = (f'<table><tr><th style="width:36px"></th><th>作业</th><th>状态</th><th>工作流</th><th>模型</th>'
              f'<th>产物</th><th>创建</th><th></th></tr>{"".join(trs)}</table>') if trs else \
         '<div class="card"><p class="empty">还没有作业，去创作台提交一个。</p></div>'
     filters = f"""
+<div class="row" style="margin-bottom:12px">
+  <button class="btn" id="dl-selected" type="button">⬇ 下载选中作业的图</button>
+  <span class="hint">勾选左侧复选框；产物取自已发布的静态副本。</span>
+</div>
 <form class="row" method="get" action="{base}/{token}/app/jobs" style="margin-bottom:14px">
   <select name="state" style="width:180px">
     <option value="">全部状态</option>

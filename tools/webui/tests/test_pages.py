@@ -41,6 +41,10 @@ class TestCreatePage(unittest.TestCase):
         self.assertIn("window.__WF__", html)
         self.assertIn("/files/tok/static/app.js", html)
 
+    def test_recent_jobs_strip(self):
+        html = pages.create_page("/files", "tok")
+        self.assertIn("最近作业", html)
+
     def test_switch_workflow(self):
         wfs = api.image_workflows()
         self.assertGreaterEqual(len(wfs), 2)
@@ -76,6 +80,8 @@ class TestJobsPage(unittest.TestCase):
             api.list_jobs = orig
         self.assertIn("p1-20260101T0000-aaaaaa", html)
         self.assertIn("pill ok", html)
+        self.assertIn("job-check", html)
+        self.assertIn("dl-selected", html)
         self.assertNotIn("<img src=x", html)
 
 

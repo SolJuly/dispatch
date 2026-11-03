@@ -56,6 +56,11 @@ code{background:#eef1f4;padding:1px 5px;border-radius:4px;font-size:12.5px}
 border-radius:10px;font-size:13px;opacity:0;transform:translateY(8px);transition:.2s}
 .toast.on{opacity:1;transform:none}
 .muted{color:var(--mut)}
+.recs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.rec{display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.rec img{display:block;width:100%;height:110px;object-fit:cover;background:#11151a}
+.rec .ph{display:flex;align-items:center;justify-content:center;height:110px;color:var(--mut);font-size:12px}
+.rec .recm{display:flex;gap:6px;align-items:center;padding:6px 8px;font-size:12px;flex-wrap:wrap}
 """
 
 JS = r"""
@@ -120,6 +125,12 @@ JS = r"""
     timer = setInterval(()=>poll(id), 2000);
     poll(id);
   }
+  const dl = document.getElementById("dl-selected");
+  if(dl) dl.addEventListener("click", ()=>{
+    const ids = Array.from(document.querySelectorAll(".job-check:checked")).map(x=>x.value);
+    if(!ids.length){ toast("先勾选作业"); return; }
+    window.location.href = `${BASE}/api/p2/jobs/zip?ids=` + encodeURIComponent(ids.join(","));
+  });
   document.addEventListener("submit", async e=>{
     const form = e.target.closest("#create-form");
     if(!form) return;
