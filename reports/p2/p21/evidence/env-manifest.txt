@@ -1,0 +1,100 @@
+### os
+PRETTY_NAME="Ubuntu 24.04.1 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+### cuda
+Failed to initialize NVML: Unknown Error
+### python
+Python 3.10.15
+pip 24.2 from /root/miniconda3/lib/python3.10/site-packages/pip (python 3.10)
+### torch
+torch 2.10.0+cu130 cuda 13.0 cudnn 91501
+Warning: Permanently added '[117.50.213.161]:23' (ED25519) to the list of known hosts.
+Connection to 117.50.213.161 closed by remote host.
+### comfy
+3c80da7f87ee359b2d06f107cb3c0797079dfbbb 2026-09-18 14:35:35 -0400
+https://github.com/comfyanonymous/ComfyUI
+### nodes
+ComfyUI-Crystools|https://github.com/crystian/ComfyUI-Crystools|2f18256c5b5063937106f29a8e0a7db3ae3869b7
+ComfyUI-DD-Translation|https://github.com/Dontdrunk/ComfyUI-DD-Translation|9cc769b5d5d9fdec4a80533e5d848ec4ff4f4b8a
+ComfyUI-GGUF|https://github.com/comfyanonymous/ComfyUI|3c80da7f87ee359b2d06f107cb3c0797079dfbbb
+ComfyUI-Impact-Pack|https://github.com/ltdrdata/ComfyUI-Impact-Pack|eace4a9059908330936c6514f35f5e0c84935394
+ComfyUI-KJNodes|https://github.com/kijai/ComfyUI-KJNodes|ab72eda7ffad6280422d71ab7d54d3fb87c0ba18
+ComfyUI-Manager.disabled|https://github.com/Comfy-Org/ComfyUI-Manager|946ef8fe6560bbcee3d363a4752bc08c6fb50d83
+ComfyUI-SUPIR|https://github.com/kijai/ComfyUI-SUPIR|99d49e912c905ce1aaf7d15898f550b40fb3e6cc
+ComfyUI-SeedVR2_VideoUpscaler|https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler|4490bd1f482e026674543386bb2a4d176da245b9
+ComfyUI-nunchaku.disabled|https://github.com/mit-han-lab/ComfyUI-nunchaku|8beaa0c773ea96a9fe0af9edfb6dd491d105ef10
+ComfyUI_LayerStyle|https://github.com/chflame163/ComfyUI_LayerStyle|c7b8f73af0badaf2a59bee6111ecdd004be15ab3
+ComfyUI_UltimateSDUpscale|https://github.com/ssitu/ComfyUI_UltimateSDUpscale|a5547db9e1d07d3318bb21e9e9c474f4c1e9c8df
+ComfyUI_essentials|https://github.com/cubiq/ComfyUI_essentials|9d9f4bedfc9f0321c19faf71855e228c93bd0dc9
+__pycache__|https://github.com/comfyanonymous/ComfyUI|3c80da7f87ee359b2d06f107cb3c0797079dfbbb
+comfyui_face_parsing|https://github.com/ComfyNodePRs/PR-comfyui_face_parsing-d39afaa9.git|f9f89b3faa2b240257e6a6102469d0a33d031d6d
+comfyui_face_parsing_New.disabled|https://github.com/isurulkh/comfyui_face_parsing_New|abd627dd9a23904246b4ab1f809754d55019f808
+### startd
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY all_proxy
+#!/bin/bash
+source /root/miniconda3/bin/activate
+cd /root/ComfyUI
+COMFYUI_MANAGER_OFFLINE=1 nohup python -u main.py --listen 0.0.0.0 --port 8188 > comfy.log 2>&1 &
+### sizes
+9.1G	/root/ComfyUI
+12G	/root/miniconda3
+Warning: Permanently added '[117.50.213.161]:23' (ED25519) to the list of known hosts.
+### pipfreeze_all
+262 /root/pipfreeze.txt
+accelerate==1.10.1
+av==17.1.0
+comfyui-embedded-docs==0.5.11
+comfyui-manager==4.2.2
+comfyui-workflow-templates-core==0.3.350
+comfyui-workflow-templates-json==0.1.85
+comfyui-workflow-templates-media-api==0.3.84
+comfyui-workflow-templates-media-assets-01==0.1.46
+comfyui-workflow-templates-media-image==0.3.160
+comfyui-workflow-templates-media-other==0.3.229
+comfyui-workflow-templates-media-video==0.3.101
+comfyui_frontend_package==1.53.6
+comfyui_workflow_templates==0.11.62
+diffusers==0.35.1
+einops==0.8.1
+ftfy==6.3.1
+gguf==0.17.1
+huggingface-hub==0.34.4
+imageio==2.37.0
+insightface==0.7.3
+kornia==0.8.1
+kornia_rs==0.1.9
+lightning-utilities==0.15.3
+numpy==2.2.6
+onnx==1.19.1
+onnxruntime-gpu==1.23.2
+onnxruntime==1.23.2
+opencv-contrib-python-headless==5.0.0.93
+opencv-contrib-python==5.0.0.93
+opencv-python-headless==4.12.0.88
+opencv-python==4.12.0.88
+pillow==11.0.0
+safetensors==0.6.2
+scipy==1.15.3
+segment-anything==1.0
+sentencepiece==0.2.1
+timm==1.0.21
+tokenizers==0.21.4
+torch==2.10.0+cu130
+torchaudio==2.10.0+cu130
+### apt
+aria2=1.37.0+debian-1build3
+git=1:2.43.0-1ubuntu7.3
+libaria2-0:amd64=1.37.0+debian-1build3
+libcurl3t64-gnutls:amd64=8.5.0-2ubuntu10.6
+libcurl4t64:amd64=8.5.0-2ubuntu10.6
+libgl1:amd64=1.7.0-1build1
+libgl1-mesa-dri:amd64=25.0.7-0ubuntu0.24.04.1
+libglib2.0-0t64:amd64=2.80.0-6ubuntu3.1
+libglib2.0-data=2.80.0-6ubuntu3.1
+wget=1.21.4-1ubuntu4.1
+### conda
+conda 24.11.3
+/root/miniconda3/bin/python
+/root/miniconda3/bin/pip
+Warning: Permanently added '[117.50.213.161]:23' (ED25519) to the list of known hosts.
