@@ -1,0 +1,44 @@
+{
+  "kind": "image",
+  "task_ref": "P2.0-qwen_image_edit_2509",
+  "model": {
+    "key": "qwen_image_edit_2509",
+    "workflow": "workflows/qwen_image_edit_2509.api.json",
+    "checkpoint": "qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+    "workflow_sha256": "38caf24ed5244a82feba551bbc7e9d83872fd60a33ffa698fa64091ee98baade",
+    "registry": {
+      "workflow_key": "qwen_image_edit_2509",
+      "workflow_version": 1,
+      "model_key": "qwen_image_edit_2509",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "none",
+      "graph_sha256": "38caf24ed5244a82feba551bbc7e9d83872fd60a33ffa698fa64091ee98baade"
+    }
+  },
+  "params": {
+    "cfg": 1.0,
+    "image": "in-f9bd4904.jpg",
+    "negative_prompt": "",
+    "prompt": "把背景换成樱花树下，人物保持不变，柔和自然光",
+    "seed": 1696414361,
+    "steps": 4
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "images": 1,
+    "min_bytes": 20000
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 1.2
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

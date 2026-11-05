@@ -1,0 +1,42 @@
+{
+  "kind": "image",
+  "task_ref": "P2.0-seedvr2_3b_upscale",
+  "model": {
+    "key": "seedvr2_3b",
+    "workflow": "workflows/seedvr2_3b_upscale.api.json",
+    "checkpoint": "seedvr2_ema_3b_fp8_e4m3fn.safetensors",
+    "workflow_sha256": "eaa43470c7fa67ffcdf193d88220753ad914b58cf2a77233ddb806525d8e5c1b",
+    "registry": {
+      "workflow_key": "seedvr2_3b_upscale",
+      "workflow_version": 1,
+      "model_key": "seedvr2_3b",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "none",
+      "graph_sha256": "eaa43470c7fa67ffcdf193d88220753ad914b58cf2a77233ddb806525d8e5c1b"
+    }
+  },
+  "params": {
+    "color_correction": "lab",
+    "image": "in-f9bd4904.jpg",
+    "resolution": 2048,
+    "seed": 1051245061
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "images": 1,
+    "min_bytes": 20000
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 1.2
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}
