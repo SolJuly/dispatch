@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT_DIR = ROOT / "reports/p2/p21/evidence"
-BASE_IMAGE = "compshareImage-1x65ieja8ncj"   # p2-comfy-base-v1（image.json base 层）
+BASE_IMAGE = "compshareImage-1xc7km2mb0ob"   # p2-comfy-base-v1（image.json base 层）
 GPU = "4090"
 CPU, MEM = 16, 64
 
