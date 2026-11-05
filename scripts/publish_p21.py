@@ -57,6 +57,8 @@ DOCS = [
      "38 条 pack 的单机只读审计：4 条视频可跑、图片 0/15、缺节点/缺权重/断链清单"),
     ("15-视频主链路验证-第一步.md", "15-视频主链路验证-第一步.html", "视频主链路验证（第一步）",
      "Wan2.2 I2V/FLF2V 真机 PASS；S2V 模板图转换损坏；image_2/audio/video 上传支持"),
+    ("16-新镜像p2-comfy-media-v2.md", "16-新镜像p2-comfy-media-v2.html", "新镜像 p2-comfy-media-v2",
+     "补 KJNodes/Impact/LayerStyle/UltimateSDUpscale/SUPIR/SeedVR2/FaceParsing；1753 class；缺口与下一步"),
 ]
 
 INDEX = """<!doctype html>

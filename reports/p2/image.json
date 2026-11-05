@@ -3,20 +3,22 @@
   "fallback_keyword": "ComfyUI基础镜像纯净版0.36.0",
   "layers": {
     "base": {
-      "name": "p2-comfy-base-v1",
-      "image_id": "compshareImage-1x65ieja8ncj",
-      "based_on": "compshareImage-1vjv4ef2vy94",
-      "has_ffmpeg": false,
-      "comfy_ver": "0.36.x",
-      "baked_at": "2026-11-01T11:47:55+0800"
-    },
-    "media": {
-      "name": "p2-comfy-media-v1",
-      "image_id": "compshareImage-1x65o3j08tdw",
-      "based_on": "compshareImage-1x65ieja8ncj",
+      "name": "p2-comfy-media-v2",
+      "image_id": "compshareImage-1xbzk9oqquks",
+      "based_on": "compshareImage-1x65o3j08tdw",
       "has_ffmpeg": true,
       "comfy_ver": "0.36.x",
-      "baked_at": "2026-11-01T11:52:19+0800"
+      "baked_at": "2026-11-05T13:54:00+0800",
+      "note": "v1 + KJNodes/essentials/Impact/LayerStyle/UltimateSDUpscale/SUPIR/SeedVR2/FaceParsing；启动脚本已 unset 代理"
+    },
+    "media": {
+      "name": "p2-comfy-media-v2",
+      "image_id": "compshareImage-1xbzk9oqquks",
+      "based_on": "compshareImage-1x65o3j08tdw",
+      "has_ffmpeg": true,
+      "comfy_ver": "0.36.x",
+      "baked_at": "2026-11-05T13:54:00+0800",
+      "note": "v1 + KJNodes/essentials/Impact/LayerStyle/UltimateSDUpscale/SUPIR/SeedVR2/FaceParsing；启动脚本已 unset 代理"
     }
   }
 }
