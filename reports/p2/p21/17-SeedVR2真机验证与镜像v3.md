@@ -100,3 +100,22 @@
 ## 9. 回滚
 
 `reports/p2/image.json` 改回 v2（`compshareImage-1xbzk9oqquks`）即可；v3 镜像保留不影响现有流程。去掉 `seedvr2_3b_upscale` 的 `verified` 状态需直接改 `registry/compat.json`（不推荐）。
+
+## 10. 镜像内容核验（3090 新实例，18:03）
+
+用 v3 直接新建一台 3090（不手工跑任何安装命令），确认“节点到底在不在镜像里”：
+
+| 检查 | 结果 |
+|---|---|
+| `readlink -f /root/ComfyUI/custom_nodes/*` | 13 个启用 + 2 个 `.disabled`，**全部解析到自身**（真实目录，不是 `/model` 软链） |
+| 体积 / 时间 | `custom_nodes` 合计 **368 MB**，目录 mtime `11-05 13:53`（v2 构建时）→ 在镜像层 |
+| pip 依赖 | `lightning-utilities 0.15.3`、`torchmetrics 1.9.0`、`ftfy 6.3.1` 均在 `/root/miniconda3/.../site-packages`；`xformers` 已不存在 |
+| `/object_info` | **1757 class**、**0 IMPORT FAILED** |
+| 关键节点 | `SeedVR2LoadDiTModel/LoadVAEModel/VideoUpscaler`、`SUPIRApply`、`UltimateSDUpscale`、`ImageResizeKJv2`、`FaceParsingModelLoader(FaceParsing)`、`GrowMaskWithBlur`、`ImpactCompare`、`LayerUtility: If `、`SimpleMath+`、`BOOLConstant` 全部存在 |
+| 例外 | `BBoxDetectorLoader(FaceParsing)` 仍报 `KeyError: 'ultralytics_bbox'`：节点代码在，但 `folder_paths` 没注册这个目录，`/object_info` 取不到 → facegen 的缺口是配置/权重，不是“没装” |
+
+**不在镜像里的**：
+- 模型权重（`/model` 是只读 UPFS，镜像里只是软链）；
+- `instance_setup.sh` 每次开机临时做的两个 Qwen 软链（`qwen_std_vae`、`qwen25vl7b_std`）。
+
+核验原始输出：`evidence/v3-image-inspect.txt`。成本：3090 约 4 分钟，**¥0.02**。

@@ -1,0 +1,79 @@
+### paths
+/root/ComfyUI
+drwxr-xr-x 1 root root 4096 Nov  5 17:39 /root/ComfyUI
+drwxr-xr-x 1 root root    0 Nov  5 13:53 /root/ComfyUI/custom_nodes
+drwxr-xr-x 1 root root    0 Nov  5 13:48 /root/ComfyUI/models
+overlay          79G  2.0M   76G   1% /
+### custom_nodes
+ComfyUI-Crystools -> /root/ComfyUI/custom_nodes/ComfyUI-Crystools
+ComfyUI-DD-Translation -> /root/ComfyUI/custom_nodes/ComfyUI-DD-Translation
+ComfyUI-GGUF -> /root/ComfyUI/custom_nodes/ComfyUI-GGUF
+ComfyUI-Impact-Pack -> /root/ComfyUI/custom_nodes/ComfyUI-Impact-Pack
+ComfyUI-KJNodes -> /root/ComfyUI/custom_nodes/ComfyUI-KJNodes
+ComfyUI-Manager.disabled -> /root/ComfyUI/custom_nodes/ComfyUI-Manager.disabled
+ComfyUI-SUPIR -> /root/ComfyUI/custom_nodes/ComfyUI-SUPIR
+ComfyUI-SeedVR2_VideoUpscaler -> /root/ComfyUI/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler
+ComfyUI-nunchaku.disabled -> /root/ComfyUI/custom_nodes/ComfyUI-nunchaku.disabled
+ComfyUI_LayerStyle -> /root/ComfyUI/custom_nodes/ComfyUI_LayerStyle
+ComfyUI_UltimateSDUpscale -> /root/ComfyUI/custom_nodes/ComfyUI_UltimateSDUpscale
+ComfyUI_essentials -> /root/ComfyUI/custom_nodes/ComfyUI_essentials
+__pycache__ -> /root/ComfyUI/custom_nodes/__pycache__
+comfyui_face_parsing -> /root/ComfyUI/custom_nodes/comfyui_face_parsing
+comfyui_face_parsing_New.disabled -> /root/ComfyUI/custom_nodes/comfyui_face_parsing_New.disabled
+### sizes
+368M	/root/ComfyUI/custom_nodes
+620K	/root/ComfyUI/custom_nodes/ComfyUI_essentials
+1.1M	/root/ComfyUI/custom_nodes/ComfyUI_UltimateSDUpscale
+1.9M	/root/ComfyUI/custom_nodes/comfyui_face_parsing
+4.8M	/root/ComfyUI/custom_nodes/ComfyUI-nunchaku.disabled
+5.1M	/root/ComfyUI/custom_nodes/ComfyUI-KJNodes
+5.4M	/root/ComfyUI/custom_nodes/ComfyUI-DD-Translation
+5.8M	/root/ComfyUI/custom_nodes/ComfyUI-SUPIR
+8.4M	/root/ComfyUI/custom_nodes/ComfyUI-Impact-Pack
+12M	/root/ComfyUI/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler
+22M	/root/ComfyUI/custom_nodes/ComfyUI-Crystools
+110M	/root/ComfyUI/custom_nodes/ComfyUI_LayerStyle
+193M	/root/ComfyUI/custom_nodes/ComfyUI-Manager.disabled
+### pip
+Name: lightning-utilities
+Version: 0.15.3
+Location: /root/miniconda3/lib/python3.10/site-packages
+Name: torchmetrics
+Version: 1.9.0
+Location: /root/miniconda3/lib/python3.10/site-packages
+Name: ftfy
+Version: 6.3.1
+Location: /root/miniconda3/lib/python3.10/site-packages
+### comfy
+Warning: Permanently added '[117.50.176.154]:23' (ED25519) to the list of known hosts.
+Connection to 117.50.176.154 closed by remote host.
+### mount
+overlay on / type overlay (rw,relatime,lowerdir=/var/lib/uimgacc/uclfs/1793871553851386895:/var/lib/uimgacc/uclfs/1793858082513496159:/var/lib/uimgacc/uclfs/1793505144156197519:/var/lib/uimgacc/uclfs/1793504877746137656:/var/lib/uimgacc/uclfs/1790024294530232237:/var/lib/uimgacc/uclfs/1790024294529832319:/var/lib/uimgacc/uclfs/1790024294529458699:/var/lib/uimgacc/uclfs/1790024294529091659:/var/lib/uimgacc/uclfs/1790024294528729268:/var/lib/uimgacc/uclfs/1790024294528350002:/var/lib/uimgacc/uclfs/1790024294527995788:/var/lib/uimgacc/uclfs/1790024294527616943:/var/lib/uimgacc/uclfs/1790024294527265519:/var/lib/uimgacc/uclfs/1790024294526932097:/var/lib/uimgacc/uclfs/1790024294526574301:/var/lib/uimgacc/uclfs/1790024294526227694:/var/lib/uimgacc/uclfs/1790024294525870601:/var/lib/uimgacc/uclfs/1790024294525516420:/var/lib/uimgacc/uclfs/1790024294525188107:/var/lib/uimgacc/uclfs/1790024294524835530:/var/lib/uimgacc/uclfs/1790024294524451864:/var/lib/uimgacc/uclfs/1790024294524105277:/var/lib/uimgacc/uclfs/1790024294523771862:/var/lib/uimgacc/uclfs/1790024294523410287:/var/lib/uimgacc/uclfs/1790024294523032818:/var/lib/uimgacc/uclfs/1346:/var/lib/uimgacc/uclfs/1202:/var/lib/uimgacc/uclfs/888:/var/lib/uimgacc/uclfs/831:/var/lib/uimgacc/uclfs/830:/var/lib/uimgacc/uclfs/762:/var/lib/uimgacc/uclfs/731:/var/lib/uimgacc/uclfs/730:/var/lib/uimgacc/uclfs/732:/var/lib/uimgacc/uclfs/705:/var/lib/uimgacc/uclfs/701:/var/lib/uimgacc/uclfs/699:/var/lib/uimgacc/uclfs/700:/var/lib/uimgacc/uclfs/702:/var/lib/uimgacc/uclfs/703:/var/lib/uimgacc/uclfs/706:/var/lib/uimgacc/uclfs/704:/var/lib/uimgacc/uclfs/709,upperdir=/data/snapshotter/snapshots/3/fs,workdir=/data/snapshotter/snapshots/3/work,xino=off)
+Filesystem      Size  Used Avail Use% Mounted on
+overlay          79G  2.1M   76G   1% /
+overlay          79G  2.1M   76G   1% /
+### comfy_state
+54 python -u main.py --listen 0.0.0.0 --port 8188
+READY 5
+CLASSES 1757
+HAS SeedVR2LoadDiTModel True
+HAS SeedVR2LoadVAEModel True
+HAS SeedVR2VideoUpscaler True
+HAS SUPIRApply True
+HAS UltimateSDUpscale True
+HAS ImageResizeKJv2 True
+HAS FaceParsingModelLoader(FaceParsing) True
+HAS GrowMaskWithBlur True
+HAS ImpactCompare True
+HAS LayerUtility: If  True
+HAS SimpleMath+ True
+HAS BOOLConstant True
+### import_failed
+0
+### log_tail
+    out = get_filename_list_(folder_name)
+  File "/root/ComfyUI/folder_paths.py", line 475, in get_filename_list_
+    folders = folder_names_and_paths[folder_name]
+KeyError: 'ultralytics_bbox'
+
+Warning: Permanently added '[117.50.176.154]:23' (ED25519) to the list of known hosts.
