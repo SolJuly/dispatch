@@ -65,6 +65,8 @@ DOCS = [
      "Qwen-Image-Edit 2509 改图 + SeedVR2 视频 1080p 放大均 PASS；修输入回显误当产物、registry 视频默认时长两个 bug"),
     ("19-工作流缺口清单.md", "19-工作流缺口清单.html", "工作流缺口清单（截至 2026-11-05）",
      "60 条里 21 verified；37 experimental 中 6 条已被替代；待办按 LTX/MiniMax/SCAIL/S2V/VACE/Qwen2.1/SUPIR 分组与难度"),
+    ("20-跨平台运行时与权重外置方案.md", "20-跨平台运行时与权重外置方案.html", "跨平台运行时与权重外置方案",
+     "镜像管代码、对象存储管权重、Provider 管平台；难点、速度影响、画质影响与四阶段路线"),
 ]
 
 INDEX = """<!doctype html>
