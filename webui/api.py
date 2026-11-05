@@ -283,10 +283,10 @@ def zip_artifacts(job_ids: list[str], jobs_dir: Path | None = None,
 
 
 def image_workflows() -> list[dict]:
-    """控制台的"模型"下拉数据源：只取 image 类工作流。"""
+    """控制台的"模型"下拉数据源：只取 image 类、且未标记 deprecated 的工作流。"""
     out = []
     for w in registry.list_workflows():
-        if w.get("kind") != "image":
+        if w.get("kind") != "image" or w.get("deprecated"):
             continue
         out.append({
             "key": w["key"], "name": w["name"], "version": w["version"],

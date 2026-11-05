@@ -218,6 +218,18 @@ def expect_for(wf: dict, params: dict) -> dict:
     for k in ("width", "height"):
         if k in params:
             exp[k] = [params[k]]
+    # 输出可能经过超分/放大（例如 Z-Image HQ 的 2x 细化）：
+    # expect_scale 只影响校验期望，不改变提交给 ComfyUI 的 width/height。
+    scale = wf.get("expect_scale") or {}
+    if isinstance(scale, dict):
+        for k in ("width", "height"):
+            mult = scale.get(k)
+            if k not in params or not isinstance(mult, (int, float)) or mult == 1:
+                continue
+            try:
+                exp[k] = [max(1, int(round(float(params[k]) * float(mult))))]
+            except (TypeError, ValueError):
+                pass
     out = wf.get("output") or {}
     exp.setdefault("ext", out.get("ext", "mp4"))
 

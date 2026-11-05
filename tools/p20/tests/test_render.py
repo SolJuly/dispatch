@@ -163,6 +163,16 @@ class TestExpect(unittest.TestCase):
         self.assertEqual(exp["width"], [1024])
         self.assertEqual(exp["ext"], "png")
 
+    def test_expect_scale_for_2x_upscale(self):
+        # Z-Image HQ 先 1024 采样，再 2x 细化到 2048；校验期望要跟着放大
+        wf = registry.get_workflow("zimage_turbo_t2i_hq")
+        exp = render.expect_for(wf, {"width": 1024, "height": 1024})
+        self.assertEqual(exp["width"], [2048])
+        self.assertEqual(exp["height"], [2048])
+        exp = render.expect_for(wf, {"width": 768, "height": 512})
+        self.assertEqual(exp["width"], [1536])
+        self.assertEqual(exp["height"], [1024])
+
     def test_video_freeze_gate_default(self):
         wf = registry.get_workflow("ltxv_2b_t2v")
         exp = render.expect_for(wf, {"width": 768, "height": 512})

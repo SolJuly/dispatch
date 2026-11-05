@@ -113,6 +113,17 @@
       ],
       "verified_at": "2026-11-01",
       "notes": "官方 fp8 版实跑 PASS（社区 NVFP4 版已排除）"
+    },
+    {
+      "workflow": "zimage_turbo_t2i_hq",
+      "model": "zimage_turbo",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T0857-ed3d5d"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "真机 4090：1024 基础 + 2x 细化到 2048，59s，PASS；成本 ¥0.1827（含两次提交失败重试）"
     }
   ]
 }

@@ -192,5 +192,7 @@
     "4090",
     "4090_48G"
   ],
-  "notes": "P2.1 5.4：LoraLoader 插在 ckpt 与采样器之间；lora 文件名来自 M0 盘点（loras/Sdxl）。"
+  "notes": "P2.1 5.4：LoraLoader 插在 ckpt 与采样器之间；lora 文件名来自 M0 盘点（loras/Sdxl）。",
+  "deprecated": true,
+  "deprecated_reason": "P2.2 起由 zimage_turbo_t2i_hq 替换；仅保留供历史作业复现/回滚，控制台不再展示"
 }

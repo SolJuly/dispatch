@@ -37,7 +37,7 @@ class TestCreatePage(unittest.TestCase):
         self.assertIn('id="create-form"', html)
         self.assertIn('data-param="prompt"', html)
         self.assertIn('data-param="sampler"', html)
-        self.assertIn('data-param="batch_size"', html)
+        self.assertIn('data-param="steps"', html)
         self.assertIn("window.__WF__", html)
         self.assertIn("/files/tok/static/app.js", html)
 
