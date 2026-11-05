@@ -66,7 +66,11 @@ class TestCreatePage(unittest.TestCase):
 
     def test_unknown_workflow_falls_back(self):
         html = pages.create_page("/files", "tok", "does_not_exist")
-        self.assertIn("创作台", html)
+        self.assertIn("创作台 · zimage_turbo_t2i_hq", html)
+
+    def test_deprecated_workflow_falls_back_to_default(self):
+        html = pages.create_page("/files", "tok", "qwen_image_t2i")
+        self.assertIn("创作台 · zimage_turbo_t2i_hq", html)
 
 
 class TestJobsPage(unittest.TestCase):

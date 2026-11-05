@@ -74,11 +74,15 @@ def create_page(base: str, token: str, workflow: str = "") -> str:
             or next((w["key"] for w in wfs if _has(w, "image") and not _has(w, "mask")),
                     wfs[0]["key"])
         aliases = {"t2i": t2i, "i2i": i2i}
-        workflow = aliases.get(workflow or "", workflow) or t2i
+        requested = aliases.get(workflow or "", workflow or t2i)
     else:
         body = '<div class="card"><p class="empty">还没有 image 类工作流，先跑 <code>p20ctl import</code>。</p></div>'
         return shell(base, token, "/app/create", "创作台", body)
-    wf = next((w for w in wfs if w["key"] == workflow), wfs[0])
+    # 未知 key 或已 deprecated 的 key（比如旧的 qwen_image_t2i）一律回落到默认文生图，
+    # 不要落到列表第一条（那会变成 detail_polish，用户会以为页签坏了）。
+    wf = next((w for w in wfs if w["key"] == requested), None) \
+        or next(w for w in wfs if w["key"] == t2i)
+    workflow = wf["key"]
     fields = "".join(C.field(name, spec) for name, spec in (wf["params"] or {}).items())
     wf_json = json.dumps({"key": wf["key"], "params": wf["params"]}, ensure_ascii=False)
     recent = api.list_jobs(limit=8)
