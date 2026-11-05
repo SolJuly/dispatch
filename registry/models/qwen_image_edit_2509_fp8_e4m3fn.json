@@ -1,0 +1,49 @@
+{
+  "schema": "p20.model/v1",
+  "key": "qwen_image_edit_2509_fp8_e4m3fn",
+  "name": "qwen_image_edit_2509_fp8_e4m3fn",
+  "version": 1,
+  "kind": "image",
+  "family": "qwen_image_edit_2509",
+  "primary": "unet",
+  "files": {
+    "vae": {
+      "name": "qwen_image_vae.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "qwen_image_vae"
+      }
+    },
+    "clip": {
+      "name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "qwen_2.5_vl_7b_fp8_scaled"
+      }
+    },
+    "unet": {
+      "name": "qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "qwen_image_edit_2509_fp8_e4m3fn"
+      }
+    },
+    "lora": {
+      "name": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
+      "loader": "LoraLoaderModelOnly",
+      "input": "lora_name",
+      "match": {
+        "contains": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}

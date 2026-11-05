@@ -1,0 +1,50 @@
+{
+  "kind": "image",
+  "task_ref": "P2.0-zimage_turbo_controlnet_canny",
+  "model": {
+    "key": "zimage_turbo_controlnet",
+    "workflow": "workflows/zimage_turbo_controlnet_canny.api.json",
+    "checkpoint": "z_image_turbo/z_image_turbo_bf16.safetensors",
+    "workflow_sha256": "77dd525fed0c516f4a36962f8eee743f220c4e9dec2ded09820362be8922dea9",
+    "registry": {
+      "workflow_key": "zimage_turbo_controlnet_canny",
+      "workflow_version": 1,
+      "model_key": "zimage_turbo_controlnet",
+      "model_version": 1,
+      "compat": "experimental",
+      "compat_basis": "unverified",
+      "setup_need": "all",
+      "graph_sha256": "77dd525fed0c516f4a36962f8eee743f220c4e9dec2ded09820362be8922dea9"
+    }
+  },
+  "params": {
+    "canny_high": 0.32,
+    "canny_low": 0.1,
+    "cfg": 1.0,
+    "end": 1.0,
+    "image": "in-a6891d7b.png",
+    "prompt": "professional product photograph on a clean studio background, preserving the exact composition and pose of the reference, soft diffused lighting, crisp details",
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "seed": 42,
+    "start": 0.0,
+    "steps": 8,
+    "strength": 1.0
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "images": 1,
+    "min_bytes": 20000
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

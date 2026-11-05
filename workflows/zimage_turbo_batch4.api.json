@@ -1,0 +1,50 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "z_image_turbo_bf16.safetensors", "weight_dtype": "default" }
+  },
+  "2": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": { "model": ["1", 0], "sampling": "flow", "shift": 3 }
+  },
+  "3": {
+    "class_type": "CLIPLoader",
+    "inputs": { "clip_name": "qwen_3_4b.safetensors", "type": "lumina2", "device": "default" }
+  },
+  "4": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "ae.safetensors" }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "clip": ["3", 0], "text": "A cinematic portrait photograph of a young East Asian woman, soft natural window light, detailed skin texture, shallow depth of field, 85mm lens, subtle film grain, warm color grading, professional studio quality" },
+    "_meta": { "title": "PROMPT SLOT - agent injects user prompt here" }
+  },
+  "6": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": { "conditioning": ["5", 0] }
+  },
+  "7": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": { "width": 1024, "height": 1024, "batch_size": 4 },
+    "_meta": { "title": "BATCH SLOT - 4 candidates in ONE /prompt call instead of 4 round trips" }
+  },
+  "8": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["2", 0], "positive": ["5", 0], "negative": ["6", 0],
+      "latent_image": ["7", 0], "seed": 42, "steps": 8, "cfg": 1.0,
+      "sampler_name": "res_multistep", "scheduler": "simple", "denoise": 1.0
+    },
+    "_meta": { "title": "SEED SLOT - one seed produces 4 variations" }
+  },
+  "9": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["8", 0], "vae": ["4", 0] }
+  },
+  "10": {
+    "class_type": "SaveImage",
+    "inputs": { "filename_prefix": "zimage_4candidates", "images": ["9", 0] },
+    "_meta": { "title": "FINAL OUTPUT - 4 images saved in one run" }
+  }
+}

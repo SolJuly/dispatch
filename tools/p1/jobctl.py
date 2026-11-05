@@ -137,11 +137,17 @@ def _find_same_hash(ph: str) -> list[tuple[str, str]]:
 
 def cmd_new(a) -> int:
     spec = _load_spec(Path(a.spec))
+    kind_hint = spec.get("kind", "video")
+    # 视频专属的期望项（时长/冻结/黑帧）不能套到 image 作业上：
+    # 否则 png 产物会被拿去测时长，复验必挂（P2.2 导入官方模板时暴露出来的老问题）。
+    VIDEO_ONLY_EXPECT = ("duration_s", "freeze")
     for k, v in SPEC_DEFAULTS.items():
         if k not in spec:
             spec[k] = v
         elif isinstance(v, dict) and isinstance(spec.get(k), dict):
             for kk, vv in v.items():
+                if k == "expect" and kind_hint != "video" and kk in VIDEO_ONLY_EXPECT:
+                    continue
                 spec[k].setdefault(kk, vv)
 
     model = spec.get("model") or {}

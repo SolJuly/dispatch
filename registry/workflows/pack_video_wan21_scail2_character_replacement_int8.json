@@ -1,0 +1,127 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_video_wan21_scail2_character_replacement_int8",
+  "name": "video_wan21_scail2_character_replacement_int8（video_wan21_scail2_character_replacement_int8）",
+  "version": 1,
+  "kind": "video",
+  "engine": "comfyui",
+  "graph": "workflows/pack/video_wan21_scail2_character_replacement_int8.api.json",
+  "model": {
+    "key": "wan2_1_14b_scail_2_int8_convrot",
+    "slots": {
+      "lora": {
+        "node": "1321",
+        "input": "lora_name"
+      },
+      "vae": {
+        "node": "1322",
+        "input": "vae_name"
+      },
+      "clip": {
+        "node": "1326",
+        "input": "clip_name"
+      },
+      "unet": {
+        "node": "1328",
+        "input": "unet_name"
+      },
+      "ckpt": {
+        "node": "1348",
+        "input": "ckpt_name"
+      },
+      "lora_2": {
+        "node": "1362",
+        "input": "lora_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "girl, handkerchief",
+      "bindings": [
+        {
+          "node": "1347",
+          "input": "text"
+        }
+      ]
+    },
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-n…",
+      "bindings": [
+        {
+          "node": "1359",
+          "input": "text"
+        }
+      ]
+    },
+    "prompt_2": {
+      "type": "string",
+      "required": false,
+      "default": "girl, handkerchief",
+      "bindings": [
+        {
+          "node": "1389",
+          "input": "text"
+        }
+      ]
+    },
+    "prompt_3": {
+      "type": "string",
+      "required": false,
+      "default": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-n…",
+      "bindings": [
+        {
+          "node": "1404",
+          "input": "text"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "155",
+          "input": "file"
+        }
+      ]
+    },
+    "image_2": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "30",
+          "input": "image"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "201",
+    "input": "fps",
+    "kind": "video",
+    "ext": "mp4",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "limits": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+}

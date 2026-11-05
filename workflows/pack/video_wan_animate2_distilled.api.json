@@ -1,0 +1,1191 @@
+{
+  "1606": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan_animate_2_distill_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1607": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1608": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走",
+      "clip": [
+        "1607",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "1609": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "Character appearance description: A realistic premium collectible action figure of a male street dancer, lifelike matte vinyl and resin material with realistic skin-like paint finish, detailed fabric folds on a black hoodie, dark cargo pants, white sneakers, subtle articulated joints, premium designer toy craftsmanship, standing in a relaxed confident pose facing the camera, full body from head to toe.\nBackground description: rainy neon-lit city street corner at night, wet asphalt reflecting purple-blue and red neon signs, light mist, cinematic night photography.",
+      "clip": [
+        "1607",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1610": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "clip_vision_h.safetensors"
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1611": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "Wan2_1_VAE_bf16.safetensors"
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1612": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "A man doing energetic street dance with popping body waves and fast spinning moves, rain falling around him.",
+      "clip": [
+        "1607",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1613": {
+    "class_type": "ContextWindowsManual",
+    "inputs": {
+      "context_length": 21,
+      "context_overlap": 8,
+      "context_schedule": "standard_static",
+      "context_stride": 1,
+      "closed_loop": false,
+      "fuse_method": "pyramid",
+      "dim": 2,
+      "freenoise": true,
+      "cond_retain_index_list": "0",
+      "split_conds_to_windows": false,
+      "latent_retain_index_list": "",
+      "causal_window_fix": true,
+      "model": [
+        "1606",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1614": {
+    "class_type": "WanAnimate2ToVideo",
+    "inputs": {
+      "width": [
+        "1623",
+        0
+      ],
+      "height": [
+        "1623",
+        1
+      ],
+      "length": 81,
+      "batch_size": 1,
+      "video_frame_offset": 0,
+      "pose_strength": 1,
+      "pose_start_percent": 0,
+      "pose_end_percent": 1,
+      "reference_image_strength": 1,
+      "positive": [
+        "1609",
+        0
+      ],
+      "negative": [
+        "1608",
+        0
+      ],
+      "vae": [
+        "1611",
+        0
+      ],
+      "reference_image": [
+        "1617",
+        0
+      ],
+      "pose_video": [
+        "1627",
+        0
+      ],
+      "clip_vision_output": [
+        "1616",
+        0
+      ],
+      "positive_pose": [
+        "1612",
+        0
+      ],
+      "clip_vision_output_pose": [
+        "1625",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1615": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": false,
+      "on_false": [
+        "1606",
+        0
+      ],
+      "on_true": [
+        "1613",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1616": {
+    "class_type": "CLIPVisionEncode",
+    "inputs": {
+      "crop": "none",
+      "clip_vision": [
+        "1610",
+        0
+      ],
+      "image": [
+        "1617",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1617": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "resize_type": "scale dimensions",
+      "resize_type.width": [
+        "1623",
+        0
+      ],
+      "resize_type.height": [
+        "1623",
+        1
+      ],
+      "resize_type.crop": "center",
+      "scale_method": "area",
+      "input": [
+        "189",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1618": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 10,
+      "denoise": 1,
+      "model": [
+        "1621",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1619": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "shift": 5,
+      "model": [
+        "1621",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1620": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "lcm"
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1621": {
+    "class_type": "WanAnimate2Cache",
+    "inputs": {
+      "device": "gpu",
+      "dtype": "int8",
+      "model": [
+        "1615",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1622": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "240",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1623": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "1627",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1624": {
+    "class_type": "SamplerCustom",
+    "inputs": {
+      "add_noise": true,
+      "noise_seed": 714297762067883,
+      "cfg": 1,
+      "model": [
+        "1619",
+        0
+      ],
+      "positive": [
+        "1614",
+        0
+      ],
+      "negative": [
+        "1614",
+        1
+      ],
+      "sampler": [
+        "1620",
+        0
+      ],
+      "sigmas": [
+        "1618",
+        0
+      ],
+      "latent_image": [
+        "1614",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1625": {
+    "class_type": "CLIPVisionEncode",
+    "inputs": {
+      "crop": "none",
+      "clip_vision": [
+        "1610",
+        0
+      ],
+      "image": [
+        "1626",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1626": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "batch_index": 0,
+      "length": 1,
+      "image": [
+        "1627",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1627": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "resize_type": "scale dimensions",
+      "resize_type.width": 482,
+      "resize_type.height": 854,
+      "resize_type.crop": "center",
+      "scale_method": "area",
+      "input": [
+        "1622",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1628": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1629",
+        0
+      ],
+      "vae": [
+        "1611",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1629": {
+    "class_type": "TrimVideoLatent",
+    "inputs": {
+      "trim_amount": [
+        "1614",
+        3
+      ],
+      "samples": [
+        "1624",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1631": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "batch_index": 1,
+      "length": 4096,
+      "image": [
+        "1628",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1632": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": false,
+      "on_false": [
+        "1628",
+        0
+      ],
+      "on_true": [
+        "1631",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1633": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "240",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1634": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "246",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1635": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "1639",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1636": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": [
+        "1634",
+        2
+      ],
+      "bit_depth": 8,
+      "images": [
+        "1640",
+        0
+      ],
+      "audio": [
+        "1634",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1637": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a & ~1",
+      "values.a": [
+        "1635",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1638": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a & ~1",
+      "values.a": [
+        "1635",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1639": {
+    "class_type": "ImageStitch",
+    "inputs": {
+      "direction": "right",
+      "match_image_size": true,
+      "spacing_width": 0,
+      "spacing_color": "white",
+      "image1": [
+        "1642",
+        0
+      ],
+      "image2": [
+        "1645",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1640": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "resize_type": "scale dimensions",
+      "resize_type.width": [
+        "1637",
+        1
+      ],
+      "resize_type.height": [
+        "1638",
+        1
+      ],
+      "resize_type.crop": "center",
+      "scale_method": "area",
+      "input": [
+        "1639",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1641": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "1634",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1642": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "batch_index": 0,
+      "length": [
+        "1644",
+        1
+      ],
+      "image": [
+        "1634",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1643": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "1633",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1644": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "min(a,b)",
+      "values.a": [
+        "1641",
+        2
+      ],
+      "values.b": [
+        "1643",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1645": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "batch_index": 0,
+      "length": [
+        "1644",
+        1
+      ],
+      "image": [
+        "1633",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Stitch"
+    }
+  },
+  "1646": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan_animate_2_distill_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1647": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1648": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走",
+      "clip": [
+        "1647",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "1649": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "Character appearance description: A realistic premium collectible action figure of a male street dancer, lifelike matte vinyl and resin material with realistic skin-like paint finish, detailed fabric folds on a black hoodie, dark cargo pants, white sneakers, subtle articulated joints, premium designer toy craftsmanship, standing in a relaxed confident pose facing the camera, full body from head to toe.\nBackground description: rainy neon-lit city street corner at night, wet asphalt reflecting purple-blue and red neon signs, light mist, cinematic night photography.",
+      "clip": [
+        "1647",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1650": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "clip_vision_h.safetensors"
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1651": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "Wan2_1_VAE_bf16.safetensors"
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1652": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "A man doing energetic street dance with popping body waves and fast spinning moves, rain falling around him.",
+      "clip": [
+        "1647",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1653": {
+    "class_type": "ContextWindowsManual",
+    "inputs": {
+      "context_length": 21,
+      "context_overlap": 8,
+      "context_schedule": "standard_static",
+      "context_stride": 1,
+      "closed_loop": false,
+      "fuse_method": "pyramid",
+      "dim": 2,
+      "freenoise": true,
+      "cond_retain_index_list": "0",
+      "split_conds_to_windows": false,
+      "latent_retain_index_list": "",
+      "causal_window_fix": true,
+      "model": [
+        "1646",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1654": {
+    "class_type": "WanAnimate2ToVideo",
+    "inputs": {
+      "width": [
+        "1663",
+        0
+      ],
+      "height": [
+        "1663",
+        1
+      ],
+      "length": 81,
+      "batch_size": 1,
+      "video_frame_offset": 0,
+      "pose_strength": 1,
+      "pose_start_percent": 0,
+      "pose_end_percent": 1,
+      "reference_image_strength": 1,
+      "positive": [
+        "1649",
+        0
+      ],
+      "negative": [
+        "1648",
+        0
+      ],
+      "vae": [
+        "1651",
+        0
+      ],
+      "reference_image": [
+        "1657",
+        0
+      ],
+      "pose_video": [
+        "1667",
+        0
+      ],
+      "clip_vision_output": [
+        "1656",
+        0
+      ],
+      "positive_pose": [
+        "1652",
+        0
+      ],
+      "clip_vision_output_pose": [
+        "1665",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1655": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": false,
+      "on_false": [
+        "1646",
+        0
+      ],
+      "on_true": [
+        "1653",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1656": {
+    "class_type": "CLIPVisionEncode",
+    "inputs": {
+      "crop": "none",
+      "clip_vision": [
+        "1650",
+        0
+      ],
+      "image": [
+        "1657",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1657": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "resize_type": "scale dimensions",
+      "resize_type.width": [
+        "1663",
+        0
+      ],
+      "resize_type.height": [
+        "1663",
+        1
+      ],
+      "resize_type.crop": "center",
+      "scale_method": "area",
+      "input": [
+        "189",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1658": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 10,
+      "denoise": 1,
+      "model": [
+        "1661",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1659": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "shift": 5,
+      "model": [
+        "1661",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1660": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "lcm"
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1661": {
+    "class_type": "WanAnimate2Cache",
+    "inputs": {
+      "device": "gpu",
+      "dtype": "int8",
+      "model": [
+        "1655",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1662": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "240",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1663": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "1667",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1664": {
+    "class_type": "SamplerCustom",
+    "inputs": {
+      "add_noise": true,
+      "noise_seed": 238244834011921,
+      "cfg": 1,
+      "model": [
+        "1659",
+        0
+      ],
+      "positive": [
+        "1654",
+        0
+      ],
+      "negative": [
+        "1654",
+        1
+      ],
+      "sampler": [
+        "1660",
+        0
+      ],
+      "sigmas": [
+        "1658",
+        0
+      ],
+      "latent_image": [
+        "1654",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1665": {
+    "class_type": "CLIPVisionEncode",
+    "inputs": {
+      "crop": "none",
+      "clip_vision": [
+        "1650",
+        0
+      ],
+      "image": [
+        "1666",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1666": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "batch_index": 0,
+      "length": 1,
+      "image": [
+        "1667",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1667": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "resize_type": "scale dimensions",
+      "resize_type.width": 482,
+      "resize_type.height": 854,
+      "resize_type.crop": "center",
+      "scale_method": "area",
+      "input": [
+        "1662",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1668": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1669",
+        0
+      ],
+      "vae": [
+        "1651",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1669": {
+    "class_type": "TrimVideoLatent",
+    "inputs": {
+      "trim_amount": [
+        "1654",
+        3
+      ],
+      "samples": [
+        "1664",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1671": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "batch_index": 1,
+      "length": 4096,
+      "image": [
+        "1668",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "1672": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": true,
+      "on_false": [
+        "1668",
+        0
+      ],
+      "on_true": [
+        "1671",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Motion Transfer (Wan Animate 2 Distilled)"
+    }
+  },
+  "189": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "ref_doll_realistic.png"
+    },
+    "_meta": {
+      "title": "Load Image (Reference Image)"
+    }
+  },
+  "240": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "drive_doll_street_dance.mp4"
+    },
+    "_meta": {
+      "title": "Load Video (Pose Video)"
+    }
+  },
+  "245": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": [
+        "288",
+        2
+      ],
+      "bit_depth": 8,
+      "images": [
+        "289",
+        0
+      ],
+      "audio": [
+        "288",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "CreateVideo"
+    }
+  },
+  "246": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "video/ComfyUI",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "245",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveVideo"
+    }
+  },
+  "288": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "240",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "GetVideoComponents"
+    }
+  },
+  "289": {
+    "class_type": "BatchImagesNode",
+    "inputs": {
+      "images.image0": [
+        "1632",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "BatchImagesNode"
+    }
+  },
+  "292": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "video/ComfyUI",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "1636",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveVideo"
+    }
+  },
+  "536": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a / 81",
+      "values.a": [
+        "537",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "ComfyMathExpression"
+    }
+  },
+  "537": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "288",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "GetImageSize"
+    }
+  }
+}

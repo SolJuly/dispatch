@@ -1,0 +1,122 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_video_minimax_h3_multiframe_reference",
+  "name": "★ 多帧关键帧参考（4 张图锚定）（video_minimax_h3_multiframe_reference）",
+  "version": 1,
+  "kind": "video",
+  "engine": "comfyui",
+  "graph": "workflows/pack/video_minimax_h3_multiframe_reference.api.json",
+  "model": {
+    "key": "minimax_h3_ref2va_pruned_int8_convro",
+    "slots": {
+      "vae": {
+        "node": "119",
+        "input": "vae_name"
+      },
+      "vae_2": {
+        "node": "120",
+        "input": "vae_name"
+      },
+      "unet": {
+        "node": "127",
+        "input": "unet_name"
+      },
+      "clip": {
+        "node": "128",
+        "input": "clip_name"
+      },
+      "lora": {
+        "node": "145",
+        "input": "lora_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "subject_definitions:\n<Subject 1> is the woman in <Picture 1>, featuring pale skin, bright red lipsti…",
+      "bindings": [
+        {
+          "node": "136",
+          "input": "prompt"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "129",
+          "input": "noise_seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "157",
+          "input": "image"
+        }
+      ]
+    },
+    "image_2": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "159",
+          "input": "image"
+        }
+      ]
+    },
+    "image_3": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "164",
+          "input": "image"
+        }
+      ]
+    },
+    "image_4": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "167",
+          "input": "image"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "130",
+    "input": "fps",
+    "kind": "video",
+    "ext": "mp4",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "limits": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "vid.multiframe · ★ 多帧关键帧参考（4 张图锚定） · 许可：MiniMax H3 Community License（排除美/欧/英/韩；年营收 >$20M 需授权；商用须经 Comfy 官方经销许可） · 商用：需授权 · ≥20GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+}

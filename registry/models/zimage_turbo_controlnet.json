@@ -1,0 +1,79 @@
+{
+  "schema": "p20.model/v1",
+  "key": "zimage_turbo_controlnet",
+  "name": "Z-Image-Turbo + Fun Union ControlNet",
+  "version": 1,
+  "kind": "image",
+  "family": "zimage",
+  "primary": "unet",
+  "files": {
+    "unet": {
+      "name": "z_image_turbo/z_image_turbo_bf16.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "z_image_turbo_bf16"
+      }
+    },
+    "clip": {
+      "name": "qwen_3_4b.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "qwen_3_4b"
+      }
+    },
+    "vae": {
+      "name": "ziamge_ae.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "ziamge_ae"
+      }
+    },
+    "patch": {
+      "name": "Z-Image-Turbo-Fun-Controlnet-Union.safetensors",
+      "loader": "ModelPatchLoader",
+      "input": "name",
+      "match": {
+        "contains": "Z-Image-Turbo-Fun-Controlnet-Union"
+      }
+    }
+  },
+  "defaults": {
+    "steps": 8,
+    "cfg": 1.0,
+    "sampler_name": "res_multistep",
+    "scheduler": "simple"
+  },
+  "constraints": {
+    "width": {
+      "min": 512,
+      "max": 1536,
+      "multiple": 32
+    },
+    "height": {
+      "min": 512,
+      "max": 1536,
+      "multiple": 32
+    },
+    "steps": {
+      "min": 4,
+      "max": 12
+    },
+    "cfg": {
+      "min": 0.5,
+      "max": 2.0
+    }
+  },
+  "setup": {
+    "profile": "all",
+    "links": [
+      {
+        "link": "/root/ComfyUI/models/model_patches/Z-Image-Turbo-Fun-Controlnet-Union.safetensors",
+        "target": "/model/ModelScope/PAI/Z-Image-Turbo-Fun-Controlnet-Union/Z-Image-Turbo-Fun-Controlnet-Union.safetensors"
+      }
+    ]
+  },
+  "notes": "Z-Image-Turbo 三件套 + Fun Union ControlNet patch（ModelPatchLoader）；patch 用于 06 号 Canny/Depth/Pose 控制。"
+}

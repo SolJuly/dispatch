@@ -1,0 +1,56 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_utility_image_upscale_supir",
+  "name": "utility_image_upscale_supir（utility_image_upscale_supir）",
+  "version": 1,
+  "kind": "image",
+  "engine": "comfyui",
+  "graph": "workflows/pack/utility_image_upscale_supir.api.json",
+  "model": {
+    "key": "juggernautxl_v9rdphoto2lightning",
+    "slots": {
+      "ckpt": {
+        "node": "1101",
+        "input": "ckpt_name"
+      },
+      "clip": {
+        "node": "1112",
+        "input": "clip_name"
+      }
+    }
+  },
+  "params": {
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "92",
+          "input": "image"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "97",
+    "input": "filename_prefix",
+    "kind": "image",
+    "ext": "png",
+    "pick": [
+      "images"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "png",
+    "min_bytes": 20000
+  },
+  "limits": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+}

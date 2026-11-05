@@ -42,7 +42,7 @@ class TestCreatePage(unittest.TestCase):
         self.assertIn("/files/tok/static/app.js", html)
 
     def test_img2img_tab_has_upload(self):
-        html = pages.create_page("/files", "tok", "sdxl_img2img")
+        html = pages.create_page("/files", "tok", "zimage_turbo_img2img")
         self.assertIn('type="file"', html)
         self.assertIn('data-upload="image"', html)
         self.assertIn('data-param="denoise"', html)
@@ -68,6 +68,7 @@ class TestCreatePage(unittest.TestCase):
         keys = [w["key"] for w in api.image_workflows()]
         self.assertNotIn("qwen_image_t2i", keys)
         self.assertNotIn("sdxl_t2i", keys)
+        self.assertNotIn("sdxl_img2img", keys)
         self.assertIn("zimage_turbo_t2i_hq", keys)
 
     def test_unknown_workflow_falls_back(self):

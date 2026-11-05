@@ -1,0 +1,92 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_utility_void_video_inpainting",
+  "name": "utility_void_video_inpainting（utility_void_video_inpainting）",
+  "version": 1,
+  "kind": "video",
+  "engine": "comfyui",
+  "graph": "workflows/pack/utility_void_video_inpainting.api.json",
+  "model": {
+    "key": "void_pass2",
+    "slots": {
+      "clip": {
+        "node": "1172",
+        "input": "clip_name"
+      },
+      "vae": {
+        "node": "1173",
+        "input": "vae_name"
+      },
+      "unet": {
+        "node": "1187",
+        "input": "unet_name"
+      },
+      "unet_2": {
+        "node": "1188",
+        "input": "unet_name"
+      },
+      "ckpt": {
+        "node": "1210",
+        "input": "ckpt_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "Skateboard sliding down the snowy mountain view",
+      "bindings": [
+        {
+          "node": "1193",
+          "input": "text"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "1178",
+          "input": "noise_seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "4",
+          "input": "file"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "1189",
+    "input": "fps",
+    "kind": "video",
+    "ext": "mp4",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "limits": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+}

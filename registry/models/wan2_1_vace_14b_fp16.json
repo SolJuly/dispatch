@@ -1,0 +1,49 @@
+{
+  "schema": "p20.model/v1",
+  "key": "wan2_1_vace_14b_fp16",
+  "name": "wan2.1_vace_14B_fp16",
+  "version": 1,
+  "kind": "video",
+  "family": "wan2_1_vace_14b_fp16",
+  "primary": "unet",
+  "files": {
+    "unet": {
+      "name": "wan2.1_vace_14B_fp16.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "wan2.1_vace_14B_fp16"
+      }
+    },
+    "vae": {
+      "name": "wan_2.1_vae.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "wan_2.1_vae"
+      }
+    },
+    "lora": {
+      "name": "Wan21_CausVid_14B_T2V_lora_rank32.safetensors",
+      "loader": "LoraLoader",
+      "input": "lora_name",
+      "match": {
+        "contains": "Wan21_CausVid_14B_T2V_lora_rank32"
+      }
+    },
+    "clip": {
+      "name": "umt5_xxl_fp16.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "umt5_xxl_fp16"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}

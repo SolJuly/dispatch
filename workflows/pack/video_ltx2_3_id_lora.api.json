@@ -1,0 +1,667 @@
+{
+  "1357": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 42
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1358": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 597157848195547
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1359": {
+    "class_type": "LTXVConcatAVLatent",
+    "inputs": {
+      "video_latent": [
+        "1366",
+        0
+      ],
+      "audio_latent": [
+        "1373",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1360": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1361": {
+    "class_type": "ManualSigmas",
+    "inputs": {
+      "sigmas": "0.85, 0.7250, 0.4219, 0.0"
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1362": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "1395",
+        0
+      ],
+      "positive": [
+        "1364",
+        0
+      ],
+      "negative": [
+        "1364",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1363": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "1358",
+        0
+      ],
+      "guider": [
+        "1377",
+        0
+      ],
+      "sampler": [
+        "1367",
+        0
+      ],
+      "sigmas": [
+        "1372",
+        0
+      ],
+      "latent_image": [
+        "1393",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1364": {
+    "class_type": "LTXVCropGuides",
+    "inputs": {
+      "positive": [
+        "1371",
+        0
+      ],
+      "negative": [
+        "1371",
+        1
+      ],
+      "latent": [
+        "1373",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1365": {
+    "class_type": "LTXVLatentUpsampler",
+    "inputs": {
+      "samples": [
+        "1373",
+        0
+      ],
+      "upscale_model": [
+        "1394",
+        0
+      ],
+      "vae": [
+        "1396",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1366": {
+    "class_type": "LTXVImgToVideoInplace",
+    "inputs": {
+      "strength": 1,
+      "bypass": false,
+      "vae": [
+        "1396",
+        2
+      ],
+      "image": [
+        "1383",
+        0
+      ],
+      "latent": [
+        "1365",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1367": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1369": {
+    "class_type": "LTXVAudioVAEDecode",
+    "inputs": {
+      "samples": [
+        "1375",
+        1
+      ],
+      "audio_vae": [
+        "1382",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1370": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "[VISUAL]: Opens with a medium shot, camera slowly pushes in toward the character. A man with short dark hair and round glasses, wearing a retro orange floral shirt, looks directly at the camera, his mouth opens and closes naturally as he speaks, tilts his head playfully.\n[SPEECH]: Hey, what do you think of this vibe? Feels like we’re back in the 90s.\n[SOUNDS]: Playful and upbeat tone, moderate volume, close to the microphone. ",
+      "clip": [
+        "1397",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1371": {
+    "class_type": "LTXVConditioning",
+    "inputs": {
+      "frame_rate": [
+        "1386",
+        0
+      ],
+      "positive": [
+        "1402",
+        1
+      ],
+      "negative": [
+        "1402",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1372": {
+    "class_type": "ManualSigmas",
+    "inputs": {
+      "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0"
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1373": {
+    "class_type": "LTXVSeparateAVLatent",
+    "inputs": {
+      "av_latent": [
+        "1363",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1374": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "1357",
+        0
+      ],
+      "guider": [
+        "1362",
+        0
+      ],
+      "sampler": [
+        "1360",
+        0
+      ],
+      "sigmas": [
+        "1361",
+        0
+      ],
+      "latent_image": [
+        "1359",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1375": {
+    "class_type": "LTXVSeparateAVLatent",
+    "inputs": {
+      "av_latent": [
+        "1374",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1376": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pc game, console game, video game, cartoon, childish, ugly",
+      "clip": [
+        "1397",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1377": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "1402",
+        0
+      ],
+      "positive": [
+        "1371",
+        0
+      ],
+      "negative": [
+        "1371",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1378": {
+    "class_type": "VAEDecodeTiled",
+    "inputs": {
+      "tile_size": 768,
+      "overlap": 64,
+      "temporal_size": 4096,
+      "temporal_overlap": 4,
+      "samples": [
+        "1375",
+        0
+      ],
+      "vae": [
+        "1396",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1379": {
+    "class_type": "LTXVImgToVideoInplace",
+    "inputs": {
+      "strength": 0.7,
+      "bypass": false,
+      "vae": [
+        "1396",
+        2
+      ],
+      "image": [
+        "1383",
+        0
+      ],
+      "latent": [
+        "1390",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1381": {
+    "class_type": "SolidMask",
+    "inputs": {
+      "value": 0,
+      "width": 1280,
+      "height": 720
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1382": {
+    "class_type": "LTXVAudioVAELoader",
+    "inputs": {
+      "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors"
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1383": {
+    "class_type": "LTXVPreprocess",
+    "inputs": {
+      "img_compression": 18,
+      "image": [
+        "1403",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1384": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a/2",
+      "values.a": 720
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1385": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a/2",
+      "values.a": 1280
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1386": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a",
+      "values.a": 25
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1387": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": [
+        "1386",
+        0
+      ],
+      "bit_depth": 8,
+      "color_space": "sRGB",
+      "images": [
+        "1378",
+        0
+      ],
+      "audio": [
+        "1369",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1390": {
+    "class_type": "EmptyLTXVLatentVideo",
+    "inputs": {
+      "width": [
+        "1385",
+        1
+      ],
+      "height": [
+        "1384",
+        1
+      ],
+      "length": [
+        "1391",
+        1
+      ],
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1391": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a * b + 1",
+      "values.a": 10,
+      "values.b": 25
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1393": {
+    "class_type": "LTXVConcatAVLatent",
+    "inputs": {
+      "video_latent": [
+        "1379",
+        0
+      ],
+      "audio_latent": [
+        "1401",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1394": {
+    "class_type": "LatentUpscaleModelLoader",
+    "inputs": {
+      "model_name": "ltx-2.3-spatial-upscaler-x2-1.1.safetensors"
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1395": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
+      "strength_model": 0.5,
+      "model": [
+        "1396",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1396": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors"
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1397": {
+    "class_type": "LTXAVTextEncoderLoader",
+    "inputs": {
+      "text_encoder": "gemma_3_12B_it_fp4_mixed.safetensors",
+      "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1399": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "resize_type": "scale dimensions",
+      "resize_type.width": 1280,
+      "resize_type.height": 720,
+      "resize_type.crop": "center",
+      "scale_method": "lanczos",
+      "input": [
+        "269",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1400": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "ltx-2.3-id-lora-talkvid-3k.safetensors",
+      "strength_model": 1,
+      "model": [
+        "1395",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1401": {
+    "class_type": "LTXVEmptyLatentAudio",
+    "inputs": {
+      "frames_number": [
+        "1391",
+        1
+      ],
+      "frame_rate": [
+        "1386",
+        1
+      ],
+      "batch_size": 1,
+      "audio_vae": [
+        "1382",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1402": {
+    "class_type": "LTXVReferenceAudio",
+    "inputs": {
+      "identity_guidance_scale": 3,
+      "start_percent": 0,
+      "end_percent": 1,
+      "model": [
+        "1400",
+        0
+      ],
+      "positive": [
+        "1370",
+        0
+      ],
+      "negative": [
+        "1376",
+        0
+      ],
+      "reference_audio": [
+        "276",
+        0
+      ],
+      "audio_vae": [
+        "1382",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "1403": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "resize_type": "scale longer dimension",
+      "resize_type.longer_size": 1536,
+      "scale_method": "lanczos",
+      "input": [
+        "1399",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Generation (LTX-2.3 ID LoRA)"
+    }
+  },
+  "269": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "vintage_thinker.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  },
+  "276": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": "ltx23_reference_audio.mp3"
+    },
+    "_meta": {
+      "title": "LoadAudio"
+    }
+  },
+  "341": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "video/LTX_2.3_id_lora",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "1387",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveVideo"
+    }
+  }
+}

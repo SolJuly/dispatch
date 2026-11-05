@@ -1,0 +1,88 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_video_fastvideo_fasth3_i2v",
+  "name": "video_fastvideo_fasth3_i2v（video_fastvideo_fasth3_i2v）",
+  "version": 1,
+  "kind": "video",
+  "engine": "comfyui",
+  "graph": "workflows/pack/video_fastvideo_fasth3_i2v.api.json",
+  "model": {
+    "key": "fastvideo_fasth3_8step_v2_pruned_int",
+    "slots": {
+      "vae": {
+        "node": "1144",
+        "input": "vae_name"
+      },
+      "vae_2": {
+        "node": "1145",
+        "input": "vae_name"
+      },
+      "unet": {
+        "node": "1152",
+        "input": "unet_name"
+      },
+      "clip": {
+        "node": "1153",
+        "input": "clip_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully re…",
+      "bindings": [
+        {
+          "node": "1156",
+          "input": "prompt"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "1154",
+          "input": "noise_seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "136",
+          "input": "image"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "1155",
+    "input": "fps",
+    "kind": "video",
+    "ext": "mp4",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "limits": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+}

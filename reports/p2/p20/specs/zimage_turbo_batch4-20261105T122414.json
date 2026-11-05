@@ -1,0 +1,52 @@
+{
+  "kind": "image",
+  "task_ref": "P2.0-zimage_turbo_batch4",
+  "model": {
+    "key": "zimage_turbo",
+    "workflow": "workflows/zimage_turbo_batch4.api.json",
+    "checkpoint": "z_image_turbo/z_image_turbo_bf16.safetensors",
+    "workflow_sha256": "123ffe3799c1d6daa9d5c0d873fc02da8cff68f6d21498e2f91a24d30cab998a",
+    "registry": {
+      "workflow_key": "zimage_turbo_batch4",
+      "workflow_version": 1,
+      "model_key": "zimage_turbo",
+      "model_version": 1,
+      "compat": "equivalent",
+      "compat_basis": "structure-equal:zimage_turbo_t2i",
+      "setup_need": "all",
+      "graph_sha256": "123ffe3799c1d6daa9d5c0d873fc02da8cff68f6d21498e2f91a24d30cab998a"
+    }
+  },
+  "params": {
+    "cfg": 1.0,
+    "height": 1024,
+    "prompt": "A cinematic portrait photograph of a young East Asian woman, soft natural window light, detailed skin texture, shallow depth of field, 85mm lens",
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "seed": 42,
+    "steps": 8,
+    "width": 1024
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "height": [
+      1024
+    ],
+    "images": 4,
+    "min_bytes": 20000,
+    "width": [
+      1024
+    ]
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

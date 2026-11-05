@@ -1,0 +1,65 @@
+{
+  "schema": "p20.model/v1",
+  "key": "wan2_1_14b_scail_2_int8_convrot",
+  "name": "wan2.1_14B_SCAIL_2_int8_convrot",
+  "version": 1,
+  "kind": "video",
+  "family": "wan2_1_14b_scail_2_i",
+  "primary": "unet",
+  "files": {
+    "lora": {
+      "name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+      "loader": "LoraLoaderModelOnly",
+      "input": "lora_name",
+      "match": {
+        "contains": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16"
+      }
+    },
+    "vae": {
+      "name": "Wan2_1_VAE_bf16.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "Wan2_1_VAE_bf16"
+      }
+    },
+    "clip": {
+      "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "umt5_xxl_fp8_e4m3fn_scaled"
+      }
+    },
+    "unet": {
+      "name": "wan2.1_14B_SCAIL_2_int8_convrot.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "wan2.1_14B_SCAIL_2_int8_convrot"
+      }
+    },
+    "ckpt": {
+      "name": "sam3.1_multiplex_fp16.safetensors",
+      "loader": "CheckpointLoaderSimple",
+      "input": "ckpt_name",
+      "match": {
+        "contains": "sam3.1_multiplex_fp16"
+      }
+    },
+    "lora_2": {
+      "name": "wan2.1_SCAIL_2_DPO_lora_bf16.safetensors",
+      "loader": "LoraLoaderModelOnly",
+      "input": "lora_name",
+      "match": {
+        "contains": "wan2.1_SCAIL_2_DPO_lora_bf16"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}

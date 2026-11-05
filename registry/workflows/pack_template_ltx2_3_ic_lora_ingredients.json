@@ -1,0 +1,84 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_template_ltx2_3_ic_lora_ingredients",
+  "name": "template_ltx2_3_ic_lora_ingredients（template_ltx2_3_ic_lora_ingredients）",
+  "version": 1,
+  "kind": "video",
+  "engine": "comfyui",
+  "graph": "workflows/pack/template_ltx2_3_ic_lora_ingredients.api.json",
+  "model": {
+    "key": "ltx_2_3_22b_distilled_fp8",
+    "slots": {
+      "ckpt": {
+        "node": "1741",
+        "input": "ckpt_name"
+      },
+      "lora": {
+        "node": "1744",
+        "input": "lora_name"
+      },
+      "lora_2": {
+        "node": "1747",
+        "input": "lora_name"
+      }
+    }
+  },
+  "params": {
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, g…",
+      "bindings": [
+        {
+          "node": "1735",
+          "input": "text"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "1752",
+          "input": "seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "724",
+          "input": "image"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "1736",
+    "input": "fps",
+    "kind": "video",
+    "ext": "mp4",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "limits": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+}

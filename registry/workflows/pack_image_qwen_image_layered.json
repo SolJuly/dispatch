@@ -1,0 +1,98 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_image_qwen_image_layered",
+  "name": "图层分离（可分别改背景/主体）（image_qwen_image_layered）",
+  "version": 1,
+  "kind": "image",
+  "engine": "comfyui",
+  "graph": "workflows/pack/image_qwen_image_layered.api.json",
+  "model": {
+    "key": "qwen_image_layered_bf16",
+    "slots": {
+      "clip": {
+        "node": "1142",
+        "input": "clip_name"
+      },
+      "vae": {
+        "node": "1143",
+        "input": "vae_name"
+      },
+      "unet": {
+        "node": "1156",
+        "input": "unet_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "A cinematic medium shot of a beautiful young woman with fair skin and a joyful, radiant smile, looki…",
+      "bindings": [
+        {
+          "node": "1152",
+          "input": "text"
+        }
+      ]
+    },
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "A cinematic medium shot of a beautiful young woman with fair skin and a joyful, radiant smile, looki…",
+      "bindings": [
+        {
+          "node": "1164",
+          "input": "text"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "1153",
+          "input": "seed"
+        },
+        {
+          "node": "1165",
+          "input": "seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "74",
+          "input": "image"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "60",
+    "input": "filename_prefix",
+    "kind": "image",
+    "ext": "png",
+    "pick": [
+      "images"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "png",
+    "min_bytes": 20000
+  },
+  "limits": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "img.layered · 图层分离（可分别改背景/主体） · 许可：需自行核对模型卡 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+}

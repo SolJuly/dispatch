@@ -1,0 +1,41 @@
+{
+  "schema": "p20.model/v1",
+  "key": "wan_animate_2_distill_int8_convrot",
+  "name": "wan_animate_2_distill_int8_convrot",
+  "version": 1,
+  "kind": "video",
+  "family": "wan_animate_2_distil",
+  "primary": "unet",
+  "files": {
+    "unet": {
+      "name": "wan_animate_2_distill_int8_convrot.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "wan_animate_2_distill_int8_convrot"
+      }
+    },
+    "clip": {
+      "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "umt5_xxl_fp8_e4m3fn_scaled"
+      }
+    },
+    "vae": {
+      "name": "Wan2_1_VAE_bf16.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "Wan2_1_VAE_bf16"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}

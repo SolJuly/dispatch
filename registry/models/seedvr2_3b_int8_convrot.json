@@ -1,0 +1,33 @@
+{
+  "schema": "p20.model/v1",
+  "key": "seedvr2_3b_int8_convrot",
+  "name": "seedvr2_3b_int8_convrot",
+  "version": 1,
+  "kind": "image",
+  "family": "seedvr2_3b_int8_conv",
+  "primary": "unet",
+  "files": {
+    "vae": {
+      "name": "seedvr2_ema_vae_fp16.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "seedvr2_ema_vae_fp16"
+      }
+    },
+    "unet": {
+      "name": "seedvr2_3b_int8_convrot.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "seedvr2_3b_int8_convrot"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}

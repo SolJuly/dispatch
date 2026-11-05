@@ -1,0 +1,155 @@
+{
+  "1077": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "_meta": {
+      "title": "Text to Image (Qwen-Image with LoRA)"
+    }
+  },
+  "1078": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Text to Image (Qwen-Image with LoRA)"
+    }
+  },
+  "1079": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "Text to Image (Qwen-Image with LoRA)"
+    }
+  },
+  "1080": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "shift": 7,
+      "model": [
+        "1085",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (Qwen-Image with LoRA)"
+    }
+  },
+  "1081": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_fp8_e4m3fn.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Text to Image (Qwen-Image with LoRA)"
+    }
+  },
+  "1082": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "a girl with short hair in a bomber jacket leaning against a wall, clean cel shading, bold graphic composition, 90s ranma era anime, film grain",
+      "clip": [
+        "1078",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1083": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": [
+        "1078",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "1084": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1086",
+        0
+      ],
+      "vae": [
+        "1077",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (Qwen-Image with LoRA)"
+    }
+  },
+  "1085": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "illustration-1.0-qwen-image.safetensors",
+      "strength_model": 1,
+      "model": [
+        "1081",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (Qwen-Image with LoRA)"
+    }
+  },
+  "1086": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 1124798614324697,
+      "steps": 45,
+      "cfg": 3.5,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "1080",
+        0
+      ],
+      "positive": [
+        "1082",
+        0
+      ],
+      "negative": [
+        "1083",
+        0
+      ],
+      "latent_image": [
+        "1079",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (Qwen-Image with LoRA)"
+    }
+  },
+  "60": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "Qwen-Image",
+      "images": [
+        "1084",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveImage"
+    }
+  }
+}

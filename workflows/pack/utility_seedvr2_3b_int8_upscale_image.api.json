@@ -1,0 +1,177 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "watch_macro_shot.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  },
+  "1073": {
+    "class_type": "VAEEncodeTiled",
+    "inputs": {
+      "pixels": [
+        "1080",
+        0
+      ],
+      "vae": [
+        "1075",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Image (SeedVR2 3B Int8)"
+    }
+  },
+  "1074": {
+    "class_type": "JoinImageWithAlpha",
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "alpha": [
+        "1",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Image (SeedVR2 3B Int8)"
+    }
+  },
+  "1075": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "seedvr2_ema_vae_fp16.safetensors"
+    },
+    "_meta": {
+      "title": "Upscale Image (SeedVR2 3B Int8)"
+    }
+  },
+  "1076": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "seedvr2_3b_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Upscale Image (SeedVR2 3B Int8)"
+    }
+  },
+  "1077": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 959948902156062,
+      "steps": 1,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "1076",
+        0
+      ],
+      "positive": [
+        "1082",
+        0
+      ],
+      "negative": [
+        "1082",
+        1
+      ],
+      "latent_image": [
+        "1073",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Image (SeedVR2 3B Int8)"
+    }
+  },
+  "1078": {
+    "class_type": "VAEDecodeTiled",
+    "inputs": {
+      "samples": [
+        "1077",
+        0
+      ],
+      "vae": [
+        "1075",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Image (SeedVR2 3B Int8)"
+    }
+  },
+  "1079": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "1074",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Image (SeedVR2 3B Int8)"
+    }
+  },
+  "1080": {
+    "class_type": "SeedVR2Preprocess",
+    "inputs": {
+      "resized_images": [
+        "1079",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Image (SeedVR2 3B Int8)"
+    }
+  },
+  "1081": {
+    "class_type": "SeedVR2PostProcessing",
+    "inputs": {
+      "images": [
+        "1078",
+        0
+      ],
+      "original_resized_images": [
+        "1079",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Image (SeedVR2 3B Int8)"
+    }
+  },
+  "1082": {
+    "class_type": "SeedVR2Conditioning",
+    "inputs": {
+      "model": [
+        "1076",
+        0
+      ],
+      "vae_conditioning": [
+        "1073",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Image (SeedVR2 3B Int8)"
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "seedvr2_after/image",
+      "images": [
+        "1081",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveImage"
+    }
+  }
+}

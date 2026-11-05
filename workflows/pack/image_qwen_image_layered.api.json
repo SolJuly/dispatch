@@ -1,0 +1,397 @@
+{
+  "1142": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1143": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_layered_vae.safetensors"
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1144": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": [
+        "1142",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "1145": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "1144",
+        0
+      ],
+      "latent": [
+        "1150",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1146": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "1152",
+        0
+      ],
+      "latent": [
+        "1150",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1147": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "shift": 1,
+      "model": [
+        "1156",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1148": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "1153",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1149": {
+    "class_type": "LatentCutToBatch",
+    "inputs": {
+      "samples": [
+        "1148",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1150": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "82",
+        0
+      ],
+      "vae": [
+        "1143",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1151": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1149",
+        0
+      ],
+      "vae": [
+        "1143",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1152": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "A cinematic medium shot of a beautiful young woman with fair skin and a joyful, radiant smile, looking back over her shoulder. She has voluminous, curly auburn hair styled in a loose, windblown updo. She is standing on a rugged, rocky coastline overlooking a sun-drenched ocean. She wears a vintage, long-sleeved, high-collared dress in an off-white, crinkled fabric with delicate smocking on the bodice and a simple brown sash at her waist. In the background, the ocean sparkles brightly under the sun, and a majestic tall ship with full sails is visible in the distance. The scene is illuminated by the warm, golden light of the late afternoon, creating a soft, romantic, and nostalgic atmosphere with a shallow depth of field that keeps the woman in sharp focus.",
+      "clip": [
+        "1142",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1153": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 331728509923362,
+      "steps": 20,
+      "cfg": 2.5,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "1147",
+        0
+      ],
+      "positive": [
+        "1146",
+        0
+      ],
+      "negative": [
+        "1145",
+        0
+      ],
+      "latent_image": [
+        "1155",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1154": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "82",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1155": {
+    "class_type": "EmptyQwenImageLayeredLatentImage",
+    "inputs": {
+      "width": [
+        "1154",
+        0
+      ],
+      "height": [
+        "1154",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1156": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_layered_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Image to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1157": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Text to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1158": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_layered_vae.safetensors"
+    },
+    "_meta": {
+      "title": "Text to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1159": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": [
+        "1157",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "1160": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "shift": 1,
+      "model": [
+        "1166",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1161": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "1165",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1162": {
+    "class_type": "LatentCutToBatch",
+    "inputs": {
+      "samples": [
+        "1161",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1163": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1162",
+        0
+      ],
+      "vae": [
+        "1158",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1164": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "A cinematic medium shot of a beautiful young woman with fair skin and a joyful, radiant smile, looking back over her shoulder. She has voluminous, curly auburn hair styled in a loose, windblown updo. She is standing on a rugged, rocky coastline overlooking a sun-drenched ocean. She wears a vintage, long-sleeved, high-collared dress in an off-white, crinkled fabric with delicate smocking on the bodice and a simple brown sash at her waist. In the background, the ocean sparkles brightly under the sun, and a majestic tall ship with full sails is visible in the distance. The scene is illuminated by the warm, golden light of the late afternoon, creating a soft, romantic, and nostalgic atmosphere with a shallow depth of field that keeps the woman in sharp focus.",
+      "clip": [
+        "1157",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1165": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 714945458525142,
+      "steps": 20,
+      "cfg": 2.5,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "1160",
+        0
+      ],
+      "positive": [
+        "1164",
+        0
+      ],
+      "negative": [
+        "1159",
+        0
+      ],
+      "latent_image": [
+        "1167",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1166": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_layered_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Text to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "1167": {
+    "class_type": "EmptyQwenImageLayeredLatentImage",
+    "inputs": {},
+    "_meta": {
+      "title": "Text to Layers (Qwen-Image-Layered)"
+    }
+  },
+  "60": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "Qwen-image-layers",
+      "images": [
+        "1151",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveImage"
+    }
+  },
+  "74": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "coastal_smiling_woman.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  },
+  "82": {
+    "class_type": "ImageScaleToMaxDimension",
+    "inputs": {
+      "image": [
+        "74",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ImageScaleToMaxDimension"
+    }
+  }
+}

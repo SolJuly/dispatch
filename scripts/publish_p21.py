@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import html
 import re
+import shutil
 import ssl
 import subprocess
 import sys
@@ -50,6 +51,8 @@ DOCS = [
      "同一时点的独立复核：七条验收、双机与发布、成本对账、安全、与 10 号报告的差异"),
     ("12-ZImage接入与默认切换.md", "12-ZImage接入与默认切换.html", "Z-Image 接入与默认切换",
      "旧 t2i 下线、Z-Image HQ 真机 2048 验证、参数面、当前控制台与下一步"),
+    ("13-ZImage系列剩余工作流接入.md", "13-ZImage系列剩余工作流接入.html", "Z-Image 系列剩余 5 条接入",
+     "01/03/04/05/06 真机验证、Flux2/ControlNet 资产修复、控制台页签切换"),
 ]
 
 INDEX = """<!doctype html>
@@ -168,7 +171,9 @@ def build() -> None:
 
     for f in (SRC / "evidence").glob("*"):
         if f.is_file():
-            (PUB / "evidence" / f.name).write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
+            # evidence/ 既有 txt/json 也有截图（pack-ui-create.png）：
+            # 统一按字节复制，避免对 PNG 调 read_text 抛 UnicodeDecodeError。
+            shutil.copy2(f, PUB / "evidence" / f.name)
 
     stamp = __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M")
     (PUB / "index.html").write_text(

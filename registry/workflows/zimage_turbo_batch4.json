@@ -1,0 +1,163 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "zimage_turbo_batch4",
+  "name": "Z-Image-Turbo 批量 4 图（1024）",
+  "version": 1,
+  "kind": "image",
+  "engine": "comfyui",
+  "graph": "workflows/zimage_turbo_batch4.api.json",
+  "model": {
+    "key": "zimage_turbo",
+    "slots": {
+      "unet": {
+        "node": "1",
+        "input": "unet_name"
+      },
+      "clip": {
+        "node": "3",
+        "input": "clip_name"
+      },
+      "vae": {
+        "node": "4",
+        "input": "vae_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "bindings": [
+        {
+          "node": "5",
+          "input": "text"
+        }
+      ],
+      "description": "正向提示词；蒸馏模型负面词无效"
+    },
+    "seed": {
+      "type": "int",
+      "required": true,
+      "bindings": [
+        {
+          "node": "8",
+          "input": "seed"
+        }
+      ]
+    },
+    "width": {
+      "type": "int",
+      "default": 1024,
+      "min": 512,
+      "max": 1536,
+      "multiple": 32,
+      "bindings": [
+        {
+          "node": "7",
+          "input": "width"
+        }
+      ]
+    },
+    "height": {
+      "type": "int",
+      "default": 1024,
+      "min": 512,
+      "max": 1536,
+      "multiple": 32,
+      "bindings": [
+        {
+          "node": "7",
+          "input": "height"
+        }
+      ]
+    },
+    "steps": {
+      "type": "int",
+      "default": 8,
+      "min": 4,
+      "max": 12,
+      "bindings": [
+        {
+          "node": "8",
+          "input": "steps"
+        }
+      ]
+    },
+    "cfg": {
+      "type": "float",
+      "default": 1.0,
+      "min": 0.5,
+      "max": 2.0,
+      "bindings": [
+        {
+          "node": "8",
+          "input": "cfg"
+        }
+      ]
+    },
+    "sampler": {
+      "type": "enum",
+      "default": "res_multistep",
+      "values": [
+        "res_multistep",
+        "euler",
+        "euler_ancestral",
+        "dpmpp_2m",
+        "uni_pc"
+      ],
+      "bindings": [
+        {
+          "node": "8",
+          "input": "sampler_name"
+        }
+      ]
+    },
+    "scheduler": {
+      "type": "enum",
+      "default": "simple",
+      "values": [
+        "simple",
+        "normal",
+        "karras",
+        "beta"
+      ],
+      "bindings": [
+        {
+          "node": "8",
+          "input": "scheduler"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "10",
+    "input": "filename_prefix",
+    "kind": "image",
+    "ext": "png",
+    "pick": [
+      "images"
+    ],
+    "count": 4
+  },
+  "expect_defaults": {
+    "ext": "png",
+    "min_bytes": 20000,
+    "images": 4,
+    "width": [
+      1024
+    ],
+    "height": [
+      1024
+    ],
+    "black_ratio_max": 0.5
+  },
+  "limits": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "05 号：同一 prompt/seed 一次出 4 张候选（batch_size=4），用于挑选/批量。"
+}

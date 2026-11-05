@@ -250,7 +250,11 @@ def _normalize_image(params: dict) -> dict:
         h = hashlib.sha256(p.read_bytes()).hexdigest()[:8]
         name = f"in-{h}{p.suffix.lower() or '.png'}"
         INPUTS_DIR.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(p, INPUTS_DIR / name)
+        dst = INPUTS_DIR / name
+        # 传进来的已经是归一化后的 inputs/in-<hash>.png（例如拿上次作业的输入复用）：
+        # copy2 到自身会抛 SameFileError，这里直接跳过。
+        if p.resolve() != dst.resolve():
+            shutil.copy2(p, dst)
         params[key] = name
     return params
 

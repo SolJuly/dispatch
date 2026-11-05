@@ -1,0 +1,64 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "flux-2-klein-4b.safetensors", "weight_dtype": "default" },
+    "_meta": { "title": "FLUX.2 Klein 4B DISTILLED (Apache-2.0). Use flux-2-klein-base-4b.safetensors + 20 steps + cfg 5 for the non-distilled variant" }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": { "clip_name": "qwen_3_4b.safetensors", "type": "flux2", "device": "default" },
+    "_meta": { "title": "NOTE: type MUST be 'flux2' (Z-Image uses 'lumina2')" }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "flux2-vae.safetensors" }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "clip": ["2", 0], "text": "editorial fashion photograph, full body, dramatic side lighting, clean minimal background, fine fabric texture, magazine quality" },
+    "_meta": { "title": "PROMPT SLOT - agent injects user prompt here" }
+  },
+  "5": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": { "conditioning": ["4", 0] }
+  },
+  "6": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": { "width": 1024, "height": 1024, "batch_size": 1 }
+  },
+  "7": {
+    "class_type": "Flux2Scheduler",
+    "inputs": { "steps": 4, "width": 1024, "height": 1024 },
+    "_meta": { "title": "DISTILLED = 4 steps. Do NOT raise above 6" }
+  },
+  "8": {
+    "class_type": "KSamplerSelect",
+    "inputs": { "sampler_name": "euler" }
+  },
+  "9": {
+    "class_type": "CFGGuider",
+    "inputs": { "model": ["1", 0], "positive": ["4", 0], "negative": ["5", 0], "cfg": 1.0 },
+    "_meta": { "title": "CFG MUST be 1.0 for distilled models" }
+  },
+  "10": {
+    "class_type": "RandomNoise",
+    "inputs": { "noise_seed": 42 },
+    "_meta": { "title": "SEED SLOT for this workflow" }
+  },
+  "11": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": ["10", 0], "guider": ["9", 0], "sampler": ["8", 0],
+      "sigmas": ["7", 0], "latent_image": ["6", 0]
+    }
+  },
+  "12": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["11", 0], "vae": ["3", 0] }
+  },
+  "13": {
+    "class_type": "SaveImage",
+    "inputs": { "filename_prefix": "klein4b_fast", "images": ["12", 0] },
+    "_meta": { "title": "FINAL OUTPUT - node 13" }
+  }
+}

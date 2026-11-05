@@ -1,0 +1,289 @@
+{
+  "1106": {
+    "class_type": "VAEEncodeTiled",
+    "inputs": {
+      "pixels": [
+        "1112",
+        0
+      ],
+      "vae": [
+        "1107",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1107": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "seedvr2_ema_vae_fp16.safetensors"
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1108": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "seedvr2_3b_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1109": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 959948902156062,
+      "steps": 1,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "1108",
+        0
+      ],
+      "positive": [
+        "1114",
+        0
+      ],
+      "negative": [
+        "1114",
+        1
+      ],
+      "latent_image": [
+        "1121",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1110": {
+    "class_type": "VAEDecodeTiled",
+    "inputs": {
+      "samples": [
+        "1122",
+        0
+      ],
+      "vae": [
+        "1107",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1111": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "1115",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1112": {
+    "class_type": "SeedVR2Preprocess",
+    "inputs": {
+      "resized_images": [
+        "1111",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1113": {
+    "class_type": "SeedVR2PostProcessing",
+    "inputs": {
+      "images": [
+        "1110",
+        0
+      ],
+      "original_resized_images": [
+        "1111",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1114": {
+    "class_type": "SeedVR2Conditioning",
+    "inputs": {
+      "model": [
+        "1108",
+        0
+      ],
+      "vae_conditioning": [
+        "1121",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1115": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "1118",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1116": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": [
+        "1115",
+        2
+      ],
+      "bit_depth": [
+        "1115",
+        3
+      ],
+      "images": [
+        "1113",
+        0
+      ],
+      "audio": [
+        "1115",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1117": {
+    "class_type": "Video Slice",
+    "inputs": {
+      "video": [
+        "73",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1118": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "73",
+        0
+      ],
+      "on_true": [
+        "1117",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1119": {
+    "class_type": "SeedVR2TemporalChunk",
+    "inputs": {
+      "latent": [
+        "1106",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1120": {
+    "class_type": "SeedVR2TemporalMerge",
+    "inputs": {
+      "latents": [
+        "1109",
+        0
+      ],
+      "temporal_overlap": [
+        "1119",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1121": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "1106",
+        0
+      ],
+      "on_true": [
+        "1119",
+        0
+      ],
+      "switch": false
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "1122": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "1109",
+        0
+      ],
+      "on_true": [
+        "1120",
+        0
+      ],
+      "switch": false
+    },
+    "_meta": {
+      "title": "Upscale Video (SeedVR2 3B Int8)"
+    }
+  },
+  "73": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "grainy_perfume_shot_crf32.mp4"
+    },
+    "_meta": {
+      "title": "LoadVideo"
+    }
+  },
+  "76": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "video/Upscaled_seedVR2",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "1116",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveVideo"
+    }
+  }
+}

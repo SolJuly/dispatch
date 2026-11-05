@@ -1,0 +1,53 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "z_image_turbo_bf16.safetensors", "weight_dtype": "default" }
+  },
+  "2": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": { "model": ["1", 0], "sampling": "flow", "shift": 3 }
+  },
+  "3": {
+    "class_type": "CLIPLoader",
+    "inputs": { "clip_name": "qwen_3_4b.safetensors", "type": "lumina2", "device": "default" }
+  },
+  "4": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "ae.safetensors" }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "clip": ["3", 0], "text": "professional product photography, clean studio background, soft diffused lighting, crisp details, high-end commercial look" },
+    "_meta": { "title": "PROMPT SLOT - agent injects user prompt here" }
+  },
+  "6": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": { "conditioning": ["5", 0] }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "input.png" },
+    "_meta": { "title": "IMAGE SLOT - upload via POST /upload/image first, then set filename here" }
+  },
+  "11": {
+    "class_type": "VAEEncode",
+    "inputs": { "pixels": ["10", 0], "vae": ["4", 0] }
+  },
+  "8": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["2", 0], "positive": ["5", 0], "negative": ["6", 0],
+      "latent_image": ["11", 0], "seed": 42, "steps": 8, "cfg": 1.0,
+      "sampler_name": "res_multistep", "scheduler": "simple", "denoise": 0.55
+    },
+    "_meta": { "title": "DENOISE SLOT - 0.35 keep composition / 0.55 restyle / 0.75 heavy change" }
+  },
+  "9": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["8", 0], "vae": ["4", 0] }
+  },
+  "12": {
+    "class_type": "SaveImage",
+    "inputs": { "filename_prefix": "zimage_img2img", "images": ["9", 0] }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_image_flux2_klein_text_to_image",
+  "name": "image_flux2_klein_text_to_image（image_flux2_klein_text_to_image）",
+  "version": 1,
+  "kind": "image",
+  "engine": "comfyui",
+  "graph": "workflows/pack/image_flux2_klein_text_to_image.api.json",
+  "model": {
+    "key": "flux_2_klein_base_4b",
+    "slots": {
+      "unet": {
+        "node": "1090",
+        "input": "unet_name"
+      },
+      "clip": {
+        "node": "1091",
+        "input": "clip_name"
+      },
+      "vae": {
+        "node": "1092",
+        "input": "vae_name"
+      },
+      "unet_2": {
+        "node": "1101",
+        "input": "unet_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "A hedgehog wearing a tiny party hat surrounded by confetti, early digital camera style, slight noise…",
+      "bindings": [
+        {
+          "node": "1093",
+          "input": "text"
+        }
+      ]
+    },
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "A hedgehog wearing a tiny party hat surrounded by confetti, early digital camera style, slight noise…",
+      "bindings": [
+        {
+          "node": "1106",
+          "input": "text"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "1089",
+          "input": "noise_seed"
+        },
+        {
+          "node": "1100",
+          "input": "noise_seed"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "9",
+    "input": "filename_prefix",
+    "kind": "image",
+    "ext": "png",
+    "pick": [
+      "images"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "png",
+    "min_bytes": 20000
+  },
+  "limits": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+}

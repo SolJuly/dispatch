@@ -1,0 +1,57 @@
+{
+  "schema": "p20.model/v1",
+  "key": "void_pass2",
+  "name": "void_pass2",
+  "version": 1,
+  "kind": "video",
+  "family": "void_pass2",
+  "primary": "unet",
+  "files": {
+    "clip": {
+      "name": "t5xxl_fp16.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "t5xxl_fp16"
+      }
+    },
+    "vae": {
+      "name": "cogvideox_vae.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "cogvideox_vae"
+      }
+    },
+    "unet": {
+      "name": "void_pass2.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "void_pass2"
+      }
+    },
+    "unet_2": {
+      "name": "void_pass1.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "void_pass1"
+      }
+    },
+    "ckpt": {
+      "name": "sam3.1_multiplex_fp16.safetensors",
+      "loader": "CheckpointLoaderSimple",
+      "input": "ckpt_name",
+      "match": {
+        "contains": "sam3.1_multiplex_fp16"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}

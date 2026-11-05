@@ -1,0 +1,102 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_video_minimax_h3_r2v",
+  "name": "★ 多参考图一致性生视频（R2V）（video_minimax_h3_r2v）",
+  "version": 1,
+  "kind": "video",
+  "engine": "comfyui",
+  "graph": "workflows/pack/video_minimax_h3_r2v.api.json",
+  "model": {
+    "key": "minimax_h3_ref2va_pruned_int8_convro_video_minimax_h3_r2v",
+    "slots": {
+      "vae": {
+        "node": "119",
+        "input": "vae_name"
+      },
+      "vae_2": {
+        "node": "120",
+        "input": "vae_name"
+      },
+      "unet": {
+        "node": "127",
+        "input": "unet_name"
+      },
+      "clip": {
+        "node": "128",
+        "input": "clip_name"
+      },
+      "lora": {
+        "node": "145",
+        "input": "lora_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "Bold comic-book ink style, heavy linework, red and blue-black palette, night city. Use <Picture 2> a…",
+      "bindings": [
+        {
+          "node": "136",
+          "input": "prompt"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "129",
+          "input": "noise_seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "137",
+          "input": "image"
+        }
+      ]
+    },
+    "image_2": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "139",
+          "input": "image"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "130",
+    "input": "fps",
+    "kind": "video",
+    "ext": "mp4",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "limits": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "vid.multiref · ★ 多参考图一致性生视频（R2V） · 许可：MiniMax H3 Community License（排除美/欧/英/韩；年营收 >$20M 需授权；商用须经 Comfy 官方经销许可） · 商用：需授权 · ≥20GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+}

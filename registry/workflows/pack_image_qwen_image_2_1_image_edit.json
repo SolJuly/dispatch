@@ -1,0 +1,108 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_image_qwen_image_2_1_image_edit",
+  "name": "换脸 / 换装 / 多参考一致性（语义编辑）（image_qwen_image_2_1_image_edit）",
+  "version": 1,
+  "kind": "image",
+  "engine": "comfyui",
+  "graph": "workflows/pack/image_qwen_image_2_1_image_edit.api.json",
+  "model": {
+    "key": "qwen_image_2_1_int8_convrot_image_qwen_image_2_1_ima",
+    "slots": {
+      "unet": {
+        "node": "1502",
+        "input": "unet_name"
+      },
+      "clip": {
+        "node": "1503",
+        "input": "clip_name"
+      },
+      "vae": {
+        "node": "1504",
+        "input": "vae_name"
+      },
+      "clip_2": {
+        "node": "1511",
+        "input": "clip_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "Replace costumes for the character",
+      "bindings": [
+        {
+          "node": "1516",
+          "input": "prompt"
+        }
+      ]
+    },
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "# Edit Prompt Enhancer — General (v2, 精简版)\n\n**FIRST — there are TWO separate language decisions. Do …",
+      "bindings": [
+        {
+          "node": "1516",
+          "input": "system_prompt"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "1507",
+          "input": "seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "470",
+          "input": "image"
+        }
+      ]
+    },
+    "image_2": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "475",
+          "input": "image"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "461",
+    "input": "filename_prefix",
+    "kind": "image",
+    "ext": "png",
+    "pick": [
+      "images"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "png",
+    "min_bytes": 20000
+  },
+  "limits": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "img.faceswap.semantic · 换脸 / 换装 / 多参考一致性（语义编辑） · 许可：Qwen Research License（仅研究/评测，商用需单独授权） · 商用：需授权 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+}

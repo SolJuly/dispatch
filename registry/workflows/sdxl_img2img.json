@@ -177,5 +177,7 @@
     "4090",
     "4090_48G"
   ],
-  "notes": "P2.1 5.2：LoadImage → ImageScale → VAEEncode → KSampler(denoise) → 解码。img2img 的输出张数由输入图决定（1 张），batch_size 不在本工作流暴露。"
+  "notes": "P2.1 5.2：LoadImage → ImageScale → VAEEncode → KSampler(denoise) → 解码。img2img 的输出张数由输入图决定（1 张），batch_size 不在本工作流暴露。",
+  "deprecated": true,
+  "deprecated_reason": "P2.2 起由 zimage_turbo_img2img 替换；仅保留供历史作业复现/回滚，控制台不再展示"
 }

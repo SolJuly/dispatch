@@ -1,0 +1,371 @@
+{
+  "108": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "video/Wan2.2_i2v",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "1165",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveVideo"
+    }
+  },
+  "1164": {
+    "class_type": "WanImageToVideo",
+    "inputs": {
+      "width": 640,
+      "height": 640,
+      "length": [
+        "1193",
+        1
+      ],
+      "batch_size": 1,
+      "positive": [
+        "1170",
+        0
+      ],
+      "negative": [
+        "1167",
+        0
+      ],
+      "vae": [
+        "1172",
+        0
+      ],
+      "start_image": [
+        "97",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1165": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": 16,
+      "bit_depth": 8,
+      "images": [
+        "1169",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1166": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "shift": 5.000000000000001,
+      "model": [
+        "1185",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1167": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走",
+      "clip": [
+        "1173",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "1169": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1181",
+        0
+      ],
+      "vae": [
+        "1172",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1170": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "The white dragon warrior stands still, eyes full of determination and strength. The camera slowly moves closer or circles around the warrior, highlighting the powerful presence and heroic spirit of the character.",
+      "clip": [
+        "1173",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1172": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1173": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1174": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1175": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1178": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+      "strength_model": 1.0000000000000002,
+      "model": [
+        "1174",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1179": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+      "strength_model": 1.0000000000000002,
+      "model": [
+        "1175",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1180": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "add_noise": "enable",
+      "noise_seed": 264244520398999,
+      "steps": [
+        "1187",
+        0
+      ],
+      "cfg": [
+        "1188",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 0,
+      "end_at_step": [
+        "1186",
+        0
+      ],
+      "return_with_leftover_noise": "enable",
+      "model": [
+        "1166",
+        0
+      ],
+      "positive": [
+        "1164",
+        0
+      ],
+      "negative": [
+        "1164",
+        1
+      ],
+      "latent_image": [
+        "1164",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1181": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": [
+        "1187",
+        0
+      ],
+      "cfg": [
+        "1188",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": [
+        "1186",
+        0
+      ],
+      "end_at_step": [
+        "1187",
+        0
+      ],
+      "return_with_leftover_noise": "disable",
+      "model": [
+        "1189",
+        0
+      ],
+      "positive": [
+        "1164",
+        0
+      ],
+      "negative": [
+        "1164",
+        1
+      ],
+      "latent_image": [
+        "1180",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1185": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "1175",
+        0
+      ],
+      "on_true": [
+        "1179",
+        0
+      ],
+      "switch": false
+    },
+    "_meta": {
+      "title": "Switch (Model)"
+    }
+  },
+  "1186": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": 10,
+      "on_true": 2,
+      "switch": false
+    },
+    "_meta": {
+      "title": "Switch (Split Step)"
+    }
+  },
+  "1187": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": 20,
+      "on_true": 4,
+      "switch": false
+    },
+    "_meta": {
+      "title": "Switch (Steps)"
+    }
+  },
+  "1188": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": 3.5,
+      "on_true": 1,
+      "switch": false
+    },
+    "_meta": {
+      "title": "Switch (CFG)"
+    }
+  },
+  "1189": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "shift": 5.000000000000001,
+      "model": [
+        "1190",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "1190": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "1174",
+        0
+      ],
+      "on_true": [
+        "1178",
+        0
+      ],
+      "switch": false
+    },
+    "_meta": {
+      "title": "Switch (Model)"
+    }
+  },
+  "1193": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "values.a": 5,
+      "values.b": 16
+    },
+    "_meta": {
+      "title": "Image to Video (Wan2.2)"
+    }
+  },
+  "97": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "video_wan2_2_14B_i2v_input_image.jpg"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  }
+}

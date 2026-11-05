@@ -70,7 +70,8 @@ def create_page(base: str, token: str, workflow: str = "") -> str:
         # 不再出现在控制台，但仍保留在 registry 里供历史作业复现/回滚。
         t2i = next((w["key"] for w in wfs if w["key"] == "zimage_turbo_t2i_hq"), None) \
             or next((w["key"] for w in wfs if not _has(w, "image")), wfs[0]["key"])
-        i2i = next((w["key"] for w in wfs if w["key"] == "sdxl_img2img"), None) \
+        i2i = next((w["key"] for w in wfs if w["key"] == "zimage_turbo_img2img"), None) \
+            or next((w["key"] for w in wfs if w["key"] == "sdxl_img2img"), None) \
             or next((w["key"] for w in wfs if _has(w, "image") and not _has(w, "mask")),
                     wfs[0]["key"])
         aliases = {"t2i": t2i, "i2i": i2i}

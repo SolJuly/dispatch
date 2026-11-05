@@ -37,9 +37,11 @@ class RegistryBase(unittest.TestCase):
 class TestImport(RegistryBase):
     def test_counts(self):
         s = registry.stats(self.db)
-        self.assertEqual(s["workflows"], 14)
-        self.assertEqual(s["models"], 7)
-        self.assertEqual(s["compat"], {"verified": 11, "equivalent": 2, "experimental": 1})
+        # 不锁死总数：官方模板包会持续导入，数量随 registry/*.json 为准
+        self.assertEqual(s["workflows"], len(list(WF_DIR.glob("*.json"))))
+        self.assertEqual(s["models"], len(list(MODEL_DIR.glob("*.json"))))
+        self.assertGreaterEqual(s["compat"]["verified"], 11)
+        self.assertGreaterEqual(s["compat"]["experimental"], 1)
 
     def test_idempotent(self):
         before = registry.stats(self.db)
@@ -51,7 +53,7 @@ class TestImport(RegistryBase):
 
     def test_list_and_show(self):
         wfs = {w["key"]: w for w in registry.list_workflows(self.db)}
-        self.assertEqual(len(wfs), 14)
+        self.assertEqual(len(wfs), len(list(WF_DIR.glob("*.json"))))
         self.assertEqual(wfs["qwen_image_t2i"]["compat"]["status"], "verified")
         self.assertEqual(wfs["h3_i2v_121f"]["compat"]["status"], "experimental")
         w = registry.get_workflow("qwen_image_t2i", db_path=self.db)

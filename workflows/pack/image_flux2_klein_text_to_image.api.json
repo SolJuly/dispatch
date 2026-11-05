@@ -1,0 +1,334 @@
+{
+  "1080": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B)"
+    }
+  },
+  "1081": {
+    "class_type": "Flux2Scheduler",
+    "inputs": {
+      "steps": 20,
+      "width": 1024,
+      "height": 1024
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B)"
+    }
+  },
+  "1082": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "cfg": 5,
+      "model": [
+        "1090",
+        0
+      ],
+      "positive": [
+        "1093",
+        0
+      ],
+      "negative": [
+        "1086",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B)"
+    }
+  },
+  "1083": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "1089",
+        0
+      ],
+      "guider": [
+        "1082",
+        0
+      ],
+      "sampler": [
+        "1080",
+        0
+      ],
+      "sigmas": [
+        "1081",
+        0
+      ],
+      "latent_image": [
+        "1085",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B)"
+    }
+  },
+  "1084": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1083",
+        0
+      ],
+      "vae": [
+        "1092",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B)"
+    }
+  },
+  "1085": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B)"
+    }
+  },
+  "1086": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": [
+        "1091",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "1089": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 0
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B)"
+    }
+  },
+  "1090": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux-2-klein-base-4b.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B)"
+    }
+  },
+  "1091": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B)"
+    }
+  },
+  "1092": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B)"
+    }
+  },
+  "1093": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "A hedgehog wearing a tiny party hat surrounded by confetti, early digital camera style, slight noise, flash photography, candid moment, 2000s digicam aesthetic, festive birthday celebration atmosphere\n",
+      "clip": [
+        "1091",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1094": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1095": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "1100",
+        0
+      ],
+      "guider": [
+        "1104",
+        0
+      ],
+      "sampler": [
+        "1094",
+        0
+      ],
+      "sigmas": [
+        "1107",
+        0
+      ],
+      "latent_image": [
+        "1097",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1096": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1095",
+        0
+      ],
+      "vae": [
+        "1103",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1097": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1100": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 432262096973490
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1101": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux-2-klein-4b.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1102": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1103": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1104": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "1101",
+        0
+      ],
+      "positive": [
+        "1106",
+        0
+      ],
+      "negative": [
+        "1105",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1105": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "1106",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1106": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "A hedgehog wearing a tiny party hat surrounded by confetti, early digital camera style, slight noise, flash photography, candid moment, 2000s digicam aesthetic, festive birthday celebration atmosphere\n",
+      "clip": [
+        "1102",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1107": {
+    "class_type": "Flux2Scheduler",
+    "inputs": {
+      "steps": 4,
+      "width": 1024,
+      "height": 1024
+    },
+    "_meta": {
+      "title": "Text to Image (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "Flux2-Klein",
+      "images": [
+        "1084",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveImage"
+    }
+  }
+}

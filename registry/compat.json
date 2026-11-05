@@ -14,6 +14,17 @@
       "notes": "低 denoise 0.25 重绘 + 4x 放大：768x1024 → 3072x4096，细节清晰，PASS"
     },
     {
+      "workflow": "flux2_klein_4b_fast",
+      "model": "flux2_klein_4b",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1227-611afe"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1227-611afe）"
+    },
+    {
       "workflow": "h3_t2v_121f",
       "model": "h3",
       "status": "verified",
@@ -113,6 +124,51 @@
       ],
       "verified_at": "2026-11-01",
       "notes": "官方 fp8 版实跑 PASS（社区 NVFP4 版已排除）"
+    },
+    {
+      "workflow": "zimage_turbo_batch4",
+      "model": "zimage_turbo",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1221-a9464d",
+        "p1-20261105T1224-958aaf"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1224-958aaf）"
+    },
+    {
+      "workflow": "zimage_turbo_controlnet_canny",
+      "model": "zimage_turbo_controlnet",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1231-246093"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1231-246093）"
+    },
+    {
+      "workflow": "zimage_turbo_img2img",
+      "model": "zimage_turbo",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1218-c198ca"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1218-c198ca）"
+    },
+    {
+      "workflow": "zimage_turbo_t2i",
+      "model": "zimage_turbo",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1221-a9464d"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1221-a9464d）"
     },
     {
       "workflow": "zimage_turbo_t2i_hq",

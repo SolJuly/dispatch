@@ -1,0 +1,216 @@
+{
+  "105": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "An icicle dragon lunges forward, mouth wide open to exhale a stream of icy mist. Ultramarine energy flickers beneath its frost-coated scales as it twists. The camera circles slowly, capturing the swirling ice particles and the backdrop of floating glaciers and frozen nebulae under a cyan-blue filter.",
+      "clip": [
+        "115",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "107": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走,",
+      "clip": [
+        "115",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "108": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 552837504311715,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "110",
+        0
+      ],
+      "positive": [
+        "109",
+        0
+      ],
+      "negative": [
+        "109",
+        1
+      ],
+      "latent_image": [
+        "109",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "109": {
+    "class_type": "WanVaceToVideo",
+    "inputs": {
+      "positive": [
+        "105",
+        0
+      ],
+      "negative": [
+        "107",
+        0
+      ],
+      "vae": [
+        "114",
+        0
+      ],
+      "control_masks": 768,
+      "reference_image": [
+        "73",
+        0
+      ],
+      "width": 768,
+      "height": 768
+    },
+    "_meta": {
+      "title": "WanVaceToVideo"
+    }
+  },
+  "110": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "shift": 8.000000000000002,
+      "model": [
+        "115",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ModelSamplingSD3"
+    }
+  },
+  "113": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.1_vace_14B_fp16.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "UNETLoader"
+    }
+  },
+  "114": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    },
+    "_meta": {
+      "title": "VAELoader"
+    }
+  },
+  "115": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "Wan21_CausVid_14B_T2V_lora_rank32.safetensors",
+      "strength_model": 0.30000000000000004,
+      "strength_clip": 1,
+      "model": [
+        "113",
+        0
+      ],
+      "clip": [
+        "127",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LoraLoader"
+    }
+  },
+  "118": {
+    "class_type": "TrimVideoLatent",
+    "inputs": {
+      "samples": [
+        "108",
+        0
+      ],
+      "trim_amount": [
+        "109",
+        3
+      ]
+    },
+    "_meta": {
+      "title": "TrimVideoLatent"
+    }
+  },
+  "119": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "118",
+        0
+      ],
+      "vae": [
+        "114",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEDecode"
+    }
+  },
+  "127": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp16.safetensors",
+      "type": "wan",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "CLIPLoader"
+    }
+  },
+  "68": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": 16,
+      "images": [
+        "119",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CreateVideo"
+    }
+  },
+  "69": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "video/ComfyUI",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "68",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveVideo"
+    }
+  },
+  "73": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "video_wan_vace_14B_ref2v_reference_image.jpg"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  }
+}

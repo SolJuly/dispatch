@@ -1,0 +1,33 @@
+{
+  "schema": "p20.model/v1",
+  "key": "juggernautxl_v9rdphoto2lightning",
+  "name": "juggernautXL_v9Rdphoto2Lightning",
+  "version": 1,
+  "kind": "image",
+  "family": "juggernautxl_v9rdpho",
+  "primary": "ckpt",
+  "files": {
+    "ckpt": {
+      "name": "juggernautXL_v9Rdphoto2Lightning.safetensors",
+      "loader": "CheckpointLoaderSimple",
+      "input": "ckpt_name",
+      "match": {
+        "contains": "juggernautXL_v9Rdphoto2Lightning"
+      }
+    },
+    "clip": {
+      "name": "qwen3.5_4b_bf16.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "qwen3.5_4b_bf16"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}

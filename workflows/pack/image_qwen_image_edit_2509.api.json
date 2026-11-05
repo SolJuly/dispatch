@@ -1,0 +1,253 @@
+{
+  "1470": {
+    "class_type": "CFGNorm",
+    "inputs": {
+      "model": [
+        "1475",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen 2509)"
+    }
+  },
+  "1471": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen 2509)"
+    }
+  },
+  "1472": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen 2509)"
+    }
+  },
+  "1473": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen 2509)"
+    }
+  },
+  "1474": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": [
+        "1472",
+        0
+      ],
+      "vae": [
+        "1471",
+        0
+      ],
+      "image1": [
+        "1480",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen 2509)"
+    }
+  },
+  "1475": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "shift": 3,
+      "model": [
+        "1486",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen 2509)"
+    }
+  },
+  "1476": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": [
+        "1472",
+        0
+      ],
+      "vae": [
+        "1471",
+        0
+      ],
+      "image1": [
+        "1480",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen 2509)"
+    }
+  },
+  "1477": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "1480",
+        0
+      ],
+      "vae": [
+        "1471",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen 2509)"
+    }
+  },
+  "1478": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1481",
+        0
+      ],
+      "vae": [
+        "1471",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen 2509)"
+    }
+  },
+  "1479": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "1473",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen 2509)"
+    }
+  },
+  "1480": {
+    "class_type": "FluxKontextImageScale",
+    "inputs": {
+      "image": [
+        "78",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen 2509)"
+    }
+  },
+  "1481": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 362225868152841,
+      "steps": [
+        "1487",
+        0
+      ],
+      "cfg": [
+        "1488",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "1470",
+        0
+      ],
+      "positive": [
+        "1476",
+        0
+      ],
+      "negative": [
+        "1474",
+        0
+      ],
+      "latent_image": [
+        "1477",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen 2509)"
+    }
+  },
+  "1486": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "1473",
+        0
+      ],
+      "on_true": [
+        "1479",
+        0
+      ],
+      "switch": true
+    },
+    "_meta": {
+      "title": "Switch (Model)"
+    }
+  },
+  "1487": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": 20,
+      "on_true": 4,
+      "switch": true
+    },
+    "_meta": {
+      "title": "Switch (Steps)"
+    }
+  },
+  "1488": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": 4,
+      "on_true": 1,
+      "switch": true
+    },
+    "_meta": {
+      "title": "Switch (CFG)"
+    }
+  },
+  "469": {
+    "class_type": "SaveImageAdvanced",
+    "inputs": {
+      "filename_prefix": "Qwen_Image_2509",
+      "format": "png",
+      "images": [
+        "1478",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveImageAdvanced"
+    }
+  },
+  "78": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "image_qwen_image_edit_2509_input_image.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  }
+}

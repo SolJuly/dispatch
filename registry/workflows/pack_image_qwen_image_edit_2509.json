@@ -1,0 +1,76 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_image_qwen_image_edit_2509",
+  "name": "image_qwen_image_edit_2509（image_qwen_image_edit_2509）",
+  "version": 1,
+  "kind": "image",
+  "engine": "comfyui",
+  "graph": "workflows/pack/image_qwen_image_edit_2509.api.json",
+  "model": {
+    "key": "qwen_image_edit_2509_fp8_e4m3fn",
+    "slots": {
+      "vae": {
+        "node": "1471",
+        "input": "vae_name"
+      },
+      "clip": {
+        "node": "1472",
+        "input": "clip_name"
+      },
+      "unet": {
+        "node": "1473",
+        "input": "unet_name"
+      },
+      "lora": {
+        "node": "1479",
+        "input": "lora_name"
+      }
+    }
+  },
+  "params": {
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "1481",
+          "input": "seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "78",
+          "input": "image"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "469",
+    "input": "filename_prefix",
+    "kind": "image",
+    "ext": "png",
+    "pick": [
+      "images"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "png",
+    "min_bytes": 20000
+  },
+  "limits": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+}

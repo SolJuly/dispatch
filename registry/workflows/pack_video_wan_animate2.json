@@ -1,0 +1,120 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_video_wan_animate2",
+  "name": "★ 人物动作迁移（Wan Animate 2）（video_wan_animate2）",
+  "version": 1,
+  "kind": "video",
+  "engine": "comfyui",
+  "graph": "workflows/pack/video_wan_animate2.api.json",
+  "model": {
+    "key": "wan_animate_2_int8_convrot",
+    "slots": {
+      "unet": {
+        "node": "1686",
+        "input": "unet_name"
+      },
+      "lora": {
+        "node": "1687",
+        "input": "lora_name"
+      },
+      "clip": {
+        "node": "1688",
+        "input": "clip_name"
+      },
+      "vae": {
+        "node": "1690",
+        "input": "vae_name"
+      }
+    }
+  },
+  "params": {
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
+      "bindings": [
+        {
+          "node": "1696",
+          "input": "text"
+        }
+      ]
+    },
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "Character Description: Cartoon character lost\nBackground description: The background is an empty white room",
+      "bindings": [
+        {
+          "node": "1697",
+          "input": "text"
+        }
+      ]
+    },
+    "prompt_2": {
+      "type": "string",
+      "required": false,
+      "default": "A girl doing energetic street dance with rhythmic steps and dynamic arm gestures, background stationary\n",
+      "bindings": [
+        {
+          "node": "1698",
+          "input": "text"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "1722",
+          "input": "noise_seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "189",
+          "input": "image"
+        }
+      ]
+    },
+    "image_2": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "240",
+          "input": "file"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "1676",
+    "input": "fps",
+    "kind": "video",
+    "ext": "mp4",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "limits": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "vid.animate · ★ 人物动作迁移（Wan Animate 2） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+}

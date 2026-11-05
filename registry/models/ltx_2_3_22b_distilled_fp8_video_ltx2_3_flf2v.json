@@ -1,0 +1,25 @@
+{
+  "schema": "p20.model/v1",
+  "key": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_flf2v",
+  "name": "ltx-2.3-22b-distilled-fp8",
+  "version": 1,
+  "kind": "video",
+  "family": "ltx_2_3_22b_distille",
+  "primary": "ckpt",
+  "files": {
+    "ckpt": {
+      "name": "ltx-2.3-22b-distilled-fp8.safetensors",
+      "loader": "CheckpointLoaderSimple",
+      "input": "ckpt_name",
+      "match": {
+        "contains": "ltx-2.3-22b-distilled-fp8"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}
