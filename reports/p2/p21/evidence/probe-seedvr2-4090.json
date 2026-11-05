@@ -1,0 +1,11 @@
+{
+  "started_at": "2026-11-05T16:57:22+08:00",
+  "gpu": "4090",
+  "image": "compshareImage-1xbzk9oqquks",
+  "zone": "cn-wlcb-01",
+  "uid": "uhost-1xc62xw7tm41",
+  "host": "117.50.199.177",
+  "output": "### host\n10-60-218-75\n2026-11-05T16:58:36+08:00\n### gpu\nFailed to initialize NVML: Unknown Error\n### comfy_wait\nWarning: Permanently added '[117.50.199.177]:23' (ED25519) to the list of known hosts.\n",
+  "terminated": true,
+  "balance_after": 18.28
+}

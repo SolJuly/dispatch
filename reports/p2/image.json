@@ -3,22 +3,22 @@
   "fallback_keyword": "ComfyUI基础镜像纯净版0.36.0",
   "layers": {
     "base": {
-      "name": "p2-comfy-media-v2",
-      "image_id": "compshareImage-1xbzk9oqquks",
+      "name": "p2-comfy-media-v3",
+      "image_id": "compshareImage-1xc7km2mb0ob",
       "based_on": "compshareImage-1x65o3j08tdw",
       "has_ffmpeg": true,
       "comfy_ver": "0.36.x",
-      "baked_at": "2026-11-05T13:54:00+0800",
-      "note": "v1 + KJNodes/essentials/Impact/LayerStyle/UltimateSDUpscale/SUPIR/SeedVR2/FaceParsing；启动脚本已 unset 代理"
+      "baked_at": "2026-11-05T17:45:00+0800",
+      "note": "v2 + 移除不兼容 xformers（torch2.10/cu130 ABI 不匹配）；SeedVR2/SUPIR/facegen 节点 import 恢复正常"
     },
     "media": {
-      "name": "p2-comfy-media-v2",
-      "image_id": "compshareImage-1xbzk9oqquks",
+      "name": "p2-comfy-media-v3",
+      "image_id": "compshareImage-1xc7km2mb0ob",
       "based_on": "compshareImage-1x65o3j08tdw",
       "has_ffmpeg": true,
       "comfy_ver": "0.36.x",
-      "baked_at": "2026-11-05T13:54:00+0800",
-      "note": "v1 + KJNodes/essentials/Impact/LayerStyle/UltimateSDUpscale/SUPIR/SeedVR2/FaceParsing；启动脚本已 unset 代理"
+      "baked_at": "2026-11-05T17:45:00+0800",
+      "note": "v2 + 移除不兼容 xformers（torch2.10/cu130 ABI 不匹配）；SeedVR2/SUPIR/facegen 节点 import 恢复正常"
     }
   }
 }

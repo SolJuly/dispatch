@@ -1,0 +1,15 @@
+{
+  "schema": "p21.evidence/seedvr2/v1",
+  "at": "2026-11-05T17:36:00+0800",
+  "image": "compshareImage-1xbzk9oqquks (p2-comfy-media-v2 + 现场 pip uninstall xformers)",
+  "gpu": "4090 24G (24564 MiB)",
+  "uid": "uhost-1xc6shrbp6e8",
+  "prompt_id": "e0e51364-509d-4cae-ae2b-96481340928d",
+  "graph": "LoadImage -> SeedVR2LoadDiTModel(seedvr2_ema_3b_fp8_e4m3fn) + SeedVR2LoadVAEModel(ema_vae_fp16) -> SeedVR2VideoUpscaler(resolution=2048, color_correction=lab) -> SaveImage",
+  "input": "in-f9bd4904.jpg 1080x1080",
+  "output": "photo_00001_.png 2048x2048 RGB",
+  "evidence_png": "seedvr2-photo-2048.png",
+  "prev_prompt_black_test": "6974c870-1fca-4e4f-ab38-bc41fa26dfdd (in-5935a044.png 合成图, 输出 2048x2048 结构正确)",
+  "root_cause": "xformers 0.0.32.post2 与 torch 2.10.0+cu130 ABI 不匹配，flash_attn_3/_C.so undefined symbol；diffusers 导入 xformers.ops 时炸掉，SeedVR2 整包 IMPORT FAILED。与 bf16/显卡架构无关。",
+  "fix": "pip uninstall -y xformers；ComfyUI 走 SDPA，SeedVR2 三节点 + 核心 SeedVR2Conditioning/Preprocess/PostProcessing 全部出现在 object_info（1757 class，0 IMPORT FAILED）"
+}

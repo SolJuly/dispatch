@@ -59,6 +59,8 @@ DOCS = [
      "Wan2.2 I2V/FLF2V 真机 PASS；S2V 模板图转换损坏；image_2/audio/video 上传支持"),
     ("16-新镜像p2-comfy-media-v2.md", "16-新镜像p2-comfy-media-v2.html", "新镜像 p2-comfy-media-v2",
      "补 KJNodes/Impact/LayerStyle/UltimateSDUpscale/SUPIR/SeedVR2/FaceParsing；1753 class；缺口与下一步"),
+    ("17-SeedVR2真机验证与镜像v3.md", "17-SeedVR2真机验证与镜像v3.html", "SeedVR2 真机验证与镜像 v3",
+     "4090 复核：根因是 xformers ABI 而非 bf16；1024→2048 作业 PASS；注册表新增 seedvr2_3b_upscale"),
 ]
 
 INDEX = """<!doctype html>

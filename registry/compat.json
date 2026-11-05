@@ -126,6 +126,17 @@
       "notes": "A/B 同 seed 同 prompt：strength 0 vs 1.2，PSNR 13.5dB / SSIM 0.33，LoRA 明显生效（厚涂）；对照作业 p1-20261103T1250-5a78db"
     },
     {
+      "workflow": "seedvr2_3b_upscale",
+      "model": "seedvr2_3b",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1739-94934d"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1739-94934d）"
+    },
+    {
       "workflow": "upscale_4x",
       "model": "upscale_ultrasharp",
       "status": "verified",
