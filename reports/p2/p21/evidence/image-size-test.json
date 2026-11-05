@@ -1,0 +1,18 @@
+{
+  "started_at": "2026-11-06T01:07:31+08:00",
+  "base_image": "compshareImage-14r3c4pyc2qd",
+  "disk_gb": 100,
+  "name": "p22-size-test-010731",
+  "boot_ok": true,
+  "df": "",
+  "image": {
+    "id": "compshareImage-1xcnm52v75wb",
+    "size_mb": 30720,
+    "actual_mb": 31471
+  },
+  "delete_image_error": "[d1dfd5aa-8af1-447d-ad7b-d4ba587adb77] DeleteCompShareCustomImage - 161: Action [DeleteCompShareCustomImage] not found",
+  "instance": "uhost-1xcnkkoxpgsw",
+  "duration_s": 238.6,
+  "est_cost": 0.093,
+  "finished_at": "2026-11-06T01:11:29+08:00"
+}
