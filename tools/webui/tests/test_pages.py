@@ -64,6 +64,12 @@ class TestCreatePage(unittest.TestCase):
         html = pages.create_page("/files", "tok", other["key"])
         self.assertIn(f"创作台 · {other['key']}", html)
 
+    def test_deprecated_workflows_hidden_from_picker(self):
+        keys = [w["key"] for w in api.image_workflows()]
+        self.assertNotIn("qwen_image_t2i", keys)
+        self.assertNotIn("sdxl_t2i", keys)
+        self.assertIn("zimage_turbo_t2i_hq", keys)
+
     def test_unknown_workflow_falls_back(self):
         html = pages.create_page("/files", "tok", "does_not_exist")
         self.assertIn("创作台 · zimage_turbo_t2i_hq", html)
