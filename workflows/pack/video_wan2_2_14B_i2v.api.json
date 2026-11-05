@@ -353,7 +353,8 @@
     "class_type": "ComfyMathExpression",
     "inputs": {
       "values.a": 5,
-      "values.b": 16
+      "values.b": 16,
+      "expression": "floor (a * b + 1)"
     },
     "_meta": {
       "title": "Image to Video (Wan2.2)"

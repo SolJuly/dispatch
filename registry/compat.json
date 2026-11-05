@@ -49,6 +49,28 @@
       "notes": "P2 M4 批量 LTXV 多次 DONE，manifest PASS"
     },
     {
+      "workflow": "pack_video_wan2_2_14b_flf2v",
+      "model": "wan2_2_i2v_high_noise_14b_fp8_scaled",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1321-1ae3c5"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1321-1ae3c5）"
+    },
+    {
+      "workflow": "pack_video_wan2_2_14b_i2v",
+      "model": "wan2_2_i2v_low_noise_14b_fp8_scaled",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1311-483d2d"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1311-483d2d）"
+    },
+    {
       "workflow": "qwen_image_t2i",
       "model": "qwen_image",
       "status": "verified",

@@ -95,6 +95,17 @@
           "input": "image"
         }
       ]
+    },
+    "audio": {
+      "type": "string",
+      "required": true,
+      "bindings": [
+        {
+          "node": "58",
+          "input": "audio"
+        }
+      ],
+      "description": "音频文件；CLI 传本地路径，运行器会归一化并上传到实例 input/"
     }
   },
   "output": {

@@ -24,7 +24,7 @@
       }
     },
     "unet": {
-      "name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+      "name": "wan2.2/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
       "loader": "UNETLoader",
       "input": "unet_name",
       "match": {
@@ -32,7 +32,7 @@
       }
     },
     "unet_2": {
-      "name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+      "name": "wan2.2/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
       "loader": "UNETLoader",
       "input": "unet_name",
       "match": {
@@ -40,7 +40,7 @@
       }
     },
     "lora": {
-      "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+      "name": "Wan_2.2_ComfyUI_Repackaged/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
       "loader": "LoraLoaderModelOnly",
       "input": "lora_name",
       "match": {
@@ -48,7 +48,7 @@
       }
     },
     "lora_2": {
-      "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+      "name": "Wan_2.2_ComfyUI_Repackaged/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
       "loader": "LoraLoaderModelOnly",
       "input": "lora_name",
       "match": {

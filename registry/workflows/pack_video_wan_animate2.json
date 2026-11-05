@@ -83,15 +83,16 @@
         }
       ]
     },
-    "image_2": {
-      "type": "image",
+    "video": {
+      "type": "string",
       "required": true,
       "bindings": [
         {
           "node": "240",
           "input": "file"
         }
-      ]
+      ],
+      "description": "驱动视频；CLI 传本地路径，运行器会归一化并上传到实例 input/"
     }
   },
   "output": {

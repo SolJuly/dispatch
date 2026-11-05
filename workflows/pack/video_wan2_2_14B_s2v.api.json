@@ -515,7 +515,9 @@
   },
   "58": {
     "class_type": "LoadAudio",
-    "inputs": {},
+    "inputs": {
+      "audio": "audio.wav"
+    },
     "_meta": {
       "title": "LoadAudio"
     }

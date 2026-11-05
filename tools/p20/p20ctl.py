@@ -238,7 +238,8 @@ def _normalize_image(params: dict) -> dict:
     """
     import hashlib
     import shutil
-    for key in ("image", "mask"):
+    # 兼容 image / image_2 / mask / mask_2：官方模板里首尾帧、多参考图都用 image_2
+    for key in [k for k in params if isinstance(k, str) and re.fullmatch(r"(?:image|mask|audio|video)(?:_\d+)?", k)]:
         raw = params.get(key)
         if not isinstance(raw, str) or not raw:
             continue

@@ -21,6 +21,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -436,7 +437,7 @@ def step_submit(job: dict, opts, ctx: dict) -> None:
     # img2img / inpaint：把本地输入图推到实例 input/（job.params.image_local 由 spec 归一化写入）
     params = job.get("params") or {}
     _ssh_run(host, port, pwd, "mkdir -p /root/ComfyUI/input", timeout=60)
-    for key in ("image", "mask"):
+    for key in [k for k in params if re.fullmatch(r"(?:image|mask|audio|video)(?:_\d+)?", k)]:
         remote_name = params.get(key)
         if not remote_name:
             continue

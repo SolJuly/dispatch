@@ -34,6 +34,21 @@ class TestNormalizeImage(unittest.TestCase):
         b = p20ctl._normalize_image({"image": str(self.src)})["image"]
         self.assertEqual(a, b)
 
+    def test_image_2_normalized(self):
+        # 官方模板的 FLF2V / 多图编辑用 image_2；必须和 image 一样归一化
+        out = p20ctl._normalize_image({"image": str(self.src), "image_2": str(self.src)})
+        self.assertRegex(out["image_2"], r"^in-[0-9a-f]{8}\.png$")
+        self.assertTrue((p20ctl.INPUTS_DIR / out["image_2"]).is_file())
+
+    def test_audio_video_normalized(self):
+        a = self.root / "a.wav"; a.write_bytes(b"RIFF" + b"x" * 100)
+        v = self.root / "v.mp4"; v.write_bytes(b"\x00\x00\x00\x18ftyp" + b"x" * 100)
+        out = p20ctl._normalize_image({"audio": str(a), "video": str(v)})
+        self.assertRegex(out["audio"], r"^in-[0-9a-f]{8}\.wav$")
+        self.assertRegex(out["video"], r"^in-[0-9a-f]{8}\.mp4$")
+        self.assertTrue((p20ctl.INPUTS_DIR / out["audio"]).is_file())
+        self.assertTrue((p20ctl.INPUTS_DIR / out["video"]).is_file())
+
     def test_missing_file_left_alone(self):
         params = {"image": str(self.root / "nope.png")}
         self.assertEqual(p20ctl._normalize_image(params)["image"], params["image"])

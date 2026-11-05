@@ -16,7 +16,7 @@
       }
     },
     "unet": {
-      "name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+      "name": "wan2.2/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
       "loader": "UNETLoader",
       "input": "unet_name",
       "match": {
@@ -24,7 +24,7 @@
       }
     },
     "unet_2": {
-      "name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+      "name": "wan2.2/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
       "loader": "UNETLoader",
       "input": "unet_name",
       "match": {
