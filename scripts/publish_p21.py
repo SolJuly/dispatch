@@ -63,6 +63,8 @@ DOCS = [
      "4090 复核：根因是 xformers ABI 而非 bf16；1024→2048 作业 PASS；注册表新增 seedvr2_3b_upscale"),
     ("18-QwenEdit与SeedVR2视频接入.md", "18-QwenEdit与SeedVR2视频接入.html", "Qwen Edit 与 SeedVR2 视频接入",
      "Qwen-Image-Edit 2509 改图 + SeedVR2 视频 1080p 放大均 PASS；修输入回显误当产物、registry 视频默认时长两个 bug"),
+    ("19-工作流缺口清单.md", "19-工作流缺口清单.html", "工作流缺口清单（截至 2026-11-05）",
+     "60 条里 21 verified；37 experimental 中 6 条已被替代；待办按 LTX/MiniMax/SCAIL/S2V/VACE/Qwen2.1/SUPIR 分组与难度"),
 ]
 
 INDEX = """<!doctype html>
