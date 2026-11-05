@@ -56,12 +56,20 @@ def extract_error(entry: dict) -> str:
 
 
 def extract_files(entry: dict, kinds=("images", "videos", "gifs")) -> list[tuple[str, str]]:
+    """收集真正落盘的产物。
+
+    只保留 type == "output"：LoadVideo 回显的输入（type=input）、预览节点
+    （type=temp）都会被 history 记进 outputs，但不在 /root/ComfyUI/output 下，
+    拉取时必然 404。
+    """
     out = []
     for o in ((entry or {}).get("outputs") or {}).values():
         for k in kinds:
             for f in (o.get(k) or []):
+                if (f.get("type") or "output") != "output":
+                    continue
                 out.append((f.get("subfolder", ""), f.get("filename")))
-    return sorted(out)
+    return sorted(set(out))
 
 
 def history_url(host: str = "127.0.0.1", port: int = 8188, pid: str = "") -> str:

@@ -1,0 +1,120 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "qwen_image_edit_2509",
+  "name": "Qwen-Image-Edit 2509 指令改图（4 步）",
+  "version": 1,
+  "kind": "image",
+  "engine": "comfyui",
+  "graph": "workflows/qwen_image_edit_2509.api.json",
+  "model": {
+    "key": "qwen_image_edit_2509",
+    "slots": {
+      "unet": {
+        "node": "3",
+        "input": "unet_name"
+      },
+      "clip": {
+        "node": "7",
+        "input": "clip_name"
+      },
+      "vae": {
+        "node": "8",
+        "input": "vae_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "bindings": [
+        {
+          "node": "9",
+          "input": "prompt"
+        }
+      ],
+      "description": "编辑指令，例如“把背景换成夜晚的雪景街道，人物保持不变”"
+    },
+    "negative_prompt": {
+      "type": "string",
+      "default": "",
+      "bindings": [
+        {
+          "node": "10",
+          "input": "prompt"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "1",
+          "input": "image"
+        }
+      ],
+      "description": "待编辑的图片；内部用 FluxKontextImageScale 缩放到约 1MP"
+    },
+    "seed": {
+      "type": "int",
+      "default": 42,
+      "bindings": [
+        {
+          "node": "12",
+          "input": "seed"
+        }
+      ]
+    },
+    "steps": {
+      "type": "int",
+      "default": 4,
+      "min": 2,
+      "max": 8,
+      "bindings": [
+        {
+          "node": "12",
+          "input": "steps"
+        }
+      ],
+      "description": "配 Lightning LoRA 用 4 步；去掉 LoRA 时要调到 20+"
+    },
+    "cfg": {
+      "type": "float",
+      "default": 1.0,
+      "min": 0.5,
+      "max": 4.0,
+      "bindings": [
+        {
+          "node": "12",
+          "input": "cfg"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "14",
+    "input": "filename_prefix",
+    "kind": "image",
+    "ext": "png",
+    "pick": [
+      "images"
+    ],
+    "count": 1
+  },
+  "expect_defaults": {
+    "ext": "png",
+    "min_bytes": 20000,
+    "images": 1,
+    "black_ratio_max": 0.5
+  },
+  "limits": {
+    "max_minutes": 20,
+    "max_cost": 1.2
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "Qwen-Image-Edit 2509：LoadImage → FluxKontextImageScale → VAEEncode + TextEncodeQwenImageEditPlus(prompt, image1) → KSampler(4 步 Lightning) → 单图。24G 4090 实测通过（背景换雪景、人物保持）。"
+}

@@ -71,6 +71,17 @@
       "notes": "p20ctl compat verify（p1-20261105T1311-483d2d）"
     },
     {
+      "workflow": "qwen_image_edit_2509",
+      "model": "qwen_image_edit_2509",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1817-70e8f8"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1817-70e8f8）"
+    },
+    {
       "workflow": "qwen_image_t2i",
       "model": "qwen_image",
       "status": "verified",
@@ -135,6 +146,17 @@
       ],
       "verified_at": "2026-11-05",
       "notes": "p20ctl compat verify（p1-20261105T1739-94934d）"
+    },
+    {
+      "workflow": "seedvr2_3b_upscale_video",
+      "model": "seedvr2_3b",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1820-5abacf"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1820-5abacf）"
     },
     {
       "workflow": "upscale_4x",

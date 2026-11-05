@@ -141,12 +141,15 @@ def cmd_new(a) -> int:
     # 视频专属的期望项（时长/冻结/黑帧）不能套到 image 作业上：
     # 否则 png 产物会被拿去测时长，复验必挂（P2.2 导入官方模板时暴露出来的老问题）。
     VIDEO_ONLY_EXPECT = ("duration_s", "freeze")
+    # registry 工作流的产出来自输入素材（如放大的视频），时长/冻结阈值不该套模板默认值；
+    # 以 workflow 配置里的 expect_defaults 为准，缺省就交给 verify 跳过。
+    registry_wf = bool((spec.get("model") or {}).get("registry"))
     for k, v in SPEC_DEFAULTS.items():
         if k not in spec:
             spec[k] = v
         elif isinstance(v, dict) and isinstance(spec.get(k), dict):
             for kk, vv in v.items():
-                if k == "expect" and kind_hint != "video" and kk in VIDEO_ONLY_EXPECT:
+                if k == "expect" and (kind_hint != "video" or registry_wf) and kk in VIDEO_ONLY_EXPECT:
                     continue
                 spec[k].setdefault(kk, vv)
 

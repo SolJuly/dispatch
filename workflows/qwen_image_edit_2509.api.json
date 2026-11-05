@@ -1,0 +1,168 @@
+{
+ "1": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "qwen_edit_in.jpg"
+  }
+ },
+ "2": {
+  "class_type": "FluxKontextImageScale",
+  "inputs": {
+   "image": [
+    "1",
+    0
+   ]
+  }
+ },
+ "3": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+   "weight_dtype": "default"
+  }
+ },
+ "4": {
+  "class_type": "LoraLoaderModelOnly",
+  "inputs": {
+   "model": [
+    "3",
+    0
+   ],
+   "lora_name": "Qwen-Image-Lightning/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
+   "strength_model": 1.0
+  }
+ },
+ "5": {
+  "class_type": "ModelSamplingAuraFlow",
+  "inputs": {
+   "model": [
+    "4",
+    0
+   ],
+   "shift": 3.0
+  }
+ },
+ "6": {
+  "class_type": "CFGNorm",
+  "inputs": {
+   "model": [
+    "5",
+    0
+   ],
+   "strength": 1.0
+  }
+ },
+ "7": {
+  "class_type": "CLIPLoader",
+  "inputs": {
+   "clip_name": "qwen25vl7b_std.safetensors",
+   "type": "qwen_image",
+   "device": "default"
+  }
+ },
+ "8": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "qwen_std_vae.safetensors"
+  }
+ },
+ "9": {
+  "class_type": "TextEncodeQwenImageEditPlus",
+  "inputs": {
+   "clip": [
+    "7",
+    0
+   ],
+   "vae": [
+    "8",
+    0
+   ],
+   "image1": [
+    "2",
+    0
+   ],
+   "prompt": "把背景换成夜晚的雪景街道，人物保持不变，光线自然"
+  }
+ },
+ "10": {
+  "class_type": "TextEncodeQwenImageEditPlus",
+  "inputs": {
+   "clip": [
+    "7",
+    0
+   ],
+   "vae": [
+    "8",
+    0
+   ],
+   "image1": [
+    "2",
+    0
+   ],
+   "prompt": ""
+  }
+ },
+ "11": {
+  "class_type": "VAEEncode",
+  "inputs": {
+   "pixels": [
+    "2",
+    0
+   ],
+   "vae": [
+    "8",
+    0
+   ]
+  }
+ },
+ "12": {
+  "class_type": "KSampler",
+  "inputs": {
+   "model": [
+    "6",
+    0
+   ],
+   "seed": 42,
+   "steps": 4,
+   "cfg": 1.0,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1.0,
+   "positive": [
+    "9",
+    0
+   ],
+   "negative": [
+    "10",
+    0
+   ],
+   "latent_image": [
+    "11",
+    0
+   ]
+  }
+ },
+ "13": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "12",
+    0
+   ],
+   "vae": [
+    "8",
+    0
+   ]
+  }
+ },
+ "14": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "images": [
+    "13",
+    0
+   ],
+   "filename_prefix": "qwen_edit/image"
+  }
+ }
+}

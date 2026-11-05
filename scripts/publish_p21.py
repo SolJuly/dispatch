@@ -61,6 +61,8 @@ DOCS = [
      "补 KJNodes/Impact/LayerStyle/UltimateSDUpscale/SUPIR/SeedVR2/FaceParsing；1753 class；缺口与下一步"),
     ("17-SeedVR2真机验证与镜像v3.md", "17-SeedVR2真机验证与镜像v3.html", "SeedVR2 真机验证与镜像 v3",
      "4090 复核：根因是 xformers ABI 而非 bf16；1024→2048 作业 PASS；注册表新增 seedvr2_3b_upscale"),
+    ("18-QwenEdit与SeedVR2视频接入.md", "18-QwenEdit与SeedVR2视频接入.html", "Qwen Edit 与 SeedVR2 视频接入",
+     "Qwen-Image-Edit 2509 改图 + SeedVR2 视频 1080p 放大均 PASS；修输入回显误当产物、registry 视频默认时长两个 bug"),
 ]
 
 INDEX = """<!doctype html>

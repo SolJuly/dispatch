@@ -1,0 +1,35 @@
+[18:17:13] 作业 p1-20261105T1817-70e8f8 · 模型 qwen_image_edit_2509 · 预算 ¥1.2
+[18:17:15] 计划 4090 ×1 · 镜像 p2-comfy-media-v3 · ≈¥2.15/h
+[18:17:15] 预算上限 ¥1.2（预计 1.0h 上限 ¥2.15）
+[18:17:19] 已创建 uhost-1xc8xjxm13ts，等 Running…
+  [   1s] uhost-1xc8xjxm13ts p1-70e8f8 -> Initializing (Initializing)
+  [  67s] uhost-1xc8xjxm13ts p1-70e8f8 -> 运行中 (Running)
+[18:18:27] sshd 就绪（0s）
+[18:18:27] 配置实例环境（挂载 + 禁 Manager + 软链 + 启动），资产需求=none
+[18:19:10] setup 完成，自检通过
+[18:19:11] 模型软链 1/1 就绪
+[18:19:14] ComfyUI 就绪，4 项模型资产可见（第 1 次探活）
+[18:19:14] registry 渲染：qwen_image_edit_2509 v1 × qwen_image_edit_2509 v1 · 14 节点
+[18:19:16] 输入已上传：image=in-f9bd4904.jpg
+[18:19:17] 已提交 prompt_id=3f9740db-86ae-47a8-88f9-8f51e4f9f209
+[18:20:25] 推理完成：1 个文件，耗时 67s
+[18:20:25] 拉取 p1-20261105T1817-70e8f8_00001_.png（1/1）…
+[18:20:26]   01-p1-20261105T1817-70e8f8_00001_.png: PASS  failed=—
+[18:20:26] manifest 已落盘（1 个产物，2.0 分钟）
+[18:20:27] 已提交销毁 uhost-1xc8xjxm13ts
+[18:20:27] ✓ 闭环完成
+  seed 未指定，随机生成 926747627（已写进 spec，可复现）
+✓ spec 已生成：reports/p2/p20/specs/qwen_image_edit_2509-20261105T181713.json
+  工作流 qwen_image_edit_2509 v1 × 模型 qwen_image_edit_2509 · 兼容性 experimental
+  参数   {"cfg": 1.0, "image": "in-f9bd4904.jpg", "negative_prompt": "", "prompt": "把背景换成夜晚的雪景街道，人物保持不变，光线自然", "seed": 926747627, "steps": 4}
+  预算   ¥1.2 / 20min · 卡型 ['4090', '4090_48G']
+✓ 作业已建：p1-20261105T1817-70e8f8
+  目录   reports/p1/jobs/p1-20261105T1817-70e8f8
+  参数   hash sha256:512c7e1ed34a…
+  任务   P2.0-qwen_image_edit_2509 · 模型 qwen_image_edit_2509 · 期望 png ≥20000B
+  预算   ¥1.2 / 20 分钟
+  状态   CREATED(已建)
+
+下一步：python3 tools/p1/jobctl.py show p1-20261105T1817-70e8f8
+
+▶ 执行：/usr/bin/python3 /root/智云视频工作流/tools/p1/run.py p1-20261105T1817-70e8f8 --gpu 4090 --hours 1.0
