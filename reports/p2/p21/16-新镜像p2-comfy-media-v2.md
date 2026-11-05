@@ -56,3 +56,7 @@
 ## 5. 回滚
 
 `reports/p2/image.json` 改回 v1 的两个 layer 即可；v2 镜像保留不影响现有流程。
+
+---
+
+> **附注（2026-11-05 17:50）**：本文“SeedVR2 在 V100S 上因 bf16 无法加载”的判断已被报告 17 更正——真实原因是 `xformers 0.0.32.post2` 与 `torch 2.10.0+cu130` 的 ABI 不匹配（4090 上同样报错）。镜像 v3（`compshareImage-1xc7km2mb0ob`）已移除 xformers，SeedVR2 三节点恢复，并已完成 1024→2048 真机验证。
