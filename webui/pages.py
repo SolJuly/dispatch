@@ -279,9 +279,9 @@ def jobs_page(base: str, token: str, state: str = "", q: str = "") -> str:
         '<div class="card"><p class="empty">还没有作业，去创作台提交一个。</p></div>'
     filters = f"""
 <div class="row" style="margin-bottom:12px">
-  <button class="btn" id="dl-selected" type="button">⬇ 下载选中作业的图</button>
-  <button class="btn" id="rerun-selected" type="button">↻ 重跑选中（只建作业）</button>
-  <button class="btn danger" id="delete-selected" type="button">🗑 删除选中</button>
+  <button class="btn" id="dl-selected" type="button">下载选中作业的图</button>
+  <button class="btn" id="rerun-selected" type="button">重跑选中（只建作业）</button>
+  <button class="btn danger" id="delete-selected" type="button">删除选中</button>
   <span class="hint">勾选左侧复选框；产物取自已发布的静态副本。</span>
 </div>
 <form class="row" method="get" action="{base}/{token}/app/jobs" style="margin-bottom:14px">
@@ -327,7 +327,7 @@ def detail_page(base: str, token: str, job_id: str) -> str:
   <div class="card"><h2>产物 {len(arts)} 个</h2>
     <div class="results">{cards or '<p class="empty">还没有产物</p>'}</div>
     <div class="row" style="margin-top:10px">
-      <button class="btn danger" id="delete-job" data-job="{C.esc(job_id)}" type="button">🗑 删除此作业</button>
+      <button class="btn danger" id="delete-job" data-job="{C.esc(job_id)}" type="button">删除此作业</button>
       <span class="hint">默认移到 .trash，可恢复；彻底删除用命令行 <code>jobctl rm --purge</code></span>
     </div>
     <h2 style="margin-top:16px">参数快照</h2>
