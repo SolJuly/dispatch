@@ -960,6 +960,32 @@ def _abort(job_id: str, job: dict, opts) -> int:
     return 0
 
 
+def _refresh_expect(job_id: str, job: dict) -> dict:
+    """按当前工作流配置重算 expect（只对 registry 作业）。
+
+    作业 spec 是提交那一刻生成的：如果之后修了期望口径（例如 fps/duration_s），
+    老作业的 expect 会一直是错的。salvage 前先按现在的配置重算一次再校验。
+    """
+    reg = _registry_meta(job)
+    if not reg:
+        return job
+    try:
+        from tools.p20 import registry as p20registry, render as p20render
+        wf = p20registry.get_workflow(reg["workflow_key"], version=reg.get("workflow_version"))
+        new = p20render.expect_for(wf, job.get("params") or {})
+    except Exception as e:
+        _say(f"  ⚠ 重算 expect 失败（沿用原值）：{type(e).__name__}: {e}")
+        return job
+    old = job.get("expect") or {}
+    if new == old:
+        return job
+    _say(f"  重算 expect：时长 {old.get('duration_s')} → {new.get('duration_s')}")
+    job["expect"] = new
+    job["expect_refreshed_at"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
+    store.atomic_write_json(store.job_file(job_id), job)
+    return job
+
+
 def _salvage(job_id: str, job: dict, opts) -> int:
     """产物已在 artifacts/：重新校验 + 落 manifest + 收尾，全程不建机、不销毁。
 
@@ -975,6 +1001,7 @@ def _salvage(job_id: str, job: dict, opts) -> int:
         _say("✗ artifacts/ 里没有产物，无从收尾（只能重跑）")
         return 1
     steps = job.get("steps") or {}
+    job = _refresh_expect(job_id, job)
     ctx = {
         "uhost_id": (job.get("instance") or {}).get("uhost_id"),
         "hourly": (steps.get("provision") or {}).get("hourly"),

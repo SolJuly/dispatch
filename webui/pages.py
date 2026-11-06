@@ -262,6 +262,11 @@ def video_page(base: str, token: str, workflow: str = "") -> str:
     return shell(base, token, "/app/video", f"视频台 · {wf['key']}", body)
 
 
+def _unit(r: dict) -> str:
+    """产物单位：视频说段，图片说张（以前视频也写"张"）。"""
+    return "段" if (r.get("kind") or "").startswith("video") else "张"
+
+
 def jobs_page(base: str, token: str, state: str = "", q: str = "") -> str:
     rows = api.list_jobs(limit=50, state_prefix=state, q=q)
     trs = []
@@ -271,7 +276,7 @@ def jobs_page(base: str, token: str, state: str = "", q: str = "") -> str:
             f'<tr><td><input type="checkbox" class="job-check" value="{jid}" style="width:auto"></td>'
             f'<td><a href="{base}/{token}/app/jobs/{jid}"><code>{C.esc(jid)}</code></a></td>'
             f'<td>{C.badge(r["state"])}</td><td>{C.esc(r["workflow"])} v{C.esc(r["workflow_version"])}</td>'
-            f'<td>{C.esc(r["model"])}</td><td>{r["artifacts"]} 张</td><td>{C.esc(C.money(r.get("cost")))}</td>'
+            f'<td>{C.esc(r["model"])}</td><td>{r["artifacts"]} {_unit(r)}</td><td>{C.esc(C.money(r.get("cost")))}</td>'
             f'<td>{C.esc(C.human_time(r["created_at"]))}</td>'
             f'<td><a href="{base}/{token}/app/jobs/{jid}">详情</a></td></tr>')
     table = (f'<table><tr><th style="width:36px"></th><th>作业</th><th>状态</th><th>工作流</th><th>模型</th>'

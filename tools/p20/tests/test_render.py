@@ -199,9 +199,20 @@ class TestExpect(unittest.TestCase):
         self.assertGreaterEqual(exp8["duration_s"][1], 8.0)
 
     def test_fps_declared_on_video_workflows(self):
-        for key in ("h3_t2v_121f", "h3_i2v_121f", "ltxv_2b_t2v",
-                    "wan21_i2v_480p", "pack_video_wan2_2_14b_i2v"):
-            self.assertIn("fps", registry.get_workflow(key), key)
+        # fps 必须和图里的真实帧率一致：h3=24、ltxv=25（CreateVideo.fps）、wan=16
+        want = {"h3_t2v_121f": 24, "h3_i2v_121f": 24, "ltxv_2b_t2v": 25,
+                "wan21_i2v_480p": 16, "pack_video_wan2_2_14b_i2v": 16}
+        for key, fps in want.items():
+            self.assertEqual(registry.get_workflow(key).get("fps"), fps, key)
+
+    def test_default_window_matches_declared_fps(self):
+        # 默认帧数 ÷ fps 应落在配置的默认时长窗口里（防止 fps 写错）
+        for key in ("h3_t2v_121f", "ltxv_2b_t2v", "wan21_i2v_480p"):
+            wf = registry.get_workflow(key)
+            fps = wf["fps"]
+            n = (wf.get("params") or {}).get("frames", {}).get("default")
+            lo, hi = wf["expect_defaults"]["duration_s"]
+            self.assertTrue(lo <= n / fps <= hi, f"{key}: {n}/{fps}={n/fps:.2f} 不在 [{lo},{hi}]")
 
     def test_requested_size_overrides_config_default(self):
         wf = registry.get_workflow("qwen_image_t2i")
