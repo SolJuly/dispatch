@@ -29,6 +29,16 @@ die() { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 # ---------- 自检（--check 模式只跑这一段） ----------
 NEED="${2:-all}"; [[ "$NEED" == --need=* ]] && NEED="${NEED#--need=}"
+
+# 兼容软链：legacy 工作流（如 h3_t2v_121f）不经过 registry 的 setup.links，
+# 部分资产只在 /model/ModelScope 下，这里统一补齐。幂等，失败不阻塞。
+compat_links() {
+  $CS ssh "$ID" --exec "mkdir -p /root/ComfyUI/models/text_encoders /root/ComfyUI/models/diffusion_models/flux-2-klein-4b; \
+    ln -sf /model/ModelScope/Comfy-Org/MiniMax-H3/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors /root/ComfyUI/models/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors; \
+    ln -sf /model/ModelScope/Comfy-Org/flux2-klein-4B/split_files/diffusion_models/flux-2-klein-4b.safetensors /root/ComfyUI/models/diffusion_models/flux-2-klein-4b/flux-2-klein-4b.safetensors; \
+    echo compat-links-done" >/dev/null 2>&1 || true
+}
+
 check() {
   local ok=0 out
   for i in $(seq 1 25); do
@@ -84,6 +94,7 @@ fi
 # Manager / 挂载配置 / 软链 / rsync），这里不再 sed/scp/ln/重启，5s 内返回。
 if $CS ssh "$ID" --exec "test -f /root/.p2_image.json && echo P2_BAKED || echo NOT_BAKED" 2>/dev/null | grep -q P2_BAKED; then
   say "已烘焙镜像（/root/.p2_image.json），走轻量核对"
+  compat_links
   check
   exit $?
 fi
@@ -141,6 +152,7 @@ $CS ssh "$ID" --exec "F=/start.d/comfyui.sh; if [ -f \"\$F\" ] && grep -q -- '--
 $CS ssh "$ID" --exec "pkill -f '[m]ain.py --listen' 2>/dev/null; sleep 2; pkill -f '[m]ain.py --listen' 2>/dev/null; echo killed" >/dev/null 2>&1 || true
 $CS ssh "$ID" --exec "if [ -d /root/ComfyUI/custom_nodes/ComfyUI-Manager ]; then mv /root/ComfyUI/custom_nodes/ComfyUI-Manager /root/ComfyUI/custom_nodes/ComfyUI-Manager.disabled; echo mgr-moved; else echo mgr-absent; fi" >/dev/null 2>&1 || true
 $CS ssh "$ID" --exec "ln -sf /model/ModelScope/FireRedTeam/FireRed-Image-Edit-1.1-ComfyUI/qwen_image_vae.safetensors /root/ComfyUI/models/vae/qwen_std_vae.safetensors; ln -sf /model/ModelScope/FireRedTeam/FireRed-Image-Edit-1.1-ComfyUI/qwen2.5vl-7b-bf16.safetensors /root/ComfyUI/models/text_encoders/qwen25vl7b_std.safetensors; echo links-done" >/dev/null 2>&1 || true
+compat_links
 say "  远端准备完成"
 
 # ---------- 3. 启动 ----------
