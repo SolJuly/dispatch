@@ -235,6 +235,72 @@
       ],
       "verified_at": "2026-11-05",
       "notes": "真机 4090：1024 基础 + 2x 细化到 2048，59s，PASS；成本 ¥0.1827（含两次提交失败重试）"
+    },
+    {
+      "workflow": "qwen_image_t2i_landscape",
+      "model": "qwen_image",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "81.5s，1024×768 横版，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "qwen_image_t2i_portrait",
+      "model": "qwen_image",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "21.4s，768×1024 竖版，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "h3_i2v_121f",
+      "model": "h3",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "307.2s，121 帧视频，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_fastvideo_fasth3_i2v",
+      "model": "fastvideo_fasth3_8step_v2_pruned_int",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "151.9s，FastH3 8 步 I2V，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_minimax_h3_r2v",
+      "model": "minimax_h3_ref2va_pruned_int8_convro",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "276.7s，多参考图生视频，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_minimax_h3_multiframe_reference",
+      "model": "minimax_h3_ref2va_pruned_int8_convro",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "266.7s，4 帧参考，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
     }
   ]
 }

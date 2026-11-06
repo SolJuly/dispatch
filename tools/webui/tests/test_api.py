@@ -229,7 +229,7 @@ class TestCreate(unittest.TestCase):
 
     def test_experimental_rejected(self):
         with self.assertRaises(api.ApiError) as cm:
-            api.create_job("h3_i2v_121f",
+            api.create_job("pack_video_wan_vace_14b_ref2v",
                            {"prompt": "x", "seed": 1, "image": "a.png", "width": 768,
                             "height": 512, "frames": 121, "steps": 20, "cfg": 1.0},
                            jobs_dir=self.jobs, spec_dir=self.specs, jobctl=self.fake)

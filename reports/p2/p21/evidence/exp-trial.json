@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-11-06T22:41:35+08:00",
+  "uid": "uhost-1xdxmgp3e72o",
+  "missing_files": [
+    "illustration-1.0-qwen-image.safetensors",
+    "seedvr2_ema_vae_fp16.safetensors",
+    "seedvr2_7b_int8_convrot.safetensors"
+  ],
+  "results": [
+    {
+      "workflow": "pack_image_flux2_klein_image_edit_4b_distilled",
+      "nodes": 41,
+      "started_at": "2026-11-06T22:41:12+08:00",
+      "seconds": 1.6,
+      "status": "FAIL",
+      "error": "SUBMIT_FAIL 400 {\"error\": {\"type\": \"prompt_outputs_failed_validation\", \"message\": \"Prompt outputs failed validation\", \"details\": \"\", \"extra_info\": {}}, \"node_errors\": {\"1152\": {\"errors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"upscale_method\", \"extra_info\": {\"input_name\": \"upscale_method\"}}], \"dependent_outputs\": [\"9\"], \"class_type\": \"ImageScaleToTotalPixels\"}}}\nWarning: Permanently added '[117.50.216.168]:23' (ED25519) to the list of known hosts.\n"
+    },
+    {
+      "workflow": "pack_image_qwen_image_edit_2511_int8",
+      "nodes": 19,
+      "started_at": "2026-11-06T22:41:18+08:00",
+      "seconds": 1.8,
+      "status": "FAIL",
+      "error": "Method\"}, \"195\": {\"errors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"input_color_space\", \"extra_info\": {\"input_name\": \"format.input_color_space\"}}, {\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"bit_depth\", \"extra_info\": {\"input_name\": \"format.bit_depth\"}}], \"dependent_outputs\": [\"195\"], \"class_type\": \"SaveImageAdvanced\"}}}\nWarning: Permanently added '[117.50.216.168]:23' (ED25519) to the list of known hosts.\n"
+    },
+    {
+      "workflow": "pack_image_qwen_image_layered",
+      "nodes": 29,
+      "started_at": "2026-11-06T22:41:22+08:00",
+      "seconds": 1.3,
+      "status": "FAIL",
+      "error": "ors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"dim\", \"extra_info\": {\"input_name\": \"dim\"}}], \"dependent_outputs\": [\"60\"], \"class_type\": \"LatentCut\"}, \"1149\": {\"errors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"dim\", \"extra_info\": {\"input_name\": \"dim\"}}], \"dependent_outputs\": [\"60\"], \"class_type\": \"LatentCutToBatch\"}}}\nWarning: Permanently added '[117.50.216.168]:23' (ED25519) to the list of known hosts.\n"
+    },
+    {
+      "workflow": "pack_template_qwen_image_illustration_lora",
+      "nodes": 11,
+      "started_at": "2026-11-06T22:41:26+08:00",
+      "seconds": 1.3,
+      "status": "FAIL",
+      "error": " \"\", \"extra_info\": {}}, \"node_errors\": {\"1085\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"lora_name: 'illustration-1.0-qwen-image.safetensors' not in (list of length 277)\", \"extra_info\": {\"input_name\": \"lora_name\", \"input_config\": null, \"received_value\": \"illustration-1.0-qwen-image.safetensors\"}}], \"dependent_outputs\": [\"60\"], \"class_type\": \"LoraLoaderModelOnly\"}}}\nWarning: Permanently added '[117.50.216.168]:23' (ED25519) to the list of known hosts.\n"
+    },
+    {
+      "workflow": "pack_utility_seedvr2_7b_int8_upscale_image",
+      "nodes": 12,
+      "started_at": "2026-11-06T22:41:27+08:00",
+      "seconds": 1.3,
+      "status": "FAIL",
+      "error": ", \"dependent_outputs\": [\"9\"], \"class_type\": \"VAELoader\"}, \"1076\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"unet_name: 'seedvr2_7b_int8_convrot.safetensors' not in (list of length 373)\", \"extra_info\": {\"input_name\": \"unet_name\", \"input_config\": null, \"received_value\": \"seedvr2_7b_int8_convrot.safetensors\"}}], \"dependent_outputs\": [\"9\"], \"class_type\": \"UNETLoader\"}}}\nWarning: Permanently added '[117.50.216.168]:23' (ED25519) to the list of known hosts.\n"
+    },
+    {
+      "workflow": "pack_utility_z_image_turbo_2k_upscaler_app",
+      "nodes": 15,
+      "started_at": "2026-11-06T22:41:31+08:00",
+      "seconds": 1.3,
+      "status": "FAIL",
+      "error": "SUBMIT_FAIL 400 {\"error\": {\"type\": \"prompt_outputs_failed_validation\", \"message\": \"Prompt outputs failed validation\", \"details\": \"\", \"extra_info\": {}}, \"node_errors\": {\"1108\": {\"errors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"upscale_method\", \"extra_info\": {\"input_name\": \"upscale_method\"}}], \"dependent_outputs\": [\"9\"], \"class_type\": \"ImageScaleToTotalPixels\"}}}\nWarning: Permanently added '[117.50.216.168]:23' (ED25519) to the list of known hosts.\n"
+    }
+  ]
+}

@@ -30,13 +30,18 @@ die() { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 # ---------- 自检（--check 模式只跑这一段） ----------
 NEED="${2:-all}"; [[ "$NEED" == --need=* ]] && NEED="${NEED#--need=}"
 
-# 兼容软链：legacy 工作流（如 h3_t2v_121f）不经过 registry 的 setup.links，
-# 部分资产只在 /model/ModelScope 下，这里统一补齐。幂等，失败不阻塞。
+# 兼容软链：legacy 工作流不经过 registry 的 setup.links，且部分资产只在
+# /model/ModelScope 下。清单见 tools/p1/compat_links.txt（dir<TAB>name<TAB>target），
+# 幂等、失败不阻塞。
 compat_links() {
-  $CS ssh "$ID" --exec "mkdir -p /root/ComfyUI/models/text_encoders /root/ComfyUI/models/diffusion_models/flux-2-klein-4b; \
-    ln -sf /model/ModelScope/Comfy-Org/MiniMax-H3/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors /root/ComfyUI/models/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors; \
-    ln -sf /model/ModelScope/Comfy-Org/flux2-klein-4B/split_files/diffusion_models/flux-2-klein-4b.safetensors /root/ComfyUI/models/diffusion_models/flux-2-klein-4b/flux-2-klein-4b.safetensors; \
-    echo compat-links-done" >/dev/null 2>&1 || true
+  local f="$ROOT/tools/p1/compat_links.txt"
+  [[ -f "$f" ]] || return 0
+  local cmd="mkdir -p /root/ComfyUI/models; "
+  while IFS=$'\t' read -r d n t; do
+    [[ -z "$d" ]] && continue
+    cmd+="mkdir -p \$(dirname /root/ComfyUI/models/$d/$n); ln -sf $t /root/ComfyUI/models/$d/$n; "
+  done < "$f"
+  $CS ssh "$ID" --exec "$cmd echo compat-links-done" >/dev/null 2>&1 || true
 }
 
 check() {

@@ -55,7 +55,7 @@ class TestImport(RegistryBase):
         wfs = {w["key"]: w for w in registry.list_workflows(self.db)}
         self.assertEqual(len(wfs), len(list(WF_DIR.glob("*.json"))))
         self.assertEqual(wfs["qwen_image_t2i"]["compat"]["status"], "verified")
-        self.assertEqual(wfs["h3_i2v_121f"]["compat"]["status"], "experimental")
+        self.assertEqual(wfs["pack_video_wan_vace_14b_ref2v"]["compat"]["status"], "experimental")
         w = registry.get_workflow("qwen_image_t2i", db_path=self.db)
         self.assertEqual(w["model"]["key"], "qwen_image")
         self.assertEqual(len(w["graph_obj"]), 9)
@@ -110,10 +110,10 @@ class TestResolve(RegistryBase):
 
     def test_experimental_gate(self):
         with self.assertRaises(registry.RegistryError) as cm:
-            registry.resolve("h3_i2v_121f", params={"prompt": "hi", "seed": 1,
+            registry.resolve("pack_video_wan_vace_14b_ref2v", params={"prompt": "hi", "seed": 1,
                                                     "image": "f.png"}, db_path=self.db)
         self.assertIn("兼容性未验证", str(cm.exception))
-        r = registry.resolve("h3_i2v_121f", params={"prompt": "hi", "seed": 1,
+        r = registry.resolve("pack_video_wan_vace_14b_ref2v", params={"prompt": "hi", "seed": 1,
                                                     "image": "f.png"},
                              allow_experimental=True, db_path=self.db)
         self.assertEqual(r["compat"]["status"], "experimental")

@@ -88,8 +88,8 @@
     }
   },
   "output": {
-    "node": "1317",
-    "input": "fps",
+    "node": "69",
+    "input": "filename_prefix",
     "kind": "video",
     "ext": "mp4",
     "pick": [
