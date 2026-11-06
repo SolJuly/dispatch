@@ -448,6 +448,9 @@ class Handler(BaseHTTPRequestHandler):
         if len(parts) == 5 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"] \
                 and parts[4] == "rerun":
             return self._api_jobs_rerun()
+        if len(parts) == 5 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"] \
+                and parts[4] == "delete":
+            return self._api_jobs_delete()
         if len(parts) == 4 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"]:
             return self._api_job_create()
         return self._err(404, "路径不存在")
@@ -694,6 +697,23 @@ class Handler(BaseHTTPRequestHandler):
             return _json({"error": e.msg}, e.code)
         except json.JSONDecodeError:
             return _json({"error": "JSON 解析失败"}, 400)
+        except Exception as e:  # noqa: BLE001
+            return _json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+    def _api_jobs_delete(self):
+        from webui import api as webapi
+
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False, default=str).encode(),
+                              "application/json; charset=utf-8")
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            body = json.loads(self.rfile.read(n).decode("utf-8")) if n else {}
+            ids = [str(x) for x in (body.get("ids") or []) if x]
+            data = webapi.delete_jobs(ids, purge=bool(body.get("purge")))
+            return _json(data, 200)
+        except webapi.ApiError as e:
+            return _json({"error": e.msg}, e.code)
         except Exception as e:  # noqa: BLE001
             return _json({"error": f"{type(e).__name__}: {e}"}, 500)
 

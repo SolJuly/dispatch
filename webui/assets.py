@@ -35,6 +35,7 @@ textarea{resize:vertical}
 .pill.idle{background:#eef1f4;color:var(--idle);border-color:#dde2e7}
 .btn{display:inline-block;padding:8px 14px;border:1px solid var(--line);border-radius:9px;
 background:var(--card);color:var(--fg);cursor:pointer;font:inherit}
+.btn.danger{border-color:#f3c6c1;color:var(--bad);background:#fff}
 .btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -284,6 +285,30 @@ JS = r"""
     finally{ btn.disabled = false; }
   });
 
+  async function deleteJobs(ids){
+    if(!ids.length) return;
+    if(!confirm(`确认删除 ${ids.length} 个作业？\n默认移到 .trash（可恢复）。`)) return;
+    const r = await fetch(`${BASE}/api/p2/jobs/delete`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ids, purge:false})
+    });
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error || ("HTTP "+r.status));
+    toast("已删除 " + ids.length + " 个作业");
+    setTimeout(()=>location.reload(), 600);
+  }
+  document.addEventListener("click", async e=>{
+    if(e.target.closest("#delete-selected")){
+      const ids = Array.from(document.querySelectorAll(".job-check:checked")).map(x=>x.value);
+      if(!ids.length){ toast("先勾选作业"); return; }
+      try{ await deleteJobs(ids); }catch(err){ toast("删除失败：" + err.message); }
+    }
+    const d = e.target.closest("#delete-job");
+    if(d){
+      try{ await deleteJobs([d.getAttribute("data-job")]); }
+      catch(err){ toast("删除失败：" + err.message); }
+    }
+  });
   document.addEventListener("submit", async e=>{
     const form = e.target.closest("#create-form");
     if(!form) return;

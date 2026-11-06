@@ -8,6 +8,7 @@
   python3 tools/p1/jobctl.py show <job_id>         # 状态链 + 事件 + 花费
   python3 tools/p1/jobctl.py status                # 刷新 reports/p1/status.json（架构图 H 区）
   python3 tools/p1/jobctl.py validate [--deep]     # 校验 tasks / job / manifest
+  python3 tools/p1/jobctl.py rm <job_id> [...]     # 删除作业（默认进 .trash，--purge 彻底删）
 
 只做单任务：同一时刻只允许一个作业（reports/p1/.job.lock），不排队、不并发。
 """
@@ -353,6 +354,53 @@ def cmd_status(a) -> int:
     return 0
 
 
+# --------------------------------------------------------------------- rm
+def cmd_rm(a) -> int:
+    """删除作业目录：默认移到 jobs/.trash/（可恢复），--purge 彻底删除。"""
+    import shutil
+
+    ids_ = [x for x in a.job_id if x]
+    if not ids_:
+        _die("至少给一个 job_id")
+    trash = store.JOBS_DIR / ".trash"
+    rows = []
+    for jid in ids_:
+        d = store.JOBS_DIR / jid
+        if not d.is_dir():
+            rows.append((jid, "NOT_FOUND", ""))
+            continue
+        state_ = ""
+        try:
+            state_ = json.loads((d / "job.json").read_text(encoding="utf-8")).get("state") or ""
+        except (OSError, json.JSONDecodeError):
+            pass
+        if state_ in state.TERMINAL or not state_:
+            pass
+        elif not a.force:
+            rows.append((jid, "REFUSED", f"状态 {state_} 未结束（--force 可强删）"))
+            continue
+        # 发布副本
+        pub = store.ROOT / "reports" / "p1" / "jobs" / jid  # 仅用于路径基准
+        pub2 = Path("/srv/dsh-pub/jobs") / jid
+        if a.purge:
+            shutil.rmtree(d, ignore_errors=True)
+            shutil.rmtree(pub2, ignore_errors=True)
+            rows.append((jid, "PURGED", ""))
+        else:
+            trash.mkdir(parents=True, exist_ok=True)
+            dst = trash / jid
+            if dst.exists():
+                dst = trash / f"{jid}-{dt.datetime.now():%Y%m%d%H%M%S}"
+            shutil.move(str(d), str(dst))
+            shutil.rmtree(pub2, ignore_errors=True)
+            rows.append((jid, "TRASHED", str(dst.relative_to(store.ROOT))))
+    for jid, what, extra in rows:
+        print(f"{'✓' if what in ('TRASHED', 'PURGED') else '✗'} {jid} {what} {extra}")
+    bad = sum(1 for _, w, _ in rows if w not in ("TRASHED", "PURGED"))
+    print(f"共 {len(rows)} 个：成功 {len(rows) - bad}，失败 {bad}")
+    return 1 if bad else 0
+
+
 # --------------------------------------------------------------- validate
 def cmd_validate(a) -> int:
     res = schema.validate_all(deep=a.deep, job_id=a.job)
@@ -398,6 +446,12 @@ def main(argv=None) -> int:
     sp = sub.add_parser("verify", help="校验作业产物（6 条复验项）")
     sp.add_argument("job_id")
     sp.set_defaults(fn=cmd_verify)
+
+    sp = sub.add_parser("rm", help="删除作业（默认进 .trash，可恢复）")
+    sp.add_argument("job_id", nargs="+")
+    sp.add_argument("--purge", action="store_true", help="彻底删除，不进回收站")
+    sp.add_argument("--force", action="store_true", help="未结束的作业也删")
+    sp.set_defaults(fn=cmd_rm)
 
     sp = sub.add_parser("validate", help="校验 tasks / job / manifest")
     sp.add_argument("--deep", action="store_true", help="核对产物大小与 sha256")

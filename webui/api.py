@@ -185,6 +185,18 @@ def rerun_jobs(ids: list[str], *, run: bool = False, jobs_dir: Path | None = Non
     return out
 
 
+def delete_jobs(ids: list[str], *, purge: bool = False) -> dict:
+    """删除作业（默认进 .trash，可恢复；purge=True 彻底删）。"""
+    clean = [str(x) for x in ids if x]
+    if not clean:
+        raise ApiError("ids 为空", 400)
+    cmd = [sys.executable, str(JOBCTL), "rm", *clean]
+    if purge:
+        cmd.append("--purge")
+    p = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT), timeout=180)
+    return {"ok": p.returncode == 0, "output": ((p.stdout or "") + (p.stderr or ""))[-1500:]}
+
+
 def maybe_publish(job_id: str, job: dict) -> None:
     """作业终态后把产物复制到 nginx 静态目录（幂等；页面轮询会触发）。"""
     if job.get("state") not in ("DONE", "FAILED_VERIFY"):
