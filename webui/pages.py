@@ -103,6 +103,7 @@ def _recent_html(base: str, token: str, limit: int = 8) -> str:
 
 def _create_body(base: str, token: str, wf: dict, kind: str) -> str:
     wf_json = json.dumps({"key": wf["key"], "params": wf["params"]}, ensure_ascii=False)
+    est_json = _est_payload(wf)
     page = "/app/create" if kind == "image" else "/app/video"
     warn = ""
     if kind == "video":
@@ -137,9 +138,16 @@ def _create_body(base: str, token: str, wf: dict, kind: str) -> str:
 </div>
 <h2 class="sec">最近作业</h2>
 <div class="recs">{_recent_html(base, token)}</div>
-<script>window.__WF__ = {wf_json};</script>
+<script>window.__WF__ = {wf_json}; window.__EST__ = {est_json};</script>
 """
 
+
+
+def _est_payload(wf: dict) -> str:
+    from . import budget as B
+    secs, rf, rw, rh = B.MEASURED.get(wf.get("key"), B.DEFAULT_REF)
+    return json.dumps({"seconds": secs, "frames": rf, "width": rw, "height": rh,
+                       "price": B.PRICE_PER_HOUR, "boot": B.BOOT_COST}, ensure_ascii=False)
 
 
 def _budget_block(wf: dict) -> str:
@@ -147,13 +155,17 @@ def _budget_block(wf: dict) -> str:
     est = B.estimate(wf, wf.get("params") or {})
     return (f'<div class="budget"><div class="field"><label for="budget">预算上限（元）</label>'
             f'<input id="budget" type="number" step="0.1" min="0" value="{B.DEFAULT_BUDGET:.1f}">'
-            f'<div class="hint">预估 {C.esc(est["hint"])}'
-            f'{"（实测基准）" if est["measured"] else "（经验估算）"}；超过上限会拒绝提交。</div></div></div>')
+            f'<div class="hint" id="est-hint">预估 <b id="est-text">{C.esc(est["hint"])}</b>'
+            f'{"（实测基准）" if est["measured"] else "（经验估算）"}；改帧数/尺寸会实时更新，超过上限会拒绝提交。</div></div></div>')
 
 
-def gallery_page(base: str, token: str, workflow: str = "") -> str:
-    rows = api.list_jobs(limit=200, workflow=workflow)
-    cards = []
+PAGE_SIZE = 48
+
+
+def gallery_page(base: str, token: str, workflow: str = "", page: int = 1) -> str:
+    page = max(1, int(page or 1))
+    rows = api.list_jobs(limit=PAGE_SIZE, offset=(page - 1) * PAGE_SIZE, workflow=workflow)
+    groups: dict[str, list[str]] = {}
     for r in rows:
         art = r.get("first_artifact_url") or ""
         if art.endswith(".mp4"):
@@ -162,19 +174,26 @@ def gallery_page(base: str, token: str, workflow: str = "") -> str:
             media = f'<img src="{base}/{token}{art}" loading="lazy">'
         else:
             media = '<span class="ph">无图</span>'
-        cards.append(
+        day = (r.get("created_at") or "")[:10] or "未知日期"
+        groups.setdefault(day, []).append(
             f'<a class="gcard" href="{base}/{token}/app/jobs/{r["job_id"]}">{media}'
             f'<span class="gmeta">{C.badge(r["state"])}<b>{C.esc(r["workflow"])}</b>'
             f'<span class="muted">{C.esc(C.human_time(r["created_at"]))}</span></span></a>')
+    cards = [(d, "".join(v)) for d, v in sorted(groups.items(), reverse=True)]
     wfs = sorted({r["workflow"] for r in rows if r["workflow"]})
     opts = ''.join(f'<option value="{C.esc(w)}"{" selected" if w == workflow else ""}>{C.esc(w)}</option>'
                    for w in wfs)
     filt = (f'<form class="row" method="get" action="{base}/{token}/app/gallery" style="margin-bottom:14px">'
             f'<select name="workflow" style="width:280px"><option value="">全部工作流</option>{opts}</select>'
             f'<button class="btn" type="submit">筛选</button></form>')
-    grid = "".join(cards) or '<p class="empty">还没有产物</p>'
-    body = (f'<div class="page-head"><h1>图库</h1><p class="sub">按时间倒序，最多 200 个作业；点开看详情</p></div>'
-            f'{filt}<div class="gallery">{grid}</div>')
+    blocks = "".join(f'<h3 class="day">{C.esc(d)}</h3><div class="gallery">{g}</div>' for d, g in cards) \
+        or '<p class="empty">还没有产物</p>'
+    prev_link = (f'<a class="btn" href="{base}/{token}/app/gallery?workflow={C.esc(workflow)}&page={page-1}">上一页</a>'
+                 if page > 1 else "")
+    next_link = (f'<a class="btn" href="{base}/{token}/app/gallery?workflow={C.esc(workflow)}&page={page+1}">下一页</a>'
+                 if len(rows) == PAGE_SIZE else "")
+    body = (f'<div class="page-head"><h1>图库</h1><p class="sub">按日期分组，每页 {PAGE_SIZE} 个作业；点开看详情</p></div>'
+            f'{filt}{blocks}<div class="row" style="margin-top:16px">{prev_link}{next_link}</div>')
     return shell(base, token, "/app/gallery", "图库", body)
 
 
@@ -261,6 +280,7 @@ def jobs_page(base: str, token: str, state: str = "", q: str = "") -> str:
     filters = f"""
 <div class="row" style="margin-bottom:12px">
   <button class="btn" id="dl-selected" type="button">⬇ 下载选中作业的图</button>
+  <button class="btn" id="rerun-selected" type="button">↻ 重跑选中（只建作业）</button>
   <span class="hint">勾选左侧复选框；产物取自已发布的静态副本。</span>
 </div>
 <form class="row" method="get" action="{base}/{token}/app/jobs" style="margin-bottom:14px">

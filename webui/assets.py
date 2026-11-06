@@ -62,6 +62,8 @@ border-radius:10px;font-size:13px;opacity:0;transform:translateY(8px);transition
 .rec .ph{display:flex;align-items:center;justify-content:center;height:110px;color:var(--mut);font-size:12px}
 .rec .recm{display:flex;gap:6px;align-items:center;padding:6px 8px;font-size:12px;flex-wrap:wrap}
 .nowrap{white-space:nowrap}
+.day{margin:18px 0 8px;font-size:13px;color:var(--mut);font-weight:600}
+input.over{border-color:var(--bad);box-shadow:0 0 0 2px rgba(179,38,30,.12)}
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
 .gcard{display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .gcard img,.gcard video{display:block;width:100%;height:170px;object-fit:cover;background:#11151a}
@@ -238,6 +240,50 @@ JS = r"""
     if(!ids.length){ toast("先勾选作业"); return; }
     window.location.href = `${BASE}/api/p2/jobs/zip?ids=` + encodeURIComponent(ids.join(","));
   });
+  function recalcEst(){
+    const est = window.__EST__; if(!est) return;
+    const get = n => { const el = document.querySelector(`[data-param="${n}"]`); return el ? Number(el.value) : null; };
+    const frames = get("frames") ?? get("length") ?? est.frames;
+    const w = get("width") ?? est.width, h = get("height") ?? est.height;
+    if(!frames || !w || !h) return;
+    let ratio = (frames/est.frames) * ((w*h)/(est.width*est.height));
+    ratio = Math.max(0.3, Math.min(3.0, ratio));
+    const secs = est.seconds * ratio;
+    const cost = secs/3600*est.price + est.boot;
+    const t = $("#est-text");
+    if(t) t.textContent = `≈${(secs/60).toFixed(1)} 分钟 · ≈¥${cost.toFixed(2)}`;
+    const b = $("#budget");
+    if(b && b.value !== ""){
+      const over = cost > Number(b.value);
+      b.classList.toggle("over", over);
+    }
+  }
+  document.addEventListener("input", e=>{
+    const p = e.target && e.target.getAttribute && e.target.getAttribute("data-param");
+    if(p && ["frames","length","width","height"].includes(p)) recalcEst();
+    if(e.target && e.target.id === "budget") recalcEst();
+  });
+
+  document.addEventListener("click", async e=>{
+    const btn = e.target.closest("#rerun-selected");
+    if(!btn) return;
+    const ids = Array.from(document.querySelectorAll(".job-check:checked")).map(x=>x.value);
+    if(!ids.length){ toast("先勾选作业"); return; }
+    btn.disabled = true;
+    try{
+      const r = await fetch(`${BASE}/api/p2/jobs/rerun`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ids, run:false})
+      });
+      const data = await r.json();
+      if(!r.ok) throw new Error(data.error || ("HTTP "+r.status));
+      const ok = (data.items||[]).filter(x=>x.new_job_id).length;
+      toast(`已重建 ${ok}/${ids.length} 个作业（未执行）`);
+      setTimeout(()=>location.reload(), 800);
+    }catch(err){ toast("重跑失败：" + err.message); }
+    finally{ btn.disabled = false; }
+  });
+
   document.addEventListener("submit", async e=>{
     const form = e.target.closest("#create-form");
     if(!form) return;

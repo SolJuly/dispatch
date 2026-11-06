@@ -117,7 +117,7 @@ def save_upload(filename: str, data: bytes) -> dict:
     return {"name": name, "bytes": len(data), "url": f"/f/inputs/{name}"}
 
 
-def list_jobs(limit: int = 20, *, state_prefix: str = "", workflow: str = "",
+def list_jobs(limit: int = 20, *, offset: int = 0, state_prefix: str = "", workflow: str = "",
               q: str = "", jobs_dir: Path | None = None) -> list[dict]:
     root = _jobs_dir(jobs_dir)
     if not root.is_dir():
@@ -158,7 +158,31 @@ def list_jobs(limit: int = 20, *, state_prefix: str = "", workflow: str = "",
             "first_artifact_url": _first_artifact_url(job.get("job_id"), jobs_dir),
         })
     rows.sort(key=lambda r: r.get("created_at") or "", reverse=True)
-    return rows[:max(1, min(int(limit or 20), 200))]
+    lim = max(1, min(int(limit or 20), 200))
+    off = max(0, int(offset or 0))
+    return rows[off:off + lim]
+
+
+def rerun_jobs(ids: list[str], *, run: bool = False, jobs_dir: Path | None = None) -> list[dict]:
+    """按原参数重跑一批作业（逐个新建作业，可选立即执行）。"""
+    out = []
+    for jid in ids[:20]:
+        try:
+            job = _load_job(jid, jobs_dir)
+        except ApiError as e:
+            out.append({"job_id": jid, "error": e.msg})
+            continue
+        reg = (job.get("model") or {}).get("registry") or {}
+        wk = reg.get("workflow_key")
+        if not wk:
+            out.append({"job_id": jid, "error": "旧作业没有 registry 工作流信息"})
+            continue
+        try:
+            res = create_job(wk, job.get("params") or {}, run=run, jobs_dir=jobs_dir)
+            out.append({"job_id": jid, "new_job_id": res["job_id"], "state": res["state"]})
+        except ApiError as e:
+            out.append({"job_id": jid, "error": e.msg})
+    return out
 
 
 def maybe_publish(job_id: str, job: dict) -> None:
