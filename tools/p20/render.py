@@ -211,6 +211,59 @@ def _resolve_count(spec, params: dict) -> int | None:
     return None
 
 
+def _fps_of(wf: dict) -> float | None:
+    """工作流声明的帧率：顶层 fps，或 expect_defaults.fps。"""
+    for src in (wf, wf.get("expect_defaults") or {}):
+        v = src.get("fps") if isinstance(src, dict) else None
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0:
+            return float(v)
+    return None
+
+
+def _frames_of(wf: dict, params: dict, fps: float) -> int | None:
+    """本次请求的等效帧数：frames 直接用；duration（秒）按 fps 换算（Wan 口径 n=fps*d+1）。"""
+    ps = wf.get("params") or {}
+    if "frames" in ps:
+        v = params.get("frames")
+        if isinstance(v, int) and not isinstance(v, bool):
+            return int(v)
+    if "duration" in ps:
+        v = params.get("duration")
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            return int(round(float(v) * fps)) + 1
+    return None
+
+
+def _recalibrate_duration(wf: dict, params: dict, exp: dict) -> None:
+    """帧数/时长被请求覆盖时重算 duration_s。
+
+    原先 duration_s 直接抄工作流默认值（按默认帧数标定），一旦作业改了 frames/duration，
+    期望窗口还停在默认那几秒，产物必然判 FAIL —— 这是 h3 241 帧作业被误杀的根因。
+    """
+    if "duration_s" not in exp:
+        return
+    fps = _fps_of(wf)
+    if not fps:
+        return
+    ps = wf.get("params") or {}
+    if "frames" in ps:
+        v = params.get("frames")
+        if not isinstance(v, int) or isinstance(v, bool) or v == (ps["frames"] or {}).get("default"):
+            return
+    elif "duration" in ps:
+        v = params.get("duration")
+        if not isinstance(v, (int, float)) or isinstance(v, bool) \
+                or v == (ps["duration"] or {}).get("default"):
+            return
+    else:
+        return
+    n = _frames_of(wf, params, fps)
+    if not n:
+        return
+    dur = n / fps
+    exp["duration_s"] = [round(max(0.2, dur - 0.3), 2), round(dur + 0.35, 2)]
+
+
 def expect_for(wf: dict, params: dict) -> dict:
     """由工作流默认期望 + 解析后的尺寸/帧数，生成 job.json 的 expect。"""
     exp = dict(wf.get("expect_defaults") or {})
@@ -232,6 +285,8 @@ def expect_for(wf: dict, params: dict) -> dict:
                 pass
     out = wf.get("output") or {}
     exp.setdefault("ext", out.get("ext", "mp4"))
+    # 帧数/时长被覆盖时，duration_s 必须跟着算，不能沿用默认帧数的窗口
+    _recalibrate_duration(wf, params, exp)
 
     # 多图：expect.images 或 output.count 可以是 {{PARAM}}，这里解析成具体张数
     if "images" in exp:

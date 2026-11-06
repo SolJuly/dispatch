@@ -4,7 +4,7 @@
 
 三条硬约定：
   1. 一切 JSON 落盘 = tmp → fsync → rename，绝不让半截文件被读到
-  2. 单任务串行 = flock(reports/p1/.job.lock)，拿不到直接退出，不排队
+  2. 单任务串行 = flock(reports/p1/.job.lock)；CLI 拿不到直接退出，控制台可带 wait 排队
   3. job 目录用 mkdir(exist_ok=False) 建，EEXIST 即 ID 冲突 → 重取
 """
 from __future__ import annotations
@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -113,24 +114,49 @@ def list_jobs() -> list[str]:
 
 
 class JobLock:
-    """单任务锁：非阻塞 flock，拿不到直接抛 JobLocked（不排队，符合单任务口径）。"""
+    """单任务锁：默认非阻塞 flock，拿不到直接抛 JobLocked（CLI 口径，立刻报错）。
 
-    def __init__(self, path: Path = LOCK_FILE):
+    wait=N 时改为排队：最多等 N 秒，每 2 秒重试一次（控制台提交用，避免并发提交的
+    作业永远停在 CREATED）。等锁期间照样持有一个 fd，超时才抛 JobLocked。
+    """
+
+    def __init__(self, path: Path = LOCK_FILE, wait: float = 0):
         self.path = path
+        self.wait = max(0.0, float(wait or 0))
         self._fd: int | None = None
+
+    def _try(self, fd: int) -> bool:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except OSError as e:
+            if e.errno in (errno.EAGAIN, errno.EACCES):
+                return False
+            raise
 
     def __enter__(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         fd = os.open(str(self.path), os.O_CREAT | os.O_RDWR, 0o644)
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError as e:
+        if self.wait > 0:
+            deadline = time.monotonic() + self.wait
+            waited = 0.0
+            while not self._try(fd):
+                left = deadline - time.monotonic()
+                if left <= 0:
+                    os.close(fd)
+                    raise JobLocked(
+                        f"排队 {self.wait:.0f}s 仍拿不到单任务锁（{self.path}）。"
+                        f"前面的作业还在跑，稍后重试即可。"
+                    )
+                time.sleep(min(2.0, left))
+                waited += 2.0
+                if int(waited) % 30 == 0:
+                    print(f"  [queue] 等待前一个作业结束… 已等 {waited:.0f}s", flush=True)
+        elif not self._try(fd):
             os.close(fd)
-            if e.errno in (errno.EAGAIN, errno.EACCES):
-                raise JobLocked(
-                    f"已有作业在跑（{self.path}）。本轮只做单任务，等它结束或先收尾。"
-                ) from e
-            raise
+            raise JobLocked(
+                f"已有作业在跑（{self.path}）。本轮只做单任务，等它结束或先收尾。"
+            )
         os.ftruncate(fd, 0)
         os.write(fd, str(os.getpid()).encode())
         self._fd = fd

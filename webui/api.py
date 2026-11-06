@@ -35,6 +35,8 @@ ART_SUFFIX = (".png", ".jpg", ".jpeg", ".webp", ".mp4")
 INPUTS_DIR = ROOT / "reports/p2/p21/inputs"
 SHARE_INPUTS = Path(os.environ.get("P21_SHARE_INPUTS", ROOT / "share" / "inputs"))
 MAX_UPLOAD = 20 * 1048576
+# 控制台提交时排队等锁的上限（秒）：单任务串行，前面还有作业就等着，别扔在 CREATED
+QUEUE_WAIT_S = int(os.environ.get("P21_QUEUE_WAIT_S", "14400"))
 
 
 class ApiError(Exception):
@@ -286,7 +288,9 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
         log = _jobs_dir(jobs_dir) / job_id / "run.log"
         log.parent.mkdir(parents=True, exist_ok=True)
         with log.open("ab") as fh:
-            spawn([sys.executable, str(RUN_PY), job_id, "--no-keep"],
+            # --wait-lock：前面还有作业在跑时排队等锁，而不是直接退出把作业扔在 CREATED
+            spawn([sys.executable, str(RUN_PY), job_id, "--no-keep",
+                   "--wait-lock", str(QUEUE_WAIT_S)],
                   stdout=fh, stderr=subprocess.STDOUT, start_new_session=True, cwd=str(ROOT))
 
     # 以 jobctl 落盘的 job.json 为准（params_hash 由它计算）

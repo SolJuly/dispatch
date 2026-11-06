@@ -120,6 +120,7 @@
     "ext": "mp4",
     "min_bytes": 50000
   },
+  "fps": 16,
   "limits": {
     "max_minutes": 40,
     "max_cost": 1.6

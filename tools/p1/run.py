@@ -122,7 +122,7 @@ def _lock(job_id: str, opts):
     """批量模式用作业级锁（不同 job 可并行）；legacy 单机模式仍用全局锁。"""
     if getattr(opts, "batch", False):
         return store.per_job_lock(job_id)
-    return store.JobLock()
+    return store.JobLock(wait=getattr(opts, "wait_lock", 0) or 0)
 
 
 def _render_workflow(wf: dict, params: dict, prefix: str) -> dict:
@@ -751,7 +751,10 @@ def _do_step(name: str, job_id: str, job: dict, opts, ctx: dict) -> None:
         _run_posts(job, job_id)
         _mark_step(job_id, name)
     elif name == "release":
-        step_release(job, opts, ctx)
+        if ctx.get("salvage"):
+            _say("salvage：实例早已销毁，跳过销毁动作")
+        else:
+            step_release(job, opts, ctx)
         _mark_step(job_id, name)
     else:
         raise RunError(f"未知步骤 {name}", state.FAILED)
@@ -957,6 +960,54 @@ def _abort(job_id: str, job: dict, opts) -> int:
     return 0
 
 
+def _salvage(job_id: str, job: dict, opts) -> int:
+    """产物已在 artifacts/：重新校验 + 落 manifest + 收尾，全程不建机、不销毁。
+
+    用途：校验口径本身错了（例如 expect 没跟着 frames 重算）导致 FAILED，
+    但 mp4/png 是好的。重跑一整单要再花一遍钱，salvage 只补状态，零 GPU 成本。
+    """
+    cur = job.get("state")
+    if cur not in state.FAIL_BRANCH and cur != state.FAILED:
+        _say(f"✗ salvage 只用于 FAILED/FAILED_*（当前 {cur}）")
+        return 1
+    arts = sorted(p for p in (store.job_dir(job_id) / "artifacts").glob("*") if p.is_file())
+    if not arts:
+        _say("✗ artifacts/ 里没有产物，无从收尾（只能重跑）")
+        return 1
+    steps = job.get("steps") or {}
+    ctx = {
+        "uhost_id": (job.get("instance") or {}).get("uhost_id"),
+        "hourly": (steps.get("provision") or {}).get("hourly"),
+        "arts": arts,
+        "salvage": True,
+    }
+    with _lock(job_id, opts):
+        if cur in state.FAIL_BRANCH or cur == state.FAILED:
+            state.transition(job_id, state.RESUMING, reason="salvage：仅重跑校验后收尾")
+        job = state.load_job(job_id)
+        start = "persist" if (steps.get("verify") or {}).get("done") else "verify"
+        _say(f"salvage：{len(arts)} 个产物已在本地，从 {start} 起重放")
+        try:
+            _execute(job_id, job, opts, ctx, start_at=start)
+        except RunError as e:
+            _say(f"✗ salvage 失败：{e}")
+            cur2 = state.load_job(job_id).get("state")
+            if cur2 not in state.TERMINAL:
+                try:
+                    state.transition(job_id, state.FAILED, reason=f"salvage：{str(e)[:150]}")
+                except Exception:
+                    pass
+            return 1
+        if state.load_job(job_id).get("state") != state.DONE:
+            state.transition(job_id, state.DONE, reason="salvage 完成")
+        man = store.read_json(store.job_file(job_id, "manifest.json")) or {}
+        step_done(job, opts, ctx, man)
+        _say("✓ salvage 完成（未新建实例、未产生新费用）")
+        _ledger(job_id, (man.get("cost") or {}).get("amount", 0),
+                uhost=ctx.get("uhost_id"), model=job["model"]["key"], salvage=True)
+    return 0
+
+
 def run(job_id: str, opts) -> int:
     global _LOG_PREFIX
     if getattr(opts, "batch", False):
@@ -994,6 +1045,9 @@ def run(job_id: str, opts) -> int:
 
     if getattr(opts, "abort", False):
         return _abort(job_id, job, opts)
+
+    if getattr(opts, "salvage", False):
+        return _salvage(job_id, job, opts)
 
     if opts.resume:
         return _resume(job_id, job, opts)
@@ -1077,6 +1131,10 @@ def main(argv=None) -> int:
                     help="实例丢失后整条重跑：crashed/FAILED_* → PROVISIONING（清断点）")
     ap.add_argument("--batch", action="store_true",
                     help="批量模式：用作业级锁（不同 job 可并行），日志加 job 前缀")
+    ap.add_argument("--wait-lock", type=int, default=0,
+                    help="排队等单任务锁的最大秒数（0=拿不到立刻退出；控制台提交用 14400）")
+    ap.add_argument("--salvage", action="store_true",
+                    help="产物已在 artifacts/：只重跑校验+收尾，不建机、不销毁")
     a = ap.parse_args(argv)
     return run(a.job_id, a)
 

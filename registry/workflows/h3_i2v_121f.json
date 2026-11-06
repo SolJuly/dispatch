@@ -170,6 +170,7 @@
    "longest_max_s": 1.0
   }
  },
+ "fps": 24,
  "limits": {
   "max_minutes": 45,
   "max_cost": 3.0

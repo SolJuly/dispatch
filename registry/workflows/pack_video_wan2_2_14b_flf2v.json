@@ -139,8 +139,13 @@
   },
   "expect_defaults": {
     "ext": "mp4",
-    "min_bytes": 50000
+    "min_bytes": 50000,
+    "duration_s": [
+      4.76,
+      5.42
+    ]
   },
+  "fps": 16,
   "limits": {
     "max_minutes": 40,
     "max_cost": 1.6

@@ -178,6 +178,31 @@ class TestExpect(unittest.TestCase):
         exp = render.expect_for(wf, {"width": 768, "height": 512})
         self.assertEqual(exp["freeze"], {"ratio_max": 0.20, "longest_max_s": 1.0})
 
+    def test_duration_follows_frames_override(self):
+        # 回归：241 帧却沿用 121 帧的时长窗口 → 10.1s 的产物被判 FAIL（真实事故 job 4ff021）
+        wf = registry.get_workflow("h3_t2v_121f")
+        exp_default = render.expect_for(wf, {"width": 768, "height": 512, "frames": 121})
+        self.assertEqual(exp_default["duration_s"], [5.0, 5.4])
+        exp = render.expect_for(wf, {"width": 768, "height": 512, "frames": 241})
+        lo, hi = exp["duration_s"]
+        self.assertLessEqual(lo, 10.125)          # 实测 241 帧渲染出 243 帧 = 10.125s
+        self.assertGreaterEqual(hi, 10.125)
+        self.assertGreater(lo, 9.0)
+
+    def test_duration_follows_seconds_override(self):
+        # Wan 口径：帧数 = fps*duration+1；duration 改了窗口也要跟着改
+        wf = registry.get_workflow("pack_video_wan2_2_14b_i2v")
+        exp = render.expect_for(wf, {"width": 640, "height": 640, "duration": 5})
+        self.assertEqual(exp["duration_s"], [4.76, 5.42])
+        exp8 = render.expect_for(wf, {"width": 640, "height": 640, "duration": 8})
+        self.assertGreater(exp8["duration_s"][0], 7.0)
+        self.assertGreaterEqual(exp8["duration_s"][1], 8.0)
+
+    def test_fps_declared_on_video_workflows(self):
+        for key in ("h3_t2v_121f", "h3_i2v_121f", "ltxv_2b_t2v",
+                    "wan21_i2v_480p", "pack_video_wan2_2_14b_i2v"):
+            self.assertIn("fps", registry.get_workflow(key), key)
+
     def test_requested_size_overrides_config_default(self):
         wf = registry.get_workflow("qwen_image_t2i")
         exp = render.expect_for(wf, {"width": 768, "height": 1024})
