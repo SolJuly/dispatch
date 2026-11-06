@@ -89,8 +89,14 @@ def create_page(base: str, token: str, workflow: str = "") -> str:
     recent = api.list_jobs(limit=8)
     rec_items = []
     for r in recent:
-        thumb = (f'<img src="{base}/{token}{r["first_artifact_url"]}" loading="lazy">'
-                 if r.get("first_artifact_url") else '<span class="ph">无图</span>')
+        art = r.get("first_artifact_url") or ""
+        if art.endswith(".mp4"):
+            thumb = f'<video src="{base}/{token}{art}" muted playsinline preload="metadata"></video>'
+        elif art:
+            thumb = f'<img src="{base}/{token}{art}" loading="lazy">'
+        else:
+            thumb = '<span class="ph">无图</span>'
+
         rec_items.append(
             f'<a class="rec" href="{base}/{token}/app/jobs/{r["job_id"]}">{thumb}'
             f'<span class="recm">{C.badge(r["state"])}<b>{C.esc(r["workflow"])}</b>'
