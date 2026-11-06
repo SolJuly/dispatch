@@ -292,7 +292,26 @@ def cmd_verify(a) -> int:
     if wf_path and not wf_path.exists():
         print(f"⚠ workflow 不存在：{wf}（params 项将跳过）")
 
-    res = verify_mod.verify_job(job, jdir / "artifacts", wf_path)
+    # registry 作业要看**渲染后**的图（frames/duration 是占位符，模板里还是默认值），
+    # 否则会像 run.py 之前那样把改过帧数的作业误判成 params 不匹配。
+    reg = (job.get("model") or {}).get("registry") or {}
+    rr = store.read_json(jdir / "render.json") or {}
+    graph = rr.get("graph") or {}
+    if reg.get("workflow_key") and graph:
+        from tools.p20 import registry as p20registry
+        try:
+            wf_cfg = p20registry.get_workflow(reg["workflow_key"],
+                                              version=reg.get("workflow_version"))
+        except Exception as e:
+            print(f"⚠ 取不到工作流配置（{e}），按 legacy 方式校验")
+            wf_cfg = None
+        if wf_cfg:
+            res = verify_mod.verify_job(job, jdir / "artifacts", None,
+                                        rendered_graph=graph, wf_config=wf_cfg)
+        else:
+            res = verify_mod.verify_job(job, jdir / "artifacts", wf_path)
+    else:
+        res = verify_mod.verify_job(job, jdir / "artifacts", wf_path)
     print(f"作业 {jid} · workflow {wf or '—'}")
     if res.get("reason"):
         print(f"✗ {res['reason']}")

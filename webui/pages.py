@@ -89,7 +89,7 @@ def _recent_html(base: str, token: str, limit: int = 8) -> str:
     for r in recent:
         art = r.get("first_artifact_url") or ""
         if art.endswith(".mp4"):
-            thumb = f'<video src="{base}/{token}{art}" muted playsinline preload="metadata"></video>'
+            thumb = f'<video src="{base}/{token}{art}#t=0.3" muted playsinline preload="metadata"></video>'
         elif art:
             thumb = f'<img src="{base}/{token}{art}" loading="lazy">'
         else:
@@ -169,7 +169,7 @@ def gallery_page(base: str, token: str, workflow: str = "", page: int = 1) -> st
     for r in rows:
         art = r.get("first_artifact_url") or ""
         if art.endswith(".mp4"):
-            media = f'<video src="{base}/{token}{art}" muted playsinline preload="metadata"></video>'
+            media = f'<video src="{base}/{token}{art}#t=0.3" muted playsinline preload="metadata"></video>'
         elif art:
             media = f'<img src="{base}/{token}{art}" loading="lazy">'
         else:
@@ -262,6 +262,13 @@ def video_page(base: str, token: str, workflow: str = "") -> str:
     return shell(base, token, "/app/video", f"视频台 · {wf['key']}", body)
 
 
+def _media_tag(url: str, name: str) -> str:
+    """详情页产物：mp4 用 <video>（<img> 放不了视频，会白框/黑框），其余用 <img>。"""
+    if str(name).lower().endswith((".mp4", ".mov", ".webm")):
+        return (f'<video src="{C.esc(url)}" controls muted playsinline preload="metadata"></video>')
+    return f'<img src="{C.esc(url)}" alt="{C.esc(name)}">'
+
+
 def _unit(r: dict) -> str:
     """产物单位：视频说段，图片说张（以前视频也写"张"）。"""
     return "段" if (r.get("kind") or "").startswith("video") else "张"
@@ -319,7 +326,7 @@ def detail_page(base: str, token: str, job_id: str) -> str:
     params = json.dumps(job.get("params") or {}, ensure_ascii=False, indent=2)
     cards = "".join(
         f'<figure class="thumb"><a href="{C.esc(a["url"])}" target="_blank">'
-        f'<img src="{C.esc(a["url"])}" alt="{C.esc(a["name"])}"></a>'
+        f'{_media_tag(a["url"], a["name"])}</a>'
         f'<div class="meta"><span>{C.esc(a["name"])}</span>'
         f'<a href="{C.esc(a["url"])}" download>下载</a></div></figure>'
         for a in arts)
