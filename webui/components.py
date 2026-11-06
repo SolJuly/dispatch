@@ -5,6 +5,8 @@ from __future__ import annotations
 import datetime as dt
 import html
 
+from . import i18n
+
 
 def esc(v) -> str:
     return html.escape("" if v is None else str(v), quote=True)
@@ -49,6 +51,11 @@ def _input(name: str, spec: dict, value) -> str:
         return (f'<input type="file" data-upload="{esc(name)}" accept="image/png,image/jpeg,image/webp">'
                 f'<input type="hidden" {attrs} value="{esc(value or "")}">'
                 f'<div class="hint" data-preview="{esc(name)}">上传后自动生成内容哈希文件名</div>')
+    if name in ("audio", "video") or typ in ("audio", "video"):
+        acc = "audio/*" if (typ == "audio" or name == "audio") else "video/*"
+        return (f'<input type="file" data-upload="{esc(name)}" accept="{acc}">'
+                f'<input type="hidden" {attrs} value="{esc(value or "")}">'
+                f'<div class="hint" data-preview="{esc(name)}">上传素材后自动生成文件名</div>')
     if typ == "enum":
         vals = spec.get("values") or []
         cur = value if value is not None else spec.get("default")
@@ -78,16 +85,17 @@ def _input(name: str, spec: dict, value) -> str:
 
 
 def field(name: str, spec: dict, value=None) -> str:
-    label = esc(name)
+    label = esc(i18n.param_label(name))
+    key = "" if i18n.param_label(name) == name else f' <code class="key">{esc(name)}</code>'
     hint = ""
-    bits = [spec.get("type", "")]
+    bits = [i18n.type_label(spec.get("type", ""))]
     if "default" in spec:
         bits.append(f"默认 {spec['default']}")
     if spec.get("min") is not None or spec.get("max") is not None:
         bits.append(f"{spec.get('min', '')}–{spec.get('max', '')}")
     if bits:
         hint = f'<div class="hint">{esc(" · ".join(str(b) for b in bits))}</div>'
-    return (f'<div class="field"><label for="p-{esc(name)}">{label}</label>'
+    return (f'<div class="field"><label for="p-{esc(name)}">{label}{key}</label>'
             f'{_input(name, spec, value)}{hint}</div>')
 
 

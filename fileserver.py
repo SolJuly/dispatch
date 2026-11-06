@@ -577,6 +577,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if page in ("", "create"):
                 body = webpages.create_page(base, TOKEN, (q.get("workflow") or [""])[0])
+            elif page == "video" and len(rest) == 1:
+                body = webpages.video_page(base, TOKEN, (q.get("workflow") or [""])[0])
             elif page == "jobs" and len(rest) == 1:
                 body = webpages.jobs_page(base, TOKEN, (q.get("state") or [""])[0],
                                           (q.get("q") or [""])[0])

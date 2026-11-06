@@ -282,17 +282,32 @@ def zip_artifacts(job_ids: list[str], jobs_dir: Path | None = None,
     return buf.getvalue()
 
 
-def image_workflows() -> list[dict]:
-    """控制台的"模型"下拉数据源：只取 image 类、且未标记 deprecated 的工作流。"""
+def _console_workflows(kind: str) -> list[dict]:
+    """控制台下拉数据源：按类型取未废弃工作流，可用的排前面。"""
     out = []
     for w in registry.list_workflows():
-        if w.get("kind") != "image" or w.get("deprecated"):
+        if w.get("kind") != kind or w.get("deprecated"):
             continue
+        status = (w.get("compat") or {}).get("status")
         out.append({
             "key": w["key"], "name": w["name"], "description": w.get("description") or "",
             "version": w["version"],
             "model": w.get("model_key") or (w.get("model") or {}).get("key"),
-            "compat": (w.get("compat") or {}).get("status"),
+            "compat": status,
             "params": w.get("params") or {},
+            "_rank": 0 if status in ("verified", "equivalent") else 1,
         })
+    out.sort(key=lambda x: x["_rank"])  # 稳定排序：可用的在前，组内保持 registry 顺序
+    for x in out:
+        x.pop("_rank", None)
     return out
+
+
+def image_workflows() -> list[dict]:
+    """图片工作流（控制台「文生图/图生图」页）。"""
+    return _console_workflows("image")
+
+
+def video_workflows() -> list[dict]:
+    """视频工作流（控制台「视频」页）。"""
+    return _console_workflows("video")

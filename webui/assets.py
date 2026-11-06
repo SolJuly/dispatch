@@ -69,6 +69,31 @@ border-radius:10px;font-size:13px;opacity:0;transform:translateY(8px);transition
 .cmp .lbl.a{left:8px}.cmp .lbl.b{right:8px}
 .maskwrap{display:inline-block;background:#000;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 canvas.maskcanvas{display:block;width:100%;max-width:360px;height:auto;cursor:crosshair;touch-action:none}
+
+/* ---- 2026-11 视觉整理：页头 / 页签 / 分组表单 ---- */
+.page-head{margin:2px 0 14px}
+.page-head h1{margin:0 0 4px}
+.page-head .sub{margin:0;color:var(--mut);font-size:13.5px}
+.tabs{display:flex;gap:6px;margin:0 0 16px;flex-wrap:wrap}
+.tab{padding:7px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--mut);font-size:14px}
+.tab.on{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+.tab:hover{text-decoration:none;border-color:var(--pri)}
+.wf-meta{display:flex;gap:8px;align-items:center;margin:2px 0 8px;font-size:12.5px;color:var(--mut);flex-wrap:wrap}
+.wf-meta code{background:#eef1f4;padding:1px 6px;border-radius:5px}
+.desc{margin:0 0 14px;color:var(--mut);font-size:13px;line-height:1.55}
+.grp{border:1px solid var(--line);border-radius:10px;padding:12px 12px 4px;margin:0 0 12px}
+.grp legend{padding:0 6px;font-size:12.5px;color:var(--mut);font-weight:600}
+.grp .field:last-child{margin-bottom:8px}
+.actions{border-top:1px dashed var(--line);padding-top:12px;margin-top:4px}
+.check{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mut);margin-bottom:10px}
+.check input{width:auto}
+.notice{background:#fff8e6;border:1px solid #f1dfae;color:#7a5b00;border-radius:10px;padding:10px 12px;font-size:13px;margin:0 0 14px}
+.sec{font-size:15px;color:var(--mut);margin:26px 0 10px;font-weight:600}
+.key{font-size:11px;color:var(--mut);background:#f1f3f6;padding:0 5px;border-radius:4px;font-weight:400}
+/* 表单卡片更紧凑，结果卡片粘住 */
+.form h2{margin-top:0}
+.result{position:sticky;top:74px}
+@media(max-width:960px){.result{position:static}}
 """
 
 JS = r"""

@@ -11,6 +11,7 @@ from . import api, components as C
 
 NAV = [
     ("创作台", "/app/create", ""),
+    ("视频", "/app/video", ""),
     ("任务", "/app/jobs", ""),
     ("图库", "/app/gallery", "M3"),
     ("工作流与模型", "/app/registry", "M4"),
@@ -44,50 +45,47 @@ def shell(base: str, token: str, active: str, title: str, body: str,
 </body></html>"""
 
 
-def _wf_picker(base: str, token: str, workflows: list[dict], current: str) -> str:
+def _wf_picker(base: str, token: str, workflows: list[dict], current: str, *, page: str) -> str:
     opts = []
     for w in workflows:
         sel = " selected" if w["key"] == current else ""
-        label = f'{w["name"]} · {w["key"]}'
+        label = w["name"]
+        if (w.get("compat") or "") not in ("verified", "equivalent") and "尚未开发" not in label:
+            label += "（尚未开发）"
         opts.append(f'<option value="{C.esc(w["key"])}"{sel}>{C.esc(label)}</option>')
     return (f'<div class="field"><label for="wf">工作流</label>'
-            f'<select id="wf" onchange="location.href=\'{base}/{token}/app/create?workflow=\'+this.value">'
+            f'<select id="wf" onchange="location.href=\'{base}/{token}{page}?workflow=\'+this.value">'
             f'{"".join(opts)}</select></div>')
 
 
-def create_page(base: str, token: str, workflow: str = "") -> str:
-    wfs = api.image_workflows()
+def _grouped_fields(params: dict) -> str:
+    from . import i18n as I
+    buckets: dict[str, list[str]] = {}
+    for name, spec in I.ordered_params(params):
+        buckets.setdefault(I.group_of(name), []).append(C.field(name, spec))
+    html = []
+    for g in I.GROUP_ORDER:
+        items = buckets.get(g)
+        if not items:
+            continue
+        html.append(f'<fieldset class="grp"><legend>{C.esc(g)}</legend>{"".join(items)}</fieldset>')
+    return "".join(html)
 
-    def _has(w: dict, name: str) -> bool:
-        return name in (w.get("params") or {})
 
-    # 用参数契约判断页签，而不是 key 里有没有 "img2img"：
-    # M4 加了 detail_polish/upscale 之后，"第一个不含 img2img 的" 会落到细节增强上，
-    # 文生图页签就显示错模型了。
-    aliases: dict[str, str] = {}
-    if wfs:
-        # P2.2 起默认文生图切到 Z-Image-Turbo HQ；旧 qwen/SDXL t2i 已标记 deprecated，
-        # 不再出现在控制台，但仍保留在 registry 里供历史作业复现/回滚。
-        t2i = next((w["key"] for w in wfs if w["key"] == "zimage_turbo_t2i_hq"), None) \
-            or next((w["key"] for w in wfs if not _has(w, "image")), wfs[0]["key"])
-        i2i = next((w["key"] for w in wfs if w["key"] == "zimage_turbo_img2img"), None) \
-            or next((w["key"] for w in wfs if w["key"] == "sdxl_img2img"), None) \
-            or next((w["key"] for w in wfs if _has(w, "image") and not _has(w, "mask")),
-                    wfs[0]["key"])
-        aliases = {"t2i": t2i, "i2i": i2i}
-        requested = aliases.get(workflow or "", workflow or t2i)
-    else:
-        body = '<div class="card"><p class="empty">还没有 image 类工作流，先跑 <code>p20ctl import</code>。</p></div>'
-        return shell(base, token, "/app/create", "创作台", body)
-    # 未知 key 或已 deprecated 的 key（比如旧的 qwen_image_t2i）一律回落到默认文生图，
-    # 不要落到列表第一条（那会变成 detail_polish，用户会以为页签坏了）。
-    wf = next((w for w in wfs if w["key"] == requested), None) \
-        or next(w for w in wfs if w["key"] == t2i)
-    workflow = wf["key"]
-    fields = "".join(C.field(name, spec) for name, spec in (wf["params"] or {}).items())
-    wf_json = json.dumps({"key": wf["key"], "params": wf["params"]}, ensure_ascii=False)
-    recent = api.list_jobs(limit=8)
-    rec_items = []
+def _wf_head(wf: dict) -> str:
+    from . import i18n as I
+    text, cls = I.status_text(wf.get("compat"))
+    desc = wf.get("description") or ""
+    for tag in ("（✅ 可使用）", "（🚧 尚未开发）", "（⛔ 已替代，勿用）"):
+        desc = desc.replace(tag, "")
+    return (f'<div class="wf-meta"><span class="pill {cls}">{C.esc(text)}</span>'
+            f'<code>{C.esc(wf["key"])}</code> v{C.esc(wf["version"])}</div>'
+            f'<p class="desc">{C.esc(desc.strip())}</p>')
+
+
+def _recent_html(base: str, token: str, limit: int = 8) -> str:
+    recent = api.list_jobs(limit=limit)
+    items = []
     for r in recent:
         art = r.get("first_artifact_url") or ""
         if art.endswith(".mp4"):
@@ -96,44 +94,85 @@ def create_page(base: str, token: str, workflow: str = "") -> str:
             thumb = f'<img src="{base}/{token}{art}" loading="lazy">'
         else:
             thumb = '<span class="ph">无图</span>'
-
-        rec_items.append(
+        items.append(
             f'<a class="rec" href="{base}/{token}/app/jobs/{r["job_id"]}">{thumb}'
             f'<span class="recm">{C.badge(r["state"])}<b>{C.esc(r["workflow"])}</b>'
             f'<span class="muted">{C.esc(C.human_time(r["created_at"]))}</span></span></a>')
-    recent_html = "".join(rec_items) or '<p class="empty">还没有作业</p>'
-    body = f"""
-<h1>创作台</h1>
-<div class="row" style="margin-bottom:14px">
-  <a class="btn {'pri' if 'img2img' not in wf['key'] else ''}" href="{base}/{token}/app/create?workflow=t2i">文生图</a>
-  <a class="btn {'pri' if 'img2img' in wf['key'] else ''}" href="{base}/{token}/app/create?workflow=i2i">图生图</a>
-  <a class="btn" href="#" onclick="return false" title="M3">局部重绘 · M3</a>
+    return "".join(items) or '<p class="empty">还没有作业</p>'
+
+
+def _create_body(base: str, token: str, wf: dict, kind: str) -> str:
+    wf_json = json.dumps({"key": wf["key"], "params": wf["params"]}, ensure_ascii=False)
+    page = "/app/create" if kind == "image" else "/app/video"
+    warn = ""
+    if kind == "video":
+        warn = ('<div class="notice">视频作业按 GPU 时长计费，一条 5 秒视频约 ¥0.3–0.5；'
+                '提交前请确认「立即执行」。</div>')
+    return f"""
+<div class="page-head">
+  <h1>{'创作台' if kind == 'image' else '视频台'}</h1>
+  <p class="sub">{'选工作流 → 填参数 → 提交，产物出现在右侧' if kind == 'image' else '文/图生视频，产物为 MP4'}</p>
 </div>
+{warn}
 <div class="grid">
-  <form class="card" id="create-form">
-    <h2>工作流与参数</h2>
-    {_wf_picker(base, token, wfs, wf["key"])}
-    <p class="muted" style="margin:-4px 0 10px">{C.esc(wf.get("description") or "")}</p>
-    {fields}
-    <div class="field"><label class="row"><input type="checkbox" id="run-now" style="width:auto">
-      <span>提交后立即执行（会占用 GPU，产生费用）</span></label></div>
-    <div class="row">
-      <button class="btn pri" id="submit-btn" type="submit">提交</button>
-      <a class="btn" href="{base}/{token}/app/jobs">任务列表</a>
+  <form class="card form" id="create-form">
+    {_wf_picker(base, token, api.image_workflows() if kind == 'image' else api.video_workflows(), wf['key'], page=page)}
+    {_wf_head(wf)}
+    {_grouped_fields(wf["params"] or {})}
+    <div class="actions">
+      <label class="check"><input type="checkbox" id="run-now"> <span>提交后立即执行（占用 GPU，产生费用）</span></label>
+      <div class="row">
+        <button class="btn pri" id="submit-btn" type="submit">提交</button>
+        <a class="btn" href="{base}/{token}/app/jobs">任务列表</a>
+      </div>
+      <div class="hint">参数默认值来自 registry；提交前服务端会再校验一次（含兼容性）。</div>
     </div>
-    <div class="hint">参数默认值来自 registry；提交前服务端会再校验一次（含兼容性）。</div>
   </form>
-  <section class="card">
+  <section class="card result">
     <h2>结果</h2>
     <div id="state" class="state muted">还没有提交作业</div>
     <div id="results" class="results"></div>
   </section>
 </div>
-<h2 style="margin-top:26px;font-size:16px">最近作业</h2>
-<div class="recs">{recent_html}</div>
+<h2 class="sec">最近作业</h2>
+<div class="recs">{_recent_html(base, token)}</div>
 <script>window.__WF__ = {wf_json};</script>
 """
+
+
+def create_page(base: str, token: str, workflow: str = "") -> str:
+    wfs = api.image_workflows()
+    if not wfs:
+        body = ('<div class="card"><p class="empty">还没有 image 类工作流，'
+                '先跑 <code>p20ctl import</code>。</p></div>')
+        return shell(base, token, "/app/create", "创作台", body)
+    t2i = next((w["key"] for w in wfs if w["key"] == "zimage_turbo_t2i_hq"), wfs[0]["key"])
+    i2i = next((w["key"] for w in wfs if w["key"] == "zimage_turbo_img2img"), t2i)
+    aliases = {"t2i": t2i, "i2i": i2i}
+    requested = aliases.get(workflow or "", workflow or t2i)
+    wf = next((w for w in wfs if w["key"] == requested), None) \
+        or next(w for w in wfs if w["key"] == t2i)
+    tabs = (f'<div class="tabs">'
+            f'<a class="tab {"on" if wf["key"] == t2i else ""}" href="{base}/{token}/app/create?workflow=t2i">文生图</a>'
+            f'<a class="tab {"on" if wf["key"] == i2i else ""}" href="{base}/{token}/app/create?workflow=i2i">图生图</a>'
+            f'<a class="tab" href="{base}/{token}/app/video">视频</a></div>')
+    body = tabs + _create_body(base, token, wf, "image")
     return shell(base, token, "/app/create", f"创作台 · {wf['key']}", body)
+
+
+def video_page(base: str, token: str, workflow: str = "") -> str:
+    wfs = api.video_workflows()
+    if not wfs:
+        body = '<div class="card"><p class="empty">还没有 video 类工作流。</p></div>'
+        return shell(base, token, "/app/video", "视频台", body)
+    requested = workflow or wfs[0]["key"]
+    wf = next((w for w in wfs if w["key"] == requested), wfs[0])
+    tabs = (f'<div class="tabs">'
+            f'<a class="tab" href="{base}/{token}/app/create?workflow=t2i">文生图</a>'
+            f'<a class="tab" href="{base}/{token}/app/create?workflow=i2i">图生图</a>'
+            f'<a class="tab on" href="{base}/{token}/app/video">视频</a></div>')
+    body = tabs + _create_body(base, token, wf, "video")
+    return shell(base, token, "/app/video", f"视频台 · {wf['key']}", body)
 
 
 def jobs_page(base: str, token: str, state: str = "", q: str = "") -> str:
