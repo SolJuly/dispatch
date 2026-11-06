@@ -1,1119 +1,1126 @@
 {
-  "1321": {
-    "class_type": "LoraLoaderModelOnly",
-    "inputs": {
-      "lora_name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
-      "strength_model": 0.8,
-      "model": [
-        "1362",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1322": {
-    "class_type": "VAELoader",
-    "inputs": {
-      "vae_name": "Wan2_1_VAE_bf16.safetensors"
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1323": {
-    "class_type": "ResizeImageMaskNode",
-    "inputs": {
-      "input": [
-        "1340",
-        0
-      ],
-      "resize_type.width": [
-        "1343",
-        1
-      ],
-      "resize_type.height": [
-        "1344",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1324": {
-    "class_type": "GetVideoComponents",
-    "inputs": {
-      "video": [
-        "155",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1325": {
-    "class_type": "GetImageSize",
-    "inputs": {
-      "image": [
-        "1323",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1326": {
-    "class_type": "CLIPLoader",
-    "inputs": {
-      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
-      "type": "wan",
-      "device": "default"
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1327": {
-    "class_type": "CLIPVisionLoader",
-    "inputs": {},
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1328": {
-    "class_type": "UNETLoader",
-    "inputs": {
-      "unet_name": "wan2.1_14B_SCAIL_2_int8_convrot.safetensors",
-      "weight_dtype": "default"
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1329": {
-    "class_type": "ModelSamplingSD3",
-    "inputs": {
-      "shift": 5,
-      "model": [
-        "1337",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1330": {
-    "class_type": "KSamplerSelect",
-    "inputs": {
-      "sampler_name": "euler"
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1331": {
-    "class_type": "BasicScheduler",
-    "inputs": {
-      "scheduler": "simple",
-      "steps": [
-        "1338",
-        0
-      ],
-      "denoise": 1,
-      "model": [
-        "1321",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1332": {
-    "class_type": "SamplerCustom",
-    "inputs": {
-      "model": [
-        "1329",
-        0
-      ],
-      "positive": [
-        "1360",
-        0
-      ],
-      "negative": [
-        "1360",
-        1
-      ],
-      "sampler": [
-        "1330",
-        0
-      ],
-      "sigmas": [
-        "1331",
-        0
-      ],
-      "latent_image": [
-        "1360",
-        2
-      ],
-      "cfg": [
-        "1339",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1337": {
-    "class_type": "ComfySwitchNode",
-    "inputs": {
-      "on_false": [
-        "1362",
-        0
-      ],
-      "on_true": [
-        "1321",
-        0
-      ],
-      "switch": true
-    },
-    "_meta": {
-      "title": "Switch (Model)"
-    }
-  },
-  "1338": {
-    "class_type": "ComfySwitchNode",
-    "inputs": {
-      "on_false": 40,
-      "on_true": 6,
-      "switch": true
-    },
-    "_meta": {
-      "title": "Switch (Steps)"
-    }
-  },
-  "1339": {
-    "class_type": "ComfySwitchNode",
-    "inputs": {
-      "on_false": 5,
-      "on_true": 1,
-      "switch": true
-    },
-    "_meta": {
-      "title": "Switch (Steps)"
-    }
-  },
-  "1340": {
-    "class_type": "ImageFromBatch",
-    "inputs": {
-      "image": [
-        "1324",
-        0
-      ],
-      "batch_index": [
-        "1346",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1343": {
-    "class_type": "ComfyMathExpression",
-    "inputs": {
-      "values.a": 896
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1344": {
-    "class_type": "ComfyMathExpression",
-    "inputs": {
-      "values.a": 512
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1346": {
-    "class_type": "ComfyMathExpression",
-    "inputs": {
-      "values.a": 1
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1347": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "girl, handkerchief",
-      "clip": [
-        "1348",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1348": {
-    "class_type": "CheckpointLoaderSimple",
-    "inputs": {
-      "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1349": {
-    "class_type": "SAM3_VideoTrack",
-    "inputs": {
-      "images": [
-        "1323",
-        0
-      ],
-      "model": [
-        "1348",
-        0
-      ],
-      "conditioning": [
-        "1347",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1350": {
-    "class_type": "SCAIL2ColoredMask",
-    "inputs": {
-      "driving_track_data": [
-        "1349",
-        0
-      ],
-      "ref_track_data": [
-        "1351",
-        0
-      ],
-      "replacement_mode": true
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1351": {
-    "class_type": "SAM3_VideoTrack",
-    "inputs": {
-      "images": [
-        "30",
-        0
-      ],
-      "model": [
-        "1348",
-        0
-      ],
-      "conditioning": [
-        "1361",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1355": {
-    "class_type": "VAEDecode",
-    "inputs": {
-      "samples": [
-        "1332",
-        1
-      ],
-      "vae": [
-        "1322",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1357": {
-    "class_type": "CLIPVisionEncode",
-    "inputs": {
-      "clip_vision": [
-        "1327",
-        0
-      ],
-      "image": [
-        "30",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1358": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "",
-      "clip": [
-        "1326",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1359": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-neck top, is standing in a lush apple orchard. She holds a large glossy red apple with both hands, using a white paper handkerchief to wipe and clean the apple before smelling and eating it with her eyes closed and a blissful expression. Ripe red and yellow apples hang from leafy branches in the foreground, with rows of green apple trees softly blurred in the background under natural daylight.",
-      "clip": [
-        "1326",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1360": {
-    "class_type": "WanSCAILToVideo",
-    "inputs": {
-      "positive": [
-        "1359",
-        0
-      ],
-      "negative": [
-        "1358",
-        0
-      ],
-      "vae": [
-        "1322",
-        0
-      ],
-      "pose_video": [
-        "1323",
-        0
-      ],
-      "pose_video_mask": [
-        "1350",
-        0
-      ],
-      "reference_image": [
-        "30",
-        0
-      ],
-      "reference_image_mask": [
-        "1350",
-        1
-      ],
-      "clip_vision_output": [
-        "1357",
-        0
-      ],
-      "width": [
-        "1325",
-        0
-      ],
-      "height": [
-        "1325",
-        1
-      ],
-      "length": [
-        "1325",
-        2
-      ],
-      "replacement_mode": true
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1361": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "human",
-      "clip": [
-        "1348",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1362": {
-    "class_type": "LoraLoaderModelOnly",
-    "inputs": {
-      "lora_name": "wan2.1_SCAIL_2_DPO_lora_bf16.safetensors",
-      "strength_model": 1,
-      "model": [
-        "1328",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Base)"
-    }
-  },
-  "1363": {
-    "class_type": "LoraLoaderModelOnly",
-    "inputs": {
-      "lora_name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
-      "strength_model": 0.8,
-      "model": [
-        "1407",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1364": {
-    "class_type": "VAELoader",
-    "inputs": {
-      "vae_name": "Wan2_1_VAE_bf16.safetensors"
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1365": {
-    "class_type": "ResizeImageMaskNode",
-    "inputs": {
-      "input": [
-        "1382",
-        0
-      ],
-      "resize_type.width": [
-        "1385",
-        1
-      ],
-      "resize_type.height": [
-        "1386",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1366": {
-    "class_type": "GetVideoComponents",
-    "inputs": {
-      "video": [
-        "155",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1367": {
-    "class_type": "GetImageSize",
-    "inputs": {
-      "image": [
-        "1365",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1368": {
-    "class_type": "CLIPLoader",
-    "inputs": {
-      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
-      "type": "wan",
-      "device": "default"
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1369": {
-    "class_type": "CLIPVisionLoader",
-    "inputs": {},
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1370": {
-    "class_type": "UNETLoader",
-    "inputs": {
-      "unet_name": "wan2.1_14B_SCAIL_2_int8_convrot.safetensors",
-      "weight_dtype": "default"
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1371": {
-    "class_type": "ModelSamplingSD3",
-    "inputs": {
-      "shift": 5,
-      "model": [
-        "1379",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1372": {
-    "class_type": "KSamplerSelect",
-    "inputs": {
-      "sampler_name": "euler"
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1373": {
-    "class_type": "BasicScheduler",
-    "inputs": {
-      "scheduler": "simple",
-      "steps": [
-        "1380",
-        0
-      ],
-      "denoise": 1,
-      "model": [
-        "1363",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1374": {
-    "class_type": "SamplerCustom",
-    "inputs": {
-      "model": [
-        "1371",
-        0
-      ],
-      "positive": [
-        "1405",
-        0
-      ],
-      "negative": [
-        "1405",
-        1
-      ],
-      "sampler": [
-        "1372",
-        0
-      ],
-      "sigmas": [
-        "1373",
-        0
-      ],
-      "latent_image": [
-        "1405",
-        2
-      ],
-      "cfg": [
-        "1381",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1379": {
-    "class_type": "ComfySwitchNode",
-    "inputs": {
-      "on_false": [
-        "1407",
-        0
-      ],
-      "on_true": [
-        "1363",
-        0
-      ],
-      "switch": true
-    },
-    "_meta": {
-      "title": "Switch (Model)"
-    }
-  },
-  "1380": {
-    "class_type": "ComfySwitchNode",
-    "inputs": {
-      "on_false": 40,
-      "on_true": 6,
-      "switch": true
-    },
-    "_meta": {
-      "title": "Switch (Steps)"
-    }
-  },
-  "1381": {
-    "class_type": "ComfySwitchNode",
-    "inputs": {
-      "on_false": 5,
-      "on_true": 1,
-      "switch": true
-    },
-    "_meta": {
-      "title": "Switch (Steps)"
-    }
-  },
-  "1382": {
-    "class_type": "ImageFromBatch",
-    "inputs": {
-      "image": [
-        "1366",
-        0
-      ],
-      "batch_index": [
-        "1388",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1385": {
-    "class_type": "ComfyMathExpression",
-    "inputs": {
-      "values.a": 896
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1386": {
-    "class_type": "ComfyMathExpression",
-    "inputs": {
-      "values.a": 512
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1388": {
-    "class_type": "ComfyMathExpression",
-    "inputs": {
-      "values.a": 2
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1389": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "girl, handkerchief",
-      "clip": [
-        "1390",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1390": {
-    "class_type": "CheckpointLoaderSimple",
-    "inputs": {
-      "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1391": {
-    "class_type": "SAM3_VideoTrack",
-    "inputs": {
-      "images": [
-        "1365",
-        0
-      ],
-      "model": [
-        "1390",
-        0
-      ],
-      "conditioning": [
-        "1389",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1392": {
-    "class_type": "SCAIL2ColoredMask",
-    "inputs": {
-      "driving_track_data": [
-        "1391",
-        0
-      ],
-      "ref_track_data": [
-        "1393",
-        0
-      ],
-      "replacement_mode": true
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1393": {
-    "class_type": "SAM3_VideoTrack",
-    "inputs": {
-      "images": [
-        "30",
-        0
-      ],
-      "model": [
-        "1390",
-        0
-      ],
-      "conditioning": [
-        "1406",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1397": {
-    "class_type": "VAEDecode",
-    "inputs": {
-      "samples": [
-        "1374",
-        1
-      ],
-      "vae": [
-        "1364",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1398": {
-    "class_type": "ImageFromBatch",
-    "inputs": {
-      "image": [
-        "1397",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1399": {
-    "class_type": "ColorTransfer",
-    "inputs": {
-      "image_target": [
-        "1398",
-        0
-      ],
-      "image_ref": [
-        "1400",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1400": {
-    "class_type": "ImageFromBatch",
-    "inputs": {},
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1402": {
-    "class_type": "CLIPVisionEncode",
-    "inputs": {
-      "clip_vision": [
-        "1369",
-        0
-      ],
-      "image": [
-        "30",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1403": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "",
-      "clip": [
-        "1368",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1404": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-neck top, is standing in a lush apple orchard. She holds a large glossy red apple with both hands, using a white paper handkerchief to wipe and clean the apple before smelling and eating it with her eyes closed and a blissful expression. Ripe red and yellow apples hang from leafy branches in the foreground, with rows of green apple trees softly blurred in the background under natural daylight.",
-      "clip": [
-        "1368",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1405": {
-    "class_type": "WanSCAILToVideo",
-    "inputs": {
-      "positive": [
-        "1404",
-        0
-      ],
-      "negative": [
-        "1403",
-        0
-      ],
-      "vae": [
-        "1364",
-        0
-      ],
-      "pose_video": [
-        "1365",
-        0
-      ],
-      "pose_video_mask": [
-        "1392",
-        0
-      ],
-      "reference_image": [
-        "30",
-        0
-      ],
-      "reference_image_mask": [
-        "1392",
-        1
-      ],
-      "clip_vision_output": [
-        "1402",
-        0
-      ],
-      "width": [
-        "1367",
-        0
-      ],
-      "height": [
-        "1367",
-        1
-      ],
-      "length": [
-        "1367",
-        2
-      ],
-      "replacement_mode": true
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1406": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "human",
-      "clip": [
-        "1390",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "1407": {
-    "class_type": "LoraLoaderModelOnly",
-    "inputs": {
-      "lora_name": "wan2.1_SCAIL_2_DPO_lora_bf16.safetensors",
-      "strength_model": 1,
-      "model": [
-        "1370",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Character Replacement (SCAIL-2 Int8 Extend)"
-    }
-  },
-  "155": {
-    "class_type": "LoadVideo",
-    "inputs": {
-      "file": "girl_eats_apple.mp4"
-    },
-    "_meta": {
-      "title": "LoadVideo"
-    }
-  },
-  "201": {
-    "class_type": "CreateVideo",
-    "inputs": {
-      "fps": [
-        "215",
-        2
-      ],
-      "bit_depth": 8,
-      "images": [
-        "1355",
-        0
-      ],
-      "audio": [
-        "215",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "CreateVideo"
-    }
-  },
-  "202": {
-    "class_type": "SaveVideo",
-    "inputs": {
-      "filename_prefix": "video/ComfyUI",
-      "format": "auto",
-      "codec": "auto",
-      "video": [
-        "201",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Save Video (First Segement)"
-    }
-  },
-  "215": {
-    "class_type": "GetVideoComponents",
-    "inputs": {
-      "video": [
-        "155",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "GetVideoComponents"
-    }
-  },
-  "263": {
-    "class_type": "GetImageSize",
-    "inputs": {
-      "image": [
-        "215",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "GetImageSize"
-    }
-  },
-  "264": {
-    "class_type": "ComfyMathExpression",
-    "inputs": {
-      "values.a": [
-        "263",
-        2
-      ]
-    },
-    "_meta": {
-      "title": "ComfyMathExpression"
-    }
-  },
-  "269": {
-    "class_type": "BatchImagesNode",
-    "inputs": {
-      "images.image0": [
-        "1355",
-        0
-      ],
-      "images.image1": [
-        "1399",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "BatchImagesNode"
-    }
-  },
-  "270": {
-    "class_type": "CreateVideo",
-    "inputs": {
-      "fps": [
-        "215",
-        2
-      ],
-      "bit_depth": 8,
-      "images": [
-        "269",
-        0
-      ],
-      "audio": [
-        "215",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "CreateVideo"
-    }
-  },
-  "271": {
-    "class_type": "SaveVideo",
-    "inputs": {
-      "filename_prefix": "video/SCAIL2",
-      "format": "auto",
-      "codec": "auto",
-      "video": [
-        "270",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Save Video (Final output)"
-    }
-  },
-  "30": {
-    "class_type": "LoadImage",
-    "inputs": {
-      "image": "asian_model_in_white_clothes.png"
-    },
-    "_meta": {
-      "title": "LoadImage"
-    }
+ "1321": {
+  "class_type": "LoraLoaderModelOnly",
+  "inputs": {
+   "lora_name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+   "strength_model": 0.8,
+   "model": [
+    "1362",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
   }
+ },
+ "1322": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "Wan2_1_VAE_bf16.safetensors"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1323": {
+  "class_type": "ResizeImageMaskNode",
+  "inputs": {
+   "input": [
+    "1340",
+    0
+   ],
+   "resize_type.width": [
+    "1343",
+    1
+   ],
+   "resize_type.height": [
+    "1344",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1324": {
+  "class_type": "GetVideoComponents",
+  "inputs": {
+   "video": [
+    "155",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1325": {
+  "class_type": "GetImageSize",
+  "inputs": {
+   "image": [
+    "1323",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1326": {
+  "class_type": "CLIPLoader",
+  "inputs": {
+   "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+   "type": "wan",
+   "device": "default"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1327": {
+  "class_type": "CLIPVisionLoader",
+  "inputs": {},
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1328": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "wan2.1_14B_SCAIL_2_int8_convrot.safetensors",
+   "weight_dtype": "default"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1329": {
+  "class_type": "ModelSamplingSD3",
+  "inputs": {
+   "shift": 5,
+   "model": [
+    "1337",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1330": {
+  "class_type": "KSamplerSelect",
+  "inputs": {
+   "sampler_name": "euler"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1331": {
+  "class_type": "BasicScheduler",
+  "inputs": {
+   "scheduler": "simple",
+   "steps": [
+    "1338",
+    0
+   ],
+   "denoise": 1,
+   "model": [
+    "1321",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1332": {
+  "class_type": "SamplerCustom",
+  "inputs": {
+   "model": [
+    "1329",
+    0
+   ],
+   "positive": [
+    "1360",
+    0
+   ],
+   "negative": [
+    "1360",
+    1
+   ],
+   "sampler": [
+    "1330",
+    0
+   ],
+   "sigmas": [
+    "1331",
+    0
+   ],
+   "latent_image": [
+    "1360",
+    2
+   ],
+   "cfg": [
+    "1339",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1337": {
+  "class_type": "ComfySwitchNode",
+  "inputs": {
+   "on_false": [
+    "1362",
+    0
+   ],
+   "on_true": [
+    "1321",
+    0
+   ],
+   "switch": true
+  },
+  "_meta": {
+   "title": "Switch (Model)"
+  }
+ },
+ "1338": {
+  "class_type": "ComfySwitchNode",
+  "inputs": {
+   "on_false": 40,
+   "on_true": 6,
+   "switch": true
+  },
+  "_meta": {
+   "title": "Switch (Steps)"
+  }
+ },
+ "1339": {
+  "class_type": "ComfySwitchNode",
+  "inputs": {
+   "on_false": 5,
+   "on_true": 1,
+   "switch": true
+  },
+  "_meta": {
+   "title": "Switch (Steps)"
+  }
+ },
+ "1340": {
+  "class_type": "ImageFromBatch",
+  "inputs": {
+   "image": [
+    "1324",
+    0
+   ],
+   "batch_index": [
+    "1346",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1343": {
+  "class_type": "ComfyMathExpression",
+  "inputs": {
+   "values.a": 896,
+   "expression": "a"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1344": {
+  "class_type": "ComfyMathExpression",
+  "inputs": {
+   "values.a": 512,
+   "expression": "a"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1346": {
+  "class_type": "ComfyMathExpression",
+  "inputs": {
+   "values.a": 1,
+   "expression": "a"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1347": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "girl, handkerchief",
+   "clip": [
+    "1348",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1348": {
+  "class_type": "CheckpointLoaderSimple",
+  "inputs": {
+   "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1349": {
+  "class_type": "SAM3_VideoTrack",
+  "inputs": {
+   "images": [
+    "1323",
+    0
+   ],
+   "model": [
+    "1348",
+    0
+   ],
+   "conditioning": [
+    "1347",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1350": {
+  "class_type": "SCAIL2ColoredMask",
+  "inputs": {
+   "driving_track_data": [
+    "1349",
+    0
+   ],
+   "ref_track_data": [
+    "1351",
+    0
+   ],
+   "replacement_mode": true
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1351": {
+  "class_type": "SAM3_VideoTrack",
+  "inputs": {
+   "images": [
+    "30",
+    0
+   ],
+   "model": [
+    "1348",
+    0
+   ],
+   "conditioning": [
+    "1361",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1355": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "1332",
+    1
+   ],
+   "vae": [
+    "1322",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1357": {
+  "class_type": "CLIPVisionEncode",
+  "inputs": {
+   "clip_vision": [
+    "1327",
+    0
+   ],
+   "image": [
+    "30",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1358": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "",
+   "clip": [
+    "1326",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1359": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-neck top, is standing in a lush apple orchard. She holds a large glossy red apple with both hands, using a white paper handkerchief to wipe and clean the apple before smelling and eating it with her eyes closed and a blissful expression. Ripe red and yellow apples hang from leafy branches in the foreground, with rows of green apple trees softly blurred in the background under natural daylight.",
+   "clip": [
+    "1326",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1360": {
+  "class_type": "WanSCAILToVideo",
+  "inputs": {
+   "positive": [
+    "1359",
+    0
+   ],
+   "negative": [
+    "1358",
+    0
+   ],
+   "vae": [
+    "1322",
+    0
+   ],
+   "pose_video": [
+    "1323",
+    0
+   ],
+   "pose_video_mask": [
+    "1350",
+    0
+   ],
+   "reference_image": [
+    "30",
+    0
+   ],
+   "reference_image_mask": [
+    "1350",
+    1
+   ],
+   "clip_vision_output": [
+    "1357",
+    0
+   ],
+   "width": [
+    "1325",
+    0
+   ],
+   "height": [
+    "1325",
+    1
+   ],
+   "length": [
+    "1325",
+    2
+   ],
+   "replacement_mode": true
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1361": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "human",
+   "clip": [
+    "1348",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1362": {
+  "class_type": "LoraLoaderModelOnly",
+  "inputs": {
+   "lora_name": "wan2.1_SCAIL_2_DPO_lora_bf16.safetensors",
+   "strength_model": 1,
+   "model": [
+    "1328",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Base)"
+  }
+ },
+ "1363": {
+  "class_type": "LoraLoaderModelOnly",
+  "inputs": {
+   "lora_name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+   "strength_model": 0.8,
+   "model": [
+    "1407",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1364": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "Wan2_1_VAE_bf16.safetensors"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1365": {
+  "class_type": "ResizeImageMaskNode",
+  "inputs": {
+   "input": [
+    "1382",
+    0
+   ],
+   "resize_type.width": [
+    "1385",
+    1
+   ],
+   "resize_type.height": [
+    "1386",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1366": {
+  "class_type": "GetVideoComponents",
+  "inputs": {
+   "video": [
+    "155",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1367": {
+  "class_type": "GetImageSize",
+  "inputs": {
+   "image": [
+    "1365",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1368": {
+  "class_type": "CLIPLoader",
+  "inputs": {
+   "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+   "type": "wan",
+   "device": "default"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1369": {
+  "class_type": "CLIPVisionLoader",
+  "inputs": {},
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1370": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "wan2.1_14B_SCAIL_2_int8_convrot.safetensors",
+   "weight_dtype": "default"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1371": {
+  "class_type": "ModelSamplingSD3",
+  "inputs": {
+   "shift": 5,
+   "model": [
+    "1379",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1372": {
+  "class_type": "KSamplerSelect",
+  "inputs": {
+   "sampler_name": "euler"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1373": {
+  "class_type": "BasicScheduler",
+  "inputs": {
+   "scheduler": "simple",
+   "steps": [
+    "1380",
+    0
+   ],
+   "denoise": 1,
+   "model": [
+    "1363",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1374": {
+  "class_type": "SamplerCustom",
+  "inputs": {
+   "model": [
+    "1371",
+    0
+   ],
+   "positive": [
+    "1405",
+    0
+   ],
+   "negative": [
+    "1405",
+    1
+   ],
+   "sampler": [
+    "1372",
+    0
+   ],
+   "sigmas": [
+    "1373",
+    0
+   ],
+   "latent_image": [
+    "1405",
+    2
+   ],
+   "cfg": [
+    "1381",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1379": {
+  "class_type": "ComfySwitchNode",
+  "inputs": {
+   "on_false": [
+    "1407",
+    0
+   ],
+   "on_true": [
+    "1363",
+    0
+   ],
+   "switch": true
+  },
+  "_meta": {
+   "title": "Switch (Model)"
+  }
+ },
+ "1380": {
+  "class_type": "ComfySwitchNode",
+  "inputs": {
+   "on_false": 40,
+   "on_true": 6,
+   "switch": true
+  },
+  "_meta": {
+   "title": "Switch (Steps)"
+  }
+ },
+ "1381": {
+  "class_type": "ComfySwitchNode",
+  "inputs": {
+   "on_false": 5,
+   "on_true": 1,
+   "switch": true
+  },
+  "_meta": {
+   "title": "Switch (Steps)"
+  }
+ },
+ "1382": {
+  "class_type": "ImageFromBatch",
+  "inputs": {
+   "image": [
+    "1366",
+    0
+   ],
+   "batch_index": [
+    "1388",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1385": {
+  "class_type": "ComfyMathExpression",
+  "inputs": {
+   "values.a": 896,
+   "expression": "a"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1386": {
+  "class_type": "ComfyMathExpression",
+  "inputs": {
+   "values.a": 512,
+   "expression": "a"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1388": {
+  "class_type": "ComfyMathExpression",
+  "inputs": {
+   "values.a": 2,
+   "expression": "a"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1389": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "girl, handkerchief",
+   "clip": [
+    "1390",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1390": {
+  "class_type": "CheckpointLoaderSimple",
+  "inputs": {
+   "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1391": {
+  "class_type": "SAM3_VideoTrack",
+  "inputs": {
+   "images": [
+    "1365",
+    0
+   ],
+   "model": [
+    "1390",
+    0
+   ],
+   "conditioning": [
+    "1389",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1392": {
+  "class_type": "SCAIL2ColoredMask",
+  "inputs": {
+   "driving_track_data": [
+    "1391",
+    0
+   ],
+   "ref_track_data": [
+    "1393",
+    0
+   ],
+   "replacement_mode": true
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1393": {
+  "class_type": "SAM3_VideoTrack",
+  "inputs": {
+   "images": [
+    "30",
+    0
+   ],
+   "model": [
+    "1390",
+    0
+   ],
+   "conditioning": [
+    "1406",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1397": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "1374",
+    1
+   ],
+   "vae": [
+    "1364",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1398": {
+  "class_type": "ImageFromBatch",
+  "inputs": {
+   "image": [
+    "1397",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1399": {
+  "class_type": "ColorTransfer",
+  "inputs": {
+   "image_target": [
+    "1398",
+    0
+   ],
+   "image_ref": [
+    "1400",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1400": {
+  "class_type": "ImageFromBatch",
+  "inputs": {},
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1402": {
+  "class_type": "CLIPVisionEncode",
+  "inputs": {
+   "clip_vision": [
+    "1369",
+    0
+   ],
+   "image": [
+    "30",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1403": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "",
+   "clip": [
+    "1368",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1404": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-neck top, is standing in a lush apple orchard. She holds a large glossy red apple with both hands, using a white paper handkerchief to wipe and clean the apple before smelling and eating it with her eyes closed and a blissful expression. Ripe red and yellow apples hang from leafy branches in the foreground, with rows of green apple trees softly blurred in the background under natural daylight.",
+   "clip": [
+    "1368",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1405": {
+  "class_type": "WanSCAILToVideo",
+  "inputs": {
+   "positive": [
+    "1404",
+    0
+   ],
+   "negative": [
+    "1403",
+    0
+   ],
+   "vae": [
+    "1364",
+    0
+   ],
+   "pose_video": [
+    "1365",
+    0
+   ],
+   "pose_video_mask": [
+    "1392",
+    0
+   ],
+   "reference_image": [
+    "30",
+    0
+   ],
+   "reference_image_mask": [
+    "1392",
+    1
+   ],
+   "clip_vision_output": [
+    "1402",
+    0
+   ],
+   "width": [
+    "1367",
+    0
+   ],
+   "height": [
+    "1367",
+    1
+   ],
+   "length": [
+    "1367",
+    2
+   ],
+   "replacement_mode": true
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1406": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "human",
+   "clip": [
+    "1390",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "1407": {
+  "class_type": "LoraLoaderModelOnly",
+  "inputs": {
+   "lora_name": "wan2.1_SCAIL_2_DPO_lora_bf16.safetensors",
+   "strength_model": 1,
+   "model": [
+    "1370",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2 Int8 Extend)"
+  }
+ },
+ "155": {
+  "class_type": "LoadVideo",
+  "inputs": {
+   "file": "girl_eats_apple.mp4"
+  },
+  "_meta": {
+   "title": "LoadVideo"
+  }
+ },
+ "201": {
+  "class_type": "CreateVideo",
+  "inputs": {
+   "fps": [
+    "215",
+    2
+   ],
+   "bit_depth": 8,
+   "images": [
+    "1355",
+    0
+   ],
+   "audio": [
+    "215",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "CreateVideo"
+  }
+ },
+ "202": {
+  "class_type": "SaveVideo",
+  "inputs": {
+   "filename_prefix": "video/ComfyUI",
+   "format": "auto",
+   "codec": "auto",
+   "video": [
+    "201",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Save Video (First Segement)"
+  }
+ },
+ "215": {
+  "class_type": "GetVideoComponents",
+  "inputs": {
+   "video": [
+    "155",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "GetVideoComponents"
+  }
+ },
+ "263": {
+  "class_type": "GetImageSize",
+  "inputs": {
+   "image": [
+    "215",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "GetImageSize"
+  }
+ },
+ "264": {
+  "class_type": "ComfyMathExpression",
+  "inputs": {
+   "values.a": [
+    "263",
+    2
+   ],
+   "expression": "a"
+  },
+  "_meta": {
+   "title": "ComfyMathExpression"
+  }
+ },
+ "269": {
+  "class_type": "BatchImagesNode",
+  "inputs": {
+   "images.image0": [
+    "1355",
+    0
+   ],
+   "images.image1": [
+    "1399",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "BatchImagesNode"
+  }
+ },
+ "270": {
+  "class_type": "CreateVideo",
+  "inputs": {
+   "fps": [
+    "215",
+    2
+   ],
+   "bit_depth": 8,
+   "images": [
+    "269",
+    0
+   ],
+   "audio": [
+    "215",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "CreateVideo"
+  }
+ },
+ "271": {
+  "class_type": "SaveVideo",
+  "inputs": {
+   "filename_prefix": "video/SCAIL2",
+   "format": "auto",
+   "codec": "auto",
+   "video": [
+    "270",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Save Video (Final output)"
+  }
+ },
+ "30": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "asian_model_in_white_clothes.png"
+  },
+  "_meta": {
+   "title": "LoadImage"
+  }
+ }
 }

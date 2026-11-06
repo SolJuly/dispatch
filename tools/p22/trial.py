@@ -33,10 +33,7 @@ OUT = ROOT / "reports/p2/p21/evidence/exp-trial.json"
 
 VERIFIED_DONE = {"zimage_turbo_t2i", "qwen_image_edit_2509", "seedvr2_3b_upscale",
                  "pack_video_wan2_2_14b_i2v"}
-SUPERSEDED = {"pack_image_z_image_turbo", "pack_image_z_image_turbo_fun_union_controlnet",
-              "pack_image_flux2_klein_text_to_image", "pack_image_qwen_image_edit_2509",
-              "pack_utility_seedvr2_3b_int8_upscale_image",
-              "pack_utility_seedvr2_3b_int8_upscale_video"}
+SUPERSEDED: set[str] = set()  # 旧的 6 条已删除
 
 FILL = {"prompt": "a cinematic photo of a young woman by the sea at sunset, 85mm, detailed skin",
         "negative_prompt": "", "neg_prompt": "", "seed": 42,

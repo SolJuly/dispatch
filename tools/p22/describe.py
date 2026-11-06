@@ -18,11 +18,7 @@ sys.path.insert(0, str(ROOT))
 VERIFIED_NOTE = "✅ 可使用"
 EXP_NOTE = "🚧 尚未开发"
 
-SUPERSEDED = {
-    "pack_image_z_image_turbo", "pack_image_z_image_turbo_fun_union_controlnet",
-    "pack_image_flux2_klein_text_to_image", "pack_image_qwen_image_edit_2509",
-    "pack_utility_seedvr2_3b_int8_upscale_image", "pack_utility_seedvr2_3b_int8_upscale_video",
-}
+SUPERSEDED: set[str] = set()  # 旧的 6 条已删除
 
 # key: (name, description)
 CATALOG = {
