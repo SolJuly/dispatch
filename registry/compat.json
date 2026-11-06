@@ -301,6 +301,28 @@
       ],
       "verified_at": "2026-11-06",
       "notes": "266.7s，4 帧参考，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_wan_animate2",
+      "model": "wan_animate_2_int8_convrot",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "196.8s，动作迁移，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_wan_animate2_distilled",
+      "model": "wan_animate_2_distill_int8_convrot",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "257.1s，蒸馏加速版动作迁移，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
     }
   ]
 }

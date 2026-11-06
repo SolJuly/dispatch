@@ -28,3 +28,5 @@ vae	gemma4_e2b_it_int8_convrot.safetensors	/model/HuggingFace/Comfy-Org/gemma-4/
 vae	qwen_image_layered_vae.safetensors	/model/ModelScope/Comfy-Org/Qwen-Image-Layered_ComfyUI/split_files/vae/qwen_image_layered_vae.safetensors
 vae	qwen_std_vae.safetensors	/model/ModelScope/FireRedTeam/FireRed-Image-Edit-1.1-ComfyUI/qwen_image_vae.safetensors
 vae	ziamge_ae.safetensors	/model/ModelScope/Comfy-Org/z_image_turbo/split_files/vae/ae.safetensors
+diffusion_models	wan_animate_2_distill_int8_convrot.safetensors	/model/comfyui/models/diffusion_models/wan-animate2/wan_animate_2_distill_int8_convrot.safetensors
+diffusion_models	wan_animate_2_int8_convrot.safetensors	/model/HuggingFace/Comfy-Org/Wan-Animate-2/diffusion_models/wan_animate_2_int8_convrot.safetensors
