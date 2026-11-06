@@ -11,7 +11,7 @@ from __future__ import annotations
 import base64
 import subprocess
 
-IMAGE_ID = "compshareImage-1xc7km2mb0ob"
+IMAGE_ID = "compshareImage-1xdh3lcu5dvu"
 
 
 def inst(uid: str):

@@ -27,7 +27,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT_DIR = ROOT / "reports/p2/p21/evidence"
-IMAGE_ID = "compshareImage-1xc7km2mb0ob"   # p2-comfy-media-v3
+IMAGE_ID = "compshareImage-1xdh3lcu5dvu"   # p2-comfy-media-v3
 GPU = "V100S"
 CPU, MEM = 10, 64
 

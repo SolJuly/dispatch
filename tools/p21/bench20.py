@@ -32,7 +32,7 @@ from tools.p20 import comfy as p20comfy  # noqa: E402
 from tools.p20 import registry as p20registry  # noqa: E402
 from tools.p20 import render as p20render  # noqa: E402
 
-BASE_IMAGE = "compshareImage-1xc7km2mb0ob"
+BASE_IMAGE = "compshareImage-1xdh3lcu5dvu"
 OUT_DIR = ROOT / "reports/p2/p21/evidence"
 ART_ROOT = ROOT / "reports/p2/p21/bench"
 

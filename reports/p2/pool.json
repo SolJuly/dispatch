@@ -2,7 +2,7 @@
   "schema": "p2.pool/v1",
   "gpu": "V100S",
   "size": 1,
-  "image_id": "compshareImage-1xc7km2mb0ob",
+  "image_id": "compshareImage-1xdh3lcu5dvu",
   "max_total": 3,
   "instances": []
 }
