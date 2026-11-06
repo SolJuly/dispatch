@@ -145,9 +145,18 @@ def list_jobs(limit: int = 20, *, offset: int = 0, state_prefix: str = "", workf
             hay = f"{job.get('job_id','')} {json.dumps(job.get('params') or {}, ensure_ascii=False)}"
             if q.lower() not in hay.lower():
                 continue
+        cost = None
+        mf = d / "manifest.json"
+        if mf.exists():
+            try:
+                cost = (json.loads(mf.read_text(encoding="utf-8")).get("cost") or {})
+            except (OSError, json.JSONDecodeError):
+                cost = {}
         rows.append({
             "job_id": job.get("job_id"),
             "state": st,
+            "cost": (cost or {}).get("amount"),
+            "minutes": (cost or {}).get("minutes"),
             "workflow": wk,
             "workflow_version": ((job.get("model") or {}).get("registry") or {}).get("workflow_version"),
             "model": (job.get("model") or {}).get("key"),
@@ -215,8 +224,16 @@ def maybe_publish(job_id: str, job: dict) -> None:
 def get_job(job_id: str, jobs_dir: Path | None = None) -> dict:
     job = _load_job(job_id, jobs_dir)
     maybe_publish(job_id, job)
+    cost = None
+    mf = _jobs_dir(jobs_dir) / job_id / "manifest.json"
+    if mf.exists():
+        try:
+            cost = (json.loads(mf.read_text(encoding="utf-8")).get("cost") or {})
+        except (OSError, json.JSONDecodeError):
+            cost = None
     return {
         "job": job,
+        "cost": cost,
         "artifacts": _artifacts(job_id, jobs_dir),
         "workflow": _workflow_key(job),
         "terminal": job.get("state") in jobstate.TERMINAL,

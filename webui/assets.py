@@ -45,7 +45,8 @@ background:var(--card);color:var(--fg);cursor:pointer;font:inherit}
 .thumb .meta{background:var(--card);padding:8px 10px;font-size:12px;display:flex;gap:8px;flex-wrap:wrap}
 table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 th,td{text-align:left;padding:9px 11px;border-bottom:1px solid #eef1f4;font-size:13.5px;vertical-align:middle}
-th{background:#fafbfc;color:var(--mut);font-weight:600}
+th{background:#fafbfc;color:var(--mut);font-weight:600;white-space:nowrap}
+td code{white-space:nowrap}
 tr:last-child td{border-bottom:none}
 table.kv th{width:180px}
 .state{font-size:14px;margin:6px 0}

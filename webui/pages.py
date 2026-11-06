@@ -271,11 +271,11 @@ def jobs_page(base: str, token: str, state: str = "", q: str = "") -> str:
             f'<tr><td><input type="checkbox" class="job-check" value="{jid}" style="width:auto"></td>'
             f'<td><a href="{base}/{token}/app/jobs/{jid}"><code>{C.esc(jid)}</code></a></td>'
             f'<td>{C.badge(r["state"])}</td><td>{C.esc(r["workflow"])} v{C.esc(r["workflow_version"])}</td>'
-            f'<td>{C.esc(r["model"])}</td><td>{r["artifacts"]} 张</td>'
+            f'<td>{C.esc(r["model"])}</td><td>{r["artifacts"]} 张</td><td>{C.esc(C.money(r.get("cost")))}</td>'
             f'<td>{C.esc(C.human_time(r["created_at"]))}</td>'
             f'<td><a href="{base}/{token}/app/jobs/{jid}">详情</a></td></tr>')
     table = (f'<table><tr><th style="width:36px"></th><th>作业</th><th>状态</th><th>工作流</th><th>模型</th>'
-             f'<th>产物</th><th>创建</th><th></th></tr>{"".join(trs)}</table>') if trs else \
+             f'<th>产物</th><th>花费</th><th>创建</th><th></th></tr>{"".join(trs)}</table>') if trs else \
         '<div class="card"><p class="empty">还没有作业，去创作台提交一个。</p></div>'
     filters = f"""
 <div class="row" style="margin-bottom:12px">
@@ -305,6 +305,7 @@ def detail_page(base: str, token: str, job_id: str) -> str:
         ("工作流", f'{C.esc(reg.get("workflow_key"))} v{C.esc(reg.get("workflow_version"))}'),
         ("模型", f'{C.esc(reg.get("model_key"))} v{C.esc(reg.get("model_version"))}'),
         ("params_hash", f'<code>{C.esc((job.get("params_hash") or "")[:16])}</code>'),
+        ("花费", C.esc(C.money((data.get("cost") or {}).get("amount")))),
         ("创建时间", C.esc(C.human_time(job.get("created_at")))),
     ])
     steps = (job.get("steps") or {})

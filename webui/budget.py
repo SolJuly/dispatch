@@ -30,7 +30,13 @@ DEFAULT_REF = (300, 81, 640, 640)
 
 
 def _scale(params: dict, ref_frames: int, ref_w: int, ref_h: int) -> float:
-    frames = params.get("frames") or params.get("length") or ref_frames
+    frames = params.get("frames") or params.get("length")
+    if not frames and params.get("duration"):
+        try:
+            frames = int(params["duration"]) * 16 + 1
+        except (TypeError, ValueError):
+            frames = ref_frames
+    frames = frames or ref_frames
     w = params.get("width") or ref_w
     h = params.get("height") or ref_h
     try:

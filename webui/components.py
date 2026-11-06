@@ -108,6 +108,13 @@ def fmt_bytes(n: int | None) -> str:
     return f"{n} B"
 
 
+def money(v) -> str:
+    try:
+        return f"¥{float(v):.3f}" if v is not None else "—"
+    except (TypeError, ValueError):
+        return "—"
+
+
 def human_time(iso: str | None) -> str:
     if not iso:
         return "—"
