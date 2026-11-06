@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_image_qwen_image_layered",
- "name": "图层分离 · Qwen-Image Layered（实验）",
- "description": "把一张图拆成前景/背景等图层，便于分别修改。输入：1 张图；输出：多层结果。当前缺 CLIP 软链，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "图层分离 · Qwen-Image Layered（尚未开发）",
+ "description": "把一张图拆成前景/背景等图层，便于分别修改。输入：1 张图；输出：多层结果。当前缺 CLIP 软链。（🚧 尚未开发）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

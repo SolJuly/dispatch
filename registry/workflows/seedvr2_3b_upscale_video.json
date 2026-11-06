@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "seedvr2_3b_upscale_video",
  "name": "视频放大 · SeedVR2 3B（短边到 1080）",
- "description": "逐帧还原放大视频。输入：MP4；输出：1080p MP4。（✅ 已验证）",
+ "description": "逐帧还原放大视频。输入：MP4；输出：1080p MP4。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_utility_z_image_turbo_2k_upscaler_app",
  "name": "2K 精绘 · Z-Image-Turbo（8 步 + 细化）",
- "description": "先出 1024 再细化到 2048。输入：提示词；输出：2048×2048 PNG。（✅ 已验证）",
+ "description": "先出 1024 再细化到 2048。输入：提示词；输出：2048×2048 PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_video_ltx2_3_i2v",
- "name": "图生视频 · LTX 2.3（带原生音频，实验）",
- "description": "单图生成带音频的视频。输入：首帧图 + 提示词；输出：MP4。缺 LoRA 权重，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "图生视频 · LTX 2.3（带原生音频，尚未开发）",
+ "description": "单图生成带音频的视频。输入：首帧图 + 提示词；输出：MP4。缺 LoRA 权重。（🚧 尚未开发）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

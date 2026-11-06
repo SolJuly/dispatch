@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_image_qwen_image_2_1_image_edit",
- "name": "语义编辑 · Qwen-Image 2.1（换脸/换装，实验）",
- "description": "按指令改图，支持多参考保持一致性。输入：底图 + 参考图 + 指令；输出：编辑图。当前缺核心节点，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "语义编辑 · Qwen-Image 2.1（换脸/换装，尚未开发）",
+ "description": "按指令改图，支持多参考保持一致性。输入：底图 + 参考图 + 指令；输出：编辑图。当前缺核心节点。（🚧 尚未开发）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

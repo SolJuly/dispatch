@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "qwen_image_t2i_portrait",
  "name": "文生图竖版 · Qwen-Image 768×1024",
- "description": "固定竖版尺寸，适合人像/海报。输入：提示词；输出：768×1024 PNG。（✅ 已验证）",
+ "description": "固定竖版尺寸，适合人像/海报。输入：提示词；输出：768×1024 PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

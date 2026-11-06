@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "wan21_i2v_480p",
  "name": "图生视频 · Wan2.1 480P（49 帧）",
- "description": "首帧生成约 3 秒 480P 视频。输入：首帧图 + 提示词；输出：MP4。（✅ 已验证）",
+ "description": "首帧生成约 3 秒 480P 视频。输入：首帧图 + 提示词；输出：MP4。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

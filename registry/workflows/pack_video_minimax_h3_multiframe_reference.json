@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_video_minimax_h3_multiframe_reference",
  "name": "多帧参考生视频 · MiniMax H3（4 张锚定）",
- "description": "用 4 张关键帧锚定时间线生成连贯视频。输入：4 张图 + 提示词；输出：MP4。（✅ 已验证）",
+ "description": "用 4 张关键帧锚定时间线生成连贯视频。输入：4 张图 + 提示词；输出：MP4。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

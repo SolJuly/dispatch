@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_templates_hellorob_facegen_skindetail_upscale",
- "name": "人像精修 · 皮肤细节 + 风格 LoRA + 放大（实验）",
- "description": "人像洗图流水线：皮肤细节、风格化、超分。输入：1 张人像；输出：高清图。缺权重与节点，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "人像精修 · 皮肤细节 + 风格 LoRA + 放大（尚未开发）",
+ "description": "人像洗图流水线：皮肤细节、风格化、超分。输入：1 张人像；输出：高清图。缺权重与节点。（🚧 尚未开发）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

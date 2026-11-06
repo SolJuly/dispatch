@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "ltxv_2b_t2v",
  "name": "文生视频 · LTXV 2B（73 帧）",
- "description": "轻量文生视频，约 2.9 秒。输入：提示词；输出：MP4。快但画质一般。（✅ 已验证）",
+ "description": "轻量文生视频，约 2.9 秒。输入：提示词；输出：MP4。快但画质一般。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

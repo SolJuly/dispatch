@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_video_wan_vace_flf2v",
- "name": "首尾帧 · Wan VACE 14B（实验）",
- "description": "VACE 版首尾帧过渡。输入：2 张图；输出：MP4。缺权重，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "首尾帧 · Wan VACE 14B（尚未开发）",
+ "description": "VACE 版首尾帧过渡。输入：2 张图；输出：MP4。缺权重。（🚧 尚未开发）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

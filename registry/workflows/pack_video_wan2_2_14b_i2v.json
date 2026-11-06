@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_video_wan2_2_14b_i2v",
  "name": "图生视频 · Wan 2.2 14B（双专家 + 4 步）",
- "description": "单图生成约 5 秒视频。输入：首帧图 + 提示词；输出：640×640/81 帧 MP4。（✅ 已验证）",
+ "description": "单图生成约 5 秒视频。输入：首帧图 + 提示词；输出：640×640/81 帧 MP4。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

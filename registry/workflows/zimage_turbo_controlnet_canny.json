@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "zimage_turbo_controlnet_canny",
  "name": "ControlNet 构图 · Z-Image-Turbo（Canny 边缘）",
- "description": "用边缘图控制构图。输入：参考图 + 提示词；输出：1024 PNG。（✅ 已验证）",
+ "description": "用边缘图控制构图。输入：参考图 + 提示词；输出：1024 PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_video_wan_animate2",
  "name": "动作迁移 · Wan Animate 2",
- "description": "把驱动视频的动作迁移到目标人物。输入：人物图 + 驱动视频；输出：MP4。（✅ 已验证）",
+ "description": "把驱动视频的动作迁移到目标人物。输入：人物图 + 驱动视频；输出：MP4。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

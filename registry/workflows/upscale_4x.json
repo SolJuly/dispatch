@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "upscale_4x",
  "name": "放大 4× · UltraSharp",
- "description": "传统超分，4 倍放大，快但不补细节。输入：1 张图；输出：4× PNG。（✅ 已验证）",
+ "description": "传统超分，4 倍放大，快但不补细节。输入：1 张图；输出：4× PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

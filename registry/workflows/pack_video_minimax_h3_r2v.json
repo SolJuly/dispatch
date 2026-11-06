@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_video_minimax_h3_r2v",
  "name": "多参考生视频 · MiniMax H3（R2V）",
- "description": "多张参考图保持主体一致。输入：2+ 张参考图 + 提示词；输出：MP4。（✅ 已验证）",
+ "description": "多张参考图保持主体一致。输入：2+ 张参考图 + 提示词；输出：MP4。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

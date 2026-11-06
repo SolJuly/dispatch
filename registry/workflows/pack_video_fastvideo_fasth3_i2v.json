@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_video_fastvideo_fasth3_i2v",
  "name": "图生视频 · FastH3 8 步（快）",
- "description": "FastH3 加速版，单图出短视频。输入：首帧图 + 提示词；输出：MP4。（✅ 已验证）",
+ "description": "FastH3 加速版，单图出短视频。输入：首帧图 + 提示词；输出：MP4。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

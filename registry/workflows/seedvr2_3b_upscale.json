@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "seedvr2_3b_upscale",
  "name": "还原放大 · SeedVR2 3B（短边到 2K）",
- "description": "还原式放大，短边到 2048，适合修复低清素材。输入：1 张图；输出：2K PNG。（✅ 已验证）",
+ "description": "还原式放大，短边到 2048，适合修复低清素材。输入：1 张图；输出：2K PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

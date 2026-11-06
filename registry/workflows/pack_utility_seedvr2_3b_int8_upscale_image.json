@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_utility_seedvr2_3b_int8_upscale_image",
  "name": "图片超分 · SeedVR2 3B int8（旧版）",
- "description": "已被 seedvr2_3b_upscale 替代，不建议使用。（⛔ 已被替代）",
+ "description": "已被 seedvr2_3b_upscale 替代，不建议使用。（⛔ 已替代，勿用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

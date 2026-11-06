@@ -15,8 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-VERIFIED_NOTE = "✅ 已验证"
-EXP_NOTE = "⚠️ 实验态，默认不可执行"
+VERIFIED_NOTE = "✅ 可使用"
+EXP_NOTE = "🚧 尚未开发"
 
 SUPERSEDED = {
     "pack_image_z_image_turbo", "pack_image_z_image_turbo_fun_union_controlnet",
@@ -59,24 +59,24 @@ CATALOG = {
         "已被 zimage_turbo_controlnet_canny 替代，不建议使用。"),
     "pack_image_flux2_klein_text_to_image": ("文生图 · FLUX.2 Klein（旧版）",
         "已被 flux2_klein_4b_fast 替代，不建议使用。"),
-    "pack_template_qwen_image_illustration_lora": ("插画风格 · Qwen-Image + LoRA（实验）",
-        "加载插画 LoRA 出风格化图。输入：提示词；输出：1024 PNG。缺 illustration LoRA 权重，跑不通。"),
+    "pack_template_qwen_image_illustration_lora": ("插画风格 · Qwen-Image + LoRA（尚未开发）",
+        "加载插画 LoRA 出风格化图。输入：提示词；输出：1024 PNG。缺 illustration LoRA 权重。"),
     "pack_utility_z_image_turbo_2k_upscaler_app": ("2K 精绘 · Z-Image-Turbo（8 步 + 细化）",
         "先出 1024 再细化到 2048。输入：提示词；输出：2048×2048 PNG。"),
 
     # ---------------- 图片：改图 / 编辑 ----------------
     "qwen_image_edit_2509": ("指令改图 · Qwen-Image-Edit 2509（4 步）",
         "按中英文指令改图（换背景/改风格/加删元素），4 步 Lightning。输入：底图 + 指令；输出：1024 PNG。"),
-    "pack_image_qwen_image_edit_2511_int8": ("指令改图 · Qwen-Image-Edit 2511（int8，实验）",
-        "2511 新版指令改图，int8 省显存。输入：底图 + 指令；输出：编辑图。当前缺节点输入，跑不通。"),
+    "pack_image_qwen_image_edit_2511_int8": ("指令改图 · Qwen-Image-Edit 2511（int8，尚未开发）",
+        "2511 新版指令改图，int8 省显存。输入：底图 + 指令；输出：编辑图。当前缺节点输入。"),
     "pack_image_qwen_image_edit_2509": ("指令改图 · Qwen-Image-Edit 2509（旧版）",
         "已被 qwen_image_edit_2509 替代，不建议使用。"),
-    "pack_image_qwen_image_layered": ("图层分离 · Qwen-Image Layered（实验）",
-        "把一张图拆成前景/背景等图层，便于分别修改。输入：1 张图；输出：多层结果。当前缺 CLIP 软链，跑不通。"),
-    "pack_image_qwen_image_2_1_image_edit": ("语义编辑 · Qwen-Image 2.1（换脸/换装，实验）",
-        "按指令改图，支持多参考保持一致性。输入：底图 + 参考图 + 指令；输出：编辑图。当前缺核心节点，跑不通。"),
-    "pack_image_qwen_image_2_1_background_removal": ("抠背景 · Qwen-Image 2.1（实验）",
-        "自动分离主体与背景。输入：1 张图；输出：去背景 PNG。当前缺核心节点，跑不通。"),
+    "pack_image_qwen_image_layered": ("图层分离 · Qwen-Image Layered（尚未开发）",
+        "把一张图拆成前景/背景等图层，便于分别修改。输入：1 张图；输出：多层结果。当前缺 CLIP 软链。"),
+    "pack_image_qwen_image_2_1_image_edit": ("语义编辑 · Qwen-Image 2.1（换脸/换装，尚未开发）",
+        "按指令改图，支持多参考保持一致性。输入：底图 + 参考图 + 指令；输出：编辑图。当前缺核心节点。"),
+    "pack_image_qwen_image_2_1_background_removal": ("抠背景 · Qwen-Image 2.1（尚未开发）",
+        "自动分离主体与背景。输入：1 张图；输出：去背景 PNG。当前缺核心节点。"),
     "pack_image_flux2_klein_image_edit_4b_distilled": ("换装/多图编辑 · FLUX.2 Klein 4B（蒸馏）",
         "两张图做换装或多图合成。输入：底图 + 参考图；输出：1024 编辑图。Apache-2.0，可商用。"),
 
@@ -93,12 +93,12 @@ CATALOG = {
         "已被 seedvr2_3b_upscale 替代，不建议使用。"),
     "pack_utility_seedvr2_3b_int8_upscale_video": ("视频超分 · SeedVR2 3B int8（旧版）",
         "已被 seedvr2_3b_upscale_video 替代，不建议使用。"),
-    "pack_utility_seedvr2_7b_int8_upscale_image": ("还原放大 · SeedVR2 7B（实验）",
-        "7B 版还原放大，细节更强但更吃显存。输入：1 张图；输出：放大图。缺 7B int8 权重，跑不通。"),
-    "pack_utility_image_upscale_supir": ("放大 · SUPIR（实验）",
-        "SUPIR 高质量放大。输入：1 张图；输出：放大图。缺 Juggernaut v9 配置，跑不通。"),
-    "pack_templates_hellorob_facegen_skindetail_upscale": ("人像精修 · 皮肤细节 + 风格 LoRA + 放大（实验）",
-        "人像洗图流水线：皮肤细节、风格化、超分。输入：1 张人像；输出：高清图。缺权重与节点，跑不通。"),
+    "pack_utility_seedvr2_7b_int8_upscale_image": ("还原放大 · SeedVR2 7B（尚未开发）",
+        "7B 版还原放大，细节更强但更吃显存。输入：1 张图；输出：放大图。缺 7B int8 权重。"),
+    "pack_utility_image_upscale_supir": ("放大 · SUPIR（尚未开发）",
+        "SUPIR 高质量放大。输入：1 张图；输出：放大图。缺 Juggernaut v9 配置。"),
+    "pack_templates_hellorob_facegen_skindetail_upscale": ("人像精修 · 皮肤细节 + 风格 LoRA + 放大（尚未开发）",
+        "人像洗图流水线：皮肤细节、风格化、超分。输入：1 张人像；输出：高清图。缺权重与节点。"),
 
     # ---------------- 视频 ----------------
     "pack_video_wan2_2_14b_i2v": ("图生视频 · Wan 2.2 14B（双专家 + 4 步）",
@@ -125,45 +125,45 @@ CATALOG = {
         "把驱动视频的动作迁移到目标人物。输入：人物图 + 驱动视频；输出：MP4。"),
     "pack_video_wan_animate2_distilled": ("动作迁移 · Wan Animate 2 蒸馏版（快）",
         "同上，蒸馏加速。输入：人物图 + 驱动视频；输出：MP4。"),
-    "pack_video_ltx2_3_i2v": ("图生视频 · LTX 2.3（带原生音频，实验）",
-        "单图生成带音频的视频。输入：首帧图 + 提示词；输出：MP4。缺 LoRA 权重，跑不通。"),
-    "pack_video_ltx2_3_flf2v": ("首尾帧生视频 · LTX 2.3（实验）",
-        "首帧+尾帧生成过渡。输入：2 张图 + 提示词；输出：MP4。当前缺文本编码器输入，跑不通。"),
-    "pack_video_ltx2_3_ic_lora": ("视频风格/结构控制 · LTX 2.3 IC-LoRA（实验）",
-        "用 IC-LoRA 控制风格或结构。输入：参考 + 提示词；输出：MP4。缺权重/节点，跑不通。"),
-    "pack_video_ltx2_3_id_lora": ("人物一致性 · LTX 2.3 ID-LoRA（实验）",
-        "ID-LoRA 保持人物一致。输入：参考图 + 提示词；输出：MP4。缺 LoRA，跑不通。"),
-    "pack_video_ltx2_5_flf2v": ("首尾帧生视频 · LTX 2.5（更快、带音频，实验）",
-        "LTX 2.5 首尾帧过渡，自带音频。输入：2 张图；输出：MP4。当前绑定错位，跑不通。"),
-    "pack_template_ltx2_3_ic_lora_ingredients": ("素材驱动视频 · LTX 2.3 IC-LoRA（实验）",
-        "用参考素材 + IC-LoRA 控制视频风格。输入：参考图 + 提示词；输出：MP4。缺模型文件，跑不通。"),
-    "pack_video_fasth3_ominiref_r2v": ("多参考生视频 · FastH3 OmniRef（实验）",
-        "多张参考图驱动视频生成。输入：参考图 + 提示词；输出：MP4。当前张量尺寸不匹配，跑不通。"),
-    "pack_video_wan21_scail2_character_replacement": ("角色替换 · SCAIL-2（fp16，实验）",
-        "把视频里的人换成目标角色。输入：视频 + 角色图；输出：MP4。当前节点调用不匹配，跑不通。"),
-    "pack_video_wan21_scail2_character_replacement_int8": ("角色替换 · SCAIL-2（int8，实验）",
-        "同上，int8 省显存。当前跑不通。"),
-    "pack_video_wan_vace_14b_ref2v": ("参考生视频 · Wan VACE 14B（实验）",
-        "参考图 + 文本生成视频。输入：参考图 + 提示词；输出：MP4。缺 VACE 官方权重，跑不通。"),
-    "pack_video_wan_vace_14b_v2v": ("视频重绘 · Wan VACE 14B（实验）",
-        "按提示词重绘整段视频。输入：视频 + 提示词；输出：MP4。缺权重，跑不通。"),
-    "pack_video_wan_vace_flf2v": ("首尾帧 · Wan VACE 14B（实验）",
-        "VACE 版首尾帧过渡。输入：2 张图；输出：MP4。缺权重，跑不通。"),
-    "pack_video_wan_vace_inpainting": ("视频换背景 · SAM3 分割 + VACE 重绘（实验）",
-        "先分割主体再重绘背景。输入：视频 + 蒙版；输出：MP4。缺权重，跑不通。"),
-    "pack_utility_void_video_inpainting": ("视频擦除/修复 · VOID（实验）",
-        "对视频做区域擦除与重绘。输入：视频 + 蒙版；输出：修复 MP4。缺权重且类型不匹配，跑不通。"),
+    "pack_video_ltx2_3_i2v": ("图生视频 · LTX 2.3（带原生音频，尚未开发）",
+        "单图生成带音频的视频。输入：首帧图 + 提示词；输出：MP4。缺 LoRA 权重。"),
+    "pack_video_ltx2_3_flf2v": ("首尾帧生视频 · LTX 2.3（尚未开发）",
+        "首帧+尾帧生成过渡。输入：2 张图 + 提示词；输出：MP4。当前缺文本编码器输入。"),
+    "pack_video_ltx2_3_ic_lora": ("视频风格/结构控制 · LTX 2.3 IC-LoRA（尚未开发）",
+        "用 IC-LoRA 控制风格或结构。输入：参考 + 提示词；输出：MP4。缺权重/节点。"),
+    "pack_video_ltx2_3_id_lora": ("人物一致性 · LTX 2.3 ID-LoRA（尚未开发）",
+        "ID-LoRA 保持人物一致。输入：参考图 + 提示词；输出：MP4。缺 LoRA。"),
+    "pack_video_ltx2_5_flf2v": ("首尾帧生视频 · LTX 2.5（更快、带音频，尚未开发）",
+        "LTX 2.5 首尾帧过渡，自带音频。输入：2 张图；输出：MP4。当前绑定错位。"),
+    "pack_template_ltx2_3_ic_lora_ingredients": ("素材驱动视频 · LTX 2.3 IC-LoRA（尚未开发）",
+        "用参考素材 + IC-LoRA 控制视频风格。输入：参考图 + 提示词；输出：MP4。缺模型文件。"),
+    "pack_video_fasth3_ominiref_r2v": ("多参考生视频 · FastH3 OmniRef（尚未开发）",
+        "多张参考图驱动视频生成。输入：参考图 + 提示词；输出：MP4。当前张量尺寸不匹配。"),
+    "pack_video_wan21_scail2_character_replacement": ("角色替换 · SCAIL-2（fp16，尚未开发）",
+        "把视频里的人换成目标角色。输入：视频 + 角色图；输出：MP4。当前节点调用不匹配。"),
+    "pack_video_wan21_scail2_character_replacement_int8": ("角色替换 · SCAIL-2（int8，尚未开发）",
+        "同上，int8 省显存。当前。"),
+    "pack_video_wan_vace_14b_ref2v": ("参考生视频 · Wan VACE 14B（尚未开发）",
+        "参考图 + 文本生成视频。输入：参考图 + 提示词；输出：MP4。缺 VACE 官方权重。"),
+    "pack_video_wan_vace_14b_v2v": ("视频重绘 · Wan VACE 14B（尚未开发）",
+        "按提示词重绘整段视频。输入：视频 + 提示词；输出：MP4。缺权重。"),
+    "pack_video_wan_vace_flf2v": ("首尾帧 · Wan VACE 14B（尚未开发）",
+        "VACE 版首尾帧过渡。输入：2 张图；输出：MP4。缺权重。"),
+    "pack_video_wan_vace_inpainting": ("视频换背景 · SAM3 分割 + VACE 重绘（尚未开发）",
+        "先分割主体再重绘背景。输入：视频 + 蒙版；输出：MP4。缺权重。"),
+    "pack_utility_void_video_inpainting": ("视频擦除/修复 · VOID（尚未开发）",
+        "对视频做区域擦除与重绘。输入：视频 + 蒙版；输出：修复 MP4。缺权重且类型不匹配。"),
 }
 
 
 def status_note(key: str, compat: dict) -> str:
     if key in SUPERSEDED:
-        return "⛔ 已被替代"
+        return "⛔ 已替代，勿用"
     st = (compat.get(key) or {}).get("status")
     if st == "verified":
         return VERIFIED_NOTE
     if st == "equivalent":
-        return "✅ 等价变体"
+        return "✅ 可使用（等价）"
     return EXP_NOTE
 
 

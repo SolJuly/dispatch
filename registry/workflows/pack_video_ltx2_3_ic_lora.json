@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_video_ltx2_3_ic_lora",
- "name": "视频风格/结构控制 · LTX 2.3 IC-LoRA（实验）",
- "description": "用 IC-LoRA 控制风格或结构。输入：参考 + 提示词；输出：MP4。缺权重/节点，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "视频风格/结构控制 · LTX 2.3 IC-LoRA（尚未开发）",
+ "description": "用 IC-LoRA 控制风格或结构。输入：参考 + 提示词；输出：MP4。缺权重/节点。（🚧 尚未开发）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

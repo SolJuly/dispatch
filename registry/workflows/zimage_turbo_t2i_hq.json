@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "zimage_turbo_t2i_hq",
  "name": "文生图 2K · Z-Image-Turbo（8 步 + 2× 细化）",
- "description": "先出 1024 再 2 倍细化到 2048×2048。输入：提示词；输出：2K PNG。（✅ 已验证）",
+ "description": "先出 1024 再 2 倍细化到 2048×2048。输入：提示词；输出：2K PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

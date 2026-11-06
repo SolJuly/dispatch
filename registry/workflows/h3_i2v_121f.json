@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "h3_i2v_121f",
  "name": "图生视频 · MiniMax H3（121 帧）",
- "description": "单图驱动 121 帧（约 5 秒）视频。输入：首帧图 + 提示词；输出：MP4。（✅ 已验证）",
+ "description": "单图驱动 121 帧（约 5 秒）视频。输入：首帧图 + 提示词；输出：MP4。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

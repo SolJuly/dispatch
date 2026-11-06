@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "detail_polish",
  "name": "细节增强 · 低 denoise 重绘 + 4× 放大",
- "description": "把偏糊/缺皮肤纹理的图低强度重绘再放大 4 倍。输入：1 张图；输出：4× PNG（768×1024 → 3072×4096）。（✅ 已验证）",
+ "description": "把偏糊/缺皮肤纹理的图低强度重绘再放大 4 倍。输入：1 张图；输出：4× PNG（768×1024 → 3072×4096）。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "h3_t2v_121f",
  "name": "文生视频 · MiniMax H3（121 帧）",
- "description": "纯文本生成 121 帧视频。输入：提示词；输出：MP4。（✅ 已验证）",
+ "description": "纯文本生成 121 帧视频。输入：提示词；输出：MP4。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_image_z_image_turbo",
  "name": "文生图 · Z-Image（旧版）",
- "description": "早期 Z-Image 基线，已被 zimage_turbo_t2i 系列替代，不建议使用。（⛔ 已被替代）",
+ "description": "早期 Z-Image 基线，已被 zimage_turbo_t2i 系列替代，不建议使用。（⛔ 已替代，勿用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

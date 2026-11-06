@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "qwen_image_edit_2509",
  "name": "指令改图 · Qwen-Image-Edit 2509（4 步）",
- "description": "按中英文指令改图（换背景/改风格/加删元素），4 步 Lightning。输入：底图 + 指令；输出：1024 PNG。（✅ 已验证）",
+ "description": "按中英文指令改图（换背景/改风格/加删元素），4 步 Lightning。输入：底图 + 指令；输出：1024 PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_utility_seedvr2_7b_int8_upscale_image",
- "name": "还原放大 · SeedVR2 7B（实验）",
- "description": "7B 版还原放大，细节更强但更吃显存。输入：1 张图；输出：放大图。缺 7B int8 权重，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "还原放大 · SeedVR2 7B（尚未开发）",
+ "description": "7B 版还原放大，细节更强但更吃显存。输入：1 张图；输出：放大图。缺 7B int8 权重。（🚧 尚未开发）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

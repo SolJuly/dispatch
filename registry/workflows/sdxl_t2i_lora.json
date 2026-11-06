@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "sdxl_t2i_lora",
  "name": "文生图 + 风格 LoRA · SDXL（厚涂）",
- "description": "带厚涂风格 LoRA 的 SDXL 出图。输入：提示词；输出：1024 PNG。（✅ 已验证）",
+ "description": "带厚涂风格 LoRA 的 SDXL 出图。输入：提示词；输出：1024 PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

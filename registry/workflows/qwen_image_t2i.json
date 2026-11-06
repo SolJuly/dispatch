@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "qwen_image_t2i",
  "name": "文生图 · Qwen-Image 1024（全参数）",
- "description": "Qwen-Image 20B，步数/CFG/采样器/尺寸都可调。输入：提示词；输出：1024×1024 PNG。（✅ 已验证）",
+ "description": "Qwen-Image 20B，步数/CFG/采样器/尺寸都可调。输入：提示词；输出：1024×1024 PNG。（✅ 可使用）",
  "version": 2,
  "kind": "image",
  "engine": "comfyui",

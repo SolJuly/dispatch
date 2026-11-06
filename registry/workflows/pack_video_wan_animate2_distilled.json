@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_video_wan_animate2_distilled",
  "name": "动作迁移 · Wan Animate 2 蒸馏版（快）",
- "description": "同上，蒸馏加速。输入：人物图 + 驱动视频；输出：MP4。（✅ 已验证）",
+ "description": "同上，蒸馏加速。输入：人物图 + 驱动视频；输出：MP4。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

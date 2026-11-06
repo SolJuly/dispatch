@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_video_ltx2_3_id_lora",
- "name": "人物一致性 · LTX 2.3 ID-LoRA（实验）",
- "description": "ID-LoRA 保持人物一致。输入：参考图 + 提示词；输出：MP4。缺 LoRA，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "人物一致性 · LTX 2.3 ID-LoRA（尚未开发）",
+ "description": "ID-LoRA 保持人物一致。输入：参考图 + 提示词；输出：MP4。缺 LoRA。（🚧 尚未开发）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

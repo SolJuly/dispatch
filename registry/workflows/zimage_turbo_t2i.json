@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "zimage_turbo_t2i",
  "name": "文生图 · Z-Image-Turbo 1024（8 步基线）",
- "description": "主力文生图，8 步约 6–8 秒出 1024×1024。输入：提示词；输出：PNG。（✅ 已验证）",
+ "description": "主力文生图，8 步约 6–8 秒出 1024×1024。输入：提示词；输出：PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

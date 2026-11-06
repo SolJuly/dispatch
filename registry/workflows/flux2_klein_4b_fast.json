@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "flux2_klein_4b_fast",
  "name": "文生图 · FLUX.2 Klein 4B（4 步，快）",
- "description": "4 步出 1024 图，速度优先，适合快速出方案。输入：提示词；输出：PNG。（✅ 已验证）",
+ "description": "4 步出 1024 图，速度优先，适合快速出方案。输入：提示词；输出：PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

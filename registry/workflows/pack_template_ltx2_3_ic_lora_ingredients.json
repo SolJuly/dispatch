@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_template_ltx2_3_ic_lora_ingredients",
- "name": "素材驱动视频 · LTX 2.3 IC-LoRA（实验）",
- "description": "用参考素材 + IC-LoRA 控制视频风格。输入：参考图 + 提示词；输出：MP4。缺模型文件，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "素材驱动视频 · LTX 2.3 IC-LoRA（尚未开发）",
+ "description": "用参考素材 + IC-LoRA 控制视频风格。输入：参考图 + 提示词；输出：MP4。缺模型文件。（🚧 尚未开发）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

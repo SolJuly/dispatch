@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "zimage_turbo_img2img",
  "name": "图生图 · Z-Image-Turbo（denoise 可控）",
- "description": "以原图为底重绘，denoise 越低越接近原图。输入：图片 + 提示词；输出：1024 PNG。（✅ 已验证）",
+ "description": "以原图为底重绘，denoise 越低越接近原图。输入：图片 + 提示词；输出：1024 PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

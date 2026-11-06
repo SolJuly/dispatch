@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_video_ltx2_3_flf2v",
- "name": "首尾帧生视频 · LTX 2.3（实验）",
- "description": "首帧+尾帧生成过渡。输入：2 张图 + 提示词；输出：MP4。当前缺文本编码器输入，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "首尾帧生视频 · LTX 2.3（尚未开发）",
+ "description": "首帧+尾帧生成过渡。输入：2 张图 + 提示词；输出：MP4。当前缺文本编码器输入。（🚧 尚未开发）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

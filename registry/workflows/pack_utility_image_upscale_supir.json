@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_utility_image_upscale_supir",
- "name": "放大 · SUPIR（实验）",
- "description": "SUPIR 高质量放大。输入：1 张图；输出：放大图。缺 Juggernaut v9 配置，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "放大 · SUPIR（尚未开发）",
+ "description": "SUPIR 高质量放大。输入：1 张图；输出：放大图。缺 Juggernaut v9 配置。（🚧 尚未开发）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_utility_void_video_inpainting",
- "name": "视频擦除/修复 · VOID（实验）",
- "description": "对视频做区域擦除与重绘。输入：视频 + 蒙版；输出：修复 MP4。缺权重且类型不匹配，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "视频擦除/修复 · VOID（尚未开发）",
+ "description": "对视频做区域擦除与重绘。输入：视频 + 蒙版；输出：修复 MP4。缺权重且类型不匹配。（🚧 尚未开发）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

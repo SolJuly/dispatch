@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_video_wan2_2_14b_flf2v",
  "name": "首尾帧生视频 · Wan 2.2 14B",
- "description": "给首帧和尾帧，生成中间过渡。输入：2 张图 + 提示词；输出：640×640/81 帧 MP4。（✅ 已验证）",
+ "description": "给首帧和尾帧，生成中间过渡。输入：2 张图 + 提示词；输出：640×640/81 帧 MP4。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

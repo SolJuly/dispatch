@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_image_flux2_klein_text_to_image",
  "name": "文生图 · FLUX.2 Klein（旧版）",
- "description": "已被 flux2_klein_4b_fast 替代，不建议使用。（⛔ 已被替代）",
+ "description": "已被 flux2_klein_4b_fast 替代，不建议使用。（⛔ 已替代，勿用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

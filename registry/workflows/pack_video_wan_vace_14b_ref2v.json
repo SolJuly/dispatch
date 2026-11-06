@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_video_wan_vace_14b_ref2v",
- "name": "参考生视频 · Wan VACE 14B（实验）",
- "description": "参考图 + 文本生成视频。输入：参考图 + 提示词；输出：MP4。缺 VACE 官方权重，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "参考生视频 · Wan VACE 14B（尚未开发）",
+ "description": "参考图 + 文本生成视频。输入：参考图 + 提示词；输出：MP4。缺 VACE 官方权重。（🚧 尚未开发）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

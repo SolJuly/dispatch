@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_image_z_image_turbo_fun_union_controlnet",
  "name": "ControlNet · Z-Image（旧版）",
- "description": "已被 zimage_turbo_controlnet_canny 替代，不建议使用。（⛔ 已被替代）",
+ "description": "已被 zimage_turbo_controlnet_canny 替代，不建议使用。（⛔ 已替代，勿用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_video_wan2_2_14b_s2v",
  "name": "音频驱动 · Wan 2.2 S2V（对口型）",
- "description": "用音频驱动人物口型与表情。输入：人物图 + 音频；输出：约 5 秒 MP4。（✅ 已验证）",
+ "description": "用音频驱动人物口型与表情。输入：人物图 + 音频；输出：约 5 秒 MP4。（✅ 可使用）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

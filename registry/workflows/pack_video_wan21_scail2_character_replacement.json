@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_video_wan21_scail2_character_replacement",
- "name": "角色替换 · SCAIL-2（fp16，实验）",
- "description": "把视频里的人换成目标角色。输入：视频 + 角色图；输出：MP4。当前节点调用不匹配，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "角色替换 · SCAIL-2（fp16，尚未开发）",
+ "description": "把视频里的人换成目标角色。输入：视频 + 角色图；输出：MP4。当前节点调用不匹配。（🚧 尚未开发）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",

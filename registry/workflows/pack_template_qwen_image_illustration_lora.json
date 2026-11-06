@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_template_qwen_image_illustration_lora",
- "name": "插画风格 · Qwen-Image + LoRA（实验）",
- "description": "加载插画 LoRA 出风格化图。输入：提示词；输出：1024 PNG。缺 illustration LoRA 权重，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "插画风格 · Qwen-Image + LoRA（尚未开发）",
+ "description": "加载插画 LoRA 出风格化图。输入：提示词；输出：1024 PNG。缺 illustration LoRA 权重。（🚧 尚未开发）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

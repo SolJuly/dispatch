@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "pack_image_flux2_klein_image_edit_4b_distilled",
  "name": "换装/多图编辑 · FLUX.2 Klein 4B（蒸馏）",
- "description": "两张图做换装或多图合成。输入：底图 + 参考图；输出：1024 编辑图。Apache-2.0，可商用。（⚠️ 实验态，默认不可执行）",
+ "description": "两张图做换装或多图合成。输入：底图 + 参考图；输出：1024 编辑图。Apache-2.0，可商用。（🚧 尚未开发）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

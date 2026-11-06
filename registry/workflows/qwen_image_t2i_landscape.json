@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "qwen_image_t2i_landscape",
  "name": "文生图横版 · Qwen-Image 1024×768",
- "description": "固定横版尺寸，适合风景/场景。输入：提示词；输出：1024×768 PNG。（✅ 已验证）",
+ "description": "固定横版尺寸，适合风景/场景。输入：提示词；输出：1024×768 PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

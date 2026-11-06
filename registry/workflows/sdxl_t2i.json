@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "sdxl_t2i",
  "name": "文生图 · SDXL 1024（最快基线）",
- "description": "约 7 秒一张的基础出图。输入：提示词；输出：1024×1024 PNG。（✅ 已验证）",
+ "description": "约 7 秒一张的基础出图。输入：提示词；输出：1024×1024 PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

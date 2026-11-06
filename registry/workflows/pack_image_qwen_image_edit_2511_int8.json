@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_image_qwen_image_edit_2511_int8",
- "name": "指令改图 · Qwen-Image-Edit 2511（int8，实验）",
- "description": "2511 新版指令改图，int8 省显存。输入：底图 + 指令；输出：编辑图。当前缺节点输入，跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "指令改图 · Qwen-Image-Edit 2511（int8，尚未开发）",
+ "description": "2511 新版指令改图，int8 省显存。输入：底图 + 指令；输出：编辑图。当前缺节点输入。（🚧 尚未开发）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

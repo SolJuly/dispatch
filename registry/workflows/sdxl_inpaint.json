@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "sdxl_inpaint",
  "name": "局部重绘 · SDXL（蒙版）",
- "description": "只改蒙版区域，其余保持。输入：底图 + 蒙版 + 提示词；输出：1024 PNG。（✅ 已验证）",
+ "description": "只改蒙版区域，其余保持。输入：底图 + 蒙版 + 提示词；输出：1024 PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

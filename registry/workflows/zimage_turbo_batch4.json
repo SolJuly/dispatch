@@ -2,7 +2,7 @@
  "schema": "p20.workflow/v1",
  "key": "zimage_turbo_batch4",
  "name": "批量出图 · Z-Image-Turbo（一次 4 张）",
- "description": "一次生成 4 张 1024×1024，方便挑图。输入：提示词；输出：4 张 PNG。（✅ 已验证）",
+ "description": "一次生成 4 张 1024×1024，方便挑图。输入：提示词；输出：4 张 PNG。（✅ 可使用）",
  "version": 1,
  "kind": "image",
  "engine": "comfyui",

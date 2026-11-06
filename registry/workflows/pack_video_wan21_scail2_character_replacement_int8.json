@@ -1,8 +1,8 @@
 {
  "schema": "p20.workflow/v1",
  "key": "pack_video_wan21_scail2_character_replacement_int8",
- "name": "角色替换 · SCAIL-2（int8，实验）",
- "description": "同上，int8 省显存。当前跑不通。（⚠️ 实验态，默认不可执行）",
+ "name": "角色替换 · SCAIL-2（int8，尚未开发）",
+ "description": "同上，int8 省显存。当前。（🚧 尚未开发）",
  "version": 1,
  "kind": "video",
  "engine": "comfyui",
