@@ -16,6 +16,7 @@ import sys
 import time
 from pathlib import Path
 
+from . import budget as budget_mod
 from tools.p1 import state as jobstate
 from tools.p1 import store
 from tools.p20 import config_schema as cs
@@ -186,7 +187,7 @@ def get_job(job_id: str, jobs_dir: Path | None = None) -> dict:
     }
 
 
-def create_job(workflow: str, params: dict, *, run: bool = False,
+def create_job(workflow: str, params: dict, *, run: bool = False, budget: float | None = None,
                jobs_dir: Path | None = None, spec_dir: Path | None = None,
                jobctl: Path | None = None, spawn=subprocess.Popen) -> dict:
     """校验参数 → 生成 spec → jobctl new →（可选）后台执行。"""
@@ -205,7 +206,16 @@ def create_job(workflow: str, params: dict, *, run: bool = False,
     if (res.get("compat") or {}).get("status") == "experimental":
         raise ApiError("该工作流×模型组合是 experimental，默认拒绝执行", 409)
 
+    # 预算闸门：超上限直接拒绝，避免误提交烧钱
+    try:
+        est = budget_mod.check_budget(res["workflow"], res.get("params") or {}, budget)
+    except budget_mod.BudgetError as e:
+        raise ApiError(str(e), 402) from e
+
     spec = p20cli._make_spec(res, job_key=workflow, task_ref="P2.1")
+    if budget is not None and budget > 0:
+        spec.setdefault("budget", {})
+        spec["budget"]["max_cost"] = min(float(budget), float(spec["budget"].get("max_cost") or budget))
     sd = Path(spec_dir) if spec_dir else SPEC_DIR
     sd.mkdir(parents=True, exist_ok=True)
     spec_path = sd / f"{workflow}-{time.strftime('%Y%m%dT%H%M%S')}.json"

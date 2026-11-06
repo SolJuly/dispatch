@@ -13,8 +13,8 @@ NAV = [
     ("创作台", "/app/create", ""),
     ("视频", "/app/video", ""),
     ("任务", "/app/jobs", ""),
-    ("图库", "/app/gallery", "M3"),
-    ("工作流与模型", "/app/registry", "M4"),
+    ("图库", "/app/gallery", ""),
+    ("工作流与模型", "/app/registry", ""),
 ]
 
 
@@ -35,7 +35,7 @@ def shell(base: str, token: str, active: str, title: str, body: str,
 {head_extra}
 </head><body class="{body_class}">
 <header class="top">
-  <span class="brand">图片控制台</span>
+  <span class="brand">控制台</span>
   <nav class="app">{''.join(links)}</nav>
   <span class="right"><a href="{base}/{token}/">文件</a> · <a href="{base}/{token}/monitor">监控</a></span>
 </header>
@@ -119,6 +119,7 @@ def _create_body(base: str, token: str, wf: dict, kind: str) -> str:
     {_wf_picker(base, token, api.image_workflows() if kind == 'image' else api.video_workflows(), wf['key'], page=page)}
     {_wf_head(wf)}
     {_grouped_fields(wf["params"] or {})}
+    {_budget_block(wf)}
     <div class="actions">
       <label class="check"><input type="checkbox" id="run-now"> <span>提交后立即执行（占用 GPU，产生费用）</span></label>
       <div class="row">
@@ -139,6 +140,73 @@ def _create_body(base: str, token: str, wf: dict, kind: str) -> str:
 <script>window.__WF__ = {wf_json};</script>
 """
 
+
+
+def _budget_block(wf: dict) -> str:
+    from . import budget as B
+    est = B.estimate(wf, wf.get("params") or {})
+    return (f'<div class="budget"><div class="field"><label for="budget">预算上限（元）</label>'
+            f'<input id="budget" type="number" step="0.1" min="0" value="{B.DEFAULT_BUDGET:.1f}">'
+            f'<div class="hint">预估 {C.esc(est["hint"])}'
+            f'{"（实测基准）" if est["measured"] else "（经验估算）"}；超过上限会拒绝提交。</div></div></div>')
+
+
+def gallery_page(base: str, token: str, workflow: str = "") -> str:
+    rows = api.list_jobs(limit=200, workflow=workflow)
+    cards = []
+    for r in rows:
+        art = r.get("first_artifact_url") or ""
+        if art.endswith(".mp4"):
+            media = f'<video src="{base}/{token}{art}" muted playsinline preload="metadata"></video>'
+        elif art:
+            media = f'<img src="{base}/{token}{art}" loading="lazy">'
+        else:
+            media = '<span class="ph">无图</span>'
+        cards.append(
+            f'<a class="gcard" href="{base}/{token}/app/jobs/{r["job_id"]}">{media}'
+            f'<span class="gmeta">{C.badge(r["state"])}<b>{C.esc(r["workflow"])}</b>'
+            f'<span class="muted">{C.esc(C.human_time(r["created_at"]))}</span></span></a>')
+    wfs = sorted({r["workflow"] for r in rows if r["workflow"]})
+    opts = ''.join(f'<option value="{C.esc(w)}"{" selected" if w == workflow else ""}>{C.esc(w)}</option>'
+                   for w in wfs)
+    filt = (f'<form class="row" method="get" action="{base}/{token}/app/gallery" style="margin-bottom:14px">'
+            f'<select name="workflow" style="width:280px"><option value="">全部工作流</option>{opts}</select>'
+            f'<button class="btn" type="submit">筛选</button></form>')
+    grid = "".join(cards) or '<p class="empty">还没有产物</p>'
+    body = (f'<div class="page-head"><h1>图库</h1><p class="sub">按时间倒序，最多 200 个作业；点开看详情</p></div>'
+            f'{filt}<div class="gallery">{grid}</div>')
+    return shell(base, token, "/app/gallery", "图库", body)
+
+
+def registry_page(base: str, token: str) -> str:
+    from tools.p20 import registry as reg
+    st = reg.stats()
+    wfs = reg.list_workflows()
+    rows = []
+    for w in sorted(wfs, key=lambda x: (0 if (x.get("compat") or {}).get("status") in ("verified", "equivalent") else 1, x["key"])):
+        text, cls = _status_of(w)
+        rows.append(f'<tr><td>{C.esc(w.get("name"))}</td><td><code>{C.esc(w["key"])}</code></td>'
+                    f'<td class="nowrap">{"图片" if w.get("kind") == "image" else "视频"}</td>'
+                    f'<td class="nowrap"><span class="pill {cls}">{text}</span></td>'
+                    f'<td><code>{C.esc(w.get("model_key"))}</code></td></tr>')
+    models = reg.list_models()
+    mrows = [f'<tr><td><code>{C.esc(m["key"])}</code></td><td>{C.esc(m.get("name"))}</td>'
+             f'<td>{C.esc(m.get("kind"))}</td><td>{len(m.get("files") or {})}</td></tr>'
+             for m in sorted(models, key=lambda x: x["key"])]
+    body = f"""
+<div class="page-head"><h1>工作流与模型</h1>
+<p class="sub">共 {st.get('workflows')} 条工作流 · {st.get('models')} 个模型 · 可用 {(st.get('compat') or {}).get('verified', 0)} 条</p></div>
+<div class="card"><h2>工作流</h2>
+<table><tr><th>名称</th><th>key</th><th>类型</th><th>状态</th><th>模型</th></tr>{''.join(rows)}</table></div>
+<div class="card" style="margin-top:16px"><h2>模型</h2>
+<table><tr><th>key</th><th>名称</th><th>类型</th><th>文件数</th></tr>{''.join(mrows)}</table></div>"""
+    return shell(base, token, "/app/registry", "工作流与模型", body)
+
+
+def _status_of(w: dict) -> tuple[str, str]:
+    from . import i18n as I
+    status = (w.get("compat") or {}).get("status")
+    return I.status_text(status)
 
 def create_page(base: str, token: str, workflow: str = "") -> str:
     wfs = api.image_workflows()

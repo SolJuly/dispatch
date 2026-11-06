@@ -61,6 +61,13 @@ border-radius:10px;font-size:13px;opacity:0;transform:translateY(8px);transition
 .rec img{display:block;width:100%;height:110px;object-fit:cover;background:#11151a}
 .rec .ph{display:flex;align-items:center;justify-content:center;height:110px;color:var(--mut);font-size:12px}
 .rec .recm{display:flex;gap:6px;align-items:center;padding:6px 8px;font-size:12px;flex-wrap:wrap}
+.nowrap{white-space:nowrap}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.gcard{display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.gcard img,.gcard video{display:block;width:100%;height:170px;object-fit:cover;background:#11151a}
+.gcard .ph{display:flex;align-items:center;justify-content:center;height:170px;color:var(--mut);font-size:12px}
+.gmeta{display:flex;gap:6px;align-items:center;padding:7px 9px;font-size:12px;flex-wrap:wrap}
+.budget{border:1px dashed var(--line);border-radius:10px;padding:10px 12px 2px;margin:0 0 12px}
 .cmp{position:relative;border-radius:12px;overflow:hidden;background:#11151a;margin-top:12px}
 .cmp img{display:block;width:100%;height:auto}
 .cmp .after{position:absolute;inset:0;clip-path:inset(0 0 0 50%)}
@@ -253,10 +260,12 @@ JS = r"""
       params = collect();
     }catch(err){ toast("上传失败：" + err.message); btn.disabled = false; return; }
     const run = $("#run-now").checked;
+    const budgetEl = $("#budget");
+    const budget = budgetEl && budgetEl.value !== "" ? Number(budgetEl.value) : null;
     try{
       const r = await fetch(`${BASE}/api/p2/jobs`, {
         method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({workflow: wf.key, params, run})
+        body: JSON.stringify({workflow: wf.key, params, run, budget})
       });
       const data = await r.json();
       if(!r.ok) throw new Error(data.error || ("HTTP "+r.status));

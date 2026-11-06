@@ -584,9 +584,10 @@ class Handler(BaseHTTPRequestHandler):
                                           (q.get("q") or [""])[0])
             elif page == "jobs" and len(rest) == 2:
                 body = webpages.detail_page(base, TOKEN, rest[1])
-            elif page in ("gallery", "registry"):
-                body = webpages.shell(base, TOKEN, f"/app/{page}", page,
-                                      f"<div class='card'><p class='empty'>{page} 页面在 M3/M4 交付</p></div>")
+            elif page == "gallery" and len(rest) == 1:
+                body = webpages.gallery_page(base, TOKEN, (q.get("workflow") or [""])[0])
+            elif page == "registry" and len(rest) == 1:
+                body = webpages.registry_page(base, TOKEN)
             else:
                 return self._err(404, "页面不存在")
         except webapi.ApiError as e:
@@ -679,9 +680,11 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(n).decode("utf-8"))
             if not isinstance(body, dict):
                 return _json({"error": "请求体应为 JSON 对象"}, 400)
+            budget = body.get("budget")
             data = webapi.create_job(str(body.get("workflow") or ""),
                                      body.get("params") or {},
-                                     run=bool(body.get("run")))
+                                     run=bool(body.get("run")),
+                                     budget=float(budget) if budget not in (None, "") else None)
             return _json(data, 201)
         except webapi.ApiError as e:
             return _json({"error": e.msg}, e.code)
