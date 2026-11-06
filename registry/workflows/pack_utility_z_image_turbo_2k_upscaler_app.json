@@ -1,87 +1,88 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_utility_z_image_turbo_2k_upscaler_app",
-  "name": "洗图 · 高清精绘 2K（utility_z_image_turbo_2k_upscaler.app）",
-  "version": 1,
+ "schema": "p20.workflow/v1",
+ "key": "pack_utility_z_image_turbo_2k_upscaler_app",
+ "name": "2K 精绘 · Z-Image-Turbo（8 步 + 细化）",
+ "description": "先出 1024 再细化到 2048。输入：提示词；输出：2048×2048 PNG。（✅ 已验证）",
+ "version": 1,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/pack/utility_z_image_turbo_2k_upscaler.app.api.json",
+ "model": {
+  "key": "z_image_turbo_bf16_utility_z_image_turbo_2k",
+  "slots": {
+   "unet": {
+    "node": "1101",
+    "input": "unet_name"
+   },
+   "clip": {
+    "node": "1102",
+    "input": "clip_name"
+   },
+   "vae": {
+    "node": "1104",
+    "input": "vae_name"
+   },
+   "upscale": {
+    "node": "1105",
+    "input": "model_name"
+   }
+  }
+ },
+ "params": {
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "default": "masterpiece, 8k",
+   "bindings": [
+    {
+     "node": "1103",
+     "input": "text"
+    }
+   ]
+  },
+  "seed": {
+   "type": "int",
+   "min": 0,
+   "max": 2147483647,
+   "default": 0,
+   "bindings": [
+    {
+     "node": "1100",
+     "input": "seed"
+    }
+   ]
+  },
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "77",
+     "input": "image"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "9",
+  "input": "filename_prefix",
   "kind": "image",
-  "engine": "comfyui",
-  "graph": "workflows/pack/utility_z_image_turbo_2k_upscaler.app.api.json",
-  "model": {
-    "key": "z_image_turbo_bf16_utility_z_image_turbo_2k",
-    "slots": {
-      "unet": {
-        "node": "1101",
-        "input": "unet_name"
-      },
-      "clip": {
-        "node": "1102",
-        "input": "clip_name"
-      },
-      "vae": {
-        "node": "1104",
-        "input": "vae_name"
-      },
-      "upscale": {
-        "node": "1105",
-        "input": "model_name"
-      }
-    }
-  },
-  "params": {
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "masterpiece, 8k",
-      "bindings": [
-        {
-          "node": "1103",
-          "input": "text"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "1100",
-          "input": "seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "77",
-          "input": "image"
-        }
-      ]
-    }
-  },
-  "output": {
-    "node": "9",
-    "input": "filename_prefix",
-    "kind": "image",
-    "ext": "png",
-    "pick": [
-      "images"
-    ]
-  },
-  "expect_defaults": {
-    "ext": "png",
-    "min_bytes": 20000
-  },
-  "limits": {
-    "max_minutes": 20,
-    "max_cost": 0.8
-  },
-  "required_gpu": [
-    "4090",
-    "4090_48G"
-  ],
-  "notes": "img.wash.hq · 洗图 · 高清精绘 2K · 许可：Apache-2.0 · 商用：可 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "ext": "png",
+  "pick": [
+   "images"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 20000
+ },
+ "limits": {
+  "max_minutes": 20,
+  "max_cost": 0.8
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "img.wash.hq · 洗图 · 高清精绘 2K · 许可：Apache-2.0 · 商用：可 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
 }

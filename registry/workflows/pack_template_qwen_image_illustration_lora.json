@@ -1,77 +1,78 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_template_qwen_image_illustration_lora",
-  "name": "风格化 LoRA 出图（Qwen 插画）（template_qwen_image_illustration_lora）",
-  "version": 1,
+ "schema": "p20.workflow/v1",
+ "key": "pack_template_qwen_image_illustration_lora",
+ "name": "插画风格 · Qwen-Image + LoRA（实验）",
+ "description": "加载插画 LoRA 出风格化图。输入：提示词；输出：1024 PNG。缺 illustration LoRA 权重，跑不通。（⚠️ 实验态，默认不可执行）",
+ "version": 1,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/pack/template_qwen_image_illustration_lora.api.json",
+ "model": {
+  "key": "qwen_image_fp8_e4m3fn",
+  "slots": {
+   "vae": {
+    "node": "1077",
+    "input": "vae_name"
+   },
+   "clip": {
+    "node": "1078",
+    "input": "clip_name"
+   },
+   "unet": {
+    "node": "1081",
+    "input": "unet_name"
+   },
+   "lora": {
+    "node": "1085",
+    "input": "lora_name"
+   }
+  }
+ },
+ "params": {
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "default": "a girl with short hair in a bomber jacket leaning against a wall, clean cel shading, bold graphic co…",
+   "bindings": [
+    {
+     "node": "1082",
+     "input": "text"
+    }
+   ]
+  },
+  "seed": {
+   "type": "int",
+   "min": 0,
+   "max": 2147483647,
+   "default": 0,
+   "bindings": [
+    {
+     "node": "1086",
+     "input": "seed"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "60",
+  "input": "filename_prefix",
   "kind": "image",
-  "engine": "comfyui",
-  "graph": "workflows/pack/template_qwen_image_illustration_lora.api.json",
-  "model": {
-    "key": "qwen_image_fp8_e4m3fn",
-    "slots": {
-      "vae": {
-        "node": "1077",
-        "input": "vae_name"
-      },
-      "clip": {
-        "node": "1078",
-        "input": "clip_name"
-      },
-      "unet": {
-        "node": "1081",
-        "input": "unet_name"
-      },
-      "lora": {
-        "node": "1085",
-        "input": "lora_name"
-      }
-    }
-  },
-  "params": {
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "a girl with short hair in a bomber jacket leaning against a wall, clean cel shading, bold graphic co…",
-      "bindings": [
-        {
-          "node": "1082",
-          "input": "text"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "1086",
-          "input": "seed"
-        }
-      ]
-    }
-  },
-  "output": {
-    "node": "60",
-    "input": "filename_prefix",
-    "kind": "image",
-    "ext": "png",
-    "pick": [
-      "images"
-    ]
-  },
-  "expect_defaults": {
-    "ext": "png",
-    "min_bytes": 20000
-  },
-  "limits": {
-    "max_minutes": 20,
-    "max_cost": 0.8
-  },
-  "required_gpu": [
-    "4090",
-    "4090_48G"
-  ],
-  "notes": "img.style.lora · 风格化 LoRA 出图（Qwen 插画） · 许可：需自行核对模型卡 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "ext": "png",
+  "pick": [
+   "images"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 20000
+ },
+ "limits": {
+  "max_minutes": 20,
+  "max_cost": 0.8
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "img.style.lora · 风格化 LoRA 出图（Qwen 插画） · 许可：需自行核对模型卡 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
 }

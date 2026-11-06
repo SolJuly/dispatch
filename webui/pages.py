@@ -48,7 +48,7 @@ def _wf_picker(base: str, token: str, workflows: list[dict], current: str) -> st
     opts = []
     for w in workflows:
         sel = " selected" if w["key"] == current else ""
-        label = f'{w["key"]} v{w["version"]} · {w.get("compat") or "?"}'
+        label = f'{w["name"]} · {w["key"]}'
         opts.append(f'<option value="{C.esc(w["key"])}"{sel}>{C.esc(label)}</option>')
     return (f'<div class="field"><label for="wf">工作流</label>'
             f'<select id="wf" onchange="location.href=\'{base}/{token}/app/create?workflow=\'+this.value">'
@@ -107,6 +107,7 @@ def create_page(base: str, token: str, workflow: str = "") -> str:
   <form class="card" id="create-form">
     <h2>工作流与参数</h2>
     {_wf_picker(base, token, wfs, wf["key"])}
+    <p class="muted" style="margin:-4px 0 10px">{C.esc(wf.get("description") or "")}</p>
     {fields}
     <div class="field"><label class="row"><input type="checkbox" id="run-now" style="width:auto">
       <span>提交后立即执行（会占用 GPU，产生费用）</span></label></div>

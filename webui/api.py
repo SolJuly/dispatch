@@ -289,7 +289,8 @@ def image_workflows() -> list[dict]:
         if w.get("kind") != "image" or w.get("deprecated"):
             continue
         out.append({
-            "key": w["key"], "name": w["name"], "version": w["version"],
+            "key": w["key"], "name": w["name"], "description": w.get("description") or "",
+            "version": w["version"],
             "model": w.get("model_key") or (w.get("model") or {}).get("key"),
             "compat": (w.get("compat") or {}).get("status"),
             "params": w.get("params") or {},

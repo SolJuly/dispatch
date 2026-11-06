@@ -1,83 +1,84 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_image_z_image_turbo_fun_union_controlnet",
-  "name": "image_z_image_turbo_fun_union_controlnet（image_z_image_turbo_fun_union_controlnet）",
-  "version": 1,
+ "schema": "p20.workflow/v1",
+ "key": "pack_image_z_image_turbo_fun_union_controlnet",
+ "name": "ControlNet · Z-Image（旧版）",
+ "description": "已被 zimage_turbo_controlnet_canny 替代，不建议使用。（⛔ 已被替代）",
+ "version": 1,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/pack/image_z_image_turbo_fun_union_controlnet.api.json",
+ "model": {
+  "key": "z_image_turbo_bf16_image_z_image_turbo_fun_",
+  "slots": {
+   "clip": {
+    "node": "1073",
+    "input": "clip_name"
+   },
+   "unet": {
+    "node": "1074",
+    "input": "unet_name"
+   },
+   "vae": {
+    "node": "1075",
+    "input": "vae_name"
+   }
+  }
+ },
+ "params": {
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "default": "Realistic photo, close-up of a latina model peeking through pine branches, dappled sunlight on her f…",
+   "bindings": [
+    {
+     "node": "1083",
+     "input": "text"
+    }
+   ]
+  },
+  "seed": {
+   "type": "int",
+   "min": 0,
+   "max": 2147483647,
+   "default": 0,
+   "bindings": [
+    {
+     "node": "1079",
+     "input": "seed"
+    }
+   ]
+  },
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "58",
+     "input": "image"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "9",
+  "input": "filename_prefix",
   "kind": "image",
-  "engine": "comfyui",
-  "graph": "workflows/pack/image_z_image_turbo_fun_union_controlnet.api.json",
-  "model": {
-    "key": "z_image_turbo_bf16_image_z_image_turbo_fun_",
-    "slots": {
-      "clip": {
-        "node": "1073",
-        "input": "clip_name"
-      },
-      "unet": {
-        "node": "1074",
-        "input": "unet_name"
-      },
-      "vae": {
-        "node": "1075",
-        "input": "vae_name"
-      }
-    }
-  },
-  "params": {
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "Realistic photo, close-up of a latina model peeking through pine branches, dappled sunlight on her f…",
-      "bindings": [
-        {
-          "node": "1083",
-          "input": "text"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "1079",
-          "input": "seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "58",
-          "input": "image"
-        }
-      ]
-    }
-  },
-  "output": {
-    "node": "9",
-    "input": "filename_prefix",
-    "kind": "image",
-    "ext": "png",
-    "pick": [
-      "images"
-    ]
-  },
-  "expect_defaults": {
-    "ext": "png",
-    "min_bytes": 20000
-  },
-  "limits": {
-    "max_minutes": 20,
-    "max_cost": 0.8
-  },
-  "required_gpu": [
-    "4090",
-    "4090_48G"
-  ],
-  "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+  "ext": "png",
+  "pick": [
+   "images"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 20000
+ },
+ "limits": {
+  "max_minutes": 20,
+  "max_cost": 0.8
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "官方模板导入，未本地真机验证（compat=experimental）"
 }

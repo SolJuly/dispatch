@@ -1,68 +1,69 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_utility_seedvr2_7b_int8_upscale_image",
-  "name": "utility_seedvr2_7b_int8_upscale_image（utility_seedvr2_7b_int8_upscale_image）",
-  "version": 1,
+ "schema": "p20.workflow/v1",
+ "key": "pack_utility_seedvr2_7b_int8_upscale_image",
+ "name": "还原放大 · SeedVR2 7B（实验）",
+ "description": "7B 版还原放大，细节更强但更吃显存。输入：1 张图；输出：放大图。缺 7B int8 权重，跑不通。（⚠️ 实验态，默认不可执行）",
+ "version": 1,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/pack/utility_seedvr2_7b_int8_upscale_image.api.json",
+ "model": {
+  "key": "seedvr2_7b_int8_convrot",
+  "slots": {
+   "vae": {
+    "node": "1075",
+    "input": "vae_name"
+   },
+   "unet": {
+    "node": "1076",
+    "input": "unet_name"
+   }
+  }
+ },
+ "params": {
+  "seed": {
+   "type": "int",
+   "min": 0,
+   "max": 2147483647,
+   "default": 0,
+   "bindings": [
+    {
+     "node": "1077",
+     "input": "seed"
+    }
+   ]
+  },
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "1",
+     "input": "image"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "9",
+  "input": "filename_prefix",
   "kind": "image",
-  "engine": "comfyui",
-  "graph": "workflows/pack/utility_seedvr2_7b_int8_upscale_image.api.json",
-  "model": {
-    "key": "seedvr2_7b_int8_convrot",
-    "slots": {
-      "vae": {
-        "node": "1075",
-        "input": "vae_name"
-      },
-      "unet": {
-        "node": "1076",
-        "input": "unet_name"
-      }
-    }
-  },
-  "params": {
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "1077",
-          "input": "seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "1",
-          "input": "image"
-        }
-      ]
-    }
-  },
-  "output": {
-    "node": "9",
-    "input": "filename_prefix",
-    "kind": "image",
-    "ext": "png",
-    "pick": [
-      "images"
-    ]
-  },
-  "expect_defaults": {
-    "ext": "png",
-    "min_bytes": 20000
-  },
-  "limits": {
-    "max_minutes": 20,
-    "max_cost": 0.8
-  },
-  "required_gpu": [
-    "4090",
-    "4090_48G"
-  ],
-  "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+  "ext": "png",
+  "pick": [
+   "images"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 20000
+ },
+ "limits": {
+  "max_minutes": 20,
+  "max_cost": 0.8
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "官方模板导入，未本地真机验证（compat=experimental）"
 }

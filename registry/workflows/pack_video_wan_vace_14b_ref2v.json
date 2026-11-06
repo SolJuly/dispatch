@@ -1,99 +1,100 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_video_wan_vace_14b_ref2v",
-  "name": "video_wan_vace_14B_ref2v（video_wan_vace_14B_ref2v）",
-  "version": 1,
+ "schema": "p20.workflow/v1",
+ "key": "pack_video_wan_vace_14b_ref2v",
+ "name": "参考生视频 · Wan VACE 14B（实验）",
+ "description": "参考图 + 文本生成视频。输入：参考图 + 提示词；输出：MP4。缺 VACE 官方权重，跑不通。（⚠️ 实验态，默认不可执行）",
+ "version": 1,
+ "kind": "video",
+ "engine": "comfyui",
+ "graph": "workflows/pack/video_wan_vace_14B_ref2v.api.json",
+ "model": {
+  "key": "wan2_1_vace_14b_fp16",
+  "slots": {
+   "unet": {
+    "node": "113",
+    "input": "unet_name"
+   },
+   "vae": {
+    "node": "114",
+    "input": "vae_name"
+   },
+   "lora": {
+    "node": "115",
+    "input": "lora_name"
+   },
+   "clip": {
+    "node": "127",
+    "input": "clip_name"
+   }
+  }
+ },
+ "params": {
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "default": "An icicle dragon lunges forward, mouth wide open to exhale a stream of icy mist. Ultramarine energy …",
+   "bindings": [
+    {
+     "node": "105",
+     "input": "text"
+    }
+   ]
+  },
+  "neg_prompt": {
+   "type": "string",
+   "required": false,
+   "default": "过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，…",
+   "bindings": [
+    {
+     "node": "107",
+     "input": "text"
+    }
+   ]
+  },
+  "seed": {
+   "type": "int",
+   "min": 0,
+   "max": 2147483647,
+   "default": 0,
+   "bindings": [
+    {
+     "node": "108",
+     "input": "seed"
+    }
+   ]
+  },
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "73",
+     "input": "image"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "69",
+  "input": "filename_prefix",
   "kind": "video",
-  "engine": "comfyui",
-  "graph": "workflows/pack/video_wan_vace_14B_ref2v.api.json",
-  "model": {
-    "key": "wan2_1_vace_14b_fp16",
-    "slots": {
-      "unet": {
-        "node": "113",
-        "input": "unet_name"
-      },
-      "vae": {
-        "node": "114",
-        "input": "vae_name"
-      },
-      "lora": {
-        "node": "115",
-        "input": "lora_name"
-      },
-      "clip": {
-        "node": "127",
-        "input": "clip_name"
-      }
-    }
-  },
-  "params": {
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "An icicle dragon lunges forward, mouth wide open to exhale a stream of icy mist. Ultramarine energy …",
-      "bindings": [
-        {
-          "node": "105",
-          "input": "text"
-        }
-      ]
-    },
-    "neg_prompt": {
-      "type": "string",
-      "required": false,
-      "default": "过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，…",
-      "bindings": [
-        {
-          "node": "107",
-          "input": "text"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "108",
-          "input": "seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "73",
-          "input": "image"
-        }
-      ]
-    }
-  },
-  "output": {
-    "node": "69",
-    "input": "filename_prefix",
-    "kind": "video",
-    "ext": "mp4",
-    "pick": [
-      "videos",
-      "gifs"
-    ]
-  },
-  "expect_defaults": {
-    "ext": "mp4",
-    "min_bytes": 50000
-  },
-  "limits": {
-    "max_minutes": 40,
-    "max_cost": 1.6
-  },
-  "required_gpu": [
-    "4090",
-    "4090_48G"
-  ],
-  "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+  "ext": "mp4",
+  "pick": [
+   "videos",
+   "gifs"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "mp4",
+  "min_bytes": 50000
+ },
+ "limits": {
+  "max_minutes": 40,
+  "max_cost": 1.6
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "官方模板导入，未本地真机验证（compat=experimental）"
 }

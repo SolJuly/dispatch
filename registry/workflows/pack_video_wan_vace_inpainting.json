@@ -1,113 +1,114 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_video_wan_vace_inpainting",
-  "name": "★ 视频换背景（SAM3 分割 → VACE 重绘）（video_wan_vace_inpainting）",
-  "version": 1,
+ "schema": "p20.workflow/v1",
+ "key": "pack_video_wan_vace_inpainting",
+ "name": "视频换背景 · SAM3 分割 + VACE 重绘（实验）",
+ "description": "先分割主体再重绘背景。输入：视频 + 蒙版；输出：MP4。缺权重，跑不通。（⚠️ 实验态，默认不可执行）",
+ "version": 1,
+ "kind": "video",
+ "engine": "comfyui",
+ "graph": "workflows/pack/video_wan_vace_inpainting.api.json",
+ "model": {
+  "key": "wan2_1_vace_14b_fp16_video_wan_vace_inpaintin",
+  "slots": {
+   "lora": {
+    "node": "1322",
+    "input": "lora_name"
+   },
+   "clip": {
+    "node": "1327",
+    "input": "clip_name"
+   },
+   "vae": {
+    "node": "1328",
+    "input": "vae_name"
+   },
+   "unet": {
+    "node": "1347",
+    "input": "unet_name"
+   },
+   "ckpt": {
+    "node": "1353",
+    "input": "ckpt_name"
+   }
+  }
+ },
+ "params": {
+  "neg_prompt": {
+   "type": "string",
+   "required": false,
+   "default": "过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，…",
+   "bindings": [
+    {
+     "node": "1329",
+     "input": "text"
+    }
+   ]
+  },
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "default": "A little boy and a dog are hiking in the forest. The puppy runs around the boy cheerfully.",
+   "bindings": [
+    {
+     "node": "1330",
+     "input": "text"
+    }
+   ]
+  },
+  "seed": {
+   "type": "int",
+   "min": 0,
+   "max": 2147483647,
+   "default": 0,
+   "bindings": [
+    {
+     "node": "1336",
+     "input": "seed"
+    }
+   ]
+  },
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "162",
+     "input": "image"
+    }
+   ]
+  },
+  "image_2": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "209",
+     "input": "file"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "69",
+  "input": "filename_prefix",
   "kind": "video",
-  "engine": "comfyui",
-  "graph": "workflows/pack/video_wan_vace_inpainting.api.json",
-  "model": {
-    "key": "wan2_1_vace_14b_fp16_video_wan_vace_inpaintin",
-    "slots": {
-      "lora": {
-        "node": "1322",
-        "input": "lora_name"
-      },
-      "clip": {
-        "node": "1327",
-        "input": "clip_name"
-      },
-      "vae": {
-        "node": "1328",
-        "input": "vae_name"
-      },
-      "unet": {
-        "node": "1347",
-        "input": "unet_name"
-      },
-      "ckpt": {
-        "node": "1353",
-        "input": "ckpt_name"
-      }
-    }
-  },
-  "params": {
-    "neg_prompt": {
-      "type": "string",
-      "required": false,
-      "default": "过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，…",
-      "bindings": [
-        {
-          "node": "1329",
-          "input": "text"
-        }
-      ]
-    },
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "A little boy and a dog are hiking in the forest. The puppy runs around the boy cheerfully.",
-      "bindings": [
-        {
-          "node": "1330",
-          "input": "text"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "1336",
-          "input": "seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "162",
-          "input": "image"
-        }
-      ]
-    },
-    "image_2": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "209",
-          "input": "file"
-        }
-      ]
-    }
-  },
-  "output": {
-    "node": "69",
-    "input": "filename_prefix",
-    "kind": "video",
-    "ext": "mp4",
-    "pick": [
-      "videos",
-      "gifs"
-    ]
-  },
-  "expect_defaults": {
-    "ext": "mp4",
-    "min_bytes": 50000
-  },
-  "limits": {
-    "max_minutes": 40,
-    "max_cost": 1.6
-  },
-  "required_gpu": [
-    "4090",
-    "4090_48G"
-  ],
-  "notes": "vid.bg.replace · ★ 视频换背景（SAM3 分割 → VACE 重绘） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "ext": "mp4",
+  "pick": [
+   "videos",
+   "gifs"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "mp4",
+  "min_bytes": 50000
+ },
+ "limits": {
+  "max_minutes": 40,
+  "max_cost": 1.6
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "vid.bg.replace · ★ 视频换背景（SAM3 分割 → VACE 重绘） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
 }

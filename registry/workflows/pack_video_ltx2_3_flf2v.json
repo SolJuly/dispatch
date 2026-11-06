@@ -1,97 +1,98 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_video_ltx2_3_flf2v",
-  "name": "video_ltx2_3_flf2v（video_ltx2_3_flf2v）",
-  "version": 1,
+ "schema": "p20.workflow/v1",
+ "key": "pack_video_ltx2_3_flf2v",
+ "name": "首尾帧生视频 · LTX 2.3（实验）",
+ "description": "首帧+尾帧生成过渡。输入：2 张图 + 提示词；输出：MP4。当前缺文本编码器输入，跑不通。（⚠️ 实验态，默认不可执行）",
+ "version": 1,
+ "kind": "video",
+ "engine": "comfyui",
+ "graph": "workflows/pack/video_ltx2_3_flf2v.api.json",
+ "model": {
+  "key": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_flf2v",
+  "slots": {
+   "ckpt": {
+    "node": "1159",
+    "input": "ckpt_name"
+   }
+  }
+ },
+ "params": {
+  "neg_prompt": {
+   "type": "string",
+   "required": false,
+   "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, g…",
+   "bindings": [
+    {
+     "node": "1153",
+     "input": "text"
+    }
+   ]
+  },
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "default": "The camera move from a high position to a low position, keeping the character in the frame centered.…",
+   "bindings": [
+    {
+     "node": "1158",
+     "input": "text"
+    }
+   ]
+  },
+  "seed": {
+   "type": "int",
+   "min": 0,
+   "max": 2147483647,
+   "default": 0,
+   "bindings": [
+    {
+     "node": "1132",
+     "input": "noise_seed"
+    }
+   ]
+  },
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "31",
+     "input": "image"
+    }
+   ]
+  },
+  "image_2": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "39",
+     "input": "image"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "68",
+  "input": "filename_prefix",
   "kind": "video",
-  "engine": "comfyui",
-  "graph": "workflows/pack/video_ltx2_3_flf2v.api.json",
-  "model": {
-    "key": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_flf2v",
-    "slots": {
-      "ckpt": {
-        "node": "1159",
-        "input": "ckpt_name"
-      }
-    }
-  },
-  "params": {
-    "neg_prompt": {
-      "type": "string",
-      "required": false,
-      "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, g…",
-      "bindings": [
-        {
-          "node": "1153",
-          "input": "text"
-        }
-      ]
-    },
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "The camera move from a high position to a low position, keeping the character in the frame centered.…",
-      "bindings": [
-        {
-          "node": "1158",
-          "input": "text"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "1132",
-          "input": "noise_seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "31",
-          "input": "image"
-        }
-      ]
-    },
-    "image_2": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "39",
-          "input": "image"
-        }
-      ]
-    }
-  },
-  "output": {
-    "node": "68",
-    "input": "filename_prefix",
-    "kind": "video",
-    "ext": "mp4",
-    "pick": [
-      "videos",
-      "gifs"
-    ]
-  },
-  "expect_defaults": {
-    "ext": "mp4",
-    "min_bytes": 50000
-  },
-  "limits": {
-    "max_minutes": 40,
-    "max_cost": 1.6
-  },
-  "required_gpu": [
-    "4090",
-    "4090_48G"
-  ],
-  "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+  "ext": "mp4",
+  "pick": [
+   "videos",
+   "gifs"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "mp4",
+  "min_bytes": 50000
+ },
+ "limits": {
+  "max_minutes": 40,
+  "max_cost": 1.6
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "官方模板导入，未本地真机验证（compat=experimental）"
 }

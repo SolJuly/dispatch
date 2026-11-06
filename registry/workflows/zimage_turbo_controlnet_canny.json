@@ -1,206 +1,207 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "zimage_turbo_controlnet_canny",
-  "name": "Z-Image-Turbo + Fun Union ControlNet（Canny 构图）",
-  "version": 1,
+ "schema": "p20.workflow/v1",
+ "key": "zimage_turbo_controlnet_canny",
+ "name": "ControlNet 构图 · Z-Image-Turbo（Canny 边缘）",
+ "description": "用边缘图控制构图。输入：参考图 + 提示词；输出：1024 PNG。（✅ 已验证）",
+ "version": 1,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/zimage_turbo_controlnet_canny.api.json",
+ "model": {
+  "key": "zimage_turbo_controlnet",
+  "slots": {
+   "unet": {
+    "node": "70:46",
+    "input": "unet_name"
+   },
+   "clip": {
+    "node": "70:39",
+    "input": "clip_name"
+   },
+   "vae": {
+    "node": "70:40",
+    "input": "vae_name"
+   },
+   "patch": {
+    "node": "70:64",
+    "input": "name"
+   }
+  }
+ },
+ "params": {
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "bindings": [
+    {
+     "node": "70:45",
+     "input": "text"
+    }
+   ],
+   "description": "正向提示词；ControlNet 保持输入构图"
+  },
+  "seed": {
+   "type": "int",
+   "required": true,
+   "bindings": [
+    {
+     "node": "70:44",
+     "input": "seed"
+    }
+   ]
+  },
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "58",
+     "input": "image"
+    }
+   ],
+   "description": "参考图；Canny 边缘 + 原图尺寸"
+  },
+  "canny_low": {
+   "type": "float",
+   "default": 0.1,
+   "min": 0.0,
+   "max": 1.0,
+   "bindings": [
+    {
+     "node": "57",
+     "input": "low_threshold"
+    }
+   ]
+  },
+  "canny_high": {
+   "type": "float",
+   "default": 0.32,
+   "min": 0.0,
+   "max": 1.0,
+   "bindings": [
+    {
+     "node": "57",
+     "input": "high_threshold"
+    }
+   ]
+  },
+  "strength": {
+   "type": "float",
+   "default": 1.0,
+   "min": 0.0,
+   "max": 2.0,
+   "bindings": [
+    {
+     "node": "70:60",
+     "input": "strength"
+    }
+   ]
+  },
+  "start": {
+   "type": "float",
+   "default": 0.0,
+   "min": 0.0,
+   "max": 1.0,
+   "bindings": [
+    {
+     "node": "70:60",
+     "input": "start_percent"
+    }
+   ]
+  },
+  "end": {
+   "type": "float",
+   "default": 1.0,
+   "min": 0.0,
+   "max": 1.0,
+   "bindings": [
+    {
+     "node": "70:60",
+     "input": "end_percent"
+    }
+   ]
+  },
+  "steps": {
+   "type": "int",
+   "default": 8,
+   "min": 4,
+   "max": 12,
+   "bindings": [
+    {
+     "node": "70:44",
+     "input": "steps"
+    }
+   ]
+  },
+  "cfg": {
+   "type": "float",
+   "default": 1.0,
+   "min": 0.5,
+   "max": 2.0,
+   "bindings": [
+    {
+     "node": "70:44",
+     "input": "cfg"
+    }
+   ]
+  },
+  "sampler": {
+   "type": "enum",
+   "default": "res_multistep",
+   "values": [
+    "res_multistep",
+    "euler",
+    "euler_ancestral",
+    "dpmpp_2m",
+    "uni_pc"
+   ],
+   "bindings": [
+    {
+     "node": "70:44",
+     "input": "sampler_name"
+    }
+   ]
+  },
+  "scheduler": {
+   "type": "enum",
+   "default": "simple",
+   "values": [
+    "simple",
+    "normal",
+    "karras",
+    "beta"
+   ],
+   "bindings": [
+    {
+     "node": "70:44",
+     "input": "scheduler"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "9",
+  "input": "filename_prefix",
   "kind": "image",
-  "engine": "comfyui",
-  "graph": "workflows/zimage_turbo_controlnet_canny.api.json",
-  "model": {
-    "key": "zimage_turbo_controlnet",
-    "slots": {
-      "unet": {
-        "node": "70:46",
-        "input": "unet_name"
-      },
-      "clip": {
-        "node": "70:39",
-        "input": "clip_name"
-      },
-      "vae": {
-        "node": "70:40",
-        "input": "vae_name"
-      },
-      "patch": {
-        "node": "70:64",
-        "input": "name"
-      }
-    }
-  },
-  "params": {
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "bindings": [
-        {
-          "node": "70:45",
-          "input": "text"
-        }
-      ],
-      "description": "正向提示词；ControlNet 保持输入构图"
-    },
-    "seed": {
-      "type": "int",
-      "required": true,
-      "bindings": [
-        {
-          "node": "70:44",
-          "input": "seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "58",
-          "input": "image"
-        }
-      ],
-      "description": "参考图；Canny 边缘 + 原图尺寸"
-    },
-    "canny_low": {
-      "type": "float",
-      "default": 0.1,
-      "min": 0.0,
-      "max": 1.0,
-      "bindings": [
-        {
-          "node": "57",
-          "input": "low_threshold"
-        }
-      ]
-    },
-    "canny_high": {
-      "type": "float",
-      "default": 0.32,
-      "min": 0.0,
-      "max": 1.0,
-      "bindings": [
-        {
-          "node": "57",
-          "input": "high_threshold"
-        }
-      ]
-    },
-    "strength": {
-      "type": "float",
-      "default": 1.0,
-      "min": 0.0,
-      "max": 2.0,
-      "bindings": [
-        {
-          "node": "70:60",
-          "input": "strength"
-        }
-      ]
-    },
-    "start": {
-      "type": "float",
-      "default": 0.0,
-      "min": 0.0,
-      "max": 1.0,
-      "bindings": [
-        {
-          "node": "70:60",
-          "input": "start_percent"
-        }
-      ]
-    },
-    "end": {
-      "type": "float",
-      "default": 1.0,
-      "min": 0.0,
-      "max": 1.0,
-      "bindings": [
-        {
-          "node": "70:60",
-          "input": "end_percent"
-        }
-      ]
-    },
-    "steps": {
-      "type": "int",
-      "default": 8,
-      "min": 4,
-      "max": 12,
-      "bindings": [
-        {
-          "node": "70:44",
-          "input": "steps"
-        }
-      ]
-    },
-    "cfg": {
-      "type": "float",
-      "default": 1.0,
-      "min": 0.5,
-      "max": 2.0,
-      "bindings": [
-        {
-          "node": "70:44",
-          "input": "cfg"
-        }
-      ]
-    },
-    "sampler": {
-      "type": "enum",
-      "default": "res_multistep",
-      "values": [
-        "res_multistep",
-        "euler",
-        "euler_ancestral",
-        "dpmpp_2m",
-        "uni_pc"
-      ],
-      "bindings": [
-        {
-          "node": "70:44",
-          "input": "sampler_name"
-        }
-      ]
-    },
-    "scheduler": {
-      "type": "enum",
-      "default": "simple",
-      "values": [
-        "simple",
-        "normal",
-        "karras",
-        "beta"
-      ],
-      "bindings": [
-        {
-          "node": "70:44",
-          "input": "scheduler"
-        }
-      ]
-    }
-  },
-  "output": {
-    "node": "9",
-    "input": "filename_prefix",
-    "kind": "image",
-    "ext": "png",
-    "pick": [
-      "images"
-    ],
-    "count": 1
-  },
-  "expect_defaults": {
-    "ext": "png",
-    "min_bytes": 20000,
-    "images": 1,
-    "black_ratio_max": 0.5
-  },
-  "limits": {
-    "max_minutes": 20,
-    "max_cost": 0.8
-  },
-  "required_gpu": [
-    "4090",
-    "4090_48G"
+  "ext": "png",
+  "pick": [
+   "images"
   ],
-  "notes": "06 号 ControlNet Canny：输入图 → Canny 边缘 → Fun Union ControlNet 保持构图；输出尺寸跟随输入。"
+  "count": 1
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 20000,
+  "images": 1,
+  "black_ratio_max": 0.5
+ },
+ "limits": {
+  "max_minutes": 20,
+  "max_cost": 0.8
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "06 号 ControlNet Canny：输入图 → Canny 边缘 → Fun Union ControlNet 保持构图；输出尺寸跟随输入。"
 }
