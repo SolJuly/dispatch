@@ -130,6 +130,11 @@ def repair(graph: dict, oi: dict) -> list[str]:
             opts = spec[1] if len(spec) > 1 and isinstance(spec[1], dict) else {}
             if "default" in opts:
                 val = opts["default"]
+            elif typ == "COMBO":
+                opts_list = opts.get("options") or []
+                if not opts_list:
+                    continue
+                val = opts_list[0]
             elif isinstance(typ, list):
                 val = typ[0] if typ else ""
             elif typ == "INT":
@@ -152,6 +157,7 @@ def main() -> int:
     ap.add_argument("--create", action="store_true")
     ap.add_argument("--only", default="")
     ap.add_argument("--timeout", type=int, default=900)
+    ap.add_argument("--submit-only", action="store_true", help="只提交并读首个响应，不等待完成")
     a = ap.parse_args()
 
     import glob
@@ -297,6 +303,8 @@ try:
 except urllib.error.HTTPError as e:
     print('SUBMIT_FAIL', e.code, e.read().decode()[:1500]); raise SystemExit(1)
 pid = r['prompt_id']; print('PROMPT', pid, flush=True)
+if {str(a.submit_only)}:
+    print('SUBMITTED'); raise SystemExit(0)
 while time.time() - t0 < {a.timeout}:
     try:
         h = json.load(urllib.request.urlopen('http://127.0.0.1:8188/history/' + pid, timeout=10))
@@ -321,6 +329,14 @@ PY
         except Exception as e:  # noqa: BLE001
             out = f"SSH_ERR {e}"
         rec["seconds"] = round(time.time() - t0, 1)
+        if a.submit_only:
+            rec["status"] = "SUBMITTED" if "SUBMITTED" in out else "FAIL"
+            if rec["status"] == "FAIL":
+                rec["error"] = out[-500:]
+                rec["detail"] = out[-3000:]
+            results.append(rec)
+            print(rec["status"], out[-300:].replace("\n", " ")[:200], flush=True)
+            continue
         ok = "STATUS success True" in out
         rec["status"] = "PASS" if ok else "FAIL"
         if not ok:

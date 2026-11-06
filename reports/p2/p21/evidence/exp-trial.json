@@ -1,59 +1,63 @@
 {
-  "generated_at": "2026-11-06T22:41:35+08:00",
-  "uid": "uhost-1xdxmgp3e72o",
+  "generated_at": "2026-11-07T00:31:02+08:00",
+  "uid": "uhost-1xe1hchet5p9",
   "missing_files": [
     "illustration-1.0-qwen-image.safetensors",
-    "seedvr2_ema_vae_fp16.safetensors",
-    "seedvr2_7b_int8_convrot.safetensors"
+    "ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
+    "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors"
   ],
   "results": [
     {
       "workflow": "pack_image_flux2_klein_image_edit_4b_distilled",
       "nodes": 41,
-      "started_at": "2026-11-06T22:41:12+08:00",
-      "seconds": 1.6,
+      "started_at": "2026-11-07T00:29:39+08:00",
+      "seconds": 6.4,
       "status": "FAIL",
-      "error": "SUBMIT_FAIL 400 {\"error\": {\"type\": \"prompt_outputs_failed_validation\", \"message\": \"Prompt outputs failed validation\", \"details\": \"\", \"extra_info\": {}}, \"node_errors\": {\"1152\": {\"errors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"upscale_method\", \"extra_info\": {\"input_name\": \"upscale_method\"}}], \"dependent_outputs\": [\"9\"], \"class_type\": \"ImageScaleToTotalPixels\"}}}\nWarning: Permanently added '[117.50.216.168]:23' (ED25519) to the list of known hosts.\n"
+      "error": "PROMPT 2e2240e8-a95e-4822-91ae-6ab27cdf6337\nSTATUS error False\nERR VAELoader | Model in folder 'vae' with filename 'flux2-vae.safetensors' not found.\n\nOUTPUTS {}\nWarning: Permanently added '[117.50.223.157]:23' (ED25519) to the list of known hosts.\n",
+      "detail": "PROMPT 2e2240e8-a95e-4822-91ae-6ab27cdf6337\nSTATUS error False\nERR VAELoader | Model in folder 'vae' with filename 'flux2-vae.safetensors' not found.\n\nOUTPUTS {}\nWarning: Permanently added '[117.50.223.157]:23' (ED25519) to the list of known hosts.\n"
     },
     {
       "workflow": "pack_image_qwen_image_edit_2511_int8",
       "nodes": 19,
-      "started_at": "2026-11-06T22:41:18+08:00",
-      "seconds": 1.8,
+      "started_at": "2026-11-07T00:29:50+08:00",
+      "seconds": 1.6,
       "status": "FAIL",
-      "error": "Method\"}, \"195\": {\"errors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"input_color_space\", \"extra_info\": {\"input_name\": \"format.input_color_space\"}}, {\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"bit_depth\", \"extra_info\": {\"input_name\": \"format.bit_depth\"}}], \"dependent_outputs\": [\"195\"], \"class_type\": \"SaveImageAdvanced\"}}}\nWarning: Permanently added '[117.50.216.168]:23' (ED25519) to the list of known hosts.\n"
+      "error": "errors\": {\"195\": {\"errors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"bit_depth\", \"extra_info\": {\"input_name\": \"format.bit_depth\"}}, {\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"input_color_space\", \"extra_info\": {\"input_name\": \"format.input_color_space\"}}], \"dependent_outputs\": [\"195\"], \"class_type\": \"SaveImageAdvanced\"}}}\nWarning: Permanently added '[117.50.223.157]:23' (ED25519) to the list of known hosts.\n",
+      "detail": "SUBMIT_FAIL 400 {\"error\": {\"type\": \"prompt_outputs_failed_validation\", \"message\": \"Prompt outputs failed validation\", \"details\": \"Required input is missing: bit_depth\\nRequired input is missing: input_color_space\", \"extra_info\": {}}, \"node_errors\": {\"195\": {\"errors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"bit_depth\", \"extra_info\": {\"input_name\": \"format.bit_depth\"}}, {\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"input_color_space\", \"extra_info\": {\"input_name\": \"format.input_color_space\"}}], \"dependent_outputs\": [\"195\"], \"class_type\": \"SaveImageAdvanced\"}}}\nWarning: Permanently added '[117.50.223.157]:23' (ED25519) to the list of known hosts.\n"
     },
     {
       "workflow": "pack_image_qwen_image_layered",
       "nodes": 29,
-      "started_at": "2026-11-06T22:41:22+08:00",
-      "seconds": 1.3,
+      "started_at": "2026-11-07T00:29:54+08:00",
+      "seconds": 6.3,
       "status": "FAIL",
-      "error": "ors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"dim\", \"extra_info\": {\"input_name\": \"dim\"}}], \"dependent_outputs\": [\"60\"], \"class_type\": \"LatentCut\"}, \"1149\": {\"errors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"dim\", \"extra_info\": {\"input_name\": \"dim\"}}], \"dependent_outputs\": [\"60\"], \"class_type\": \"LatentCutToBatch\"}}}\nWarning: Permanently added '[117.50.216.168]:23' (ED25519) to the list of known hosts.\n"
-    },
-    {
-      "workflow": "pack_template_qwen_image_illustration_lora",
-      "nodes": 11,
-      "started_at": "2026-11-06T22:41:26+08:00",
-      "seconds": 1.3,
-      "status": "FAIL",
-      "error": " \"\", \"extra_info\": {}}, \"node_errors\": {\"1085\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"lora_name: 'illustration-1.0-qwen-image.safetensors' not in (list of length 277)\", \"extra_info\": {\"input_name\": \"lora_name\", \"input_config\": null, \"received_value\": \"illustration-1.0-qwen-image.safetensors\"}}], \"dependent_outputs\": [\"60\"], \"class_type\": \"LoraLoaderModelOnly\"}}}\nWarning: Permanently added '[117.50.216.168]:23' (ED25519) to the list of known hosts.\n"
-    },
-    {
-      "workflow": "pack_utility_seedvr2_7b_int8_upscale_image",
-      "nodes": 12,
-      "started_at": "2026-11-06T22:41:27+08:00",
-      "seconds": 1.3,
-      "status": "FAIL",
-      "error": ", \"dependent_outputs\": [\"9\"], \"class_type\": \"VAELoader\"}, \"1076\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"unet_name: 'seedvr2_7b_int8_convrot.safetensors' not in (list of length 373)\", \"extra_info\": {\"input_name\": \"unet_name\", \"input_config\": null, \"received_value\": \"seedvr2_7b_int8_convrot.safetensors\"}}], \"dependent_outputs\": [\"9\"], \"class_type\": \"UNETLoader\"}}}\nWarning: Permanently added '[117.50.216.168]:23' (ED25519) to the list of known hosts.\n"
+      "error": "PROMPT d2cb8a7b-de48-470b-817c-28feaa7e346b\nSTATUS error False\nERR CLIPLoader | Model in folder 'text_encoders' with filename 'qwen_2.5_vl_7b_fp8_scaled.safetensors' not found.\n\nOUTPUTS {}\nWarning: Permanently added '[117.50.223.157]:23' (ED25519) to the list of known hosts.\n",
+      "detail": "PROMPT d2cb8a7b-de48-470b-817c-28feaa7e346b\nSTATUS error False\nERR CLIPLoader | Model in folder 'text_encoders' with filename 'qwen_2.5_vl_7b_fp8_scaled.safetensors' not found.\n\nOUTPUTS {}\nWarning: Permanently added '[117.50.223.157]:23' (ED25519) to the list of known hosts.\n"
     },
     {
       "workflow": "pack_utility_z_image_turbo_2k_upscaler_app",
       "nodes": 15,
-      "started_at": "2026-11-06T22:41:31+08:00",
+      "started_at": "2026-11-07T00:30:03+08:00",
+      "seconds": 51.7,
+      "status": "PASS"
+    },
+    {
+      "workflow": "pack_template_qwen_image_illustration_lora",
+      "nodes": 11,
+      "started_at": "2026-11-07T00:30:57+08:00",
+      "seconds": 1.4,
+      "status": "FAIL",
+      "error": " \"\", \"extra_info\": {}}, \"node_errors\": {\"1085\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"lora_name: 'illustration-1.0-qwen-image.safetensors' not in (list of length 277)\", \"extra_info\": {\"input_name\": \"lora_name\", \"input_config\": null, \"received_value\": \"illustration-1.0-qwen-image.safetensors\"}}], \"dependent_outputs\": [\"60\"], \"class_type\": \"LoraLoaderModelOnly\"}}}\nWarning: Permanently added '[117.50.223.157]:23' (ED25519) to the list of known hosts.\n",
+      "detail": "SUBMIT_FAIL 400 {\"error\": {\"type\": \"prompt_outputs_failed_validation\", \"message\": \"Prompt outputs failed validation\", \"details\": \"\", \"extra_info\": {}}, \"node_errors\": {\"1085\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"lora_name: 'illustration-1.0-qwen-image.safetensors' not in (list of length 277)\", \"extra_info\": {\"input_name\": \"lora_name\", \"input_config\": null, \"received_value\": \"illustration-1.0-qwen-image.safetensors\"}}], \"dependent_outputs\": [\"60\"], \"class_type\": \"LoraLoaderModelOnly\"}}}\nWarning: Permanently added '[117.50.223.157]:23' (ED25519) to the list of known hosts.\n"
+    },
+    {
+      "workflow": "pack_video_ltx2_3_i2v",
+      "nodes": 43,
+      "started_at": "2026-11-07T00:30:58+08:00",
       "seconds": 1.3,
       "status": "FAIL",
-      "error": "SUBMIT_FAIL 400 {\"error\": {\"type\": \"prompt_outputs_failed_validation\", \"message\": \"Prompt outputs failed validation\", \"details\": \"\", \"extra_info\": {}}, \"node_errors\": {\"1108\": {\"errors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"upscale_method\", \"extra_info\": {\"input_name\": \"upscale_method\"}}], \"dependent_outputs\": [\"9\"], \"class_type\": \"ImageScaleToTotalPixels\"}}}\nWarning: Permanently added '[117.50.216.168]:23' (ED25519) to the list of known hosts.\n"
+      "error": "-abliterated_lora_rank64_bf16.safetensors' not in (list of length 277)\", \"extra_info\": {\"input_name\": \"lora_name\", \"input_config\": null, \"received_value\": \"gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors\"}}], \"dependent_outputs\": [\"75\"], \"class_type\": \"LoraLoader\"}, \"1376\": {\"errors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"top_k\", \"extra_info\": {\"input_\nWarning: Permanently added '[117.50.223.157]:23' (ED25519) to the list of known hosts.\n",
+      "detail": "SUBMIT_FAIL 400 {\"error\": {\"type\": \"prompt_outputs_failed_validation\", \"message\": \"Prompt outputs failed validation\", \"details\": \"\", \"extra_info\": {}}, \"node_errors\": {\"1371\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"text_encoder: 'gemma_3_12B_it_fp4_mixed.safetensors' not in (list of length 48)\", \"extra_info\": {\"input_name\": \"text_encoder\", \"input_config\": null, \"received_value\": \"gemma_3_12B_it_fp4_mixed.safetensors\"}}], \"dependent_outputs\": [\"75\"], \"class_type\": \"LTXAVTextEncoderLoader\"}, \"1340\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"lora_name: 'ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors' not in (list of length 277)\", \"extra_info\": {\"input_name\": \"lora_name\", \"input_config\": null, \"received_value\": \"ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors\"}}], \"dependent_outputs\": [\"75\"], \"class_type\": \"LoraLoaderModelOnly\"}, \"1375\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"lora_name: 'gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors' not in (list of length 277)\", \"extra_info\": {\"input_name\": \"lora_name\", \"input_config\": null, \"received_value\": \"gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors\"}}], \"dependent_outputs\": [\"75\"], \"class_type\": \"LoraLoader\"}, \"1376\": {\"errors\": [{\"type\": \"required_input_missing\", \"message\": \"Required input is missing\", \"details\": \"top_k\", \"extra_info\": {\"input_\nWarning: Permanently added '[117.50.223.157]:23' (ED25519) to the list of known hosts.\n"
     }
   ]
 }

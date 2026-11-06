@@ -334,6 +334,17 @@
       ],
       "verified_at": "2026-11-06",
       "notes": "141.6s，两段式 S2V（音频+参考图→视频）；原 8 段长视频模板图缺失，已重建为 base+1 段 extend，v4 API 直跑；首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_utility_z_image_turbo_2k_upscaler_app",
+      "model": "z_image_turbo_bf16_utility_z_image_turbo_2k",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-07",
+      "notes": "51.7s，2K 高清精绘 app，v4 API 直跑；首次正式作业后应替换为 job id"
     }
   ]
 }
