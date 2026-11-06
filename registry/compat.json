@@ -323,6 +323,17 @@
       ],
       "verified_at": "2026-11-06",
       "notes": "257.1s，蒸馏加速版动作迁移，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_wan2_2_14b_s2v",
+      "model": "wan2_2_s2v_14b_fp8_scaled",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "141.6s，两段式 S2V（音频+参考图→视频）；原 8 段长视频模板图缺失，已重建为 base+1 段 extend，v4 API 直跑；首次正式作业后应替换为 job id"
     }
   ]
 }

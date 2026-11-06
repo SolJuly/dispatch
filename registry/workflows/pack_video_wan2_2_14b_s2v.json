@@ -57,31 +57,11 @@
       "default": 0,
       "bindings": [
         {
-          "node": "1183",
+          "node": "3",
           "input": "seed"
         },
         {
           "node": "1186",
-          "input": "seed"
-        },
-        {
-          "node": "1189",
-          "input": "seed"
-        },
-        {
-          "node": "1192",
-          "input": "seed"
-        },
-        {
-          "node": "1195",
-          "input": "seed"
-        },
-        {
-          "node": "1198",
-          "input": "seed"
-        },
-        {
-          "node": "3",
           "input": "seed"
         }
       ]

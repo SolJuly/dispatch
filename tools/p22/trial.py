@@ -53,6 +53,7 @@ LOADER_DIR = {
     "CheckpointLoaderSimple": "checkpoints", "UpscaleModelLoader": "upscale_models",
     "ControlNetLoader": "controlnet", "CLIPVisionLoader": "clip_vision",
     "SeedVR2LoadDiTModel": "SEEDVR2", "SeedVR2LoadVAEModel": "SEEDVR2",
+    "AudioEncoderLoader": "audio_encoders",
 }
 
 
@@ -194,6 +195,12 @@ def main() -> int:
     except Exception as e:  # noqa: BLE001
         print("repair skipped:", e, flush=True)
 
+    for g in graphs.values():
+        for node in g.values():
+            if node.get("class_type") == "AudioEncoderLoader":
+                node.setdefault("inputs", {}).setdefault(
+                    "audio_encoder_name", "wav2vec2_large_english_fp16.safetensors")
+
     # 1) 收集所有模型引用，按目录去重
     refs = {}
     for k, g in graphs.items():
@@ -318,6 +325,7 @@ PY
         rec["status"] = "PASS" if ok else "FAIL"
         if not ok:
             rec["error"] = out[-500:]
+            rec["detail"] = out[-4000:]
         results.append(rec)
         print(rec["status"], rec.get("seconds"), rec.get("error", "")[:160], flush=True)
 
