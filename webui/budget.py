@@ -40,7 +40,9 @@ def _probe_frames(path: str) -> int | None:
     try:
         p = Path(path)
         if not p.is_absolute():
-            p = ROOT / path
+            cand = [ROOT / path, ROOT / "reports/p2/p21/inputs" / path,
+                    ROOT / "share/inputs" / path]
+            p = next((c for c in cand if c.is_file()), ROOT / path)
         if not p.is_file():
             return None
         r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
@@ -73,7 +75,7 @@ def _scale(params: dict, ref_frames: int, ref_w: int, ref_h: int) -> float:
     if not frames or not w or not h:
         return 1.0
     ratio = (frames / ref_frames) * ((w * h) / (ref_w * ref_h))
-    return max(0.3, min(3.0, ratio))
+    return max(0.3, min(8.0, ratio))   # 长驱动视频（数百帧）真的会跑到 20+ 分钟
 
 
 def estimate(workflow: dict, params: dict) -> dict:

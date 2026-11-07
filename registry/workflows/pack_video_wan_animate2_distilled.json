@@ -140,6 +140,14 @@
         }
       ],
       "multiple": 4
+    },
+    "trim_seconds": {
+      "type": "float",
+      "default": 0,
+      "min": 0,
+      "max": 60,
+      "virtual": true,
+      "description": "驱动视频截取秒数（0 = 用整条）。模板会按视频帧数分轮跑，每 81 帧约 3 分钟；截 4 秒（16fps→64 帧）约 ¥0.2"
     }
   },
   "output": {

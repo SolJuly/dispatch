@@ -531,9 +531,12 @@ def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
            f"pid=sys.argv[1];"
            "e=h.get(pid);"
            "print(json.dumps(e if e else {}))\" " + pid)
+    fail_streak = 0
+    last_note = 0.0
     while time.time() - t0 < limit:
         rc, out = _ssh_run(host, port, pwd, cmd, timeout=120)
         if rc == 0:
+            fail_streak = 0
             from tools.p20 import comfy as p20comfy
             ent = p20comfy.parse_history(out)
             if ent:
@@ -546,8 +549,36 @@ def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
                     return sorted(files)
                 if st == "error":
                     raise RunError(f"推理失败：{p20comfy.extract_error(ent)}", state.FAILED_RUN)
+        else:
+            # 查询失败可能是 ssh 抖动，也可能是 ComfyUI 挂了（OOM/崩溃）。
+            # 以前这里只会一直等到 max_minutes（45 分钟）白烧 GPU：
+            # 每 30s 连续失败就去问一次进程还在不在。
+            fail_streak += 1
+            if fail_streak % 6 == 1:
+                alive = _comfy_alive(host, port, pwd)
+                if alive is False:
+                    raise RunError(
+                        f"ComfyUI 进程已退出（第 {int(time.time()-t0)}s，疑似显存不足/崩溃）",
+                        state.FAILED_RUN)
+        elapsed = int(time.time() - t0)
+        if elapsed - last_note >= 120:
+            _say(f"  推理中… 已等 {elapsed}s（每 2 分钟一次心跳）")
+            last_note = elapsed
         time.sleep(5)
     raise RunError(f"推理超时（{limit}s）", state.FAILED_RUN)
+
+
+def _comfy_alive(host: str, port: str, pwd: str) -> bool | None:
+    """ComfyUI 进程还在吗？True/False；ssh 都连不上就 None（别乱判死刑）。"""
+    rc, out = _ssh_run(host, port, pwd,
+                       "pgrep -af 'ComfyUI.*main.py' | head -3; echo '---'; "
+                       "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader",
+                       timeout=60)
+    if rc != 0 and "pgrep" not in (out or ""):
+        return None
+    if "main.py" in (out or ""):
+        return True
+    return False
 
 
 def step_fetch(job: dict, opts, ctx: dict, files: list[tuple[str, str]]) -> list[Path]:
@@ -588,7 +619,9 @@ def step_verify(job: dict, opts, ctx: dict, arts: list[Path]) -> dict:
     for a in res.get("artifacts", []):
         _say(f"  {a['file']}: {a['verdict']}  failed={a['failed'] or '—'}")
     if res["verdict"] != "PASS":
-        raise RunError(f"校验未通过：{res['artifacts'][0]['failed'] if res.get('artifacts') else '?'}",
+        bad = [f"{a['file']}: {','.join(a['failed'])}"
+               for a in (res.get("artifacts") or []) if a["verdict"] != "PASS"]
+        raise RunError(f"校验未通过：{'; '.join(bad) or res.get('reason') or '?'}",
                        state.FAILED_VERIFY)
     return res
 
@@ -1004,6 +1037,12 @@ def _abort(job_id: str, job: dict, opts) -> int:
                 state.transition(job_id, state.RELEASING, reason="abort：放弃续跑")
             except Exception as e:
                 _say(f"  ⚠ 转移到 RELEASING 失败：{e}")
+        elif cur not in state.TERMINAL:
+            # 正在跑的作业 abort 后必须落到 ABORTED，否则状态永远停在 RUNNING
+            try:
+                state.transition(job_id, state.ABORTED, reason="abort：人工中止")
+            except Exception as e:
+                _say(f"  ⚠ 转移到 ABORTED 失败：{e}")
         try:
             step_release(job, opts, ctx)
         except Exception as e:

@@ -138,5 +138,49 @@ class TestModelLinks(unittest.TestCase):
         self.assertEqual(cm.exception.fail_state, state.FAILED_PROVISION)
 
 
+class TestWaitDetectsDeadServer(unittest.TestCase):
+    """ComfyUI 挂了要立刻失败，别傻等到 45 分钟预算上限（2026-11-07 真实事故）。"""
+
+    def test_dead_process_raises_fast(self):
+        import time as _t
+        calls = {"n": 0}
+
+        def fake_ssh(host, port, pwd, cmd, timeout=600):
+            calls["n"] += 1
+            if "pgrep" in cmd:
+                return 0, "---\n0 %"          # 没有 main.py → 进程没了
+            return 1, "ssh: connect to host port 23: Connection refused"
+
+        job = {"job_id": "p1-20261107T0000-abcdef", "budget": {"max_minutes": 45}}
+        with mock.patch.object(run, "_ssh_run", side_effect=fake_ssh):
+            t0 = _t.time()
+            with self.assertRaises(run.RunError) as cm:
+                run.step_wait(job, mock.Mock(), {"host": "h", "port": 23,
+                                                 "password": "p", "prompt_id": "x"})
+            spent = _t.time() - t0
+        self.assertEqual(cm.exception.fail_state, state.FAILED_RUN)
+        self.assertIn("ComfyUI", str(cm.exception))
+        self.assertLess(spent, 30, "必须在几十秒内失败，而不是等到预算上限")
+
+    def test_alive_process_keeps_waiting(self):
+        n = {"i": 0}
+
+        def fake_ssh(host, port, pwd, cmd, timeout=600):
+            n["i"] += 1
+            if "pgrep" in cmd:
+                return 0, "/root/ComfyUI/main.py --listen\n99 %"
+            if n["i"] == 1:
+                return 1, "temporary blip"      # 先抖一下：触发 pgrep，进程还在
+            return 0, '{"status": {"status_str": "error", "messages": []}, "outputs": {}}' 
+
+        job = {"job_id": "p1-20261107T0000-abcdef", "budget": {"max_minutes": 1}}
+        with mock.patch.object(run, "_ssh_run", side_effect=fake_ssh):
+            with self.assertRaises(run.RunError) as cm:
+                run.step_wait(job, mock.Mock(), {"host": "h", "port": 23,
+                                                 "password": "p", "prompt_id": "x"})
+        self.assertEqual(cm.exception.fail_state, state.FAILED_RUN)
+        self.assertIn("推理失败", str(cm.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -257,7 +257,46 @@ def _normalize_image(params: dict) -> dict:
         if p.resolve() != dst.resolve():
             shutil.copy2(p, dst)
         params[key] = name
+    _trim_video(params)
     return params
+
+
+def _trim_video(params: dict, fps: int = 16, timeout: int = 300) -> None:
+    """按 trim_seconds 截取驱动视频（可选重采样到 16fps）。
+
+    为什么需要：动作迁移模板会**按驱动视频的帧数循环**（81 帧一轮），
+    一条 10.8s / 60fps 的手机视频 = 563 帧 = 7 轮，就是 20+ 分钟、¥0.9。
+    截到 4 秒并重采样 16fps ≈ 64 帧，一轮就完，约 3 分钟 ¥0.2。
+    """
+    import subprocess
+
+    try:
+        secs = float(params.get("trim_seconds") or 0)
+    except (TypeError, ValueError):
+        return
+    if secs <= 0:
+        return
+    for key in [k for k in params
+                if isinstance(k, str) and re.fullmatch(r"video(?:_\d+)?", k)]:
+        name = params.get(key)
+        if not isinstance(name, str) or not name:
+            continue
+        src = INPUTS_DIR / name
+        if not src.is_file():
+            continue
+        out_name = f"{src.stem}-t{secs:g}-{fps}fps.mp4"
+        out = INPUTS_DIR / out_name
+        if not out.is_file():
+            cmd = ["ffmpeg", "-v", "error", "-y", "-i", str(src),
+                   "-t", f"{secs:g}", "-r", str(fps),
+                   "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+                   "-pix_fmt", "yuv420p", "-an", str(out)]
+            try:
+                subprocess.run(cmd, check=True, timeout=timeout,
+                               capture_output=True)
+            except (OSError, subprocess.SubprocessError):
+                continue
+        params[key] = out_name
 
 
 def _make_spec(r: dict, *, job_key: str, task_ref: str | None) -> dict:

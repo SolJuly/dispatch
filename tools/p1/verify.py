@@ -313,10 +313,21 @@ def verify_job(job: dict, artifacts_dir: Path, workflow_path: Path | None = None
 
     kind = "image" if files[0].suffix.lower() != ".mp4" else "video"
     results = [verify_file(f, expect, job, workflow, kind, wf_config) for f in files]
-    all_pass = all(r["verdict"] == "PASS" for r in results)
-    return {"verdict": "PASS" if all_pass else "FAIL", "kind": kind,
-            "artifacts": results,
-            "checks": results[0]["checks"] if len(results) == 1 else None}
+
+    # 一份作业里可能有多路输出（动作迁移会额外存 pose 预览、拼接对比片，甚至单帧封面）。
+    # 判定以**主产物**（文件名排序第一，来自工作流 output 节点）为准；
+    # 附加产物的 size/black/freeze 偏差只记告警，否则一张 1 帧封面就能把好作业判死。
+    # 唯一例外：任何一路 decode 失败（文件坏了）仍然整体 FAIL。
+    primary = results[0]
+    broken = [r for r in results if r["checks"].get("decode") is False]
+    secondary = [r for r in results[1:] if r["verdict"] != "PASS"]
+    verdict = "PASS" if primary["verdict"] == "PASS" and not broken else "FAIL"
+    out = {"verdict": verdict, "kind": kind, "artifacts": results,
+           "checks": primary["checks"] if len(results) == 1 else None}
+    if secondary:
+        out["secondary_failures"] = [
+            f"{r['file']}: {','.join(r['failed'])}" for r in secondary]
+    return out
 
 
 TASK_CHECKS = {

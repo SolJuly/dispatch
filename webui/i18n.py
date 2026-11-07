@@ -29,6 +29,7 @@ PARAM_LABELS = {
     "mask": "蒙版",
     "audio": "音频",
     "video": "驱动视频",
+    "trim_seconds": "驱动视频截取秒数",
     "denoise": "重绘强度（denoise）",
     "strength": "强度",
     "scale": "放大倍数",
@@ -57,6 +58,7 @@ TYPE_LABELS = {
 # 参数分组：决定表单里块的出现顺序
 GROUP_ORDER = ["输入", "提示词", "采样", "尺寸/时长", "其他"]
 GROUP_OF = {
+    "trim_seconds": "输入",
     "image": "输入", "image_2": "输入", "image_3": "输入", "image_4": "输入",
     "mask": "输入", "audio": "输入", "video": "输入",
     "first_frame": "输入", "last_frame": "输入", "ref_image": "输入",

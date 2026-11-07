@@ -94,6 +94,14 @@
     }
    ],
    "description": "驱动/源视频（MP4/MOV/WebM）。驱动视频；CLI 传本地路径，运行器会归一化并上传到实例 input/"
+  },
+  "trim_seconds": {
+   "type": "float",
+   "default": 0,
+   "min": 0,
+   "max": 60,
+   "virtual": true,
+   "description": "驱动视频截取秒数（0 = 用整条）。模板会按视频帧数分轮跑，每 81 帧约 3 分钟；截 4 秒（16fps→64 帧）约 ¥0.2"
   }
  },
  "output": {
