@@ -118,14 +118,15 @@
       ]
     },
     "image_2": {
-      "type": "image",
+      "type": "video",
       "required": true,
       "bindings": [
         {
           "node": "240",
           "input": "file"
         }
-      ]
+      ],
+      "description": "驱动视频（MP4/MOV/WebM），pose 来源；与人物图 image 一起提交。"
     },
     "frames": {
       "type": "int",

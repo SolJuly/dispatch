@@ -657,10 +657,11 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         if "boundary=" not in ctype or length <= 0:
             return _json({"error": "需要 multipart 上传"}, 400)
-        if length > 25 * 1048576:
-            return _json({"error": "请求体过大"}, 413)
+        cap = webapi.max_upload_bytes()
+        if length > cap:
+            return _json({"error": f"请求体过大（上限 {cap // 1048576}MB）"}, 413)
         boundary = ctype.split("boundary=", 1)[1].strip().strip('"')
-        raw = self.rfile.read(length if length < 25 * 1048576 else 25 * 1048576)
+        raw = self.rfile.read(length)
         for chunk in raw.split(b"--" + boundary.encode()):
             if b"\r\n\r\n" not in chunk:
                 continue

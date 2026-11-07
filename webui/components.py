@@ -85,8 +85,9 @@ def _input(name: str, spec: dict, value) -> str:
 
 
 def field(name: str, spec: dict, value=None) -> str:
-    label = esc(i18n.param_label(name))
-    key = "" if i18n.param_label(name) == name else f' <code class="key">{esc(name)}</code>'
+    text = i18n.param_label(name, spec)
+    label = esc(text)
+    key = "" if text == name else f' <code class="key">{esc(name)}</code>'
     hint = ""
     bits = [i18n.type_label(spec.get("type", ""))]
     if "default" in spec:

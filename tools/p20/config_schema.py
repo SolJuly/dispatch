@@ -24,7 +24,7 @@ WORKFLOW_SCHEMA = "p20.workflow/v1"
 COMPAT_SCHEMA = "p20.compat/v1"
 
 KINDS = ("video", "image")
-PARAM_TYPES = ("string", "int", "float", "bool", "image", "enum")
+PARAM_TYPES = ("string", "int", "float", "bool", "image", "video", "audio", "enum")
 COUNT_RE = re.compile(r"^\{\{[A-Z0-9_]+\}\}$")
 MODEL_STATUS = ("verified", "experimental", "equivalent", "incompatible")
 SETUP_PROFILES = ("h3", "qwen", "all", "none")
@@ -85,6 +85,8 @@ def _check_type(name: str, value, typ: str, e: list[str], where: str) -> None:
     ok = {
         "string": lambda x: isinstance(x, str),
         "image": lambda x: isinstance(x, str) and bool(x.strip()),
+        "video": lambda x: isinstance(x, str) and bool(x.strip()),
+        "audio": lambda x: isinstance(x, str) and bool(x.strip()),
         "int": _is_int,
         "float": _is_num,
         "bool": lambda x: isinstance(x, bool),

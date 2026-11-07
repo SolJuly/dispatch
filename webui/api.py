@@ -34,7 +34,13 @@ JOB_ID_RE = re.compile(r"(p1-\d{8}T\d{4}-[0-9a-f]{6})")
 ART_SUFFIX = (".png", ".jpg", ".jpeg", ".webp", ".mp4")
 INPUTS_DIR = ROOT / "reports/p2/p21/inputs"
 SHARE_INPUTS = Path(os.environ.get("P21_SHARE_INPUTS", ROOT / "share" / "inputs"))
-MAX_UPLOAD = 20 * 1048576
+MAX_UPLOAD = 20 * 1048576                    # 图片
+MAX_UPLOAD_VIDEO = int(os.environ.get("P21_MAX_UPLOAD_VIDEO_MB", "128")) * 1048576
+
+
+def max_upload_bytes() -> int:
+    """单次上传请求体上限（视频比图片大很多；fileserver 也用这个数）。"""
+    return max(MAX_UPLOAD, MAX_UPLOAD_VIDEO)
 # 控制台提交时排队等锁的上限（秒）：单任务串行，前面还有作业就等着，别扔在 CREATED
 QUEUE_WAIT_S = int(os.environ.get("P21_QUEUE_WAIT_S", "14400"))
 # 卡型没现货时最多等多久（秒）；全都没货才失败
@@ -97,20 +103,47 @@ def _first_artifact_url(job_id: str, jobs_dir: Path | None) -> str:
     return arts[0]["url"] if arts else ""
 
 
+IMAGE_MAGIC = (
+    (b"\x89PNG\r\n\x1a\n", ".png"),
+    (b"\xff\xd8\xff", ".jpg"),
+)
+
+
+def sniff_upload(data: bytes, filename: str = "") -> str:
+    """按内容判类型，返回扩展名。图片 + 视频都认（动作迁移要传驱动视频）。"""
+    for magic, ext in IMAGE_MAGIC:
+        if data.startswith(magic):
+            return ext
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return ".webp"
+    if data[:4] == b"RIFF" and data[8:12] == b"AVI ":
+        return ".avi"
+    if data[4:8] == b"ftyp":
+        brand = data[8:12]
+        if brand.startswith(b"qt"):
+            return ".mov"
+        if brand in (b"M4V ", b"M4VH", b"M4VP"):
+            return ".m4v"
+        return ".mp4"
+    if data[:4] == b"\x1a\x45\xdf\xa3":          # EBML / webm-mkv
+        return ".webm"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return ".gif"
+    ext = Path(filename or "").suffix.lower()
+    raise ApiError(f"不支持的文件类型（{ext or '未知'}）；图片收 PNG/JPEG/WebP，"
+                   f"视频收 MP4/MOV/WebM", 415)
+
+
 def save_upload(filename: str, data: bytes) -> dict:
-    """上传输入图：校验格式/大小 → 内容寻址命名 → 两份副本（作业用 + 静态可看）。"""
+    """上传输入素材：校验格式/大小 → 内容寻址命名 → 两份副本（作业用 + 静态可看）。"""
     if not data:
         raise ApiError("空文件", 400)
-    if len(data) > MAX_UPLOAD:
-        raise ApiError(f"文件太大（上限 {MAX_UPLOAD // 1048576} MB）", 413)
-    if data.startswith(b"\x89PNG\r\n\x1a\n"):
-        ext = ".png"
-    elif data.startswith(b"\xff\xd8\xff"):
-        ext = ".jpg"
-    elif data[:4] == b"RIFF" and data[8:12] == b"WEBP":
-        ext = ".webp"
-    else:
-        raise ApiError("只支持 PNG / JPEG / WebP", 415)
+    ext = sniff_upload(data, filename)
+    is_video = ext in (".mp4", ".mov", ".m4v", ".webm", ".avi", ".gif")
+    cap = MAX_UPLOAD_VIDEO if is_video else MAX_UPLOAD
+    if len(data) > cap:
+        raise ApiError(f"文件太大（{cap // 1048576} MB 上限；当前 "
+                       f"{len(data) / 1048576:.1f} MB）", 413)
     import hashlib
     h = hashlib.sha256(data).hexdigest()[:8]
     name = f"in-{h}{ext}"

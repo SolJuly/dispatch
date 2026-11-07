@@ -78,7 +78,17 @@ STATUS_TEXT = {
 }
 
 
-def param_label(name: str) -> str:
+def param_label(name: str, spec: dict | None = None) -> str:
+    """参数中文名；同样是 image_2，绑视频加载器时叫「驱动视频」而不是「参考图 2」。"""
+    typ = (spec or {}).get("type")
+    if typ == "video" and name in ("image", "image_2", "image_3", "video"):
+        return "驱动视频"
+    if typ == "audio" and name in ("audio", "audio_2"):
+        return "音频"
+    return param_label_plain(name)
+
+
+def param_label_plain(name: str) -> str:
     return PARAM_LABELS.get(name, name)
 
 

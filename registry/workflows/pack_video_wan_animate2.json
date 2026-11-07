@@ -85,7 +85,7 @@
    ]
   },
   "video": {
-   "type": "string",
+   "type": "video",
    "required": true,
    "bindings": [
     {
@@ -93,7 +93,7 @@
      "input": "file"
     }
    ],
-   "description": "驱动视频；CLI 传本地路径，运行器会归一化并上传到实例 input/"
+   "description": "驱动/源视频（MP4/MOV/WebM）。驱动视频；CLI 传本地路径，运行器会归一化并上传到实例 input/"
   }
  },
  "output": {

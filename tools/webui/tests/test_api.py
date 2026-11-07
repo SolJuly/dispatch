@@ -7,8 +7,10 @@ import json
 import sys
 import zipfile
 import tempfile
+import shutil
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from webui import api
 
@@ -271,3 +273,65 @@ class TestArtifactFallback(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestVideoUpload(unittest.TestCase):
+    """动作迁移要传驱动视频：上传接口必须认 MP4/MOV/WebM（以前只认图片，直接 415）。"""
+
+    def test_mp4_accepted(self):
+        import webui.api as api
+        data = b"\x00\x00\x00\x18ftypisom" + b"\x00" * 4096
+        with mock.patch.object(api, "INPUTS_DIR", Path(self.tmp)), \
+                mock.patch.object(api, "SHARE_INPUTS", Path(self.tmp) / "share"):
+            info = api.save_upload("drive.mp4", data)
+        self.assertTrue(info["name"].endswith(".mp4"), info)
+        self.assertEqual(info["bytes"], len(data))
+
+    def test_sniff_moves_and_webm(self):
+        import webui.api as api
+        self.assertEqual(api.sniff_upload(b"\x00\x00\x00\x14ftypqt  " + b"0" * 8), ".mov")
+        self.assertEqual(api.sniff_upload(b"\x1a\x45\xdf\xa3" + b"0" * 8), ".webm")
+        self.assertEqual(api.sniff_upload(b"\xff\xd8\xff\xe0" + b"0" * 8), ".jpg")
+
+    def test_unknown_type_rejected_with_hint(self):
+        import webui.api as api
+        with self.assertRaises(api.ApiError) as cm:
+            api.sniff_upload(b"hello world", "x.txt")
+        self.assertEqual(cm.exception.code, 415)
+        self.assertIn("MP4", cm.exception.msg)
+
+    def test_video_has_bigger_cap(self):
+        import webui.api as api
+        self.assertGreater(api.MAX_UPLOAD_VIDEO, api.MAX_UPLOAD)
+        self.assertEqual(api.max_upload_bytes(), api.MAX_UPLOAD_VIDEO)
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="upload-")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+
+class TestVideoParamBinding(unittest.TestCase):
+    """绑到 LoadVideo 的参数必须是 video 类型，否则界面给的是图片上传框。"""
+
+    def test_no_upstream_param_mismatch(self):
+        from tools.p20 import registry
+        bad = []
+        for wf in registry.list_workflows():
+            graph = registry.get_workflow(wf["key"])["graph_obj"]
+            for pname, spec in (wf.get("params") or {}).items():
+                for b in spec.get("bindings") or []:
+                    ct = (graph.get(b["node"]) or {}).get("class_type") or ""
+                    if ct == "LoadVideo" and spec.get("type") != "video":
+                        bad.append(f"{wf['key']}.{pname} type={spec.get('type')} → LoadVideo")
+        self.assertEqual(bad, [])
+
+    def test_animate2_exposes_video_picker(self):
+        from tools.p20 import registry
+        from webui import components
+        wf = registry.get_workflow("pack_video_wan_animate2_distilled")
+        html = components.field("image_2", wf["params"]["image_2"])
+        self.assertIn('accept="video/*"', html)
+        self.assertIn("驱动视频", html)

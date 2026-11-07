@@ -22,7 +22,7 @@
  },
  "params": {
   "video": {
-   "type": "string",
+   "type": "video",
    "required": true,
    "bindings": [
     {
@@ -30,7 +30,7 @@
      "input": "file"
     }
    ],
-   "description": "待放大视频（mp4），走 run.py 的 video 上传通道"
+   "description": "驱动/源视频（MP4/MOV/WebM）。待放大视频（mp4），走 run.py 的 video 上传通道"
   },
   "resolution": {
    "type": "int",

@@ -57,14 +57,15 @@
    ]
   },
   "image": {
-   "type": "image",
+   "type": "video",
    "required": true,
    "bindings": [
     {
      "node": "4",
      "input": "file"
     }
-   ]
+   ],
+   "description": "驱动/源视频（MP4/MOV/WebM）。"
   }
  },
  "output": {
