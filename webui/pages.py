@@ -262,6 +262,21 @@ def video_page(base: str, token: str, workflow: str = "") -> str:
     return shell(base, token, "/app/video", f"视频台 · {wf['key']}", body)
 
 
+def _upscale_button(job: dict, arts: list[dict]) -> str:
+    """视频作业产物 → 一键过 SeedVR2 放大（对"糊"最有效的一步，且不动生成侧）。"""
+    wf = ((job.get("model") or {}).get("registry") or {}).get("workflow_key") or ""
+    if not str(job.get("kind") or "").startswith("video"):
+        return ""
+    if job.get("state") != "DONE" or wf == "seedvr2_3b_upscale_video":
+        return ""
+    mp4 = next((a for a in arts if str(a.get("name", "")).lower().endswith((".mp4", ".mov", ".webm"))), None)
+    if not mp4:
+        return ""
+    src = f'reports/p1/jobs/{job["job_id"]}/artifacts/{mp4["name"]}'
+    return (f'<button class="btn" id="upscale-job" type="button" '
+            f'data-src="{C.esc(src)}">放大到 1080p（SeedVR2）</button>')
+
+
 def _media_tag(url: str, name: str) -> str:
     """详情页产物：mp4 用 <video>（<img> 放不了视频，会白框/黑框），其余用 <img>。"""
     if str(name).lower().endswith((".mp4", ".mov", ".webm")):
@@ -330,6 +345,7 @@ def detail_page(base: str, token: str, job_id: str) -> str:
         f'<div class="meta"><span>{C.esc(a["name"])}</span>'
         f'<a href="{C.esc(a["url"])}" download>下载</a></div></figure>'
         for a in arts)
+    upscale = _upscale_button(job, arts)
     body = f"""
 <h1>作业详情</h1>
 <div class="grid">
@@ -341,6 +357,7 @@ def detail_page(base: str, token: str, job_id: str) -> str:
     <div class="results">{cards or '<p class="empty">还没有产物</p>'}</div>
     <div class="row" style="margin-top:10px">
       <button class="btn danger" id="delete-job" data-job="{C.esc(job_id)}" type="button">删除此作业</button>
+      {upscale}
       <span class="hint">默认移到 .trash，可恢复；彻底删除用命令行 <code>jobctl rm --purge</code></span>
     </div>
     <h2 style="margin-top:16px">参数快照</h2>

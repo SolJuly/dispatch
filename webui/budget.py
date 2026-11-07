@@ -6,6 +6,12 @@
 """
 from __future__ import annotations
 
+import json
+import subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
 PRICE_PER_HOUR = 2.15          # 4090 后付费
 BOOT_COST = 0.08               # 建机 + 装模型的一次性摊销
 DEFAULT_BUDGET = 1.0           # 控制台默认上限（元）
@@ -29,8 +35,29 @@ MEASURED = {
 DEFAULT_REF = (300, 81, 640, 640)
 
 
+def _probe_frames(path: str) -> int | None:
+    """放大类作业没有 frames 参数，帧数得从源视频里数（否则估价会低好几倍）。"""
+    try:
+        p = Path(path)
+        if not p.is_absolute():
+            p = ROOT / path
+        if not p.is_file():
+            return None
+        r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                            "-count_frames", "-show_entries", "stream=nb_read_frames",
+                            "-of", "json", str(p)],
+                           capture_output=True, text=True, timeout=60)
+        st = (json.loads(r.stdout or "{}").get("streams") or [{}])[0]
+        n = int(st.get("nb_read_frames") or 0)
+        return n or None
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+
+
 def _scale(params: dict, ref_frames: int, ref_w: int, ref_h: int) -> float:
     frames = params.get("frames") or params.get("length")
+    if not frames and params.get("video"):
+        frames = _probe_frames(str(params["video"]))
     if not frames and params.get("duration"):
         try:
             frames = int(params["duration"]) * 16 + 1

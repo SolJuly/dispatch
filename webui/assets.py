@@ -310,6 +310,24 @@ JS = r"""
       catch(err){ toast("删除失败：" + err.message); }
     }
   });
+  document.addEventListener("click", async e=>{
+    const up = e.target.closest("#upscale-job");
+    if(!up) return;
+    const src = up.getAttribute("data-src");
+    if(!confirm("用 SeedVR2 3B 把这条视频放大到 1080p？\n会新建一个作业并执行（约 ¥0.4~0.8，10 秒片子约 15 分钟）。")) return;
+    up.disabled = true;
+    try{
+      const r = await fetch(`${BASE}/api/p2/jobs`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({workflow:"seedvr2_3b_upscale_video", run:true, budget:1.6,
+          params:{video:src, resolution:1080, seed:42, batch_size:5}})
+      });
+      const data = await r.json();
+      if(!r.ok) throw new Error(data.error || ("HTTP "+r.status));
+      toast("已建放大作业 " + data.job_id);
+      setTimeout(()=>{ location.href = `${BASE}/app/jobs/${data.job_id}`; }, 900);
+    }catch(err){ toast("放大失败：" + err.message); up.disabled = false; }
+  });
   document.addEventListener("submit", async e=>{
     const form = e.target.closest("#create-form");
     if(!form) return;

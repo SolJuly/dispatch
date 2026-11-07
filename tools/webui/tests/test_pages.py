@@ -110,3 +110,33 @@ class TestJobsPage(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestUpscaleButton(unittest.TestCase):
+    """视频作业详情页要有"放大到 1080p"入口（SeedVR2 是去糊最有效的一步）。"""
+
+    def _page(self, kind="video", state="DONE", wf="ltxv_2b_t2v", name="01-x.mp4"):
+        import webui.pages as pages
+        job = {"job_id": "p1-20261107T0408-55efa4", "state": state, "kind": kind,
+               "model": {"key": "ltxv_2b", "registry": {"workflow_key": wf,
+                                                        "workflow_version": 1,
+                                                        "model_key": "ltxv_2b",
+                                                        "model_version": 1}},
+               "created_at": "2026-11-07T04:08:16+08:00", "params": {}, "steps": {}}
+        arts = [{"name": name, "url": "/pub/jobs/x/" + name}]
+        return pages._upscale_button(job, arts)
+
+    def test_video_done_has_button(self):
+        html = self._page()
+        self.assertIn("upscale-job", html)
+        self.assertIn("放大到 1080p", html)
+        self.assertIn("reports/p1/jobs/p1-20261107T0408-55efa4/artifacts/01-x.mp4", html)
+
+    def test_image_job_has_no_button(self):
+        self.assertEqual(self._page(kind="image", name="01-x.png"), "")
+
+    def test_not_done_has_no_button(self):
+        self.assertEqual(self._page(state="FAILED"), "")
+
+    def test_already_upscaled_has_no_button(self):
+        self.assertEqual(self._page(wf="seedvr2_3b_upscale_video"), "")
