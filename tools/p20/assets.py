@@ -17,6 +17,7 @@ from __future__ import annotations
 import base64
 import json
 import shlex
+from pathlib import Path
 
 REMOTE_PY = r'''
 import base64, json, sys, urllib.request
@@ -133,3 +134,88 @@ def apply_links(model: dict, ssh_run, *, timeout: int = 60) -> list[dict]:
 def setup_profile(model: dict) -> str:
     """模型配置里的 setup.profile（h3/qwen/all/none），供 instance_setup.sh --need。"""
     return ((model.get("setup") or {}).get("profile") or "all")
+
+
+# ---------------------------------------------------------------- 自动软链
+# Loader → ComfyUI models 子目录（v4 镜像的口径）
+LOADER_DIRS = {
+    "UNETLoader": "diffusion_models",
+    "CLIPLoader": "text_encoders",
+    "DualCLIPLoader": "text_encoders",
+    "VAELoader": "vae",
+    "LoraLoaderModelOnly": "loras",
+    "LoraLoader": "loras",
+    "CheckpointLoaderSimple": "checkpoints",
+    "CLIPVisionLoader": "clip_vision",
+    "UpscaleModelLoader": "upscale_models",
+    "ModelPatchLoader": "model_patches",
+}
+
+
+def model_filenames(model: dict) -> list[tuple[str, str, str]]:
+    """[(subdir, name, loader)] —— name 可能带子目录（如 qwen/xxx.safetensors）。"""
+    out = []
+    for _role, f in (model.get("files") or {}).items():
+        name = (f or {}).get("name")
+        loader = (f or {}).get("loader") or ""
+        if not name:
+            continue
+        out.append((LOADER_DIRS.get(loader, "diffusion_models"), str(name), loader))
+    return out
+
+
+def build_find_command(model: dict, maxdepth: int = 7) -> str:
+    """一次 find 把所有需要的权重名找齐（按 basename 匹配）。"""
+    names = sorted({Path(n).name for _d, n, _l in model_filenames(model)})
+    if not names:
+        return "true"
+    expr = " -o ".join(f"-name {shlex.quote(n)}" for n in names)
+    return (f"find /model -maxdepth {maxdepth} -type f \\( {expr} \\) "
+            f"-printf '%f\\t%p\\n' 2>/dev/null | head -400")
+
+
+def parse_find_output(out: str) -> dict[str, str]:
+    """'名字\\t路径' → {名字: 路径}（同名取第一个）。"""
+    found: dict[str, str] = {}
+    for line in (out or "").splitlines():
+        if "\t" not in line:
+            continue
+        name, path = line.split("\t", 1)
+        name, path = name.strip(), path.strip()
+        if name and path.startswith("/model") and name not in found:
+            found[name] = path
+    return found
+
+
+def build_link_script(model: dict, found: dict[str, str],
+                      comfy: str = "/root/ComfyUI/models") -> tuple[str, list[str]]:
+    """按已找到的路径生成软链脚本；返回 (script, 缺失文件名列表)。"""
+    lines = ["set -u"]
+    missing = []
+    for subdir, name, _loader in model_filenames(model):
+        base = Path(name).name
+        target = found.get(base)
+        if not target:
+            missing.append(name)
+            continue
+        link = f"{comfy}/{subdir}/{name}"
+        lines.append(f"mkdir -p {shlex.quote(str(Path(link).parent))}")
+        lines.append(f"ln -sf {shlex.quote(target)} {shlex.quote(link)}")
+    lines.append("echo LINK_DONE")
+    return "\n".join(lines), missing
+
+
+def link_model_files(model: dict, ssh_run, *, timeout: int = 240) -> list[str]:
+    """把模型卡里的权重要么链好、要么明确报缺。返回缺失文件名列表。
+
+    为什么不用 compat_links.txt：那是 30 行静态表，新导入的 pack_* 模型根本不在里面，
+    结果 setup 说"资产可见"、ready 说"资产不可见"（2026-11-07 的 fasth3 作业）。
+    """
+    rc, out = ssh_run(build_find_command(model), timeout=timeout)
+    found = parse_find_output(out)
+    if not found:
+        # find 挂了（超时/路径不通）不算"缺失"，交给后面的资产检查报错
+        return []
+    script, missing = build_link_script(model, found)
+    ssh_run(script, timeout=timeout)
+    return missing

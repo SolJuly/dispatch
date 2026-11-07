@@ -310,6 +310,27 @@ JS = r"""
       catch(err){ toast("删除失败：" + err.message); }
     }
   });
+  async function runJobs(ids){
+    if(!ids.length) return;
+    const r = await fetch(`${BASE}/api/p2/jobs/run`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ids})
+    });
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error || ("HTTP "+r.status));
+    const ok = (data.items||[]).filter(x=>!x.error).length;
+    const bad = (data.items||[]).filter(x=>x.error);
+    toast(bad.length ? `已提交 ${ok} 个，${bad.length} 个跳过：${bad[0].error}` : `已提交执行 ${ok} 个作业`);
+    setTimeout(()=>location.reload(), 900);
+  }
+  document.addEventListener("click", async e=>{
+    const rj = e.target.closest(".run-job, #run-job");
+    if(rj){
+      e.preventDefault();
+      try{ await runJobs([rj.getAttribute("data-job")]); }
+      catch(err){ toast("执行失败：" + err.message); }
+    }
+  });
   document.addEventListener("click", async e=>{
     const up = e.target.closest("#upscale-job");
     if(!up) return;

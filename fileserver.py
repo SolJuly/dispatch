@@ -451,6 +451,9 @@ class Handler(BaseHTTPRequestHandler):
         if len(parts) == 5 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"] \
                 and parts[4] == "delete":
             return self._api_jobs_delete()
+        if len(parts) == 5 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"] \
+                and parts[4] == "run":
+            return self._api_jobs_run()
         if len(parts) == 4 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"]:
             return self._api_job_create()
         return self._err(404, "路径不存在")
@@ -712,6 +715,25 @@ class Handler(BaseHTTPRequestHandler):
             ids = [str(x) for x in (body.get("ids") or []) if x]
             data = webapi.delete_jobs(ids, purge=bool(body.get("purge")))
             return _json(data, 200)
+        except webapi.ApiError as e:
+            return _json({"error": e.msg}, e.code)
+        except Exception as e:  # noqa: BLE001
+            return _json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+    def _api_jobs_run(self):
+        """POST /api/p2/jobs/run —— 把 CREATED 作业真正跑起来。"""
+        from webui import api as webapi
+
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False, default=str).encode(),
+                              "application/json; charset=utf-8")
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            body = json.loads(self.rfile.read(n).decode("utf-8")) if n else {}
+            ids = [str(x) for x in (body.get("ids") or []) if x]
+            if not ids:
+                return _json({"error": "ids 为空"}, 400)
+            return _json({"items": webapi.run_jobs(ids)}, 201)
         except webapi.ApiError as e:
             return _json({"error": e.msg}, e.code)
         except Exception as e:  # noqa: BLE001

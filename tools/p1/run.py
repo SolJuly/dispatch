@@ -231,14 +231,66 @@ def _pick_image(cs, opts, job: dict) -> dict:
     return cs.resolve_image(IMAGE_KEYWORD)
 
 
+def _gpu_candidates(job: dict, opts) -> list[str]:
+    """候选卡型：--gpu 指定则只它一个，否则按 required_gpu 顺序去重。"""
+    if getattr(opts, "gpu", None):
+        return [opts.gpu]
+    raw = (job.get("instance") or {}).get("required_gpu") or ["4090_48G"]
+    out: list[str] = []
+    for g in raw:
+        if g and g not in out:
+            out.append(str(g))
+    return out or ["4090_48G"]
+
+
+def _pick_gpu(cs, job: dict, opts) -> str:
+    """按候选顺序挑第一个有现货的卡；全没货时最多等 --wait-stock 秒。
+
+    以前是 required_gpu[0] 定死：4090_48G 一旦没货，即使列表里还有 4090 也直接失败
+    （2026-11-07 的 wan21_i2v 作业就是这么死的）。
+    """
+    cands = _gpu_candidates(job, opts)
+    wait_s = int(getattr(opts, "wait_stock", 0) or 0)
+    stocks: dict[str, int] = {}
+    for g in cands:
+        try:
+            stocks[g] = cs.stock(g)
+        except Exception as e:                      # noqa: BLE001
+            _say(f"  {g} 库存查询失败（{type(e).__name__}: {e}），跳过预检")
+            stocks[g] = 1
+        if stocks[g] > 0:
+            if g != cands[0]:
+                _say(f"{cands[0]} 无现货 → 改用 {g}（{stocks[g]} 台可用）")
+            return g
+        if len(cands) > 1:
+            _say(f"  {g} 无现货，看下一个候选")
+    if wait_s > 0:
+        _say(f"候选卡都没货，最多等 {wait_s}s…")
+        t0 = time.time()
+        while time.time() - t0 < wait_s:
+            for g in cands:
+                try:
+                    if cs.stock(g) > 0:
+                        _say(f"{g} 有货了（等了 {time.time() - t0:.0f}s）")
+                        return g
+                except Exception:                   # noqa: BLE001
+                    pass
+            time.sleep(15)
+        raise RunError(f"{'/'.join(cands)} 等了 {wait_s}s 仍无现货（226604）",
+                       state.FAILED_PROVISION)
+    raise RunError(f"{'/'.join(cands)} 当前无现货（226604）。"
+                   f"换 --gpu，或加 --wait-stock 秒数排队等货",
+                   state.FAILED_PROVISION)
+
+
 def step_provision(job: dict, opts) -> dict:
     """建机并等 Running。"""
     from compshare.cs import CS, CompShareError
 
     cs = CS()
-    gpu = opts.gpu or (job.get("instance", {}).get("required_gpu") or ["4090_48G"])[0]
     hours = opts.hours
     img = _pick_image(cs, opts, job)
+    gpu = _pick_gpu(cs, job, opts)          # 按 required_gpu 顺序挑第一个有货的卡
     cpu_n, mem_gb = GPU_SPEC.get(gpu, (16, 64))
     price = cs.price(gpu, 1, cpu_n, mem_gb, "Postpay", 100, 0, image_id=img["CompShareImageId"])
     est = float(price.get("total") or 0) * hours
@@ -271,17 +323,6 @@ def step_provision(job: dict, opts) -> dict:
                     "host": got["host"], "port": got["port"], "password": got["password"],
                     "from_pool": True}
         _say("池内无空闲实例，回落到新建")
-
-    # 库存预检：无货直接失败，不要盲下单（226604 是常态，不是异常）
-    wait_s = int(getattr(opts, "wait_stock", 0) or 0)
-    if cs.stock(gpu) <= 0 and wait_s:
-        _say(f"{gpu} 无现货，最多等 {wait_s}s…")
-        t0 = time.time()
-        while time.time() - t0 < wait_s and cs.stock(gpu) <= 0:
-            time.sleep(15)
-    if cs.stock(gpu) <= 0:
-        raise RunError(f"{gpu} 当前无现货（226604）。换 --gpu 或加 --wait-stock 秒数",
-                       state.FAILED_PROVISION)
 
     # 库存检查通过≠下单成功：热门卡会被别人抢（226604 竞态），重试几次
     ids, last_err = None, None
@@ -356,16 +397,29 @@ def _apply_model_links(job: dict, ctx: dict) -> None:
         return
     from tools.p20 import assets as p20assets, registry as p20registry
     model = p20registry.get_model(reg["model_key"], version=reg.get("model_version"))
-    links = p20assets.apply_links(
-        model, lambda cmd, timeout=60: _ssh_run(ctx["host"], ctx["port"],
-                                                ctx["password"], cmd, timeout=timeout))
-    if not links:
-        return
+    ssh = lambda cmd, timeout=60: _ssh_run(ctx["host"], ctx["port"],   # noqa: E731
+                                          ctx["password"], cmd, timeout=timeout)
+
+    # 1) 配置里显式声明的软链（旧口径，保留兼容）
+    links = p20assets.apply_links(model, ssh)
     bad = [x for x in links if not x.get("ok")]
-    _say(f"模型软链 {len(links) - len(bad)}/{len(links)} 就绪")
+    if links:
+        _say(f"模型软链 {len(links) - len(bad)}/{len(links)} 就绪")
     if bad:
         raise RunError(f"模型软链失败：{bad[0].get('link')}（{bad[0].get('out')}）",
                        state.FAILED_PROVISION)
+
+    # 2) 自动补链：按模型卡里的文件名去 /model 找，再链进 ComfyUI/models/<类型>/
+    #    静态表 compat_links.txt 覆盖不到新导入的 pack_* 模型，这里兜底。
+    try:
+        missing = p20assets.link_model_files(model, ssh)
+    except Exception as e:                      # noqa: BLE001
+        _say(f"  ⚠ 自动补链跳过（{type(e).__name__}: {e}）")
+        return
+    if missing:
+        _say(f"  ⚠ 这些权重在 /model 里没找到：{', '.join(missing[:6])}")
+    else:
+        _say("  自动软链已就绪（按文件名匹配 /model）")
 
 
 def step_ready(job: dict, opts, ctx: dict) -> None:

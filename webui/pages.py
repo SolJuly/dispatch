@@ -122,7 +122,7 @@ def _create_body(base: str, token: str, wf: dict, kind: str) -> str:
     {_grouped_fields(wf["params"] or {})}
     {_budget_block(wf)}
     <div class="actions">
-      <label class="check"><input type="checkbox" id="run-now"> <span>提交后立即执行（占用 GPU，产生费用）</span></label>
+      <label class="check"><input type="checkbox" id="run-now" checked> <span>提交后立即执行（占用 GPU，产生费用）</span></label>
       <div class="row">
         <button class="btn pri" id="submit-btn" type="submit">提交</button>
         <a class="btn" href="{base}/{token}/app/jobs">任务列表</a>
@@ -262,6 +262,14 @@ def video_page(base: str, token: str, workflow: str = "") -> str:
     return shell(base, token, "/app/video", f"视频台 · {wf['key']}", body)
 
 
+def _run_button(job: dict) -> str:
+    """停在 CREATED 的作业（提交时没勾「立即执行」）要有入口能跑起来。"""
+    if job.get("state") != "CREATED":
+        return ""
+    return (f'<button class="btn pri" id="run-job" type="button" '
+            f'data-job="{C.esc(job["job_id"])}">执行此作业</button>')
+
+
 def _upscale_button(job: dict, arts: list[dict]) -> str:
     """视频作业产物 → 一键过 SeedVR2 放大（对"糊"最有效的一步，且不动生成侧）。"""
     wf = ((job.get("model") or {}).get("registry") or {}).get("workflow_key") or ""
@@ -300,7 +308,9 @@ def jobs_page(base: str, token: str, state: str = "", q: str = "") -> str:
             f'<td>{C.badge(r["state"])}</td><td>{C.esc(r["workflow"])} v{C.esc(r["workflow_version"])}</td>'
             f'<td>{C.esc(r["model"])}</td><td>{r["artifacts"]} {_unit(r)}</td><td>{C.esc(C.money(r.get("cost")))}</td>'
             f'<td>{C.esc(C.human_time(r["created_at"]))}</td>'
-            f'<td><a href="{base}/{token}/app/jobs/{jid}">详情</a></td></tr>')
+            f'<td><a href="{base}/{token}/app/jobs/{jid}">详情</a>'
+            + (f' · <a href="#" class="run-job" data-job="{jid}">执行</a>'
+               if r["state"] == "CREATED" else "") + '</td></tr>')
     table = (f'<table><tr><th style="width:36px"></th><th>作业</th><th>状态</th><th>工作流</th><th>模型</th>'
              f'<th>产物</th><th>花费</th><th>创建</th><th></th></tr>{"".join(trs)}</table>') if trs else \
         '<div class="card"><p class="empty">还没有作业，去创作台提交一个。</p></div>'
@@ -358,6 +368,7 @@ def detail_page(base: str, token: str, job_id: str) -> str:
     <div class="row" style="margin-top:10px">
       <button class="btn danger" id="delete-job" data-job="{C.esc(job_id)}" type="button">删除此作业</button>
       {upscale}
+      {_run_button(job)}
       <span class="hint">默认移到 .trash，可恢复；彻底删除用命令行 <code>jobctl rm --purge</code></span>
     </div>
     <h2 style="margin-top:16px">参数快照</h2>

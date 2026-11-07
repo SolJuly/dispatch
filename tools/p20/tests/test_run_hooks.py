@@ -126,7 +126,10 @@ class TestModelLinks(unittest.TestCase):
         with mock.patch.object(run, "_ssh_run", side_effect=fake_ssh):
             run._apply_model_links(_job(), {"host": "h", "port": 23, "password": "p"})
         model = registry.get_model("qwen_image")
-        self.assertEqual(len(calls), len(model["setup"]["links"]))
+        # 显式声明的软链 + 自动补链的 find 一趟；find 没输出时不再执行 ln 脚本
+        # （find 自己挂了（超时/路径不通）不能当成"权重缺失"，交给 ready 阶段报错）
+        self.assertEqual(len(calls), len(model["setup"]["links"]) + 1)
+        self.assertTrue(any("find /model" in c for c in calls))
 
     def test_links_failure_raises(self):
         with mock.patch.object(run, "_ssh_run", return_value=(1, "ln: permission denied")):

@@ -37,6 +37,8 @@ SHARE_INPUTS = Path(os.environ.get("P21_SHARE_INPUTS", ROOT / "share" / "inputs"
 MAX_UPLOAD = 20 * 1048576
 # 控制台提交时排队等锁的上限（秒）：单任务串行，前面还有作业就等着，别扔在 CREATED
 QUEUE_WAIT_S = int(os.environ.get("P21_QUEUE_WAIT_S", "14400"))
+# 卡型没现货时最多等多久（秒）；全都没货才失败
+STOCK_WAIT_S = int(os.environ.get("P21_STOCK_WAIT_S", "300"))
 
 
 class ApiError(Exception):
@@ -208,6 +210,34 @@ def delete_jobs(ids: list[str], *, purge: bool = False) -> dict:
     return {"ok": p.returncode == 0, "output": ((p.stdout or "") + (p.stderr or ""))[-1500:]}
 
 
+def run_jobs(ids: list[str], *, jobs_dir: Path | None = None,
+             spawn=subprocess.Popen) -> list[dict]:
+    """把还停在 CREATED 的作业真正执行起来（控制台「执行」按钮用）。
+
+    以前提交时若没勾「立即执行」，作业只会躺在 CREATED，没有任何入口能启动它。
+    """
+    out = []
+    for jid in [str(x) for x in ids if x][:10]:
+        try:
+            job = _load_job(jid, jobs_dir)
+        except ApiError as e:
+            out.append({"job_id": jid, "error": e.msg})
+            continue
+        st = job.get("state")
+        if st != jobstate.CREATED:
+            out.append({"job_id": jid, "error": f"状态 {st}，只有 CREATED 能执行"})
+            continue
+        log = _jobs_dir(jobs_dir) / jid / "run.log"
+        log.parent.mkdir(parents=True, exist_ok=True)
+        with log.open("ab") as fh:
+            fh.write(f"\n--- 控制台手动执行 {dt.datetime.now().astimezone():%Y-%m-%dT%H:%M:%S} ---\n".encode())
+            spawn([sys.executable, str(RUN_PY), jid, "--no-keep",
+                   "--wait-lock", str(QUEUE_WAIT_S), "--wait-stock", str(STOCK_WAIT_S)],
+                  stdout=fh, stderr=subprocess.STDOUT, start_new_session=True, cwd=str(ROOT))
+        out.append({"job_id": jid, "state": "QUEUED"})
+    return out
+
+
 def maybe_publish(job_id: str, job: dict) -> None:
     """作业终态后把产物复制到 nginx 静态目录（幂等；页面轮询会触发）。"""
     if job.get("state") not in ("DONE", "FAILED_VERIFY"):
@@ -290,7 +320,7 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
         with log.open("ab") as fh:
             # --wait-lock：前面还有作业在跑时排队等锁，而不是直接退出把作业扔在 CREATED
             spawn([sys.executable, str(RUN_PY), job_id, "--no-keep",
-                   "--wait-lock", str(QUEUE_WAIT_S)],
+                   "--wait-lock", str(QUEUE_WAIT_S), "--wait-stock", str(STOCK_WAIT_S)],
                   stdout=fh, stderr=subprocess.STDOUT, start_new_session=True, cwd=str(ROOT))
 
     # 以 jobctl 落盘的 job.json 为准（params_hash 由它计算）
