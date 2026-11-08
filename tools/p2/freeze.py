@@ -122,11 +122,36 @@ def freeze_stats(path: Path, limit_frames: int = LIMIT_FRAMES) -> dict:
     return out
 
 
-def verdict(stats: dict, ratio_max: float, longest_max_s: float) -> tuple[bool | None, dict]:
+def is_full_freeze(stats: dict) -> bool | None:
+    """是否「整片冻结/近乎静止」——素材驱动类唯一要硬拦的情况。
+
+    依据标定报告（reports/p2/freeze-calibration.md）：坏样本 shot1/shot2 是
+    ratio=1.0 / longest≈5.06s 的全片冻结，必须拦；而静态素材产出的「部分静止」
+    （如 Animate2 站姿源图 ratio=0.716）是合法结果，不该判 FAIL。
+
+    判据：ratio >= 0.95 且最长冻结段 >= 片长的 80%。测量失败返回 None（不臆断）。
+    """
+    if not stats.get("ok"):
+        return None
+    ratio, longest, dur = stats.get("ratio"), stats.get("longest_s"), stats.get("duration")
+    if ratio is None or longest is None:
+        return None
+    if ratio >= 0.95:
+        return True
+    if dur and dur > 0 and longest / dur >= 0.8:
+        return True
+    return False
+
+
+def verdict(stats: dict, ratio_max: float, longest_max_s: float,
+            mode: str | None = None) -> tuple[bool | None, dict]:
     """门禁判定：ratio 与 longest 都达标才 PASS。
 
     - 无 expect.freeze → 返回 (None, ...) 表示不参与 verdict（legacy 作业）。
     - 有阈值但测量失败（ok=False）→ 严格口径视为 FAIL（测不了就不能放行）。
+    - mode == "full_freeze_only"（素材驱动类）→ 只拦 is_full_freeze，
+      中度静止降级为 details/warnings，不参与 PASS/FAIL。
+      见 render.expect_for 的分档与 freeze-calibration.md。
     """
     if not stats.get("ok"):
         return False, {"error": stats.get("error") or "freeze 指标不可用", "strict": True}
@@ -134,6 +159,17 @@ def verdict(stats: dict, ratio_max: float, longest_max_s: float) -> tuple[bool |
     longest = stats.get("longest_s")
     if ratio is None or longest is None:
         return False, {"error": "freeze 指标缺 ratio/longest", "strict": True}
+    if mode == "full_freeze_only":
+        full = is_full_freeze(stats)
+        if full is None:
+            return False, {"error": "全片冻结判定不可用", "strict": True}
+        return (not full), {
+            "mode": mode, "full_freeze": full,
+            "ratio": ratio, "longest_s": longest,
+            "events": len(stats.get("events") or []),
+            "ydif_max": stats.get("ydif_max"),
+            "downgraded": True,
+        }
     ok_ratio = ratio <= float(ratio_max)
     ok_long = longest <= float(longest_max_s)
     return bool(ok_ratio and ok_long), {

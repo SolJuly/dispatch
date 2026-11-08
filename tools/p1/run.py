@@ -482,6 +482,15 @@ def step_submit(job: dict, opts, ctx: dict) -> None:
                                  "meta": meta, "graph": graph})
         _say(f"registry 渲染：{meta['workflow_key']} v{meta['workflow_version']} × "
              f"{meta['model_key']} v{meta['model_version']} · {meta['nodes']} 节点")
+        # 记下 output 节点：fetch 阶段要把它的产物排到主产物位
+        try:
+            from tools.p20 import registry as p20registry
+            wf_rec = p20registry.get_workflow(reg["workflow_key"],
+                                             version=reg.get("workflow_version"))
+            ctx["output_node"] = str((wf_rec.get("output") or {}).get("node") or "")
+        except Exception as e:
+            _say(f"  ⚠ 取 output 节点失败：{e}")
+            ctx["output_node"] = ""
     else:
         wf = json.loads(wf_path.read_text(encoding="utf-8"))
         graph = _render_workflow(wf, job.get("params") or {}, job["job_id"])
@@ -545,6 +554,12 @@ def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
                     files = p20comfy.extract_files(ent)
                     if not files:
                         raise RunError("任务成功但无输出文件", state.FAILED_FETCH)
+                    # 文件名 → 产出节点：主产物判定要用 output 节点，不能靠文件名排序
+                    try:
+                        by_node = p20comfy.extract_files_by_node(ent)
+                        ctx["file_nodes"] = {fn: nid for nid, _sub, fn in by_node}
+                    except Exception:
+                        ctx["file_nodes"] = {}
                     _say(f"推理完成：{len(files)} 个文件，耗时 {int(time.time()-t0)}s")
                     return sorted(files)
                 if st == "error":
@@ -568,17 +583,47 @@ def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
     raise RunError(f"推理超时（{limit}s）", state.FAILED_RUN)
 
 
+_COMFY_PROC_RE = re.compile(r"[m]ain\.py")
+
+
+def _parse_comfy_alive(out: str, rc: int) -> bool | None:
+    """从一次探活的输出里判断 ComfyUI 死活。
+
+    三个坑（2026-11-07 修）：
+      1. 命令串自己会进远端 `bash -c` 的 cmdline，`pgrep -af 'ComfyUI.*main.py'`
+         会匹配到这条 shell，于是恒真 —— 模式写成 `[m]ain\.py` 才躲得掉自匹配；
+      2. 真实启动命令是 `python -u main.py --listen ...`，不带 ComfyUI 路径，
+         所以模式里不能依赖 ComfyUI 字样；
+      3. 只看进程不看端口，会被同名脚本骗过去，所以补一发 /system_stats。
+
+    True=活着；False=确实没了；None=这台机器 ssh 都不通，别判死刑。
+    """
+    text = out or ""
+    proc, marker, code = text.partition("---PROC---")
+    for line in proc.splitlines():
+        # 探活命令自己会出现在远端 bash 的 cmdline 里，跳过这些行再找进程
+        if "pgrep" in line or "bash -c" in line or "system_stats" in line:
+            continue
+        if _COMFY_PROC_RE.search(line):
+            return True
+    if code.strip().startswith("200"):
+        return True
+    # 看到 ---PROC--- 就说明远端命令真的跑完了（curl 连不上会返回 7，别把退出码当"未知"）
+    if marker:
+        return False
+    if rc == 0:
+        return False
+    return None
+
+
 def _comfy_alive(host: str, port: str, pwd: str) -> bool | None:
     """ComfyUI 进程还在吗？True/False；ssh 都连不上就 None（别乱判死刑）。"""
     rc, out = _ssh_run(host, port, pwd,
-                       "pgrep -af 'ComfyUI.*main.py' | head -3; echo '---'; "
-                       "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader",
+                       "pgrep -af '[m]ain\\.py --listen' | head -5; echo '---PROC---'; "
+                       "curl -s -m 3 -o /dev/null -w '%{http_code}' "
+                       "http://127.0.0.1:8188/system_stats; true",
                        timeout=60)
-    if rc != 0 and "pgrep" not in (out or ""):
-        return None
-    if "main.py" in (out or ""):
-        return True
-    return False
+    return _parse_comfy_alive(out, rc)
 
 
 def step_fetch(job: dict, opts, ctx: dict, files: list[tuple[str, str]]) -> list[Path]:
@@ -587,9 +632,15 @@ def step_fetch(job: dict, opts, ctx: dict, files: list[tuple[str, str]]) -> list
     art = jdir / "artifacts"
     art.mkdir(parents=True, exist_ok=True)
     local = []
+    primary_node = str(ctx.get("output_node") or "")
+    file_nodes = ctx.get("file_nodes") or {}
     for idx, (sub, fn) in enumerate(files, 1):
         remote = f"/root/ComfyUI/output/{sub}/{fn}" if sub else f"/root/ComfyUI/output/{fn}"
-        dst = art / f"{idx:02d}-{fn}"
+        # 00- 前缀保证 output 节点的产物排在最前，verify 以它为唯一主产物
+        if primary_node and str(file_nodes.get(fn, "")) == primary_node:
+            dst = art / f"00-primary-{fn}"
+        else:
+            dst = art / f"{idx:02d}-{fn}"
         _say(f"拉取 {fn}（{idx}/{len(files)}）…")
         if not _scp_get(ctx["host"], ctx["port"], ctx["password"], remote, dst):
             raise RunError(f"拉取失败（已成功 {len(local)}/{len(files)}）：{remote}",
@@ -1043,13 +1094,22 @@ def _abort(job_id: str, job: dict, opts) -> int:
                 state.transition(job_id, state.ABORTED, reason="abort：人工中止")
             except Exception as e:
                 _say(f"  ⚠ 转移到 ABORTED 失败：{e}")
-        try:
-            step_release(job, opts, ctx)
-        except Exception as e:
-            _say(f"  ⚠ 销毁异常：{e}")
+        released = False
+        for attempt in (1, 2):
+            try:
+                step_release(job, opts, ctx)
+                released = True
+                break
+            except Exception as e:
+                _say(f"  ⚠ 销毁异常（第 {attempt} 次）：{e}")
+                if attempt == 1:
+                    time.sleep(5)
         if state.load_job(job_id).get("state") == state.RELEASING:
             state.transition(job_id, state.FAILED, reason="abort 收尾")
-        _say("✓ 已放弃并清理")
+        if released:
+            _say("✓ 已放弃并清理")
+        else:
+            _say("✗ 作业已中止，但实例释放失败：请到控制台手动销毁，避免继续计费")
     return 0
 
 

@@ -229,7 +229,17 @@ def cmd_resolve(a) -> int:
     return 0
 
 
-def _normalize_image(params: dict) -> dict:
+def _video_keys(wf: dict) -> set[str]:
+    """注册表里声明为 type=video 的参数名。
+
+    参数名不等于语义：animate2_distilled 的驱动视频叫 image_2，vace/scail 叫 image，
+    靠正则匹配 video 会漏掉 7/9 个视频输入工作流（trim 与真实帧数估价同时失效）。
+    """
+    return {k for k, v in (wf.get("params") or {}).items()
+            if isinstance(v, dict) and v.get("type") == "video"}
+
+
+def _normalize_image(params: dict, video_keys: set[str] | None = None) -> dict:
     """把本地图片归一成「实例 input/ 下的文件名」。
 
     实现：按内容哈希命名，复制到 reports/p2/p21/inputs/<name>；
@@ -257,11 +267,12 @@ def _normalize_image(params: dict) -> dict:
         if p.resolve() != dst.resolve():
             shutil.copy2(p, dst)
         params[key] = name
-    _trim_video(params)
+    _trim_video(params, video_keys=video_keys)
     return params
 
 
-def _trim_video(params: dict, fps: int = 16, timeout: int = 300) -> None:
+def _trim_video(params: dict, video_keys: set[str] | None = None,
+                fps: int = 16, timeout: int = 300) -> None:
     """按 trim_seconds 截取驱动视频（可选重采样到 16fps）。
 
     为什么需要：动作迁移模板会**按驱动视频的帧数循环**（81 帧一轮），
@@ -276,8 +287,9 @@ def _trim_video(params: dict, fps: int = 16, timeout: int = 300) -> None:
         return
     if secs <= 0:
         return
-    for key in [k for k in params
-                if isinstance(k, str) and re.fullmatch(r"video(?:_\d+)?", k)]:
+    keys = video_keys if video_keys is not None else {
+        k for k in params if isinstance(k, str) and re.fullmatch(r"video(?:_\d+)?", k)}
+    for key in [k for k in params if k in keys]:
         name = params.get(key)
         if not isinstance(name, str) or not name:
             continue
@@ -286,22 +298,36 @@ def _trim_video(params: dict, fps: int = 16, timeout: int = 300) -> None:
             continue
         out_name = f"{src.stem}-t{secs:g}-{fps}fps.mp4"
         out = INPUTS_DIR / out_name
-        if not out.is_file():
-            cmd = ["ffmpeg", "-v", "error", "-y", "-i", str(src),
-                   "-t", f"{secs:g}", "-r", str(fps),
-                   "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
-                   "-pix_fmt", "yuv420p", "-an", str(out)]
-            try:
-                subprocess.run(cmd, check=True, timeout=timeout,
-                               capture_output=True)
-            except (OSError, subprocess.SubprocessError):
-                continue
+        # 只认「非空且完整」的产物：ffmpeg 被 kill / 超时会留下 0 字节残片，
+        # 旧实现用 out.is_file() 判定已生成 → 下次直接跳过重编码，把坏文件当成品
+        # 上传进实例（2026-11-08 审计复现）。现在：残片先清掉，写临时名再原子改名。
+        if out.is_file() and out.stat().st_size > 0:
+            params[key] = out_name
+            continue
+        if out.is_file():
+            out.unlink(missing_ok=True)
+        tmp = out.with_suffix(".part.mp4")
+        cmd = ["ffmpeg", "-v", "error", "-y", "-i", str(src),
+               "-t", f"{secs:g}", "-r", str(fps),
+               "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+               "-pix_fmt", "yuv420p", "-an", str(tmp)]
+        try:
+            subprocess.run(cmd, check=True, timeout=timeout, capture_output=True)
+            if not tmp.is_file() or tmp.stat().st_size <= 0:
+                raise OSError("ffmpeg 产出为空")
+            tmp.replace(out)
+        except (OSError, subprocess.SubprocessError) as e:
+            tmp.unlink(missing_ok=True)
+            # 截取失败就保留原视频（不写 trim 后的名字），行为可预期：
+            # 宁可多花时间跑完整素材，也不静默上传一个坏文件。
+            print(f"  ⚠ 截取失败（{type(e).__name__}），改用原始素材 {name}")
+            continue
         params[key] = out_name
 
 
 def _make_spec(r: dict, *, job_key: str, task_ref: str | None) -> dict:
     wf, model = r["workflow"], r["model"]
-    r["params"] = _normalize_image(dict(r["params"]))
+    r["params"] = _normalize_image(dict(r["params"]), video_keys=_video_keys(wf))
     slots = (wf.get("model") or {}).get("slots") or {}
     files = model.get("files") or {}
     primary = model.get("primary") or next(iter(slots))
@@ -371,8 +397,10 @@ def cmd_new(a) -> int:
     print(f"  预算   ¥{spec['budget']['max_cost']} / {spec['budget']['max_minutes']}min · "
           f"卡型 {spec['instance']['required_gpu']}")
 
-    p = subprocess.run([sys.executable, str(JOBCTL), "new", "--spec", str(spec_path)],
-                       capture_output=True, text=True, cwd=str(ROOT))
+    cmd = [sys.executable, str(JOBCTL), "new", "--spec", str(spec_path)]
+    if getattr(a, "force", False):
+        cmd.append("--force")          # 显式重跑：跳过去重
+    p = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT))
     out = (p.stdout or "") + (p.stderr or "")
     print(out.strip())
     if p.returncode != 0:
@@ -380,6 +408,11 @@ def cmd_new(a) -> int:
     jid = _pick_job_id(out)
     if not jid:
         _die("未从 jobctl 输出解析到 job_id")
+    # 复用进行中的同参数作业：不再 spawn 第二个 run.py
+    from tools.p1 import store as p1store
+    if p1store.DEDUP_REUSE_MARK in out:
+        print(f"  同参数作业已在跑，复用 {jid}（不重复建机、不重复执行）")
+        return 0
     if not a.run:
         print(f"\n下一步：python3 tools/p1/run.py {jid} --gpu {spec['instance']['required_gpu'][0]}")
         return 0
@@ -497,6 +530,7 @@ def main(argv=None) -> int:
     sp.add_argument("--dry-run", action="store_true", help="配合 --run：只走状态机不建机")
     sp.add_argument("--gpu")
     sp.add_argument("--hours", type=float, default=1.0)
+    sp.add_argument("--force", action="store_true", help="同参数已完成也强制新建（显式重跑）")
     sp.set_defaults(fn=cmd_new)
 
     sp = sub.add_parser("compat", help="兼容性矩阵")

@@ -67,6 +67,7 @@ class TestQueuePending(unittest.TestCase):
     def test_pending_filters_state_and_since(self):
         orig_jobs = store.JOBS_DIR
         orig_read = store.read_json
+        orig_list = store.list_jobs
         tmp = Path(tempfile.mkdtemp(prefix="p1-queue-"))
         jobs = {
             "p1-20261107T0408-aaaaaa": {"state": "CREATED", "created_at": "2026-11-07T04:08:16+08:00"},
@@ -84,6 +85,7 @@ class TestQueuePending(unittest.TestCase):
         finally:
             store.JOBS_DIR = orig_jobs
             store.read_json = orig_read  # type: ignore
+            store.list_jobs = orig_list  # type: ignore
 
 
 if __name__ == "__main__":

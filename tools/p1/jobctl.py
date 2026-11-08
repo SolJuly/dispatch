@@ -29,6 +29,16 @@ from tools.p1 import ids, store, schema, state, status as status_mod  # noqa: E4
 from tools.p1 import verify as verify_mod  # noqa: E402
 from tools.p1 import tasks as tasks_mod  # noqa: E402
 
+# 提交锁排队窗口（秒）：并发/双击提交时，第二个请求等第一个建完再查重，
+# 而不是「两个都查到没重复、各建一个作业各开一台 GPU」。
+SUBMIT_LOCK_WAIT = 15
+# 只有「主链中还没走到终态」的作业才叫进行中（幂等复用）。
+# FAILED_* / FAILED / ABORTED / RESUMING 不在主链：失败作业不该被复用，
+# 否则用户重提一个失败任务会拿到那个死掉的 job_id 且什么都不执行（2026-11-08 审计实测）。
+DEDUP_ACTIVE_STATES = set(state.MAIN_CHAIN) - {state.DONE}
+# 复用标记：webui / p20ctl 据此识别「这次没有新建作业」，避免重复 spawn run.py
+DEDUP_REUSE_MARK = "DEDUP_REUSE"
+
 SPEC_DEFAULTS = {
     "kind": "video",
     "expect": {"ext": "mp4", "min_bytes": 300000, "duration_s": [4.8, 5.2],
@@ -127,15 +137,6 @@ def _sha256_file(p: Path) -> str:
     return h.hexdigest()
 
 
-def _find_same_hash(ph: str) -> list[tuple[str, str]]:
-    out = []
-    for jid in store.list_jobs():
-        j = store.read_json(store.job_file(jid))
-        if j and j.get("params_hash") == ph:
-            out.append((jid, j.get("state", "?")))
-    return out
-
-
 def cmd_new(a) -> int:
     spec = _load_spec(Path(a.spec))
     kind_hint = spec.get("kind", "video")
@@ -178,56 +179,79 @@ def cmd_new(a) -> int:
     if kind == "video" and "freeze" not in expect:
         expect["freeze"] = {"ratio_max": 0.20, "longest_max_s": 1.0}
     ph = store.params_hash(model, params, expect)
+    dedup = store.task_dedup_key(model, params)
 
-    same = _find_same_hash(ph)
-    finished = [x for x in same if x[1] == state.DONE]
-    if finished and not a.force:
-        _die(f"同参数作业已完成：{finished[0][0]}（state={finished[0][1]}）。"
-             f"重复跑会白烧钱；确实要重跑加 --force。")
-    if same and not finished:
-        print(f"⚠ 同参数作业尚未完成：{', '.join(x[0] for x in same)}（算一次新尝试）")
+    # 提交锁：把「查重 → 决定复用/拒绝 → mkdir 占位」变成一个原子操作。
+    # 没有这把锁，双击提交的两个进程会同时查到「无重复」、各建一个作业各开一台 GPU。
+    # 用独立的 .submit.lock，不与执行用的 .job.lock 互锁（执行可以跑几十分钟，
+    # 提交不该被它堵住；两个提交之间才需要互斥）。
+    try:
+        with store.JobLock(path=store.SUBMIT_LOCK_FILE, wait=SUBMIT_LOCK_WAIT):
+            same = store.find_same_task(model, params)
+            active = [x for x in same if x[1] in DEDUP_ACTIVE_STATES]
+            finished = [x for x in same if x[1] == state.DONE]
+            dead = [x for x in same if x[1] not in DEDUP_ACTIVE_STATES
+                    and x[1] != state.DONE]
 
-    # 幂等键落盘（job_id 先定，否则整体校验必然报 ID 非法）
-    job = {
-        "schema": schema.JOB_SCHEMA,
-        "job_id": ids.new_job_id(),
-        "created_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
-        "branch": a.branch or _branch(),
-        "kind": kind,
-        "task_ref": a.task or spec.get("task_ref"),
-        "model": model,
-        "params": params,
-        "params_hash": ph,
-        "expect": expect,
-        "freeze_policy": "strict" if kind == "video" else None,
-        "budget": spec.get("budget") or SPEC_DEFAULTS["budget"],
-        "instance": spec.get("instance") or SPEC_DEFAULTS["instance"],
-        "state": state.CREATED,
-        "state_seq": 1,
-    }
+            if not a.force:
+                if active:
+                    # 进行中：幂等复用，返回已有 job_id，绝不新建第二份
+                    jid, st = active[0]
+                    print(f"{store.DEDUP_REUSE_MARK} {jid}")
+                    _ok(f"同参数作业已在 {_fmt_state(st)}，复用：{jid}（未新建、未重复建机）")
+                    return 0
+                if finished:
+                    _die(f"同参数作业已完成：{finished[0][0]}（state={finished[0][1]}）。"
+                         f"重复跑会白烧钱；确实要重跑加 --force。")
+                if dead:
+                    # 失败/中止的旧作业不复用、也不拦：用户重提就是要再跑一次
+                    print(f"  同参数旧作业已结束（{dead[0][1]}），按新提交处理：{dead[0][0]}")
 
-    errs = schema.validate_job(job)
-    if errs:
-        print("✗ spec 校验不通过：", file=sys.stderr)
-        for e in errs:
-            print(f"  · {e}", file=sys.stderr)
-        return 1
+            # 幂等键落盘（job_id 先定，否则整体校验必然报 ID 非法）
+            job = {
+                "schema": schema.JOB_SCHEMA,
+                "job_id": ids.new_job_id(),
+                "created_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+                "branch": a.branch or _branch(),
+                "kind": kind,
+                "task_ref": a.task or spec.get("task_ref"),
+                "model": model,
+                "params": params,
+                "params_hash": ph,
+                "task_dedup_key": dedup,
+                "expect": expect,
+                "freeze_policy": "strict" if kind == "video" else None,
+                "budget": spec.get("budget") or SPEC_DEFAULTS["budget"],
+                "instance": spec.get("instance") or SPEC_DEFAULTS["instance"],
+                "state": state.CREATED,
+                "state_seq": 1,
+            }
 
-    # 原子占位：mkdir 撞了换 id（其余字段不变，无需重校验）
-    last = None
-    for _ in range(ids.MAX_RETRY):
-        try:
-            store.ensure_job_dir(job["job_id"])
-            break
-        except store.JobExists as e:
-            last = e
-            job["job_id"] = ids.new_job_id()
-            continue
-    else:
-        _die(f"job_id 连续 {ids.MAX_RETRY} 次冲突，放弃：{last}")
-    jid = job["job_id"]
+            errs = schema.validate_job(job)
+            if errs:
+                print("✗ spec 校验不通过：", file=sys.stderr)
+                for e in errs:
+                    print(f"  · {e}", file=sys.stderr)
+                return 1
 
-    state.init_job(job, reason=f"新建作业（{job.get('task_ref') or '未关联任务'}）")
+            # 原子占位：mkdir 撞了换 id（其余字段不变，无需重校验）
+            last = None
+            for _ in range(ids.MAX_RETRY):
+                try:
+                    store.ensure_job_dir(job["job_id"])
+                    break
+                except store.JobExists as e:
+                    last = e
+                    job["job_id"] = ids.new_job_id()
+                    continue
+            else:
+                _die(f"job_id 连续 {ids.MAX_RETRY} 次冲突，放弃：{last}")
+            jid = job["job_id"]
+
+            state.init_job(job, reason=f"新建作业（{job.get('task_ref') or '未关联任务'}）")
+    except store.JobLocked as e:
+        _die(f"提交排队超时：{e}")
+
     d = store.job_dir(jid)
     _ok(f"作业已建：{jid}")
     print(f"  目录   {store.rel(d)}")

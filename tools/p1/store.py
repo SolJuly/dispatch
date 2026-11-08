@@ -25,6 +25,11 @@ TASKS_JSON = P1_DIR / "tasks.json"
 TASKS_MD = P1_DIR / "tasks.md"
 STATUS_JSON = P1_DIR / "status.json"
 LOCK_FILE = P1_DIR / ".job.lock"
+# 提交锁：只保护「查重 → 建目录」这一段，与单任务执行锁（.job.lock）分开，
+# 否则双击提交时两个进程都查到"没重复"、各建一个作业各开一台 GPU。
+SUBMIT_LOCK_FILE = P1_DIR / ".submit.lock"
+# jobctl 复用已有作业时打印的标记；webui / p20ctl 据此跳过重复 spawn run.py
+DEDUP_REUSE_MARK = "DEDUP_REUSE"
 LEDGER = ROOT / ".compshare" / "ledger.jsonl"
 
 
@@ -56,6 +61,52 @@ def params_hash(model: dict, params: dict, expect: dict) -> str:
 
 def is_params_hash(s) -> bool:
     return isinstance(s, str) and s.startswith("sha256:") and len(s) == 71
+
+
+def task_dedup_key(model: dict, params: dict) -> str:
+    """「同一任务」的去重键：工作流 + 模型 + 输入参数。
+
+    与 params_hash 的区别（别混）：
+      - params_hash 含 expect/budget，用于「产物是否按这份 spec 生成」的完整性校验；
+        校验口径一变（例如 freeze 分档、时长推导）hash 就变，不能拿来判重复。
+      - task_dedup_key **只含会决定「跑什么」的字段**，不含 expect / budget /
+        job_id / 时间戳 / seed 之外的运行参数。校验口径升级不影响它。
+
+    老作业没有存这个键，扫描时按 job.json 里的 model+params 现算，完全向后兼容，
+    不需要改 job schema，也不需要数据迁移。
+    """
+    key = {
+        # registry 的 workflow_key 比图路径稳定（图换了路径仍是同一个玩法）
+        "workflow": ((model or {}).get("registry") or {}).get("workflow_key")
+                    or (model or {}).get("workflow"),
+        "model": (model or {}).get("key"),
+        "checkpoint": (model or {}).get("checkpoint"),
+        "params": params or {},
+    }
+    return "sha256:" + hashlib.sha256(canonical_json(key).encode("utf-8")).hexdigest()
+
+
+def find_same_task(model: dict, params: dict) -> list[tuple[str, str]]:
+    """全库扫同任务作业，返回 [(job_id, state)]，按 job_id 排序。
+
+    只扫 job.json（不查 DB），所以 CLI / webui / p20ctl 三个入口看到的是同一份事实。
+    直接遍历 JOBS_DIR，不经 list_jobs()：那个函数会被测试/外部 mock 掉，
+    而查重必须是「真实目录」的权威视图，不能被任何替身静默绕过。
+    """
+    want = task_dedup_key(model, params)
+    out = []
+    root = Path(JOBS_DIR)
+    if not root.is_dir():
+        return out
+    for d in sorted(p for p in root.iterdir() if p.is_dir()):
+        j = read_json(d / "job.json")
+        if not j:
+            continue
+        got = j.get("task_dedup_key") or task_dedup_key(
+            j.get("model") or {}, j.get("params") or {})
+        if got == want:
+            out.append((d.name, j.get("state", "?")))
+    return out
 
 
 def atomic_write_json(path: Path, obj, *, indent: int = 2) -> None:
@@ -107,9 +158,10 @@ def job_file(job_id: str, name: str = "job.json") -> Path:
 
 def list_jobs() -> list[str]:
     """按 job_id 字典序（≈时间序）返回全部作业。"""
-    if not JOBS_DIR.is_dir():
+    root = Path(JOBS_DIR)
+    if not root.is_dir():
         return []
-    return sorted(p.name for p in JOBS_DIR.iterdir()
+    return sorted(p.name for p in root.iterdir()
                   if p.is_dir() and (p / "job.json").exists())
 
 
@@ -120,8 +172,8 @@ class JobLock:
     作业永远停在 CREATED）。等锁期间照样持有一个 fd，超时才抛 JobLocked。
     """
 
-    def __init__(self, path: Path = LOCK_FILE, wait: float = 0):
-        self.path = path
+    def __init__(self, path: Path | str = LOCK_FILE, wait: float = 0):
+        self.path = Path(path)
         self.wait = max(0.0, float(wait or 0))
         self._fd: int | None = None
 

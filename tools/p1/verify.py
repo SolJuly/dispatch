@@ -124,9 +124,12 @@ def content_warnings(edge: float | None, fz: dict | None, freeze_gated: bool = F
     保留 edge_energy 抓噪点/抽象/糊片（LTXV 失败样本只有它抓得住）。
     """
     w: list[str] = []
-    if not freeze_gated and fz and fz.get("ok"):
-        ratio = fz.get("ratio")
-        longest = fz.get("longest_s")
+    # 素材驱动类走 full_freeze_only：中度静止不判 FAIL，但仍要提示换素材
+    stats = (fz or {}).get("stats") or fz or {}
+    downgraded = bool((fz or {}).get("downgraded"))
+    if (not freeze_gated or downgraded) and stats.get("ok"):
+        ratio = stats.get("ratio")
+        longest = stats.get("longest_s")
         if ratio is not None and ratio > WARN_FREEZE_RATIO:
             w.append(f"冻结时长占比 {ratio:.1%} > {WARN_FREEZE_RATIO:.0%}"
                      f"（最长 {longest}s），画面可能静止/卡帧")
@@ -259,7 +262,8 @@ def verify_file(path: Path, expect: dict, job: dict, workflow: dict | None,
         fz_expect = expect.get("freeze")
         if fz_expect:
             ok_fz, d_fz = freeze_mod.verdict(
-                fz, fz_expect.get("ratio_max"), fz_expect.get("longest_max_s"))
+                fz, fz_expect.get("ratio_max"), fz_expect.get("longest_max_s"),
+                mode=fz_expect.get("mode"))
             checks["freeze"] = ok_fz
             d_fz["stats"] = fz
             details["freeze"] = d_fz
@@ -311,19 +315,35 @@ def verify_job(job: dict, artifacts_dir: Path, workflow_path: Path | None = None
                 "reason": f"产物张数不符：expect.images={want}，实际 {len(files)}",
                 "files": [p.name for p in files], "expect_images": want}
 
-    kind = "image" if files[0].suffix.lower() != ".mp4" else "video"
+    # 产物类型看工作流声明，不看「文件名第一个」：多路输出时封面 png 可能排前面，
+    # 一旦按 png 判，冻结/黑帧/时长三项全部 skip，冻结视频也会 PASS。
+    declared = str(((wf_config or {}).get("output") or {}).get("kind") or "")
+    primary_idx = next((i for i, f in enumerate(files)
+                        if f.name.startswith("00-primary-")), -1)
+    if primary_idx < 0:
+        # legacy / 老作业没有 00-primary- 前缀：至少让主产物命中期望扩展名，
+        # 别被排在前面的封面 png 抢走（会在下面把 kind 判成 image）。
+        want = str(expect.get("ext") or "").lower()
+        primary_idx = next((i for i, f in enumerate(files)
+                            if want and f.suffix.lower() == f".{want}"), 0)
+    if declared in ("image", "video"):
+        kind = declared
+    else:
+        kind = "image" if files[primary_idx].suffix.lower() != ".mp4" else "video"
     results = [verify_file(f, expect, job, workflow, kind, wf_config) for f in files]
 
     # 一份作业里可能有多路输出（动作迁移会额外存 pose 预览、拼接对比片，甚至单帧封面）。
-    # 判定以**主产物**（文件名排序第一，来自工作流 output 节点）为准；
+    # 判定以**主产物**（fetch 时打了 00-primary- 前缀的 output 节点产物）为准；
     # 附加产物的 size/black/freeze 偏差只记告警，否则一张 1 帧封面就能把好作业判死。
     # 唯一例外：任何一路 decode 失败（文件坏了）仍然整体 FAIL。
-    primary = results[0]
+    primary = results[primary_idx]
     broken = [r for r in results if r["checks"].get("decode") is False]
-    secondary = [r for r in results[1:] if r["verdict"] != "PASS"]
+    secondary = [r for i, r in enumerate(results)
+                 if i != primary_idx and r["verdict"] != "PASS"]
     verdict = "PASS" if primary["verdict"] == "PASS" and not broken else "FAIL"
     out = {"verdict": verdict, "kind": kind, "artifacts": results,
-           "checks": primary["checks"] if len(results) == 1 else None}
+           "checks": primary["checks"] if len(results) == 1 else None,
+           "primary": primary["file"]}
     if secondary:
         out["secondary_failures"] = [
             f"{r['file']}: {','.join(r['failed'])}" for r in secondary]

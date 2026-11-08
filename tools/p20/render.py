@@ -22,8 +22,12 @@
 """
 from __future__ import annotations
 
+import ast
 import copy
+import functools
+import hashlib
 import json
+import math
 import re
 from pathlib import Path
 
@@ -211,13 +215,201 @@ def _resolve_count(spec, params: dict) -> int | None:
     return None
 
 
+ROOT = Path(__file__).resolve().parents[2]
+
+_EXPR_FUNCS = {"round": round, "int": int, "abs": abs, "max": max, "min": min,
+               "float": float, "floor": math.floor, "ceil": math.ceil}
+# 白名单只放行「纯算术 + 位运算 + 比较 + and/or」：
+# 54 张图里真实存在 floor/ceil、`a & ~1`、`a > 2048`、`(x==1) and y`
+# （2026-11-08 审计：原来的白名单拒掉了 14 个表达式里的 6 个，导致这些工作流
+# 推不出 duration_s）。刻意**不放行** ast.IfExp / ast.Lambda / 属性访问 / 下标，
+# 也不放行任何非白名单函数名 —— 这三类才是能绕出去的口子。
+_EXPR_NODES = (
+    ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Name, ast.Load,
+    ast.Call, ast.BoolOp, ast.Compare,
+    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.Mod,
+    ast.FloorDiv, ast.USub, ast.UAdd,
+    ast.BitAnd, ast.BitOr, ast.BitXor, ast.Invert, ast.LShift, ast.RShift,
+    ast.And, ast.Or, ast.Not,
+    ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE,
+)
+
+
+def _eval_num_expr(expr: str, vals: dict) -> float | None:
+    """只放行算术/位运算/比较的表达式求值（ComfyMathExpression）。
+
+    返回 float；bool 结果按 0/1 处理（`a > 2048` 这类在模板里用于开关）。
+    任何不在白名单里的节点（IfExp、Lambda、属性、下标、未知函数）一律拒绝，
+    宁可推导不出时长，也不执行来路不明的表达式。
+    """
+    try:
+        tree = ast.parse(expr, mode="eval")
+    except SyntaxError:
+        return None
+    for node in ast.walk(tree):
+        if not isinstance(node, _EXPR_NODES):
+            return None
+        if isinstance(node, ast.Call):
+            if not isinstance(node.func, ast.Name) or node.func.id not in _EXPR_FUNCS:
+                return None
+        if isinstance(node, ast.Name) and node.id not in vals and node.id not in _EXPR_FUNCS:
+            return None
+    try:
+        # 位运算（& ~ | << >>）只接受 int：上游 _resolve_num 一律返回 float，
+        # 直接把 5.0 喂给 `a & ~1` 会 TypeError → 整条表达式被判「求解失败」。
+        # 整数值的 float 先转 int，非整数值保留 float（算术仍按浮点走）。
+        env = {k: (int(v) if isinstance(v, float) and v.is_integer() else v)
+               for k, v in vals.items()}
+        got = eval(compile(tree, "<expr>", "eval"),
+                   {"__builtins__": {}, **_EXPR_FUNCS}, env)
+    except Exception:
+        return None
+    if isinstance(got, bool):
+        return 1.0 if got else 0.0
+    if isinstance(got, (int, float)):
+        return float(got)
+    return None
+
+
+def _resolve_num(graph: dict, val, depth: int = 0) -> float | None:
+    """把「常量 / 连线到常量或 ComfyMathExpression」的输入解析成数值。"""
+    if isinstance(val, bool):
+        return None
+    if isinstance(val, (int, float)):
+        return float(val)
+    if not isinstance(val, list) or len(val) != 2 or depth > 6:
+        return None
+    node = graph.get(str(val[0])) or {}
+    ins = node.get("inputs") or {}
+    ct = node.get("class_type", "")
+    if ct == "ComfyMathExpression":
+        vals = {}
+        for k, v in ins.items():
+            if not str(k).startswith("values."):
+                continue
+            got = _resolve_num(graph, v, depth + 1)
+            if got is None:
+                return None
+            vals[str(k).split(".", 1)[1]] = got
+        return _eval_num_expr(str(ins.get("expression") or ""), vals)
+    for k in ("value", "int", "number", "float"):
+        v = ins.get(k)
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            return float(v)
+    return None
+
+
+@functools.lru_cache(maxsize=128)
+def _graph_json(path: str, _sig: tuple) -> dict:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _file_sig(path: Path) -> tuple:
+    """缓存键：内容 sha1 + size。
+
+    不能只用 st_mtime：本环境（以及某些容器文件系统）上，同一秒内重写文件
+    mtime_ns / ctime_ns / size 都可能完全不变（实测：内容 24→25 同长度改写，
+    三个时间戳与 size 全部相同）。那样缓存会返回旧图，duration_s 按旧 fps 算，
+    好产物被时长门禁误杀（2026-11-08 审计复现）。
+    改成读内容算 sha1：54 个工作流图每个几十 KB，一次哈希比"误判一次作业"便宜得多。
+    """
+    data = path.read_bytes()
+    return (hashlib.sha1(data).hexdigest(), len(data))
+
+
+def _load_graph(wf: dict) -> dict | None:
+    rel = wf.get("graph") or wf.get("source_path") or ""
+    if not rel:
+        return None
+    path = Path(rel)
+    if not path.is_absolute():
+        path = ROOT / path
+    try:
+        return _graph_json(str(path), _file_sig(path))
+    except (OSError, json.JSONDecodeError, ValueError):
+        return None
+
+
+def _graph_timing(wf: dict) -> tuple[float | None, float | None]:
+    """从 API 图读出「默认帧数 / 帧率」，两者都唯一可解才返回。
+
+    为什么需要：21 个视频工作流只声明了 min_bytes，帧数/时长期望是空的
+    （verify._check_frames 直接 skipped），出 1 秒也能判 PASS。
+    有循环批处理（ImageFromBatch 大窗）或多路 latent 的工作流帧数随输入变，
+    这里直接放弃推导，交给 params 覆盖或人工配置。
+    """
+    graph = _load_graph(wf)
+    if not isinstance(graph, dict) or not graph:
+        return None, None
+    if any(n.get("class_type") in ("ImageFromBatch",)
+           and isinstance((n.get("inputs") or {}).get("length"), int)
+           and (n["inputs"]["length"] or 0) >= 1000 for n in graph.values()):
+        return None, None
+
+    fps_vals, frame_vals, latent_nodes = set(), set(), 0
+    for n in graph.values():
+        if n.get("class_type") != "CreateVideo":
+            continue
+        v = _resolve_num(graph, (n.get("inputs") or {}).get("fps"))
+        if v:
+            fps_vals.add(round(v, 3))
+    if len(fps_vals) != 1:
+        return None, None
+    fps = fps_vals.pop()
+
+    for n in graph.values():
+        ct = n.get("class_type", "")
+        ins = n.get("inputs") or {}
+        if "Video" not in ct and "Latent" not in ct:
+            continue
+        for key in ("length", "frames", "num_frames"):
+            if key not in ins:
+                continue
+            v = _resolve_num(graph, ins[key])
+            if v is None:
+                v = _default_math_frames(graph, ins[key], fps)
+            if v and 1 < v < 2048:
+                frame_vals.add(int(v))
+                latent_nodes += 1
+            break
+    if len(frame_vals) != 1 or latent_nodes > 2:
+        return None, None
+    frames = frame_vals.pop()
+    if not fps or frames <= 1:
+        return None, None
+    return frames / fps, fps
+
+
+def _default_math_frames(graph: dict, val, fps: float) -> float | None:
+    """expression 没落盘时按模板惯例反推帧数：Wan 口径 n = fps × 秒 + 1。
+
+    只在「values.a 是秒数、values.b 缺省或等于帧率」时启用，其余一律放弃。
+    """
+    if not isinstance(val, list) or len(val) != 2:
+        return None
+    node = graph.get(str(val[0])) or {}
+    if node.get("class_type") != "ComfyMathExpression":
+        return None
+    ins = node.get("inputs") or {}
+    if ins.get("expression"):
+        return None
+    a = _resolve_num(graph, ins.get("values.a"))
+    b = _resolve_num(graph, ins.get("values.b"))
+    if not a or a <= 0 or a > 120:
+        return None
+    if b is not None and abs(b - fps) > 0.01:
+        return None
+    return a * fps + 1
+
+
 def _fps_of(wf: dict) -> float | None:
     """工作流声明的帧率：顶层 fps，或 expect_defaults.fps。"""
     for src in (wf, wf.get("expect_defaults") or {}):
         v = src.get("fps") if isinstance(src, dict) else None
         if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0:
             return float(v)
-    return None
+    _dur, fps = _graph_timing(wf)
+    return float(fps) if fps else None
 
 
 def _frames_of(wf: dict, params: dict, fps: float) -> int | None:
@@ -285,6 +477,11 @@ def expect_for(wf: dict, params: dict) -> dict:
                 pass
     out = wf.get("output") or {}
     exp.setdefault("ext", out.get("ext", "mp4"))
+    # 图里能推出默认帧数/帧率的工作流，补一条时长窗口（21 个视频工作流原本没有）
+    if wf.get("kind") == "video" and "duration_s" not in exp:
+        dur, _fps = _graph_timing(wf)
+        if dur:
+            exp["duration_s"] = [round(max(0.2, dur - 0.6), 2), round(dur + 0.8, 2)]
     # 帧数/时长被覆盖时，duration_s 必须跟着算，不能沿用默认帧数的窗口
     _recalibrate_duration(wf, params, exp)
 
@@ -300,8 +497,41 @@ def expect_for(wf: dict, params: dict) -> dict:
         if n is not None:
             exp["images"] = n
     if wf.get("kind") == "video" and "freeze" not in exp:
-        exp["freeze"] = {"ratio_max": 0.20, "longest_max_s": 1.0}
+        # 生成类沿用标定硬门禁；素材驱动类只拦「整片冻结」，静态素材不再误杀
+        exp["freeze"] = dict(FREEZE_MATERIAL_DRIVEN if _is_material_driven(wf)
+                             else FREEZE_GENERATIVE)
     return exp
+
+
+def _is_material_driven(wf: dict) -> bool:
+    """输出运动性继承自输入素材的工作流（静态素材 → 静态片是合法结果）。
+
+    freeze-calibration.md 的 0.20 阈值是在「文/图生视频」样本上标定的，用来抓
+    时间维崩坏（人物走出画/后段崩/全片静止）。但动作迁移、超分、插帧、抠像、
+    视频重绘这类工作流的输出由输入视频驱动：用户传一段静止素材，产出静止是
+    对的，套 0.2 硬门禁会把合法作业判成 FAILED_VERIFY（2026-11-07 animate2
+    蒸馏版真实事故：纯色源图 primary ratio=0.716 → 整单 FAIL）。
+
+    判据只用注册表事实，不猜工作流名字：
+      1) params 里有 type=video 的输入；或
+      2) API 图里有 LoadVideo / VHS_LoadVideo 节点。
+    """
+    for v in (wf.get("params") or {}).values():
+        if isinstance(v, dict) and v.get("type") == "video":
+            return True
+    graph = _load_graph(wf)
+    if isinstance(graph, dict):
+        for n in graph.values():
+            ct = (n or {}).get("class_type", "")
+            if isinstance(ct, str) and ct.startswith(("LoadVideo", "VHS_LoadVideo")):
+                return True
+    return False
+
+
+# 生成类：沿用标定的硬门禁；素材驱动类：只拦整片冻结，中度静止降级为告警
+FREEZE_GENERATIVE = {"ratio_max": 0.20, "longest_max_s": 1.0}
+FREEZE_MATERIAL_DRIVEN = {"mode": "full_freeze_only",
+                          "ratio_max": 0.20, "longest_max_s": 1.0}
 
 
 def build_payload(graph: dict, client_id: str = "p20") -> dict:

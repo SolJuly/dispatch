@@ -72,6 +72,23 @@ def extract_files(entry: dict, kinds=("images", "videos", "gifs")) -> list[tuple
     return sorted(set(out))
 
 
+def extract_files_by_node(entry: dict, kinds=("images", "videos", "gifs")
+                          ) -> list[tuple[str, str, str]]:
+    """同 extract_files，但带上产出节点 id：(node_id, subfolder, filename)。
+
+    主产物判定不能靠文件名排序：多路输出时封面 png 可能排在正片前面，
+    靠「排序第一」会把整单按图片校验（冻结/黑帧全跳过）或误杀。
+    """
+    out = []
+    for nid, o in ((entry or {}).get("outputs") or {}).items():
+        for k in kinds:
+            for f in (o.get(k) or []):
+                if (f.get("type") or "output") != "output":
+                    continue
+                out.append((str(nid), f.get("subfolder", ""), f.get("filename")))
+    return sorted(set(out))
+
+
 def history_url(host: str = "127.0.0.1", port: int = 8188, pid: str = "") -> str:
     return f"http://{host}:{port}/history/{pid}"
 

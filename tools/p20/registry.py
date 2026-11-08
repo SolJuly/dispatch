@@ -518,8 +518,12 @@ def _validate_value(name: str, spec: dict, value, *, model: dict | None = None,
         pass
     if e:
         return e
-    if spec.get("enum") and value not in spec["enum"]:
-        e.append(f"params.{name}={value!r} 不在枚举 {spec['enum']} 内")
+    # 枚举取值域：工作流配置里统一用 `values`（config_schema 与前端都按 values 读），
+    # 早期只认 `enum` 导致 25 个 enum 参数的校验完全失效——
+    # 传 sampler="NO_SUCH_SAMPLER" 会原样写进图送 ComfyUI（2026-11-08 审计实测）。
+    allowed = spec.get("values") or spec.get("enum") or []
+    if allowed and value not in allowed:
+        e.append(f"params.{name}={value!r} 不在枚举 {allowed} 内")
     if typ in ("int", "float"):
         lo = spec.get("min")
         hi = spec.get("max")
@@ -532,7 +536,10 @@ def _validate_value(name: str, spec: dict, value, *, model: dict | None = None,
             e.append(f"params.{name}={value} > 上限 {hi}")
         mult = spec.get("multiple") if spec.get("multiple") is not None else con.get("multiple")
         if mult and value % mult != 0:
-            e.append(f"params.{name}={value} 不是 {mult} 的倍数")
+            # 帧数惯例是 4n+1（Wan/LTX 的 latent 长度），默认值 81/77 本来就带 +1；
+            # 只按 "能被 4 整除" 校验会把模板自己的默认值判成非法（3 个工作流踩中）。
+            if not (name == "frames" and mult > 1 and (value - 1) % mult == 0):
+                e.append(f"params.{name}={value} 不是 {mult} 的倍数（帧数需满足 {mult}n+1）")
     if typ == "image" and isinstance(value, str) and ("{{" in value or "\n" in value):
         e.append(f"params.{name} 不是合法图片文件名")
     return e
