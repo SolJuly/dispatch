@@ -1,177 +1,186 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_video_wan_animate2_distilled",
-  "name": "动作迁移 · Wan Animate 2 蒸馏版（快）",
   "description": "动作迁移蒸馏版，可调帧数。输入：人物图 + 驱动视频；输出：MP4。（✅ 可使用）",
-  "version": 1,
-  "kind": "video",
   "engine": "comfyui",
-  "graph": "workflows/pack/video_wan_animate2_distilled.api.json",
-  "model": {
-    "key": "wan_animate_2_distill_int8_convrot",
-    "slots": {
-      "unet": {
-        "node": "1606",
-        "input": "unet_name"
-      },
-      "clip": {
-        "node": "1607",
-        "input": "clip_name"
-      },
-      "vae": {
-        "node": "1611",
-        "input": "vae_name"
-      }
-    }
-  },
-  "params": {
-    "neg_prompt": {
-      "type": "string",
-      "required": false,
-      "default": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
-      "bindings": [
-        {
-          "node": "1608",
-          "input": "text"
-        }
-      ]
-    },
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "Character appearance description: A realistic premium collectible action figure of a male street dan…",
-      "bindings": [
-        {
-          "node": "1609",
-          "input": "text"
-        }
-      ]
-    },
-    "prompt_2": {
-      "type": "string",
-      "required": false,
-      "default": "A man doing energetic street dance with popping body waves and fast spinning moves, rain falling around him.",
-      "bindings": [
-        {
-          "node": "1612",
-          "input": "text"
-        }
-      ]
-    },
-    "prompt_3": {
-      "type": "string",
-      "required": false,
-      "default": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
-      "bindings": [
-        {
-          "node": "1648",
-          "input": "text"
-        }
-      ]
-    },
-    "prompt_4": {
-      "type": "string",
-      "required": false,
-      "default": "Character appearance description: A realistic premium collectible action figure of a male street dan…",
-      "bindings": [
-        {
-          "node": "1649",
-          "input": "text"
-        }
-      ]
-    },
-    "prompt_5": {
-      "type": "string",
-      "required": false,
-      "default": "A man doing energetic street dance with popping body waves and fast spinning moves, rain falling around him.",
-      "bindings": [
-        {
-          "node": "1652",
-          "input": "text"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "1624",
-          "input": "noise_seed"
-        },
-        {
-          "node": "1664",
-          "input": "noise_seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "189",
-          "input": "image"
-        }
-      ]
-    },
-    "image_2": {
-      "type": "video",
-      "required": true,
-      "bindings": [
-        {
-          "node": "240",
-          "input": "file"
-        }
-      ],
-      "description": "驱动视频（MP4/MOV/WebM），pose 来源；与人物图 image 一起提交。"
-    },
-    "frames": {
-      "type": "int",
-      "default": 81,
-      "min": 17,
-      "max": 201,
-      "bindings": [
-        {
-          "node": "1614",
-          "input": "length"
-        }
-      ],
-      "multiple": 4
-    },
-    "trim_seconds": {
-      "type": "float",
-      "default": 0,
-      "min": 0,
-      "max": 60,
-      "virtual": true,
-      "description": "驱动视频截取秒数（0 = 用整条）。模板会按视频帧数分轮跑，每 81 帧约 3 分钟；截 4 秒（16fps→64 帧）约 ¥0.2"
-    }
-  },
-  "output": {
-    "node": "246",
-    "input": "filename_prefix",
-    "kind": "video",
-    "ext": "mp4",
-    "pick": [
-      "videos",
-      "gifs"
-    ]
-  },
   "expect_defaults": {
     "ext": "mp4",
     "min_bytes": 50000
   },
   "fps": 16,
+  "graph": "workflows/pack/video_wan_animate2_distilled.api.json",
+  "key": "pack_video_wan_animate2_distilled",
+  "kind": "video",
   "limits": {
-    "max_minutes": 40,
-    "max_cost": 1.6
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
+  "model": {
+    "key": "wan_animate_2_distill_int8_convrot",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "1607"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "1606"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "1611"
+      }
+    }
+  },
+  "name": "动作迁移 · Wan Animate 2 蒸馏版（快）",
+  "notes": "vid.animate.fast · 人物动作迁移 · 蒸馏加速版 · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "output": {
+    "ext": "mp4",
+    "input": "filename_prefix",
+    "kind": "video",
+    "node": "246",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "params": {
+    "frames": {
+      "bindings": [
+        {
+          "input": "length",
+          "node": "1614"
+        }
+      ],
+      "default": 81,
+      "description": "生成帧数。视频类一般是 4n+1（如 81 / 121），因为模型按 4 帧一组处理。帧数直接决定时长和花费：帧数翻倍，耗时和钱基本也翻倍。",
+      "max": 201,
+      "min": 17,
+      "multiple": 4,
+      "type": "int"
+    },
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "189"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "image_2": {
+      "bindings": [
+        {
+          "input": "file",
+          "node": "240"
+        }
+      ],
+      "description": "驱动视频（MP4/MOV/WebM），pose 来源；与人物图 image 一起提交。",
+      "required": true,
+      "type": "video"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1608"
+        }
+      ],
+      "default": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1609"
+        }
+      ],
+      "default": "Character appearance description: A realistic premium collectible action figure of a male street dan…",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "prompt_2": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1612"
+        }
+      ],
+      "default": "A man doing energetic street dance with popping body waves and fast spinning moves, rain falling around him.",
+      "description": "第二组提示词。多阶段工作流里对应后一阶段；单阶段工作流里通常与 prompt 相同，无需单独修改。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt_3": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1648"
+        }
+      ],
+      "default": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
+      "description": "第三组提示词（常见于两段式采样的负向词）。一般与 neg_prompt 相同。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt_4": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1649"
+        }
+      ],
+      "default": "Character appearance description: A realistic premium collectible action figure of a male street dan…",
+      "description": "第四组提示词（两段式采样的第二阶段正向）。一般与 prompt 相同。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt_5": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1652"
+        }
+      ],
+      "default": "A man doing energetic street dance with popping body waves and fast spinning moves, rain falling around him.",
+      "description": "第五组提示词（两段式采样的第二阶段姿态描述）。一般与 prompt_2 相同。",
+      "required": false,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "noise_seed",
+          "node": "1624"
+        },
+        {
+          "input": "noise_seed",
+          "node": "1664"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    },
+    "trim_seconds": {
+      "default": 0,
+      "description": "驱动视频截取秒数（0 = 用整条）。模板会按视频帧数分轮跑，每 81 帧约 3 分钟；截 4 秒（16fps→64 帧）约 ¥0.2",
+      "max": 60,
+      "min": 0,
+      "type": "float",
+      "virtual": true
+    }
   },
   "required_gpu": [
     "4090",
     "4090_48G"
   ],
-  "notes": "vid.animate.fast · 人物动作迁移 · 蒸馏加速版 · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

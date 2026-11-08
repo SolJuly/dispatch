@@ -1,98 +1,103 @@
 {
- "schema": "p20.workflow/v1",
- "key": "pack_video_ltx2_3_flf2v",
- "name": "首尾帧生视频 · LTX 2.3（尚未开发）",
- "description": "首帧+尾帧生成过渡。输入：2 张图 + 提示词；输出：MP4。当前缺文本编码器输入。（🚧 尚未开发）",
- "version": 1,
- "kind": "video",
- "engine": "comfyui",
- "graph": "workflows/pack/video_ltx2_3_flf2v.api.json",
- "model": {
-  "key": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_flf2v",
-  "slots": {
-   "ckpt": {
-    "node": "1159",
-    "input": "ckpt_name"
-   }
-  }
- },
- "params": {
-  "neg_prompt": {
-   "type": "string",
-   "required": false,
-   "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, g…",
-   "bindings": [
-    {
-     "node": "1153",
-     "input": "text"
-    }
-   ]
+  "description": "首帧+尾帧生成过渡。输入：2 张图 + 提示词；输出：MP4。当前缺文本编码器输入。（🚧 尚未开发）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
   },
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "default": "The camera move from a high position to a low position, keeping the character in the frame centered.…",
-   "bindings": [
-    {
-     "node": "1158",
-     "input": "text"
-    }
-   ]
-  },
-  "seed": {
-   "type": "int",
-   "min": 0,
-   "max": 2147483647,
-   "default": 0,
-   "bindings": [
-    {
-     "node": "1132",
-     "input": "noise_seed"
-    }
-   ]
-  },
-  "image": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "31",
-     "input": "image"
-    }
-   ]
-  },
-  "image_2": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "39",
-     "input": "image"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "68",
-  "input": "filename_prefix",
+  "graph": "workflows/pack/video_ltx2_3_flf2v.api.json",
+  "key": "pack_video_ltx2_3_flf2v",
   "kind": "video",
-  "ext": "mp4",
-  "pick": [
-   "videos",
-   "gifs"
-  ]
- },
- "expect_defaults": {
-  "ext": "mp4",
-  "min_bytes": 50000
- },
- "limits": {
-  "max_minutes": 40,
-  "max_cost": 1.6
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
+  "model": {
+    "key": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_flf2v",
+    "slots": {
+      "ckpt": {
+        "input": "ckpt_name",
+        "node": "1159"
+      }
+    }
+  },
+  "name": "首尾帧生视频 · LTX 2.3（尚未开发）",
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）",
+  "output": {
+    "ext": "mp4",
+    "input": "filename_prefix",
+    "kind": "video",
+    "node": "68",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "params": {
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "31"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "image_2": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "39"
+        }
+      ],
+      "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1153"
+        }
+      ],
+      "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, g…",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1158"
+        }
+      ],
+      "default": "The camera move from a high position to a low position, keeping the character in the frame centered.…",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "noise_seed",
+          "node": "1132"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

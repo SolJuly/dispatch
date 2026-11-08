@@ -1,109 +1,114 @@
 {
- "schema": "p20.workflow/v1",
- "key": "pack_image_flux2_klein_image_edit_4b_distilled",
- "name": "换装/多图编辑 · FLUX.2 Klein 4B（蒸馏）",
- "description": "两张图做换装或多图合成。输入：底图 + 参考图；输出：1024 编辑图。Apache-2.0，可商用。（🚧 尚未开发）",
- "version": 1,
- "kind": "image",
- "engine": "comfyui",
- "graph": "workflows/pack/image_flux2_klein_image_edit_4b_distilled.api.json",
- "model": {
-  "key": "flux_2_klein_4b_fp8",
-  "slots": {
-   "unet": {
-    "node": "1130",
-    "input": "unet_name"
-   },
-   "clip": {
-    "node": "1131",
-    "input": "clip_name"
-   },
-   "vae": {
-    "node": "1133",
-    "input": "vae_name"
-   }
-  }
- },
- "params": {
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "default": "stylize the handbag in image1 with the colours and logo from image 2",
-   "bindings": [
-    {
-     "node": "1132",
-     "input": "text"
-    }
-   ]
+  "description": "两张图做换装或多图合成。输入：底图 + 参考图；输出：1024 编辑图。Apache-2.0，可商用。（🚧 尚未开发）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "png",
+    "min_bytes": 20000
   },
-  "neg_prompt": {
-   "type": "string",
-   "required": false,
-   "default": "Change the bag color to blue.",
-   "bindings": [
-    {
-     "node": "1154",
-     "input": "text"
-    }
-   ]
-  },
-  "seed": {
-   "type": "int",
-   "min": 0,
-   "max": 2147483647,
-   "default": 0,
-   "bindings": [
-    {
-     "node": "1129",
-     "input": "noise_seed"
-    },
-    {
-     "node": "1162",
-     "input": "noise_seed"
-    }
-   ]
-  },
-  "image": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "76",
-     "input": "image"
-    }
-   ]
-  },
-  "image_2": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "81",
-     "input": "image"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "9",
-  "input": "filename_prefix",
+  "graph": "workflows/pack/image_flux2_klein_image_edit_4b_distilled.api.json",
+  "key": "pack_image_flux2_klein_image_edit_4b_distilled",
   "kind": "image",
-  "ext": "png",
-  "pick": [
-   "images"
-  ]
- },
- "expect_defaults": {
-  "ext": "png",
-  "min_bytes": 20000
- },
- "limits": {
-  "max_minutes": 20,
-  "max_cost": 0.8
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "img.outfit.apache · 换装 / 多图编辑（商用安全版） · 许可：Apache-2.0 · 商用：可 · ≥12GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "limits": {
+    "max_cost": 0.8,
+    "max_minutes": 20
+  },
+  "model": {
+    "key": "flux_2_klein_4b_fp8",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "1131"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "1130"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "1133"
+      }
+    }
+  },
+  "name": "换装/多图编辑 · FLUX.2 Klein 4B（蒸馏）",
+  "notes": "img.outfit.apache · 换装 / 多图编辑（商用安全版） · 许可：Apache-2.0 · 商用：可 · ≥12GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "output": {
+    "ext": "png",
+    "input": "filename_prefix",
+    "kind": "image",
+    "node": "9",
+    "pick": [
+      "images"
+    ]
+  },
+  "params": {
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "76"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "image_2": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "81"
+        }
+      ],
+      "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1154"
+        }
+      ],
+      "default": "Change the bag color to blue.",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1132"
+        }
+      ],
+      "default": "stylize the handbag in image1 with the colours and logo from image 2",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "noise_seed",
+          "node": "1129"
+        },
+        {
+          "input": "noise_seed",
+          "node": "1162"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

@@ -1,128 +1,132 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_utility_void_video_inpainting",
-  "name": "视频擦除/修复 · VOID（尚未开发）",
   "description": "对视频做区域擦除与重绘。输入：视频 + 蒙版；输出：修复 MP4。缺权重且类型不匹配。（🚧 尚未开发）",
-  "version": 1,
-  "kind": "video",
   "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
   "graph": "workflows/pack/utility_void_video_inpainting.api.json",
+  "key": "pack_utility_void_video_inpainting",
+  "kind": "video",
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
   "model": {
     "key": "void_pass2",
     "slots": {
-      "clip": {
-        "node": "1172",
-        "input": "clip_name"
+      "ckpt": {
+        "input": "ckpt_name",
+        "node": "1210"
       },
-      "vae": {
-        "node": "1173",
-        "input": "vae_name"
+      "clip": {
+        "input": "clip_name",
+        "node": "1172"
       },
       "unet": {
-        "node": "1187",
-        "input": "unet_name"
+        "input": "unet_name",
+        "node": "1187"
       },
       "unet_2": {
-        "node": "1188",
-        "input": "unet_name"
+        "input": "unet_name",
+        "node": "1188"
       },
-      "ckpt": {
-        "node": "1210",
-        "input": "ckpt_name"
+      "vae": {
+        "input": "vae_name",
+        "node": "1173"
       }
     }
   },
-  "params": {
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "Skateboard sliding down the snowy mountain view",
-      "bindings": [
-        {
-          "node": "1193",
-          "input": "text"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "1178",
-          "input": "noise_seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "video",
-      "required": true,
-      "bindings": [
-        {
-          "node": "4",
-          "input": "file"
-        }
-      ],
-      "description": "驱动/源视频（MP4/MOV/WebM）。"
-    },
-    "width": {
-      "type": "int",
-      "default": 672,
-      "min": 256,
-      "max": 2048,
-      "multiple": 32,
-      "bindings": [
-        {
-          "node": "1179",
-          "input": "width"
-        },
-        {
-          "node": "1183",
-          "input": "width"
-        }
-      ]
-    },
-    "height": {
-      "type": "int",
-      "default": 384,
-      "min": 256,
-      "max": 2048,
-      "multiple": 32,
-      "bindings": [
-        {
-          "node": "1179",
-          "input": "height"
-        },
-        {
-          "node": "1183",
-          "input": "height"
-        }
-      ]
-    }
-  },
+  "name": "视频擦除/修复 · VOID（尚未开发）",
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）",
   "output": {
-    "node": "38",
+    "ext": "mp4",
     "input": "filename_prefix",
     "kind": "video",
-    "ext": "mp4",
+    "node": "38",
     "pick": [
       "videos",
       "gifs"
     ]
   },
-  "expect_defaults": {
-    "ext": "mp4",
-    "min_bytes": 50000
-  },
-  "limits": {
-    "max_minutes": 40,
-    "max_cost": 1.6
+  "params": {
+    "height": {
+      "bindings": [
+        {
+          "input": "height",
+          "node": "1179"
+        },
+        {
+          "input": "height",
+          "node": "1183"
+        }
+      ],
+      "default": 384,
+      "description": "输出高度（像素）。与宽度配套调整，保持原始素材的宽高比。",
+      "max": 2048,
+      "min": 256,
+      "multiple": 32,
+      "type": "int"
+    },
+    "image": {
+      "bindings": [
+        {
+          "input": "file",
+          "node": "4"
+        }
+      ],
+      "description": "驱动/源视频（MP4/MOV/WebM）。",
+      "required": true,
+      "type": "video"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1193"
+        }
+      ],
+      "default": "Skateboard sliding down the snowy mountain view",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "noise_seed",
+          "node": "1178"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    },
+    "width": {
+      "bindings": [
+        {
+          "input": "width",
+          "node": "1179"
+        },
+        {
+          "input": "width",
+          "node": "1183"
+        }
+      ],
+      "default": 672,
+      "description": "输出宽度（像素）。越大越清晰但越慢越贵；改完后高度要按同样的比例缩放，否则画面会被拉变形。",
+      "max": 2048,
+      "min": 256,
+      "multiple": 32,
+      "type": "int"
+    }
   },
   "required_gpu": [
     "4090",
     "4090_48G"
   ],
-  "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

@@ -377,3 +377,21 @@ video.upthumb{height:92px;max-width:200px;border-radius:6px;border:1px solid var
 .costcard .kv dt{color:var(--muted);font-size:12.5px}
 .costcard .kv dd{margin:0;font-size:13px}
 .costcard .big-money{font-size:20px;font-weight:700;color:#e8c46a;font-variant-numeric:tabular-nums}
+
+/* 参数用途说明：常驻显示，不随输入消失。
+   以前它藏在 textarea 的 placeholder 里 —— 一填内容就看不见，
+   而「驱动视频（MP4/MOV/WebM）」这种信息恰恰在填的时候最需要。 */
+.fdesc{margin:5px 0 0;padding:6px 9px;border-radius:6px;
+  background:#151b24;border-left:2px solid #2f4a6b;
+  color:#9fb0c4;font-size:12px;line-height:1.6}
+.fdesc.long{max-height:3.2em;overflow:hidden;position:relative;cursor:pointer}
+.fdesc.long::after{content:'展开 ▾';position:absolute;right:8px;bottom:0;
+  padding:0 4px;background:#151b24;color:#5b8fd6;font-size:11px}
+.fdesc.long.open{max-height:none}
+.fdesc.long.open::after{content:'收起 ▴'}
+/* 无说明的字段：提示要显眼但不吵，提醒作者该补 */
+.fhint:has(+ .fhint), .fhint{color:var(--dim)}
+
+/* 媒体字段容器：上传控件一行，说明另起一行 */
+.upwrap{display:block}
+.upwrap .up{display:flex;gap:8px;align-items:center;flex-wrap:wrap}

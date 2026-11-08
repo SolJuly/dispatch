@@ -415,3 +415,81 @@ class TestResultCostAndVideo(unittest.TestCase):
     def test_cost_css_present(self):
         self.assertIn(".costcard", self.css)
         self.assertIn(".big-money", self.css)
+
+
+class TestParamDescriptions(unittest.TestCase):
+    """参数说明必须常驻显示，且每个参数都要有说明。
+
+    问题：用户说「不知道这个工作流它是怎么样的，需要在填参数的位置加备注」。
+    现状是 description 只塞进 textarea 的 placeholder —— 一填内容就看不见了，
+    而「驱动视频（MP4/MOV/WebM）」这种信息恰恰在填的时候最需要。
+    另外 328 个参数里只有 55 个（17%）有 description。
+    """
+
+    def setUp(self):
+        self.js = (WEB / "dist" / "app.js").read_text(encoding="utf-8")
+        self.css = (WEB / "dist" / "app.css").read_text(encoding="utf-8")
+
+    def test_field_desc_function_exists(self):
+        self.assertIn("function fieldDesc(", self.js)
+
+    def test_desc_rendered_outside_placeholder(self):
+        """说明要独立成 <p class="fdesc">，不能只靠 placeholder。"""
+        self.assertIn('class="fdesc', self.js)
+        m = __import__("re").search(
+            r"function fieldDesc\(spec\) \{(.*?)\n\}", self.js, __import__("re").S)
+        self.assertIsNotNone(m)
+        self.assertIn("<p class=\"fdesc", m.group(1))
+
+    def test_desc_survives_typing(self):
+        """placeholder 不该承载完整说明（输入后消失）。"""
+        m = __import__("re").search(r"ctl = `<textarea[^`]*`", self.js)
+        self.assertIsNotNone(m)
+        # textarea 的 placeholder 里不应再出现长说明的标志性措辞
+        self.assertNotIn("写好细节", m.group(0))
+
+    def test_long_desc_collapsible(self):
+        """长说明（带算例的 trim_seconds）要能折叠，否则挤爆表单。"""
+        import re
+        m = re.search(r"function fieldDesc\(spec\) \{(.*?)\n\}", self.js, re.S)
+        self.assertIsNotNone(m)
+        body = m.group(1)
+        # 模板里按长度加 long 类
+        self.assertIn("long ?", body.replace("'", ""), "应按长度决定是否加 long 类")
+        self.assertIn("d.length >", body)
+        # CSS 三种态都要有
+        for sel in (".fdesc.long{", ".fdesc.long::after", ".fdesc.long.open{"):
+            with self.subTest(sel=sel):
+                self.assertIn(sel, self.css)
+
+    def test_missing_desc_is_marked(self):
+        """没写说明的参数要明确标出，不能留白让人猜。"""
+        self.assertIn("（无说明）", self.js)
+
+    def test_media_field_desc_not_inside_flex_row(self):
+        """媒体字段的说明不能被塞进 .up 这个 flex 行里（会被挤成一长条）。"""
+        m = __import__("re").search(r"function mediaCtl\(name, spec\) \{(.*?)\n\}", self.js, __import__("re").S)
+        self.assertIsNotNone(m)
+        self.assertNotIn("fieldDesc(", m.group(1),
+                         "mediaCtl 内不该插 fdesc —— 由 renderForm 统一插在 .upwrap 之后")
+        self.assertIn("upwrap", m.group(1))
+
+    def test_registry_all_params_have_desc(self):
+        """registry 里 100% 的参数都要有 description。"""
+        import json
+        wfdir = WEB.parent / "registry" / "workflows"
+        if not wfdir.is_dir():
+            self.skipTest("registry 目录不在预期位置")
+        total = has = 0
+        missing = []
+        for f in wfdir.glob("*.json"):
+            d = json.loads(f.read_text(encoding="utf-8"))
+            for n, v in (d.get("params") or {}).items():
+                total += 1
+                if (v or {}).get("description"):
+                    has += 1
+                else:
+                    missing.append(f"{d.get('key')}.{n}")
+        self.assertGreater(total, 0)
+        self.assertEqual(has, total,
+                         f"{len(missing)} 个参数缺说明，例如：{missing[:6]}")

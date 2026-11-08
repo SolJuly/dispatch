@@ -1,90 +1,93 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_video_fasth3_ominiref_r2v",
-  "name": "多参考生视频 · FastH3 OmniRef（尚未开发）",
   "description": "多张参考图驱动视频生成。输入：参考图 + 提示词；输出：MP4。当前张量尺寸不匹配。（🚧 尚未开发）",
-  "version": 1,
-  "kind": "video",
   "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "fps": 24,
   "graph": "workflows/pack/video_fasth3_ominiref_r2v.api.json",
+  "key": "pack_video_fasth3_ominiref_r2v",
+  "kind": "video",
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
   "model": {
     "key": "fasth3_omniref_8step_pruned_int8_con",
     "slots": {
-      "vae": {
-        "node": "119",
-        "input": "vae_name"
-      },
-      "vae_2": {
-        "node": "120",
-        "input": "vae_name"
+      "clip": {
+        "input": "clip_name",
+        "node": "128"
       },
       "unet": {
-        "node": "127",
-        "input": "unet_name"
+        "input": "unet_name",
+        "node": "127"
       },
-      "clip": {
-        "node": "128",
-        "input": "clip_name"
+      "vae": {
+        "input": "vae_name",
+        "node": "119"
+      },
+      "vae_2": {
+        "input": "vae_name",
+        "node": "120"
       }
     }
   },
-  "params": {
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "subject_definitions:\n<Subject 1> is the plane in <Picture 1>: a yellow propeller plane climbing vert…",
-      "bindings": [
-        {
-          "node": "136",
-          "input": "prompt"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "129",
-          "input": "noise_seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "137",
-          "input": "image"
-        }
-      ]
-    }
-  },
+  "name": "多参考生视频 · FastH3 OmniRef（尚未开发）",
+  "notes": "vid.multiref.fast · 多参考 · 全参考加速版（FastH3） · 许可：MiniMax H3 Community License（排除美/欧/英/韩；年营收 >$20M 需授权；商用须经 Comfy 官方经销许可） · 商用：需授权 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
   "output": {
-    "node": "92",
+    "ext": "mp4",
     "input": "filename_prefix",
     "kind": "video",
-    "ext": "mp4",
+    "node": "92",
     "pick": [
       "videos",
       "gifs"
     ]
   },
-  "expect_defaults": {
-    "ext": "mp4",
-    "min_bytes": 50000
-  },
-  "limits": {
-    "max_minutes": 40,
-    "max_cost": 1.6
+  "params": {
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "137"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "prompt",
+          "node": "136"
+        }
+      ],
+      "default": "subject_definitions:\n<Subject 1> is the plane in <Picture 1>: a yellow propeller plane climbing vert…",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "noise_seed",
+          "node": "129"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    }
   },
   "required_gpu": [
     "4090",
     "4090_48G"
   ],
-  "notes": "vid.multiref.fast · 多参考 · 全参考加速版（FastH3） · 许可：MiniMax H3 Community License（排除美/欧/英/韩；年营收 >$20M 需授权；商用须经 Comfy 官方经销许可） · 商用：需授权 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
-  "fps": 24
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

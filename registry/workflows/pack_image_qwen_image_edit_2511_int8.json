@@ -1,77 +1,79 @@
 {
- "schema": "p20.workflow/v1",
- "key": "pack_image_qwen_image_edit_2511_int8",
- "name": "指令改图 · Qwen-Image-Edit 2511（int8，尚未开发）",
- "description": "2511 新版指令改图，int8 省显存。输入：底图 + 指令；输出：编辑图。当前缺节点输入。（🚧 尚未开发）",
- "version": 1,
- "kind": "image",
- "engine": "comfyui",
- "graph": "workflows/pack/image_qwen_image_edit_2511_int8.api.json",
- "model": {
-  "key": "qwen_image_edit_2511_int8_convrot",
-  "slots": {
-   "vae": {
-    "node": "1197",
-    "input": "vae_name"
-   },
-   "lora": {
-    "node": "1204",
-    "input": "lora_name"
-   },
-   "unet": {
-    "node": "1208",
-    "input": "unet_name"
-   },
-   "clip": {
-    "node": "1209",
-    "input": "clip_name"
-   }
-  }
- },
- "params": {
-  "seed": {
-   "type": "int",
-   "min": 0,
-   "max": 2147483647,
-   "default": 0,
-   "bindings": [
-    {
-     "node": "1216",
-     "input": "seed"
-    }
-   ]
+  "description": "2511 新版指令改图，int8 省显存。输入：底图 + 指令；输出：编辑图。当前缺节点输入。（🚧 尚未开发）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "png",
+    "min_bytes": 20000
   },
-  "image": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "41",
-     "input": "image"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "195",
-  "input": "filename_prefix",
+  "graph": "workflows/pack/image_qwen_image_edit_2511_int8.api.json",
+  "key": "pack_image_qwen_image_edit_2511_int8",
   "kind": "image",
-  "ext": "png",
-  "pick": [
-   "images"
-  ]
- },
- "expect_defaults": {
-  "ext": "png",
-  "min_bytes": 20000
- },
- "limits": {
-  "max_minutes": 20,
-  "max_cost": 0.8
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+  "limits": {
+    "max_cost": 0.8,
+    "max_minutes": 20
+  },
+  "model": {
+    "key": "qwen_image_edit_2511_int8_convrot",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "1209"
+      },
+      "lora": {
+        "input": "lora_name",
+        "node": "1204"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "1208"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "1197"
+      }
+    }
+  },
+  "name": "指令改图 · Qwen-Image-Edit 2511（int8，尚未开发）",
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）",
+  "output": {
+    "ext": "png",
+    "input": "filename_prefix",
+    "kind": "image",
+    "node": "195",
+    "pick": [
+      "images"
+    ]
+  },
+  "params": {
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "41"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "1216"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

@@ -1,109 +1,114 @@
 {
- "schema": "p20.workflow/v1",
- "key": "pack_image_qwen_image_2_1_image_edit",
- "name": "语义编辑 · Qwen-Image 2.1（换脸/换装，尚未开发）",
- "description": "按指令改图，支持多参考保持一致性。输入：底图 + 参考图 + 指令；输出：编辑图。当前缺核心节点。（🚧 尚未开发）",
- "version": 1,
- "kind": "image",
- "engine": "comfyui",
- "graph": "workflows/pack/image_qwen_image_2_1_image_edit.api.json",
- "model": {
-  "key": "qwen_image_2_1_int8_convrot_image_qwen_image_2_1_ima",
-  "slots": {
-   "unet": {
-    "node": "1502",
-    "input": "unet_name"
-   },
-   "clip": {
-    "node": "1503",
-    "input": "clip_name"
-   },
-   "vae": {
-    "node": "1504",
-    "input": "vae_name"
-   },
-   "clip_2": {
-    "node": "1511",
-    "input": "clip_name"
-   }
-  }
- },
- "params": {
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "default": "Replace costumes for the character",
-   "bindings": [
-    {
-     "node": "1516",
-     "input": "prompt"
-    }
-   ]
+  "description": "按指令改图，支持多参考保持一致性。输入：底图 + 参考图 + 指令；输出：编辑图。当前缺核心节点。（🚧 尚未开发）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "png",
+    "min_bytes": 20000
   },
-  "neg_prompt": {
-   "type": "string",
-   "required": false,
-   "default": "# Edit Prompt Enhancer — General (v2, 精简版)\n\n**FIRST — there are TWO separate language decisions. Do …",
-   "bindings": [
-    {
-     "node": "1516",
-     "input": "system_prompt"
-    }
-   ]
-  },
-  "seed": {
-   "type": "int",
-   "min": 0,
-   "max": 2147483647,
-   "default": 0,
-   "bindings": [
-    {
-     "node": "1507",
-     "input": "seed"
-    }
-   ]
-  },
-  "image": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "470",
-     "input": "image"
-    }
-   ]
-  },
-  "image_2": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "475",
-     "input": "image"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "461",
-  "input": "filename_prefix",
+  "graph": "workflows/pack/image_qwen_image_2_1_image_edit.api.json",
+  "key": "pack_image_qwen_image_2_1_image_edit",
   "kind": "image",
-  "ext": "png",
-  "pick": [
-   "images"
-  ]
- },
- "expect_defaults": {
-  "ext": "png",
-  "min_bytes": 20000
- },
- "limits": {
-  "max_minutes": 20,
-  "max_cost": 0.8
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "img.faceswap.semantic · 换脸 / 换装 / 多参考一致性（语义编辑） · 许可：Qwen Research License（仅研究/评测，商用需单独授权） · 商用：需授权 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "limits": {
+    "max_cost": 0.8,
+    "max_minutes": 20
+  },
+  "model": {
+    "key": "qwen_image_2_1_int8_convrot_image_qwen_image_2_1_ima",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "1503"
+      },
+      "clip_2": {
+        "input": "clip_name",
+        "node": "1511"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "1502"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "1504"
+      }
+    }
+  },
+  "name": "语义编辑 · Qwen-Image 2.1（换脸/换装，尚未开发）",
+  "notes": "img.faceswap.semantic · 换脸 / 换装 / 多参考一致性（语义编辑） · 许可：Qwen Research License（仅研究/评测，商用需单独授权） · 商用：需授权 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "output": {
+    "ext": "png",
+    "input": "filename_prefix",
+    "kind": "image",
+    "node": "461",
+    "pick": [
+      "images"
+    ]
+  },
+  "params": {
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "470"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "image_2": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "475"
+        }
+      ],
+      "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "system_prompt",
+          "node": "1516"
+        }
+      ],
+      "default": "# Edit Prompt Enhancer — General (v2, 精简版)\n\n**FIRST — there are TWO separate language decisions. Do …",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "prompt",
+          "node": "1516"
+        }
+      ],
+      "default": "Replace costumes for the character",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "1507"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

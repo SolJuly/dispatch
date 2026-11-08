@@ -1,175 +1,183 @@
 {
- "schema": "p20.workflow/v1",
- "key": "wan21_i2v_480p",
- "name": "图生视频 · Wan2.1 480P（49 帧）",
- "description": "首帧生成约 3 秒 480P 视频。输入：首帧图 + 提示词；输出：MP4。（✅ 可使用）",
- "version": 1,
- "kind": "video",
- "engine": "comfyui",
- "graph": "workflows/wan21_i2v_480p.api.json",
- "model": {
-  "key": "wan21_i2v",
-  "slots": {
-   "unet": {
-    "node": "unet",
-    "input": "unet_name"
-   },
-   "clip": {
-    "node": "clip",
-    "input": "clip_name"
-   },
-   "vae": {
-    "node": "vae",
-    "input": "vae_name"
-   },
-   "clip_vision": {
-    "node": "cvis",
-    "input": "clip_name"
-   }
-  }
- },
- "params": {
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "bindings": [
-    {
-     "node": "pos",
-     "input": "text"
-    }
-   ]
+  "description": "首帧生成约 3 秒 480P 视频。输入：首帧图 + 提示词；输出：MP4。（✅ 可使用）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "black_ratio_max": 0.3,
+    "duration_s": [
+      2.8,
+      3.3
+    ],
+    "ext": "mp4",
+    "freeze": {
+      "longest_max_s": 1.0,
+      "ratio_max": 0.2
+    },
+    "height": [
+      480
+    ],
+    "min_bytes": 100000,
+    "width": [
+      832
+    ]
   },
-  "neg_prompt": {
-   "type": "string",
-   "default": "",
-   "bindings": [
-    {
-     "node": "neg",
-     "input": "text"
-    }
-   ]
-  },
-  "image": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "img",
-     "input": "image"
-    }
-   ],
-   "description": "首帧文件名（需已上传到 ComfyUI/input）"
-  },
-  "seed": {
-   "type": "int",
-   "required": true,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "seed"
-    }
-   ]
-  },
-  "width": {
-   "type": "int",
-   "default": 832,
-   "min": 256,
-   "max": 1280,
-   "multiple": 16,
-   "bindings": [
-    {
-     "node": "i2v",
-     "input": "width"
-    }
-   ]
-  },
-  "height": {
-   "type": "int",
-   "default": 480,
-   "min": 256,
-   "max": 1280,
-   "multiple": 16,
-   "bindings": [
-    {
-     "node": "i2v",
-     "input": "height"
-    }
-   ]
-  },
-  "frames": {
-   "type": "int",
-   "default": 49,
-   "min": 1,
-   "max": 121,
-   "bindings": [
-    {
-     "node": "i2v",
-     "input": "length"
-    }
-   ]
-  },
-  "steps": {
-   "type": "int",
-   "default": 20,
-   "min": 1,
-   "max": 50,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "steps"
-    }
-   ]
-  },
-  "cfg": {
-   "type": "float",
-   "default": 3.5,
-   "min": 0.0,
-   "max": 30.0,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "cfg"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "save",
-  "input": "filename_prefix",
+  "fps": 16,
+  "graph": "workflows/wan21_i2v_480p.api.json",
+  "key": "wan21_i2v_480p",
   "kind": "video",
-  "ext": "mp4",
-  "pick": [
-   "videos",
-   "gifs"
-  ]
- },
- "expect_defaults": {
-  "ext": "mp4",
-  "min_bytes": 100000,
-  "duration_s": [
-   2.8,
-   3.3
+  "limits": {
+    "max_cost": 1.0,
+    "max_minutes": 30
+  },
+  "model": {
+    "key": "wan21_i2v",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "clip"
+      },
+      "clip_vision": {
+        "input": "clip_name",
+        "node": "cvis"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "unet"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "vae"
+      }
+    }
+  },
+  "name": "图生视频 · Wan2.1 480P（49 帧）",
+  "notes": "必须官方 fp8。四个模型槽位（unet/clip/vae/clip_vision）由模型配置统一注入。",
+  "output": {
+    "ext": "mp4",
+    "input": "filename_prefix",
+    "kind": "video",
+    "node": "save",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "params": {
+    "cfg": {
+      "bindings": [
+        {
+          "input": "cfg",
+          "node": "ks"
+        }
+      ],
+      "default": 3.5,
+      "description": "提示词遵从度（CFG scale）。低（1-2）= 更自由、更贴合输入素材；高（7+）= 更严格按提示词来，但容易僵硬或过饱和。改图/动作迁移类建议留在低位。",
+      "max": 30.0,
+      "min": 0.0,
+      "type": "float"
+    },
+    "frames": {
+      "bindings": [
+        {
+          "input": "length",
+          "node": "i2v"
+        }
+      ],
+      "default": 49,
+      "description": "生成帧数。视频类一般是 4n+1（如 81 / 121），因为模型按 4 帧一组处理。帧数直接决定时长和花费：帧数翻倍，耗时和钱基本也翻倍。",
+      "max": 121,
+      "min": 1,
+      "type": "int"
+    },
+    "height": {
+      "bindings": [
+        {
+          "input": "height",
+          "node": "i2v"
+        }
+      ],
+      "default": 480,
+      "description": "输出高度（像素）。与宽度配套调整，保持原始素材的宽高比。",
+      "max": 1280,
+      "min": 256,
+      "multiple": 16,
+      "type": "int"
+    },
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "img"
+        }
+      ],
+      "description": "首帧文件名（需已上传到 ComfyUI/input）",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "neg"
+        }
+      ],
+      "default": "",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "pos"
+        }
+      ],
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "ks"
+        }
+      ],
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "required": true,
+      "type": "int"
+    },
+    "steps": {
+      "bindings": [
+        {
+          "input": "steps",
+          "node": "ks"
+        }
+      ],
+      "default": 20,
+      "description": "采样步数。步数越多细节越好但线性变慢；蒸馏版模型（名字带 distilled / fast / 8 步）刻意用很少的步数换速度，不要随意调高。",
+      "max": 50,
+      "min": 1,
+      "type": "int"
+    },
+    "width": {
+      "bindings": [
+        {
+          "input": "width",
+          "node": "i2v"
+        }
+      ],
+      "default": 832,
+      "description": "输出宽度（像素）。越大越清晰但越慢越贵；改完后高度要按同样的比例缩放，否则画面会被拉变形。",
+      "max": 1280,
+      "min": 256,
+      "multiple": 16,
+      "type": "int"
+    }
+  },
+  "required_gpu": [
+    "4090_48G",
+    "4090"
   ],
-  "width": [
-   832
-  ],
-  "height": [
-   480
-  ],
-  "black_ratio_max": 0.3,
-  "freeze": {
-   "ratio_max": 0.2,
-   "longest_max_s": 1.0
-  }
- },
- "fps": 16,
- "limits": {
-  "max_minutes": 30,
-  "max_cost": 1.0
- },
- "required_gpu": [
-  "4090_48G",
-  "4090"
- ],
- "notes": "必须官方 fp8。四个模型槽位（unet/clip/vae/clip_vision）由模型配置统一注入。"
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

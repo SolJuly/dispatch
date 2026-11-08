@@ -1,133 +1,139 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_video_ltx2_3_ic_lora",
-  "name": "视频风格/结构控制 · LTX 2.3 IC-LoRA（尚未开发）",
   "description": "用 IC-LoRA 控制风格或结构。输入：参考 + 提示词；输出：MP4。缺权重/节点。（🚧 尚未开发）",
-  "version": 1,
-  "kind": "video",
   "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
   "graph": "workflows/pack/video_ltx2_3_ic_lora.api.json",
+  "key": "pack_video_ltx2_3_ic_lora",
+  "kind": "video",
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
   "model": {
     "key": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_ic_lora",
     "slots": {
       "ckpt": {
-        "node": "1722",
-        "input": "ckpt_name"
+        "input": "ckpt_name",
+        "node": "1722"
       },
       "lora": {
-        "node": "1725",
-        "input": "lora_name"
+        "input": "lora_name",
+        "node": "1725"
       },
       "lora_2": {
-        "node": "1728",
-        "input": "lora_name"
+        "input": "lora_name",
+        "node": "1728"
       }
     }
   },
-  "params": {
-    "neg_prompt": {
-      "type": "string",
-      "required": false,
-      "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, g…",
-      "bindings": [
-        {
-          "node": "1716",
-          "input": "text"
-        }
-      ]
-    },
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "A slow forward dolly shot on a bright, sunlit day in a lush jungle ruin. A lone figure in nature-the…",
-      "bindings": [
-        {
-          "node": "1729",
-          "input": "prompt"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "1734",
-          "input": "seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "video",
-      "required": true,
-      "bindings": [
-        {
-          "node": "199",
-          "input": "file"
-        }
-      ],
-      "description": "驱动/源视频（MP4/MOV/WebM）。"
-    },
-    "image_2": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "200",
-          "input": "image"
-        }
-      ]
-    },
-    "width": {
-      "type": "int",
-      "default": 1280,
-      "min": 256,
-      "max": 2048,
-      "multiple": 32,
-      "bindings": [
-        {
-          "node": "1708",
-          "input": "width"
-        }
-      ]
-    },
-    "height": {
-      "type": "int",
-      "default": 704,
-      "min": 256,
-      "max": 2048,
-      "multiple": 32,
-      "bindings": [
-        {
-          "node": "1708",
-          "input": "height"
-        }
-      ]
-    }
-  },
+  "name": "视频风格/结构控制 · LTX 2.3 IC-LoRA（尚未开发）",
+  "notes": "vid.style.iclora · 视频风格化 / 结构控制（LTX IC-LoRA） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
   "output": {
-    "node": "68",
+    "ext": "mp4",
     "input": "filename_prefix",
     "kind": "video",
-    "ext": "mp4",
+    "node": "68",
     "pick": [
       "videos",
       "gifs"
     ]
   },
-  "expect_defaults": {
-    "ext": "mp4",
-    "min_bytes": 50000
-  },
-  "limits": {
-    "max_minutes": 40,
-    "max_cost": 1.6
+  "params": {
+    "height": {
+      "bindings": [
+        {
+          "input": "height",
+          "node": "1708"
+        }
+      ],
+      "default": 704,
+      "description": "输出高度（像素）。与宽度配套调整，保持原始素材的宽高比。",
+      "max": 2048,
+      "min": 256,
+      "multiple": 32,
+      "type": "int"
+    },
+    "image": {
+      "bindings": [
+        {
+          "input": "file",
+          "node": "199"
+        }
+      ],
+      "description": "驱动/源视频（MP4/MOV/WebM）。",
+      "required": true,
+      "type": "video"
+    },
+    "image_2": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "200"
+        }
+      ],
+      "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1716"
+        }
+      ],
+      "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, g…",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "prompt",
+          "node": "1729"
+        }
+      ],
+      "default": "A slow forward dolly shot on a bright, sunlit day in a lush jungle ruin. A lone figure in nature-the…",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "1734"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    },
+    "width": {
+      "bindings": [
+        {
+          "input": "width",
+          "node": "1708"
+        }
+      ],
+      "default": 1280,
+      "description": "输出宽度（像素）。越大越清晰但越慢越贵；改完后高度要按同样的比例缩放，否则画面会被拉变形。",
+      "max": 2048,
+      "min": 256,
+      "multiple": 32,
+      "type": "int"
+    }
   },
   "required_gpu": [
     "4090",
     "4090_48G"
   ],
-  "notes": "vid.style.iclora · 视频风格化 / 结构控制（LTX IC-LoRA） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

@@ -1,124 +1,130 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_video_minimax_h3_multiframe_reference",
-  "name": "多帧参考生视频 · MiniMax H3（4 张锚定）",
   "description": "用 4 张关键帧锚定时间线生成连贯视频。输入：4 张图 + 提示词；输出：MP4。（✅ 可使用）",
-  "version": 1,
-  "kind": "video",
   "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "fps": 24,
   "graph": "workflows/pack/video_minimax_h3_multiframe_reference.api.json",
+  "key": "pack_video_minimax_h3_multiframe_reference",
+  "kind": "video",
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
   "model": {
     "key": "minimax_h3_ref2va_pruned_int8_convro",
     "slots": {
-      "vae": {
-        "node": "119",
-        "input": "vae_name"
-      },
-      "vae_2": {
-        "node": "120",
-        "input": "vae_name"
-      },
-      "unet": {
-        "node": "127",
-        "input": "unet_name"
-      },
       "clip": {
-        "node": "128",
-        "input": "clip_name"
+        "input": "clip_name",
+        "node": "128"
       },
       "lora": {
-        "node": "145",
-        "input": "lora_name"
+        "input": "lora_name",
+        "node": "145"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "127"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "119"
+      },
+      "vae_2": {
+        "input": "vae_name",
+        "node": "120"
       }
     }
   },
-  "params": {
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "subject_definitions:\n<Subject 1> is the woman in <Picture 1>, featuring pale skin, bright red lipsti…",
-      "bindings": [
-        {
-          "node": "136",
-          "input": "prompt"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "129",
-          "input": "noise_seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "157",
-          "input": "image"
-        }
-      ]
-    },
-    "image_2": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "159",
-          "input": "image"
-        }
-      ]
-    },
-    "image_3": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "164",
-          "input": "image"
-        }
-      ]
-    },
-    "image_4": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "167",
-          "input": "image"
-        }
-      ]
-    }
-  },
+  "name": "多帧参考生视频 · MiniMax H3（4 张锚定）",
+  "notes": "vid.multiframe · ★ 多帧关键帧参考（4 张图锚定） · 许可：MiniMax H3 Community License（排除美/欧/英/韩；年营收 >$20M 需授权；商用须经 Comfy 官方经销许可） · 商用：需授权 · ≥20GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
   "output": {
-    "node": "92",
+    "ext": "mp4",
     "input": "filename_prefix",
     "kind": "video",
-    "ext": "mp4",
+    "node": "92",
     "pick": [
       "videos",
       "gifs"
     ]
   },
-  "expect_defaults": {
-    "ext": "mp4",
-    "min_bytes": 50000
-  },
-  "limits": {
-    "max_minutes": 40,
-    "max_cost": 1.6
+  "params": {
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "157"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "image_2": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "159"
+        }
+      ],
+      "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
+      "required": true,
+      "type": "image"
+    },
+    "image_3": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "164"
+        }
+      ],
+      "description": "第三张输入图（多图输入序列的第三个位置）。",
+      "required": true,
+      "type": "image"
+    },
+    "image_4": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "167"
+        }
+      ],
+      "description": "第四张输入图（多图输入序列的第四个位置）。",
+      "required": true,
+      "type": "image"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "prompt",
+          "node": "136"
+        }
+      ],
+      "default": "subject_definitions:\n<Subject 1> is the woman in <Picture 1>, featuring pale skin, bright red lipsti…",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "noise_seed",
+          "node": "129"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    }
   },
   "required_gpu": [
     "4090",
     "4090_48G"
   ],
-  "notes": "vid.multiframe · ★ 多帧关键帧参考（4 张图锚定） · 许可：MiniMax H3 Community License（排除美/欧/英/韩；年营收 >$20M 需授权；商用须经 Comfy 官方经销许可） · 商用：需授权 · ≥20GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
-  "fps": 24
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

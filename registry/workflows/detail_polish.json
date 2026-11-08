@@ -1,164 +1,173 @@
 {
- "schema": "p20.workflow/v1",
- "key": "detail_polish",
- "name": "细节增强 · 低 denoise 重绘 + 4× 放大",
- "description": "把偏糊/缺皮肤纹理的图低强度重绘再放大 4 倍。输入：1 张图；输出：4× PNG（768×1024 → 3072×4096）。（✅ 可使用）",
- "version": 1,
- "kind": "image",
- "engine": "comfyui",
- "graph": "workflows/detail_polish.api.json",
- "model": {
-  "key": "sdxl_juggernaut",
-  "slots": {
-   "ckpt": {
-    "node": "ckpt",
-    "input": "ckpt_name"
-   }
-  }
- },
- "params": {
-  "seed": {
-   "type": "int",
-   "required": true,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "seed"
-    }
-   ]
+  "description": "把偏糊/缺皮肤纹理的图低强度重绘再放大 4 倍。输入：1 张图；输出：4× PNG（768×1024 → 3072×4096）。（✅ 可使用）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "min_bytes": 20000
   },
-  "steps": {
-   "type": "int",
-   "default": 25,
-   "min": 1,
-   "max": 60,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "steps"
-    }
-   ]
-  },
-  "cfg": {
-   "type": "float",
-   "default": 6.0,
-   "min": 0.0,
-   "max": 30.0,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "cfg"
-    }
-   ]
-  },
-  "sampler": {
-   "type": "enum",
-   "default": "dpmpp_2m",
-   "values": [
-    "euler",
-    "euler_ancestral",
-    "dpmpp_2m",
-    "dpmpp_2m_sde",
-    "uni_pc"
-   ],
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "sampler_name"
-    }
-   ]
-  },
-  "scheduler": {
-   "type": "enum",
-   "default": "karras",
-   "values": [
-    "simple",
-    "normal",
-    "karras",
-    "beta"
-   ],
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "scheduler"
-    }
-   ]
-  },
-  "image": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "load",
-     "input": "image"
-    }
-   ]
-  },
-  "prompt": {
-   "type": "string",
-   "default": "detailed skin texture, sharp eyes, natural light",
-   "bindings": [
-    {
-     "node": "pos",
-     "input": "text"
-    }
-   ]
-  },
-  "neg_prompt": {
-   "type": "string",
-   "default": "blurry, lowres, deformed, watermark",
-   "bindings": [
-    {
-     "node": "neg",
-     "input": "text"
-    }
-   ]
-  },
-  "denoise": {
-   "type": "float",
-   "default": 0.25,
-   "min": 0.1,
-   "max": 0.5,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "denoise"
-    }
-   ],
-   "description": "细节增强强度；太大会改变长相"
-  },
-  "upscale_model": {
-   "type": "string",
-   "default": "4x-UltraSharp.pth",
-   "bindings": [
-    {
-     "node": "up",
-     "input": "model_name"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "save",
-  "input": "filename_prefix",
+  "graph": "workflows/detail_polish.api.json",
+  "key": "detail_polish",
   "kind": "image",
-  "ext": "png",
-  "pick": [
-   "images"
-  ]
- },
- "expect_defaults": {
-  "ext": "png",
-  "min_bytes": 20000,
-  "black_ratio_max": 0.5
- },
- "limits": {
-  "max_minutes": 20,
-  "max_cost": 0.8
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "P2.1 5.4：无 Impact Pack（无 FaceDetailer），用低 denoise 重绘 + 4x 放大近似「细节增强/面部修复」；真 FaceDetailer 留到 P2.2 装节点后替换。"
+  "limits": {
+    "max_cost": 0.8,
+    "max_minutes": 20
+  },
+  "model": {
+    "key": "sdxl_juggernaut",
+    "slots": {
+      "ckpt": {
+        "input": "ckpt_name",
+        "node": "ckpt"
+      }
+    }
+  },
+  "name": "细节增强 · 低 denoise 重绘 + 4× 放大",
+  "notes": "P2.1 5.4：无 Impact Pack（无 FaceDetailer），用低 denoise 重绘 + 4x 放大近似「细节增强/面部修复」；真 FaceDetailer 留到 P2.2 装节点后替换。",
+  "output": {
+    "ext": "png",
+    "input": "filename_prefix",
+    "kind": "image",
+    "node": "save",
+    "pick": [
+      "images"
+    ]
+  },
+  "params": {
+    "cfg": {
+      "bindings": [
+        {
+          "input": "cfg",
+          "node": "ks"
+        }
+      ],
+      "default": 6.0,
+      "description": "提示词遵从度（CFG scale）。低（1-2）= 更自由、更贴合输入素材；高（7+）= 更严格按提示词来，但容易僵硬或过饱和。改图/动作迁移类建议留在低位。",
+      "max": 30.0,
+      "min": 0.0,
+      "type": "float"
+    },
+    "denoise": {
+      "bindings": [
+        {
+          "input": "denoise",
+          "node": "ks"
+        }
+      ],
+      "default": 0.25,
+      "description": "细节增强强度；太大会改变长相",
+      "max": 0.5,
+      "min": 0.1,
+      "type": "float"
+    },
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "load"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "neg"
+        }
+      ],
+      "default": "blurry, lowres, deformed, watermark",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "pos"
+        }
+      ],
+      "default": "detailed skin texture, sharp eyes, natural light",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "type": "string"
+    },
+    "sampler": {
+      "bindings": [
+        {
+          "input": "sampler_name",
+          "node": "ks"
+        }
+      ],
+      "default": "dpmpp_2m",
+      "description": "采样器。不同采样器的风格倾向不同；没有特别理由就沿用默认值，换采样器可能让原本稳定的结果变得不可预期。",
+      "type": "enum",
+      "values": [
+        "euler",
+        "euler_ancestral",
+        "dpmpp_2m",
+        "dpmpp_2m_sde",
+        "uni_pc"
+      ]
+    },
+    "scheduler": {
+      "bindings": [
+        {
+          "input": "scheduler",
+          "node": "ks"
+        }
+      ],
+      "default": "karras",
+      "description": "噪声调度器。与采样器配合决定去噪节奏；默认值通常已针对该模型调过。",
+      "type": "enum",
+      "values": [
+        "simple",
+        "normal",
+        "karras",
+        "beta"
+      ]
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "ks"
+        }
+      ],
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "required": true,
+      "type": "int"
+    },
+    "steps": {
+      "bindings": [
+        {
+          "input": "steps",
+          "node": "ks"
+        }
+      ],
+      "default": 25,
+      "description": "采样步数。步数越多细节越好但线性变慢；蒸馏版模型（名字带 distilled / fast / 8 步）刻意用很少的步数换速度，不要随意调高。",
+      "max": 60,
+      "min": 1,
+      "type": "int"
+    },
+    "upscale_model": {
+      "bindings": [
+        {
+          "input": "model_name",
+          "node": "up"
+        }
+      ],
+      "default": "4x-UltraSharp.pth",
+      "description": "放大模型文件名（需在共享库里存在）。不同模型的风格不同：4x-UltraSharp 偏锐利，适合照片；其他模型可能偏平滑或带锐化痕迹。",
+      "type": "string"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

@@ -1,113 +1,115 @@
 {
- "schema": "p20.workflow/v1",
- "key": "seedvr2_3b_upscale_video",
- "name": "视频放大 · SeedVR2 3B（短边到 1080）",
- "description": "逐帧还原放大视频。输入：MP4；输出：1080p MP4。（✅ 可使用）",
- "version": 1,
- "kind": "video",
- "engine": "comfyui",
- "graph": "workflows/seedvr2_3b_upscale_video.api.json",
- "model": {
-  "key": "seedvr2_3b",
-  "slots": {
-   "dit": {
-    "node": "3",
-    "input": "model"
-   },
-   "vae": {
-    "node": "4",
-    "input": "model"
-   }
-  }
- },
- "params": {
-  "video": {
-   "type": "video",
-   "required": true,
-   "bindings": [
-    {
-     "node": "1",
-     "input": "file"
-    }
-   ],
-   "description": "驱动/源视频（MP4/MOV/WebM）。待放大视频（mp4），走 run.py 的 video 上传通道"
+  "description": "逐帧还原放大视频。输入：MP4；输出：1080p MP4。（✅ 可使用）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
   },
-  "resolution": {
-   "type": "int",
-   "default": 1080,
-   "min": 480,
-   "max": 2160,
-   "bindings": [
-    {
-     "node": "5",
-     "input": "resolution"
-    }
-   ],
-   "description": "目标短边像素；1080 = 1080p"
-  },
-  "seed": {
-   "type": "int",
-   "default": 42,
-   "bindings": [
-    {
-     "node": "5",
-     "input": "seed"
-    }
-   ]
-  },
-  "batch_size": {
-   "type": "int",
-   "default": 5,
-   "min": 1,
-   "max": 21,
-   "bindings": [
-    {
-     "node": "5",
-     "input": "batch_size"
-    }
-   ],
-   "description": "每批帧数，必须 4n+1（1/5/9/13…）；显存不够就调小"
-  },
-  "color_correction": {
-   "type": "enum",
-   "default": "lab",
-   "values": [
-    "lab",
-    "wavelet",
-    "wavelet_adaptive",
-    "hsv",
-    "adain",
-    "none"
-   ],
-   "bindings": [
-    {
-     "node": "5",
-     "input": "color_correction"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "7",
-  "input": "filename_prefix",
+  "graph": "workflows/seedvr2_3b_upscale_video.api.json",
+  "key": "seedvr2_3b_upscale_video",
   "kind": "video",
-  "ext": "mp4",
-  "pick": [
-   "images"
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
+  "model": {
+    "key": "seedvr2_3b",
+    "slots": {
+      "dit": {
+        "input": "model",
+        "node": "3"
+      },
+      "vae": {
+        "input": "model",
+        "node": "4"
+      }
+    }
+  },
+  "name": "视频放大 · SeedVR2 3B（短边到 1080）",
+  "notes": "SeedVR2 3B 视频放大：LoadVideo → GetVideoComponents → SeedVR2VideoUpscaler(短边 1080, batch 5) → CreateVideo(保留 fps/音频) → SaveVideo(mp4)。768x512/73 帧实测 1620x1080、73 帧、24fps。",
+  "output": {
+    "count": 1,
+    "ext": "mp4",
+    "input": "filename_prefix",
+    "kind": "video",
+    "node": "7",
+    "pick": [
+      "images"
+    ]
+  },
+  "params": {
+    "batch_size": {
+      "bindings": [
+        {
+          "input": "batch_size",
+          "node": "5"
+        }
+      ],
+      "default": 5,
+      "description": "每批帧数，必须 4n+1（1/5/9/13…）；显存不够就调小",
+      "max": 21,
+      "min": 1,
+      "type": "int"
+    },
+    "color_correction": {
+      "bindings": [
+        {
+          "input": "color_correction",
+          "node": "5"
+        }
+      ],
+      "default": "lab",
+      "description": "色彩校正方式。none = 不做校正；mtb / wavelet 等会尝试把生成结果的色调拉回参考素材，减少偏色。",
+      "type": "enum",
+      "values": [
+        "lab",
+        "wavelet",
+        "wavelet_adaptive",
+        "hsv",
+        "adain",
+        "none"
+      ]
+    },
+    "resolution": {
+      "bindings": [
+        {
+          "input": "resolution",
+          "node": "5"
+        }
+      ],
+      "default": 1080,
+      "description": "目标短边像素；1080 = 1080p",
+      "max": 2160,
+      "min": 480,
+      "type": "int"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "5"
+        }
+      ],
+      "default": 42,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "type": "int"
+    },
+    "video": {
+      "bindings": [
+        {
+          "input": "file",
+          "node": "1"
+        }
+      ],
+      "description": "驱动/源视频（MP4/MOV/WebM）。待放大视频（mp4），走 run.py 的 video 上传通道",
+      "required": true,
+      "type": "video"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
   ],
-  "count": 1
- },
- "expect_defaults": {
-  "ext": "mp4",
-  "min_bytes": 50000
- },
- "limits": {
-  "max_minutes": 40,
-  "max_cost": 1.6
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "SeedVR2 3B 视频放大：LoadVideo → GetVideoComponents → SeedVR2VideoUpscaler(短边 1080, batch 5) → CreateVideo(保留 fps/音频) → SaveVideo(mp4)。768x512/73 帧实测 1620x1080、73 帧、24fps。"
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

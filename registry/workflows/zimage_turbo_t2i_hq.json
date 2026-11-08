@@ -1,191 +1,195 @@
 {
- "schema": "p20.workflow/v1",
- "key": "zimage_turbo_t2i_hq",
- "name": "文生图 2K · Z-Image-Turbo（8 步 + 2× 细化）",
- "description": "先出 1024 再 2 倍细化到 2048×2048。输入：提示词；输出：2K PNG。（✅ 可使用）",
- "version": 1,
- "kind": "image",
- "engine": "comfyui",
- "graph": "workflows/zimage_turbo_t2i_hq.api.json",
- "model": {
-  "key": "zimage_turbo",
-  "slots": {
-   "unet": {
-    "node": "1",
-    "input": "unet_name"
-   },
-   "clip": {
-    "node": "3",
-    "input": "clip_name"
-   },
-   "vae": {
-    "node": "4",
-    "input": "vae_name"
-   }
-  }
- },
- "params": {
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "bindings": [
-    {
-     "node": "5",
-     "input": "text"
-    }
-   ],
-   "description": "正向提示词。Z-Image-Turbo 是蒸馏模型，负面提示词无效（negative 已置零）"
+  "description": "先出 1024 再 2 倍细化到 2048×2048。输入：提示词；输出：2K PNG。（✅ 可使用）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "height": [
+      2048
+    ],
+    "images": 1,
+    "min_bytes": 20000,
+    "width": [
+      2048
+    ]
   },
-  "seed": {
-   "type": "int",
-   "required": true,
-   "bindings": [
-    {
-     "node": "8",
-     "input": "seed"
-    },
-    {
-     "node": "13",
-     "input": "seed"
-    }
-   ],
-   "description": "seed 同时写入基础采样与 2x 细化采样，保证两次采样一致"
+  "expect_scale": {
+    "height": 2,
+    "width": 2
   },
-  "width": {
-   "type": "int",
-   "default": 1024,
-   "min": 512,
-   "max": 1536,
-   "multiple": 32,
-   "bindings": [
-    {
-     "node": "7",
-     "input": "width"
-    }
-   ]
-  },
-  "height": {
-   "type": "int",
-   "default": 1024,
-   "min": 512,
-   "max": 1536,
-   "multiple": 32,
-   "bindings": [
-    {
-     "node": "7",
-     "input": "height"
-    }
-   ]
-  },
-  "steps": {
-   "type": "int",
-   "default": 8,
-   "min": 4,
-   "max": 12,
-   "bindings": [
-    {
-     "node": "8",
-     "input": "steps"
-    },
-    {
-     "node": "13",
-     "input": "steps"
-    }
-   ],
-   "description": "8~9 步足够；超过 20 步画质反而下降"
-  },
-  "cfg": {
-   "type": "float",
-   "default": 1.0,
-   "min": 0.5,
-   "max": 2.0,
-   "bindings": [
-    {
-     "node": "8",
-     "input": "cfg"
-    },
-    {
-     "node": "13",
-     "input": "cfg"
-    }
-   ],
-   "description": "蒸馏模型必须 1.0；调高会过饱和、皮肤塑料感"
-  },
-  "sampler": {
-   "type": "enum",
-   "default": "res_multistep",
-   "values": [
-    "res_multistep",
-    "euler",
-    "euler_ancestral",
-    "dpmpp_2m",
-    "uni_pc"
-   ],
-   "bindings": [
-    {
-     "node": "8",
-     "input": "sampler_name"
-    },
-    {
-     "node": "13",
-     "input": "sampler_name"
-    }
-   ]
-  },
-  "scheduler": {
-   "type": "enum",
-   "default": "simple",
-   "values": [
-    "simple",
-    "normal",
-    "karras",
-    "beta"
-   ],
-   "bindings": [
-    {
-     "node": "8",
-     "input": "scheduler"
-    },
-    {
-     "node": "13",
-     "input": "scheduler"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "15",
-  "input": "filename_prefix",
+  "graph": "workflows/zimage_turbo_t2i_hq.api.json",
+  "key": "zimage_turbo_t2i_hq",
   "kind": "image",
-  "ext": "png",
-  "pick": [
-   "images"
+  "limits": {
+    "max_cost": 0.8,
+    "max_minutes": 20
+  },
+  "model": {
+    "key": "zimage_turbo",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "3"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "1"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "4"
+      }
+    }
+  },
+  "name": "文生图 2K · Z-Image-Turbo（8 步 + 2× 细化）",
+  "notes": "第一批替换工作流（dsh-comfy 02 号 HQ 的注册表化版本）：1024 基础采样 8 steps → lanczos 2x → VAEEncode → denoise 0.35 二次采样 → 2048 输出。已去掉原图里可选的 1024 base SaveImage（节点 10），保证单作业单产物；ModelSamplingAuraFlow(shift=3) 必须保留。",
+  "output": {
+    "count": 1,
+    "ext": "png",
+    "input": "filename_prefix",
+    "kind": "image",
+    "node": "15",
+    "pick": [
+      "images"
+    ]
+  },
+  "params": {
+    "cfg": {
+      "bindings": [
+        {
+          "input": "cfg",
+          "node": "8"
+        },
+        {
+          "input": "cfg",
+          "node": "13"
+        }
+      ],
+      "default": 1.0,
+      "description": "蒸馏模型必须 1.0；调高会过饱和、皮肤塑料感",
+      "max": 2.0,
+      "min": 0.5,
+      "type": "float"
+    },
+    "height": {
+      "bindings": [
+        {
+          "input": "height",
+          "node": "7"
+        }
+      ],
+      "default": 1024,
+      "description": "输出高度（像素）。与宽度配套调整，保持原始素材的宽高比。",
+      "max": 1536,
+      "min": 512,
+      "multiple": 32,
+      "type": "int"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "5"
+        }
+      ],
+      "description": "正向提示词。Z-Image-Turbo 是蒸馏模型，负面提示词无效（negative 已置零）",
+      "required": true,
+      "type": "string"
+    },
+    "sampler": {
+      "bindings": [
+        {
+          "input": "sampler_name",
+          "node": "8"
+        },
+        {
+          "input": "sampler_name",
+          "node": "13"
+        }
+      ],
+      "default": "res_multistep",
+      "description": "采样器。不同采样器的风格倾向不同；没有特别理由就沿用默认值，换采样器可能让原本稳定的结果变得不可预期。",
+      "type": "enum",
+      "values": [
+        "res_multistep",
+        "euler",
+        "euler_ancestral",
+        "dpmpp_2m",
+        "uni_pc"
+      ]
+    },
+    "scheduler": {
+      "bindings": [
+        {
+          "input": "scheduler",
+          "node": "8"
+        },
+        {
+          "input": "scheduler",
+          "node": "13"
+        }
+      ],
+      "default": "simple",
+      "description": "噪声调度器。与采样器配合决定去噪节奏；默认值通常已针对该模型调过。",
+      "type": "enum",
+      "values": [
+        "simple",
+        "normal",
+        "karras",
+        "beta"
+      ]
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "8"
+        },
+        {
+          "input": "seed",
+          "node": "13"
+        }
+      ],
+      "description": "seed 同时写入基础采样与 2x 细化采样，保证两次采样一致",
+      "required": true,
+      "type": "int"
+    },
+    "steps": {
+      "bindings": [
+        {
+          "input": "steps",
+          "node": "8"
+        },
+        {
+          "input": "steps",
+          "node": "13"
+        }
+      ],
+      "default": 8,
+      "description": "8~9 步足够；超过 20 步画质反而下降",
+      "max": 12,
+      "min": 4,
+      "type": "int"
+    },
+    "width": {
+      "bindings": [
+        {
+          "input": "width",
+          "node": "7"
+        }
+      ],
+      "default": 1024,
+      "description": "输出宽度（像素）。越大越清晰但越慢越贵；改完后高度要按同样的比例缩放，否则画面会被拉变形。",
+      "max": 1536,
+      "min": 512,
+      "multiple": 32,
+      "type": "int"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
   ],
-  "count": 1
- },
- "expect_defaults": {
-  "ext": "png",
-  "min_bytes": 20000,
-  "images": 1,
-  "width": [
-   2048
-  ],
-  "height": [
-   2048
-  ],
-  "black_ratio_max": 0.5
- },
- "expect_scale": {
-  "width": 2,
-  "height": 2
- },
- "limits": {
-  "max_minutes": 20,
-  "max_cost": 0.8
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "第一批替换工作流（dsh-comfy 02 号 HQ 的注册表化版本）：1024 基础采样 8 steps → lanczos 2x → VAEEncode → denoise 0.35 二次采样 → 2048 输出。已去掉原图里可选的 1024 base SaveImage（节点 10），保证单作业单产物；ModelSamplingAuraFlow(shift=3) 必须保留。"
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

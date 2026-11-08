@@ -1,107 +1,110 @@
 {
- "schema": "p20.workflow/v1",
- "key": "pack_video_wan21_scail2_character_replacement",
- "name": "角色替换 · SCAIL-2（fp16，尚未开发）",
- "description": "把视频里的人换成目标角色。输入：视频 + 角色图；输出：MP4。当前节点调用不匹配。（🚧 尚未开发）",
- "version": 1,
- "kind": "video",
- "engine": "comfyui",
- "graph": "workflows/pack/video_wan21_scail2_character_replacement.api.json",
- "model": {
-  "key": "wan2_1_14b_scail_2_fp16",
-  "slots": {
-   "lora": {
-    "node": "1321",
-    "input": "lora_name"
-   },
-   "vae": {
-    "node": "1322",
-    "input": "vae_name"
-   },
-   "clip": {
-    "node": "1326",
-    "input": "clip_name"
-   },
-   "unet": {
-    "node": "1328",
-    "input": "unet_name"
-   },
-   "ckpt": {
-    "node": "1348",
-    "input": "ckpt_name"
-   },
-   "lora_2": {
-    "node": "1362",
-    "input": "lora_name"
-   }
-  }
- },
- "params": {
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "default": "A young woman with dark hair tied in a neat high bun, with a few loose strands framing her face, is …",
-   "bindings": [
-    {
-     "node": "1359",
-     "input": "text"
-    }
-   ]
+  "description": "把视频里的人换成目标角色。输入：视频 + 角色图；输出：MP4。当前节点调用不匹配。（🚧 尚未开发）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
   },
-  "neg_prompt": {
-   "type": "string",
-   "required": false,
-   "default": "A young woman with dark hair tied in a neat high bun, with a few loose strands framing her face, is …",
-   "bindings": [
-    {
-     "node": "1404",
-     "input": "text"
-    }
-   ]
-  },
-  "image": {
-   "type": "video",
-   "required": true,
-   "bindings": [
-    {
-     "node": "155",
-     "input": "file"
-    }
-   ],
-   "description": "驱动/源视频（MP4/MOV/WebM）。"
-  },
-  "image_2": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "30",
-     "input": "image"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "202",
-  "input": "filename_prefix",
+  "graph": "workflows/pack/video_wan21_scail2_character_replacement.api.json",
+  "key": "pack_video_wan21_scail2_character_replacement",
   "kind": "video",
-  "ext": "mp4",
-  "pick": [
-   "videos",
-   "gifs"
-  ]
- },
- "expect_defaults": {
-  "ext": "mp4",
-  "min_bytes": 50000
- },
- "limits": {
-  "max_minutes": 40,
-  "max_cost": 1.6
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "vid.character_replace · ★ 角色替换 / 视频换人（SCAIL-2） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
+  "model": {
+    "key": "wan2_1_14b_scail_2_fp16",
+    "slots": {
+      "ckpt": {
+        "input": "ckpt_name",
+        "node": "1348"
+      },
+      "clip": {
+        "input": "clip_name",
+        "node": "1326"
+      },
+      "lora": {
+        "input": "lora_name",
+        "node": "1321"
+      },
+      "lora_2": {
+        "input": "lora_name",
+        "node": "1362"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "1328"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "1322"
+      }
+    }
+  },
+  "name": "角色替换 · SCAIL-2（fp16，尚未开发）",
+  "notes": "vid.character_replace · ★ 角色替换 / 视频换人（SCAIL-2） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "output": {
+    "ext": "mp4",
+    "input": "filename_prefix",
+    "kind": "video",
+    "node": "202",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "params": {
+    "image": {
+      "bindings": [
+        {
+          "input": "file",
+          "node": "155"
+        }
+      ],
+      "description": "驱动/源视频（MP4/MOV/WebM）。",
+      "required": true,
+      "type": "video"
+    },
+    "image_2": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "30"
+        }
+      ],
+      "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1404"
+        }
+      ],
+      "default": "A young woman with dark hair tied in a neat high bun, with a few loose strands framing her face, is …",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1359"
+        }
+      ],
+      "default": "A young woman with dark hair tied in a neat high bun, with a few loose strands framing her face, is …",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

@@ -1,102 +1,104 @@
 {
- "schema": "p20.workflow/v1",
- "key": "seedvr2_3b_upscale",
- "name": "还原放大 · SeedVR2 3B（短边到 2K）",
- "description": "还原式放大，短边到 2048，适合修复低清素材。输入：1 张图；输出：2K PNG。（✅ 可使用）",
- "version": 1,
- "kind": "image",
- "engine": "comfyui",
- "graph": "workflows/seedvr2_3b_upscale.api.json",
- "model": {
-  "key": "seedvr2_3b",
-  "slots": {
-   "dit": {
-    "node": "2",
-    "input": "model"
-   },
-   "vae": {
-    "node": "3",
-    "input": "model"
-   }
-  }
- },
- "params": {
-  "image": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "1",
-     "input": "image"
-    }
-   ],
-   "description": "待放大的图片；输出按短边对齐 resolution，保持宽高比"
+  "description": "还原式放大，短边到 2048，适合修复低清素材。输入：1 张图；输出：2K PNG。（✅ 可使用）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "images": 1,
+    "min_bytes": 20000
   },
-  "resolution": {
-   "type": "int",
-   "default": 2048,
-   "min": 512,
-   "max": 4096,
-   "bindings": [
-    {
-     "node": "4",
-     "input": "resolution"
-    }
-   ],
-   "description": "目标短边像素；2048 = 2K"
-  },
-  "seed": {
-   "type": "int",
-   "default": 42,
-   "bindings": [
-    {
-     "node": "4",
-     "input": "seed"
-    }
-   ]
-  },
-  "color_correction": {
-   "type": "enum",
-   "default": "lab",
-   "values": [
-    "lab",
-    "wavelet",
-    "wavelet_adaptive",
-    "hsv",
-    "adain",
-    "none"
-   ],
-   "bindings": [
-    {
-     "node": "4",
-     "input": "color_correction"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "5",
-  "input": "filename_prefix",
+  "graph": "workflows/seedvr2_3b_upscale.api.json",
+  "key": "seedvr2_3b_upscale",
   "kind": "image",
-  "ext": "png",
-  "pick": [
-   "images"
+  "limits": {
+    "max_cost": 1.2,
+    "max_minutes": 20
+  },
+  "model": {
+    "key": "seedvr2_3b",
+    "slots": {
+      "dit": {
+        "input": "model",
+        "node": "2"
+      },
+      "vae": {
+        "input": "model",
+        "node": "3"
+      }
+    }
+  },
+  "name": "还原放大 · SeedVR2 3B（短边到 2K）",
+  "notes": "SeedVR2 3B 单图还原放大：LoadImage → SeedVR2VideoUpscaler(resolution=短边) → SaveImage；走 numz 自定义节点，绕开核心 UNETLoader 的 seedvr2 检测缺口。24G 4090 实测 1024→2048 通过。",
+  "output": {
+    "count": 1,
+    "ext": "png",
+    "input": "filename_prefix",
+    "kind": "image",
+    "node": "5",
+    "pick": [
+      "images"
+    ]
+  },
+  "params": {
+    "color_correction": {
+      "bindings": [
+        {
+          "input": "color_correction",
+          "node": "4"
+        }
+      ],
+      "default": "lab",
+      "description": "色彩校正方式。none = 不做校正；mtb / wavelet 等会尝试把生成结果的色调拉回参考素材，减少偏色。",
+      "type": "enum",
+      "values": [
+        "lab",
+        "wavelet",
+        "wavelet_adaptive",
+        "hsv",
+        "adain",
+        "none"
+      ]
+    },
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "1"
+        }
+      ],
+      "description": "待放大的图片；输出按短边对齐 resolution，保持宽高比",
+      "required": true,
+      "type": "image"
+    },
+    "resolution": {
+      "bindings": [
+        {
+          "input": "resolution",
+          "node": "4"
+        }
+      ],
+      "default": 2048,
+      "description": "目标短边像素；2048 = 2K",
+      "max": 4096,
+      "min": 512,
+      "type": "int"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "4"
+        }
+      ],
+      "default": 42,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "type": "int"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
   ],
-  "count": 1
- },
- "expect_defaults": {
-  "ext": "png",
-  "min_bytes": 20000,
-  "images": 1,
-  "black_ratio_max": 0.5
- },
- "limits": {
-  "max_minutes": 20,
-  "max_cost": 1.2
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "SeedVR2 3B 单图还原放大：LoadImage → SeedVR2VideoUpscaler(resolution=短边) → SaveImage；走 numz 自定义节点，绕开核心 UNETLoader 的 seedvr2 检测缺口。24G 4090 实测 1024→2048 通过。"
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

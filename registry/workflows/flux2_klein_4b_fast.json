@@ -1,155 +1,161 @@
 {
- "schema": "p20.workflow/v1",
- "key": "flux2_klein_4b_fast",
- "name": "文生图 · FLUX.2 Klein 4B（4 步，快）",
- "description": "4 步出 1024 图，速度优先，适合快速出方案。输入：提示词；输出：PNG。（✅ 可使用）",
- "version": 1,
- "kind": "image",
- "engine": "comfyui",
- "graph": "workflows/flux2_klein_4b_fast.api.json",
- "model": {
-  "key": "flux2_klein_4b",
-  "slots": {
-   "unet": {
-    "node": "1",
-    "input": "unet_name"
-   },
-   "clip": {
-    "node": "2",
-    "input": "clip_name"
-   },
-   "vae": {
-    "node": "3",
-    "input": "vae_name"
-   }
-  }
- },
- "params": {
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "bindings": [
-    {
-     "node": "4",
-     "input": "text"
-    }
-   ],
-   "description": "正向提示词；Flux2 蒸馏模型负面词无效"
+  "description": "4 步出 1024 图，速度优先，适合快速出方案。输入：提示词；输出：PNG。（✅ 可使用）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "height": [
+      1024
+    ],
+    "images": 1,
+    "min_bytes": 20000,
+    "width": [
+      1024
+    ]
   },
-  "seed": {
-   "type": "int",
-   "required": true,
-   "bindings": [
-    {
-     "node": "10",
-     "input": "noise_seed"
-    }
-   ]
-  },
-  "width": {
-   "type": "int",
-   "default": 1024,
-   "min": 512,
-   "max": 1536,
-   "multiple": 32,
-   "bindings": [
-    {
-     "node": "6",
-     "input": "width"
-    },
-    {
-     "node": "7",
-     "input": "width"
-    }
-   ]
-  },
-  "height": {
-   "type": "int",
-   "default": 1024,
-   "min": 512,
-   "max": 1536,
-   "multiple": 32,
-   "bindings": [
-    {
-     "node": "6",
-     "input": "height"
-    },
-    {
-     "node": "7",
-     "input": "height"
-    }
-   ]
-  },
-  "steps": {
-   "type": "int",
-   "default": 4,
-   "min": 2,
-   "max": 8,
-   "bindings": [
-    {
-     "node": "7",
-     "input": "steps"
-    }
-   ]
-  },
-  "cfg": {
-   "type": "float",
-   "default": 1.0,
-   "min": 0.5,
-   "max": 2.0,
-   "bindings": [
-    {
-     "node": "9",
-     "input": "cfg"
-    }
-   ]
-  },
-  "sampler": {
-   "type": "enum",
-   "default": "euler",
-   "values": [
-    "euler",
-    "euler_ancestral",
-    "dpmpp_2m",
-    "uni_pc"
-   ],
-   "bindings": [
-    {
-     "node": "8",
-     "input": "sampler_name"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "13",
-  "input": "filename_prefix",
+  "graph": "workflows/flux2_klein_4b_fast.api.json",
+  "key": "flux2_klein_4b_fast",
   "kind": "image",
-  "ext": "png",
-  "pick": [
-   "images"
+  "limits": {
+    "max_cost": 0.8,
+    "max_minutes": 20
+  },
+  "model": {
+    "key": "flux2_klein_4b",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "2"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "1"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "3"
+      }
+    }
+  },
+  "name": "文生图 · FLUX.2 Klein 4B（4 步，快）",
+  "notes": "04 号：FLUX.2 Klein 4B 蒸馏，4 步 euler；适合快速多方案。",
+  "output": {
+    "count": 1,
+    "ext": "png",
+    "input": "filename_prefix",
+    "kind": "image",
+    "node": "13",
+    "pick": [
+      "images"
+    ]
+  },
+  "params": {
+    "cfg": {
+      "bindings": [
+        {
+          "input": "cfg",
+          "node": "9"
+        }
+      ],
+      "default": 1.0,
+      "description": "提示词遵从度（CFG scale）。低（1-2）= 更自由、更贴合输入素材；高（7+）= 更严格按提示词来，但容易僵硬或过饱和。改图/动作迁移类建议留在低位。",
+      "max": 2.0,
+      "min": 0.5,
+      "type": "float"
+    },
+    "height": {
+      "bindings": [
+        {
+          "input": "height",
+          "node": "6"
+        },
+        {
+          "input": "height",
+          "node": "7"
+        }
+      ],
+      "default": 1024,
+      "description": "输出高度（像素）。与宽度配套调整，保持原始素材的宽高比。",
+      "max": 1536,
+      "min": 512,
+      "multiple": 32,
+      "type": "int"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "4"
+        }
+      ],
+      "description": "正向提示词；Flux2 蒸馏模型负面词无效",
+      "required": true,
+      "type": "string"
+    },
+    "sampler": {
+      "bindings": [
+        {
+          "input": "sampler_name",
+          "node": "8"
+        }
+      ],
+      "default": "euler",
+      "description": "采样器。不同采样器的风格倾向不同；没有特别理由就沿用默认值，换采样器可能让原本稳定的结果变得不可预期。",
+      "type": "enum",
+      "values": [
+        "euler",
+        "euler_ancestral",
+        "dpmpp_2m",
+        "uni_pc"
+      ]
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "noise_seed",
+          "node": "10"
+        }
+      ],
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "required": true,
+      "type": "int"
+    },
+    "steps": {
+      "bindings": [
+        {
+          "input": "steps",
+          "node": "7"
+        }
+      ],
+      "default": 4,
+      "description": "采样步数。步数越多细节越好但线性变慢；蒸馏版模型（名字带 distilled / fast / 8 步）刻意用很少的步数换速度，不要随意调高。",
+      "max": 8,
+      "min": 2,
+      "type": "int"
+    },
+    "width": {
+      "bindings": [
+        {
+          "input": "width",
+          "node": "6"
+        },
+        {
+          "input": "width",
+          "node": "7"
+        }
+      ],
+      "default": 1024,
+      "description": "输出宽度（像素）。越大越清晰但越慢越贵；改完后高度要按同样的比例缩放，否则画面会被拉变形。",
+      "max": 1536,
+      "min": 512,
+      "multiple": 32,
+      "type": "int"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
   ],
-  "count": 1
- },
- "expect_defaults": {
-  "ext": "png",
-  "min_bytes": 20000,
-  "images": 1,
-  "width": [
-   1024
-  ],
-  "height": [
-   1024
-  ],
-  "black_ratio_max": 0.5
- },
- "limits": {
-  "max_minutes": 20,
-  "max_cost": 0.8
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "04 号：FLUX.2 Klein 4B 蒸馏，4 步 euler；适合快速多方案。"
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

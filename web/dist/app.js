@@ -318,12 +318,29 @@ async function selectWorkflow(key) {
   renderSide();
 }
 
+/* 字段的约束提示（必填/范围/倍数），与 description（用途说明）分开显示。 */
 function fieldHint(name, spec) {
   const bits = [];
   if (spec.required) bits.push('必填');
   if (spec.min != null || spec.max != null) bits.push(`范围 ${spec.min ?? '−∞'}–${spec.max ?? '+∞'}`);
   if (spec.multiple) bits.push(`×${spec.multiple}`);
+  // 没写说明的参数表个态，而不是留白让人猜
+  if (!spec.description) bits.push('（无说明）');
   return bits.join(' · ');
+}
+
+/* 参数用途说明：常驻显示在控件下方。
+ * 以前 description 只塞进 textarea 的 placeholder —— 一填内容就看不见了，
+ * 而「驱动视频（MP4/MOV/WebM）」这种关键信息恰恰是填的时候最需要的。
+ * 现在独立成一个 <p>，不随输入消失。
+ */
+function fieldDesc(spec) {
+  const d = String(spec.description || '').trim();
+  if (!d) return '';
+  // 长说明折叠：默认显示两行，点「展开」看全文（trim_seconds 那种带算例的很长）
+  const long = d.length > 56;
+  return `<p class="fdesc${long ? ' long' : ''}">${esc(d)}</p>`
+    + (long ? '' : '');
 }
 
 /* 媒体字段（image / video）统一渲染成上传器。
@@ -337,7 +354,8 @@ function mediaCtl(name, spec) {
   const accept = isVid
     ? 'video/mp4,video/quicktime,video/webm,video/x-m4v,.mp4,.mov,.webm,.m4v'
     : 'image/png,image/jpeg,image/webp';
-  const ph = spec.description || (isVid ? '未上传（视频）' : '未上传');
+  // 只显示「上传状态」。用途说明交给外层的 fieldDesc 常驻显示，避免两处重复。
+  const ph = isVid ? '未选择视频文件' : '未选择图片文件';
   const label = isVid ? '选择视频' : '选择图片';
   let preview = '';
   if (up) {
@@ -351,15 +369,19 @@ function mediaCtl(name, spec) {
            preload="metadata"></video>`
       : `<img class="upthumb" src="${esc(artUrl(up.url))}" alt="">`;
   }
-  return `<div class="up" data-up="${esc(name)}" data-kind="${isVid ? 'video' : 'image'}">
-    <input type="file" accept="${accept}" hidden id="f_${esc(name)}"
-           data-field="${esc(name)}">
-    <button class="btn tiny" data-pick="${esc(name)}">${label}</button>
-    <span class="mono upinfo">${up
-      ? esc(up.name) + ' · ' + bytes(up.bytes)
-      : esc(ph)}</span>
-    ${up ? `<button class="btn tiny" data-clear="${esc(name)}" title="移除">×</button>` : ''}
-    ${preview}
+  // 结构：row 是横向的上传控件行；fdesc 在它下面独占一行（由 renderForm 统一插入）。
+  // 以前把 fdesc 塞进这个 flex 容器，说明文字会被挤到按钮右边变成一长条。
+  return `<div class="upwrap">
+    <div class="up" data-up="${esc(name)}" data-kind="${isVid ? 'video' : 'image'}">
+      <input type="file" accept="${accept}" hidden id="f_${esc(name)}"
+             data-field="${esc(name)}">
+      <button class="btn tiny" data-pick="${esc(name)}">${label}</button>
+      <span class="mono upinfo">${up
+        ? esc(up.name) + ' · ' + bytes(up.bytes)
+        : esc(ph)}</span>
+      ${up ? `<button class="btn tiny" data-clear="${esc(name)}" title="移除">×</button>` : ''}
+      ${preview}
+    </div>
   </div>`;
 }
 
@@ -391,12 +413,16 @@ function renderForm(params) {
         ${spec.min != null ? `min="${spec.min}"` : ''} ${spec.max != null ? `max="${spec.max}"` : ''}>
         ${name === 'seed' ? '<button class="btn tiny" data-dice="1">随机</button>' : ''}`;
     } else if (name === 'prompt' || name === 'neg_prompt' || (spec.type === 'string' && (spec.description || '').length > 20)) {
-      ctl = `<textarea name="${esc(name)}" placeholder="${esc(spec.description || '')}">${esc(val)}</textarea>`;
+      // placeholder 用简短提示即可，完整说明已经在下方 fdesc 常驻显示
+      ctl = `<textarea name="${esc(name)}" placeholder="${esc(
+        name === 'prompt' ? '描述你想要的画面 / 主体 / 风格'
+        : name === 'neg_prompt' ? '不想出现的内容（留默认即可）'
+        : (spec.description || '') .slice(0, 40))}">${esc(val)}</textarea>`;
     } else {
       ctl = `<input type="text" name="${esc(name)}" value="${esc(val)}">`;
     }
     return `<div class="frow"><label title="${esc(spec.description || '')}">${esc(name)}${spec.required ? ' *' : ''}</label>
-      <div class="ctl">${ctl}${fieldHint(name, spec) ? `<span class="fhint">${esc(fieldHint(name, spec))}</span>` : ''}</div></div>`;
+      <div class="ctl">${ctl}${fieldDesc(spec)}${fieldHint(name, spec) ? `<span class="fhint">${esc(fieldHint(name, spec))}</span>` : ''}</div></div>`;
   }).join('');
 
   const box = $('#formFields');
@@ -419,6 +445,9 @@ function renderForm(params) {
     }
     const pick = e.target.closest('[data-pick]');
     if (pick) box.querySelector(`#f_${CSS.escape(pick.dataset.pick)}`).click();
+    // 长说明点一下展开（trim_seconds 那种带算例的很长，全展开会挤爆表单）
+    const desc = e.target.closest('.fdesc.long');
+    if (desc) desc.classList.toggle('open');
   };
   // 注意：onchange 只能有一个。原来这里赋了两次，第一份（普通字段回写）
   // 被第二份覆盖掉了 —— 保留合并后的单一版本。

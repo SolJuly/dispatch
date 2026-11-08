@@ -1,105 +1,109 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_video_ltx2_3_id_lora",
-  "name": "人物一致性 · LTX 2.3 ID-LoRA（尚未开发）",
   "description": "ID-LoRA 保持人物一致。输入：参考图 + 提示词；输出：MP4。缺 LoRA。（🚧 尚未开发）",
-  "version": 1,
-  "kind": "video",
   "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "fps": 25,
   "graph": "workflows/pack/video_ltx2_3_id_lora.api.json",
+  "key": "pack_video_ltx2_3_id_lora",
+  "kind": "video",
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
   "model": {
     "key": "ltx_2_3_22b_dev_fp8_video_ltx2_3_id_lora",
     "slots": {
-      "upscale": {
-        "node": "1394",
-        "input": "model_name"
+      "ckpt": {
+        "input": "ckpt_name",
+        "node": "1396"
       },
       "lora": {
-        "node": "1395",
-        "input": "lora_name"
-      },
-      "ckpt": {
-        "node": "1396",
-        "input": "ckpt_name"
+        "input": "lora_name",
+        "node": "1395"
       },
       "lora_2": {
-        "node": "1400",
-        "input": "lora_name"
+        "input": "lora_name",
+        "node": "1400"
+      },
+      "upscale": {
+        "input": "model_name",
+        "node": "1394"
       }
     }
   },
-  "params": {
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "[VISUAL]: Opens with a medium shot, camera slowly pushes in toward the character. A man with short d…",
-      "bindings": [
-        {
-          "node": "1370",
-          "input": "text"
-        }
-      ]
-    },
-    "neg_prompt": {
-      "type": "string",
-      "required": false,
-      "default": "pc game, console game, video game, cartoon, childish, ugly",
-      "bindings": [
-        {
-          "node": "1376",
-          "input": "text"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "1357",
-          "input": "noise_seed"
-        },
-        {
-          "node": "1358",
-          "input": "noise_seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "269",
-          "input": "image"
-        }
-      ]
-    }
-  },
+  "name": "人物一致性 · LTX 2.3 ID-LoRA（尚未开发）",
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）",
   "output": {
-    "node": "341",
+    "ext": "mp4",
     "input": "filename_prefix",
     "kind": "video",
-    "ext": "mp4",
+    "node": "341",
     "pick": [
       "videos",
       "gifs"
     ]
   },
-  "expect_defaults": {
-    "ext": "mp4",
-    "min_bytes": 50000
-  },
-  "limits": {
-    "max_minutes": 40,
-    "max_cost": 1.6
+  "params": {
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "269"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1376"
+        }
+      ],
+      "default": "pc game, console game, video game, cartoon, childish, ugly",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1370"
+        }
+      ],
+      "default": "[VISUAL]: Opens with a medium shot, camera slowly pushes in toward the character. A man with short d…",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "noise_seed",
+          "node": "1357"
+        },
+        {
+          "input": "noise_seed",
+          "node": "1358"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    }
   },
   "required_gpu": [
     "4090",
     "4090_48G"
   ],
-  "notes": "官方模板导入，未本地真机验证（compat=experimental）",
-  "fps": 25
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

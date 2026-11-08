@@ -1,78 +1,80 @@
 {
- "schema": "p20.workflow/v1",
- "key": "pack_template_qwen_image_illustration_lora",
- "name": "插画风格 · Qwen-Image + LoRA（尚未开发）",
- "description": "加载插画 LoRA 出风格化图。输入：提示词；输出：1024 PNG。缺 illustration LoRA 权重。（🚧 尚未开发）",
- "version": 1,
- "kind": "image",
- "engine": "comfyui",
- "graph": "workflows/pack/template_qwen_image_illustration_lora.api.json",
- "model": {
-  "key": "qwen_image_fp8_e4m3fn",
-  "slots": {
-   "vae": {
-    "node": "1077",
-    "input": "vae_name"
-   },
-   "clip": {
-    "node": "1078",
-    "input": "clip_name"
-   },
-   "unet": {
-    "node": "1081",
-    "input": "unet_name"
-   },
-   "lora": {
-    "node": "1085",
-    "input": "lora_name"
-   }
-  }
- },
- "params": {
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "default": "a girl with short hair in a bomber jacket leaning against a wall, clean cel shading, bold graphic co…",
-   "bindings": [
-    {
-     "node": "1082",
-     "input": "text"
-    }
-   ]
+  "description": "加载插画 LoRA 出风格化图。输入：提示词；输出：1024 PNG。缺 illustration LoRA 权重。（🚧 尚未开发）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "png",
+    "min_bytes": 20000
   },
-  "seed": {
-   "type": "int",
-   "min": 0,
-   "max": 2147483647,
-   "default": 0,
-   "bindings": [
-    {
-     "node": "1086",
-     "input": "seed"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "60",
-  "input": "filename_prefix",
+  "graph": "workflows/pack/template_qwen_image_illustration_lora.api.json",
+  "key": "pack_template_qwen_image_illustration_lora",
   "kind": "image",
-  "ext": "png",
-  "pick": [
-   "images"
-  ]
- },
- "expect_defaults": {
-  "ext": "png",
-  "min_bytes": 20000
- },
- "limits": {
-  "max_minutes": 20,
-  "max_cost": 0.8
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "img.style.lora · 风格化 LoRA 出图（Qwen 插画） · 许可：需自行核对模型卡 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "limits": {
+    "max_cost": 0.8,
+    "max_minutes": 20
+  },
+  "model": {
+    "key": "qwen_image_fp8_e4m3fn",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "1078"
+      },
+      "lora": {
+        "input": "lora_name",
+        "node": "1085"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "1081"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "1077"
+      }
+    }
+  },
+  "name": "插画风格 · Qwen-Image + LoRA（尚未开发）",
+  "notes": "img.style.lora · 风格化 LoRA 出图（Qwen 插画） · 许可：需自行核对模型卡 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "output": {
+    "ext": "png",
+    "input": "filename_prefix",
+    "kind": "image",
+    "node": "60",
+    "pick": [
+      "images"
+    ]
+  },
+  "params": {
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1082"
+        }
+      ],
+      "default": "a girl with short hair in a bomber jacket leaning against a wall, clean cel shading, bold graphic co…",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "1086"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

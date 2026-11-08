@@ -1,155 +1,162 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_video_wan2_2_14b_i2v",
-  "name": "图生视频 · Wan 2.2 14B（双专家 + 4 步）",
   "description": "单图生成视频，可调时长/分辨率。输入：首帧图 + 提示词；输出：MP4（默认 640×640 / 5 秒）。（✅ 可使用）",
-  "version": 1,
-  "kind": "video",
   "engine": "comfyui",
+  "expect_defaults": {
+    "duration_s": [
+      4.76,
+      5.42
+    ],
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "fps": 16,
   "graph": "workflows/pack/video_wan2_2_14B_i2v.api.json",
+  "key": "pack_video_wan2_2_14b_i2v",
+  "kind": "video",
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
   "model": {
     "key": "wan2_2_i2v_low_noise_14b_fp8_scaled",
     "slots": {
-      "vae": {
-        "node": "1172",
-        "input": "vae_name"
-      },
       "clip": {
-        "node": "1173",
-        "input": "clip_name"
-      },
-      "unet": {
-        "node": "1174",
-        "input": "unet_name"
-      },
-      "unet_2": {
-        "node": "1175",
-        "input": "unet_name"
+        "input": "clip_name",
+        "node": "1173"
       },
       "lora": {
-        "node": "1178",
-        "input": "lora_name"
+        "input": "lora_name",
+        "node": "1178"
       },
       "lora_2": {
-        "node": "1179",
-        "input": "lora_name"
+        "input": "lora_name",
+        "node": "1179"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "1174"
+      },
+      "unet_2": {
+        "input": "unet_name",
+        "node": "1175"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "1172"
       }
     }
   },
-  "params": {
-    "neg_prompt": {
-      "type": "string",
-      "required": false,
-      "default": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
-      "bindings": [
-        {
-          "node": "1167",
-          "input": "text"
-        }
-      ]
-    },
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "The white dragon warrior stands still, eyes full of determination and strength. The camera slowly mo…",
-      "bindings": [
-        {
-          "node": "1170",
-          "input": "text"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "1180",
-          "input": "noise_seed"
-        },
-        {
-          "node": "1181",
-          "input": "noise_seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "97",
-          "input": "image"
-        }
-      ]
-    },
-    "width": {
-      "type": "int",
-      "default": 640,
-      "min": 256,
-      "max": 1280,
-      "bindings": [
-        {
-          "node": "1164",
-          "input": "width"
-        }
-      ],
-      "multiple": 32
-    },
-    "height": {
-      "type": "int",
-      "default": 640,
-      "min": 256,
-      "max": 1280,
-      "bindings": [
-        {
-          "node": "1164",
-          "input": "height"
-        }
-      ],
-      "multiple": 32
-    },
-    "duration": {
-      "type": "int",
-      "default": 5,
-      "min": 1,
-      "max": 10,
-      "bindings": [
-        {
-          "node": "1193",
-          "input": "values.a"
-        }
-      ]
-    }
-  },
+  "name": "图生视频 · Wan 2.2 14B（双专家 + 4 步）",
+  "notes": "vid.i2v.wan22 · 图生视频 · Wan 2.2 双专家 + 4 步加速 LoRA · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
   "output": {
-    "node": "108",
+    "ext": "mp4",
     "input": "filename_prefix",
     "kind": "video",
-    "ext": "mp4",
+    "node": "108",
     "pick": [
       "videos",
       "gifs"
     ]
   },
-  "expect_defaults": {
-    "ext": "mp4",
-    "min_bytes": 50000,
-    "duration_s": [
-      4.76,
-      5.42
-    ]
-  },
-  "fps": 16,
-  "limits": {
-    "max_minutes": 40,
-    "max_cost": 1.6
+  "params": {
+    "duration": {
+      "bindings": [
+        {
+          "input": "values.a",
+          "node": "1193"
+        }
+      ],
+      "default": 5,
+      "description": "目标时长（秒）。与帧率一起决定总帧数。",
+      "max": 10,
+      "min": 1,
+      "type": "int"
+    },
+    "height": {
+      "bindings": [
+        {
+          "input": "height",
+          "node": "1164"
+        }
+      ],
+      "default": 640,
+      "description": "输出高度（像素）。与宽度配套调整，保持原始素材的宽高比。",
+      "max": 1280,
+      "min": 256,
+      "multiple": 32,
+      "type": "int"
+    },
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "97"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1167"
+        }
+      ],
+      "default": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1170"
+        }
+      ],
+      "default": "The white dragon warrior stands still, eyes full of determination and strength. The camera slowly mo…",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "noise_seed",
+          "node": "1180"
+        },
+        {
+          "input": "noise_seed",
+          "node": "1181"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    },
+    "width": {
+      "bindings": [
+        {
+          "input": "width",
+          "node": "1164"
+        }
+      ],
+      "default": 640,
+      "description": "输出宽度（像素）。越大越清晰但越慢越贵；改完后高度要按同样的比例缩放，否则画面会被拉变形。",
+      "max": 1280,
+      "min": 256,
+      "multiple": 32,
+      "type": "int"
+    }
   },
   "required_gpu": [
     "4090",
     "4090_48G"
   ],
-  "notes": "vid.i2v.wan22 · 图生视频 · Wan 2.2 双专家 + 4 步加速 LoRA · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

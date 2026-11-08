@@ -1,91 +1,94 @@
 {
- "schema": "p20.workflow/v1",
- "key": "pack_video_ltx2_5_flf2v",
- "name": "首尾帧生视频 · LTX 2.5（更快、带音频，尚未开发）",
- "description": "LTX 2.5 首尾帧过渡，自带音频。输入：2 张图；输出：MP4。当前绑定错位。（🚧 尚未开发）",
- "version": 1,
- "kind": "video",
- "engine": "comfyui",
- "graph": "workflows/pack/video_ltx2_5_flf2v.api.json",
- "model": {
-  "key": "ltx_2_5_audio_vae_bf16",
-  "slots": {
-   "unet": {
-    "node": "1285",
-    "input": "unet_name"
-   },
-   "vae": {
-    "node": "1286",
-    "input": "vae_name"
-   },
-   "vae_2": {
-    "node": "1287",
-    "input": "vae_name"
-   },
-   "clip": {
-    "node": "1288",
-    "input": "clip_name"
-   },
-   "clip_2": {
-    "node": "1289",
-    "input": "clip_name"
-   }
-  }
- },
- "params": {
-  "neg_prompt": {
-   "type": "string",
-   "required": false,
-   "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, g…",
-   "bindings": [
-    {
-     "node": "1275",
-     "input": "text"
-    }
-   ]
+  "description": "LTX 2.5 首尾帧过渡，自带音频。输入：2 张图；输出：MP4。当前绑定错位。（🚧 尚未开发）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
   },
-  "image": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "31",
-     "input": "image"
-    }
-   ]
-  },
-  "image_2": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "39",
-     "input": "image"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "68",
-  "input": "filename_prefix",
+  "graph": "workflows/pack/video_ltx2_5_flf2v.api.json",
+  "key": "pack_video_ltx2_5_flf2v",
   "kind": "video",
-  "ext": "mp4",
-  "pick": [
-   "videos",
-   "gifs"
-  ]
- },
- "expect_defaults": {
-  "ext": "mp4",
-  "min_bytes": 50000
- },
- "limits": {
-  "max_minutes": 40,
-  "max_cost": 1.6
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "vid.flf.ltx · 首尾帧 · LTX 2.5（更快、带音频） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
+  "model": {
+    "key": "ltx_2_5_audio_vae_bf16",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "1288"
+      },
+      "clip_2": {
+        "input": "clip_name",
+        "node": "1289"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "1285"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "1286"
+      },
+      "vae_2": {
+        "input": "vae_name",
+        "node": "1287"
+      }
+    }
+  },
+  "name": "首尾帧生视频 · LTX 2.5（更快、带音频，尚未开发）",
+  "notes": "vid.flf.ltx · 首尾帧 · LTX 2.5（更快、带音频） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "output": {
+    "ext": "mp4",
+    "input": "filename_prefix",
+    "kind": "video",
+    "node": "68",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "params": {
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "31"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "image_2": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "39"
+        }
+      ],
+      "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1275"
+        }
+      ],
+      "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, g…",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "required": false,
+      "type": "string"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

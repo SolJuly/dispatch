@@ -1,184 +1,192 @@
 {
- "schema": "p20.workflow/v1",
- "key": "sdxl_img2img",
- "name": "图生图 · SDXL（denoise 控制）",
- "description": "以原图为底重绘，denoise 越低越接近原图。输入：图片 + 提示词；输出：1024 PNG。（✅ 可使用）",
- "version": 1,
- "kind": "image",
- "engine": "comfyui",
- "graph": "workflows/sdxl_img2img.api.json",
- "model": {
-  "key": "sdxl_juggernaut",
-  "slots": {
-   "ckpt": {
-    "node": "ckpt",
-    "input": "ckpt_name"
-   }
-  }
- },
- "params": {
-  "image": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "load",
-     "input": "image"
-    }
-   ],
-   "description": "原图（上传后为实例 input/ 下的文件名）"
+  "deprecated": true,
+  "deprecated_reason": "P2.2 起由 zimage_turbo_img2img 替换；仅保留供历史作业复现/回滚，控制台不再展示",
+  "description": "以原图为底重绘，denoise 越低越接近原图。输入：图片 + 提示词；输出：1024 PNG。（✅ 可使用）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "min_bytes": 20000
   },
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "bindings": [
-    {
-     "node": "pos",
-     "input": "text"
-    }
-   ],
-   "description": "目标描述"
-  },
-  "neg_prompt": {
-   "type": "string",
-   "default": "blurry, lowres, watermark",
-   "bindings": [
-    {
-     "node": "neg",
-     "input": "text"
-    }
-   ]
-  },
-  "denoise": {
-   "type": "float",
-   "default": 0.55,
-   "min": 0.05,
-   "max": 1.0,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "denoise"
-    }
-   ],
-   "description": "重绘强度：越低越接近原图"
-  },
-  "seed": {
-   "type": "int",
-   "required": true,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "seed"
-    }
-   ]
-  },
-  "width": {
-   "type": "int",
-   "default": 1024,
-   "min": 512,
-   "max": 1536,
-   "multiple": 8,
-   "bindings": [
-    {
-     "node": "scale",
-     "input": "width"
-    }
-   ]
-  },
-  "height": {
-   "type": "int",
-   "default": 1024,
-   "min": 512,
-   "max": 1536,
-   "multiple": 8,
-   "bindings": [
-    {
-     "node": "scale",
-     "input": "height"
-    }
-   ]
-  },
-  "steps": {
-   "type": "int",
-   "default": 25,
-   "min": 1,
-   "max": 60,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "steps"
-    }
-   ]
-  },
-  "cfg": {
-   "type": "float",
-   "default": 6.0,
-   "min": 0.0,
-   "max": 30.0,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "cfg"
-    }
-   ]
-  },
-  "sampler": {
-   "type": "enum",
-   "default": "dpmpp_2m",
-   "values": [
-    "euler",
-    "euler_ancestral",
-    "dpmpp_2m",
-    "dpmpp_2m_sde",
-    "uni_pc"
-   ],
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "sampler_name"
-    }
-   ]
-  },
-  "scheduler": {
-   "type": "enum",
-   "default": "karras",
-   "values": [
-    "simple",
-    "normal",
-    "karras",
-    "beta"
-   ],
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "scheduler"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "save",
-  "input": "filename_prefix",
+  "graph": "workflows/sdxl_img2img.api.json",
+  "key": "sdxl_img2img",
   "kind": "image",
-  "ext": "png",
-  "pick": [
-   "images"
-  ]
- },
- "expect_defaults": {
-  "ext": "png",
-  "min_bytes": 20000,
-  "black_ratio_max": 0.5
- },
- "limits": {
-  "max_minutes": 20,
-  "max_cost": 0.8
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "P2.1 5.2：LoadImage → ImageScale → VAEEncode → KSampler(denoise) → 解码。img2img 的输出张数由输入图决定（1 张），batch_size 不在本工作流暴露。",
- "deprecated": true,
- "deprecated_reason": "P2.2 起由 zimage_turbo_img2img 替换；仅保留供历史作业复现/回滚，控制台不再展示"
+  "limits": {
+    "max_cost": 0.8,
+    "max_minutes": 20
+  },
+  "model": {
+    "key": "sdxl_juggernaut",
+    "slots": {
+      "ckpt": {
+        "input": "ckpt_name",
+        "node": "ckpt"
+      }
+    }
+  },
+  "name": "图生图 · SDXL（denoise 控制）",
+  "notes": "P2.1 5.2：LoadImage → ImageScale → VAEEncode → KSampler(denoise) → 解码。img2img 的输出张数由输入图决定（1 张），batch_size 不在本工作流暴露。",
+  "output": {
+    "ext": "png",
+    "input": "filename_prefix",
+    "kind": "image",
+    "node": "save",
+    "pick": [
+      "images"
+    ]
+  },
+  "params": {
+    "cfg": {
+      "bindings": [
+        {
+          "input": "cfg",
+          "node": "ks"
+        }
+      ],
+      "default": 6.0,
+      "description": "提示词遵从度（CFG scale）。低（1-2）= 更自由、更贴合输入素材；高（7+）= 更严格按提示词来，但容易僵硬或过饱和。改图/动作迁移类建议留在低位。",
+      "max": 30.0,
+      "min": 0.0,
+      "type": "float"
+    },
+    "denoise": {
+      "bindings": [
+        {
+          "input": "denoise",
+          "node": "ks"
+        }
+      ],
+      "default": 0.55,
+      "description": "重绘强度：越低越接近原图",
+      "max": 1.0,
+      "min": 0.05,
+      "type": "float"
+    },
+    "height": {
+      "bindings": [
+        {
+          "input": "height",
+          "node": "scale"
+        }
+      ],
+      "default": 1024,
+      "description": "输出高度（像素）。与宽度配套调整，保持原始素材的宽高比。",
+      "max": 1536,
+      "min": 512,
+      "multiple": 8,
+      "type": "int"
+    },
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "load"
+        }
+      ],
+      "description": "原图（上传后为实例 input/ 下的文件名）",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "neg"
+        }
+      ],
+      "default": "blurry, lowres, watermark",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "pos"
+        }
+      ],
+      "description": "目标描述",
+      "required": true,
+      "type": "string"
+    },
+    "sampler": {
+      "bindings": [
+        {
+          "input": "sampler_name",
+          "node": "ks"
+        }
+      ],
+      "default": "dpmpp_2m",
+      "description": "采样器。不同采样器的风格倾向不同；没有特别理由就沿用默认值，换采样器可能让原本稳定的结果变得不可预期。",
+      "type": "enum",
+      "values": [
+        "euler",
+        "euler_ancestral",
+        "dpmpp_2m",
+        "dpmpp_2m_sde",
+        "uni_pc"
+      ]
+    },
+    "scheduler": {
+      "bindings": [
+        {
+          "input": "scheduler",
+          "node": "ks"
+        }
+      ],
+      "default": "karras",
+      "description": "噪声调度器。与采样器配合决定去噪节奏；默认值通常已针对该模型调过。",
+      "type": "enum",
+      "values": [
+        "simple",
+        "normal",
+        "karras",
+        "beta"
+      ]
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "ks"
+        }
+      ],
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "required": true,
+      "type": "int"
+    },
+    "steps": {
+      "bindings": [
+        {
+          "input": "steps",
+          "node": "ks"
+        }
+      ],
+      "default": 25,
+      "description": "采样步数。步数越多细节越好但线性变慢；蒸馏版模型（名字带 distilled / fast / 8 步）刻意用很少的步数换速度，不要随意调高。",
+      "max": 60,
+      "min": 1,
+      "type": "int"
+    },
+    "width": {
+      "bindings": [
+        {
+          "input": "width",
+          "node": "scale"
+        }
+      ],
+      "default": 1024,
+      "description": "输出宽度（像素）。越大越清晰但越慢越贵；改完后高度要按同样的比例缩放，否则画面会被拉变形。",
+      "max": 1536,
+      "min": 512,
+      "multiple": 8,
+      "type": "int"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

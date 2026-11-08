@@ -1,133 +1,138 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_video_wan2_2_14b_s2v",
-  "name": "音频驱动 · Wan 2.2 S2V（对口型）",
   "description": "用音频驱动人物口型，可调帧数。输入：人物图 + 音频；输出：约 5 秒 MP4。（✅ 可使用）",
-  "version": 1,
-  "kind": "video",
   "engine": "comfyui",
-  "graph": "workflows/pack/video_wan2_2_14B_s2v.api.json",
-  "model": {
-    "key": "wan2_2_s2v_14b_fp8_scaled",
-    "slots": {
-      "lora": {
-        "node": "107",
-        "input": "lora_name"
-      },
-      "unet": {
-        "node": "37",
-        "input": "unet_name"
-      },
-      "clip": {
-        "node": "38",
-        "input": "clip_name"
-      },
-      "vae": {
-        "node": "39",
-        "input": "vae_name"
-      }
-    }
-  },
-  "params": {
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "The man is playing the guitar. He looks down at his hands playing the guitar and sings affectionately and gently.",
-      "bindings": [
-        {
-          "node": "6",
-          "input": "text"
-        }
-      ]
-    },
-    "neg_prompt": {
-      "type": "string",
-      "required": false,
-      "default": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
-      "bindings": [
-        {
-          "node": "7",
-          "input": "text"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "3",
-          "input": "seed"
-        },
-        {
-          "node": "1186",
-          "input": "seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "52",
-          "input": "image"
-        }
-      ]
-    },
-    "audio": {
-      "type": "string",
-      "required": true,
-      "bindings": [
-        {
-          "node": "58",
-          "input": "audio"
-        }
-      ],
-      "description": "音频文件；CLI 传本地路径，运行器会归一化并上传到实例 input/"
-    },
-    "frames": {
-      "type": "int",
-      "default": 77,
-      "min": 33,
-      "max": 201,
-      "multiple": 4,
-      "bindings": [
-        {
-          "node": "93",
-          "input": "length"
-        },
-        {
-          "node": "1187",
-          "input": "length"
-        }
-      ]
-    }
-  },
-  "output": {
-    "node": "113",
-    "input": "filename_prefix",
-    "kind": "video",
-    "ext": "mp4",
-    "pick": [
-      "videos",
-      "gifs"
-    ]
-  },
   "expect_defaults": {
     "ext": "mp4",
     "min_bytes": 50000
   },
   "fps": 16,
+  "graph": "workflows/pack/video_wan2_2_14B_s2v.api.json",
+  "key": "pack_video_wan2_2_14b_s2v",
+  "kind": "video",
   "limits": {
-    "max_minutes": 40,
-    "max_cost": 1.6
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
+  "model": {
+    "key": "wan2_2_s2v_14b_fp8_scaled",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "38"
+      },
+      "lora": {
+        "input": "lora_name",
+        "node": "107"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "37"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "39"
+      }
+    }
+  },
+  "name": "音频驱动 · Wan 2.2 S2V（对口型）",
+  "notes": "vid.lipsync · 对口型 / 语音驱动说话视频（S2V） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "output": {
+    "ext": "mp4",
+    "input": "filename_prefix",
+    "kind": "video",
+    "node": "113",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "params": {
+    "audio": {
+      "bindings": [
+        {
+          "input": "audio",
+          "node": "58"
+        }
+      ],
+      "description": "音频文件；CLI 传本地路径，运行器会归一化并上传到实例 input/",
+      "required": true,
+      "type": "string"
+    },
+    "frames": {
+      "bindings": [
+        {
+          "input": "length",
+          "node": "93"
+        },
+        {
+          "input": "length",
+          "node": "1187"
+        }
+      ],
+      "default": 77,
+      "description": "生成帧数。视频类一般是 4n+1（如 81 / 121），因为模型按 4 帧一组处理。帧数直接决定时长和花费：帧数翻倍，耗时和钱基本也翻倍。",
+      "max": 201,
+      "min": 33,
+      "multiple": 4,
+      "type": "int"
+    },
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "52"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "7"
+        }
+      ],
+      "default": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "6"
+        }
+      ],
+      "default": "The man is playing the guitar. He looks down at his hands playing the guitar and sings affectionately and gently.",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "3"
+        },
+        {
+          "input": "seed",
+          "node": "1186"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    }
   },
   "required_gpu": [
     "4090",
     "4090_48G"
   ],
-  "notes": "vid.lipsync · 对口型 / 语音驱动说话视频（S2V） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

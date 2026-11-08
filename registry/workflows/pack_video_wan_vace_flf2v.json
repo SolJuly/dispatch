@@ -1,111 +1,116 @@
 {
-  "schema": "p20.workflow/v1",
-  "key": "pack_video_wan_vace_flf2v",
-  "name": "首尾帧 · Wan VACE 14B（尚未开发）",
   "description": "VACE 版首尾帧过渡。输入：2 张图；输出：MP4。缺权重。（🚧 尚未开发）",
-  "version": 1,
-  "kind": "video",
   "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "fps": 16,
   "graph": "workflows/pack/video_wan_vace_flf2v.api.json",
+  "key": "pack_video_wan_vace_flf2v",
+  "kind": "video",
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
   "model": {
     "key": "wan2_1_vace_14b_fp16_video_wan_vace_flf2v",
     "slots": {
-      "vae": {
-        "node": "1226",
-        "input": "vae_name"
-      },
       "clip": {
-        "node": "1227",
-        "input": "clip_name"
+        "input": "clip_name",
+        "node": "1227"
       },
       "lora": {
-        "node": "1228",
-        "input": "lora_name"
+        "input": "lora_name",
+        "node": "1228"
       },
       "unet": {
-        "node": "1237",
-        "input": "unet_name"
+        "input": "unet_name",
+        "node": "1237"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "1226"
       }
     }
   },
-  "params": {
-    "prompt": {
-      "type": "string",
-      "required": true,
-      "default": "A girl is dancing in a sea of flowers, slowly moving her hands, stretching her arms. There is a supe…",
-      "bindings": [
-        {
-          "node": "1238",
-          "input": "text"
-        }
-      ]
-    },
-    "neg_prompt": {
-      "type": "string",
-      "required": false,
-      "default": "过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，…",
-      "bindings": [
-        {
-          "node": "1239",
-          "input": "text"
-        }
-      ]
-    },
-    "seed": {
-      "type": "int",
-      "min": 0,
-      "max": 2147483647,
-      "default": 0,
-      "bindings": [
-        {
-          "node": "1225",
-          "input": "seed"
-        }
-      ]
-    },
-    "image": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "144",
-          "input": "image"
-        }
-      ]
-    },
-    "image_2": {
-      "type": "image",
-      "required": true,
-      "bindings": [
-        {
-          "node": "147",
-          "input": "image"
-        }
-      ]
-    }
-  },
+  "name": "首尾帧 · Wan VACE 14B（尚未开发）",
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）",
   "output": {
-    "node": "69",
+    "ext": "mp4",
     "input": "filename_prefix",
     "kind": "video",
-    "ext": "mp4",
+    "node": "69",
     "pick": [
       "videos",
       "gifs"
     ]
   },
-  "expect_defaults": {
-    "ext": "mp4",
-    "min_bytes": 50000
-  },
-  "limits": {
-    "max_minutes": 40,
-    "max_cost": 1.6
+  "params": {
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "144"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "image_2": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "147"
+        }
+      ],
+      "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1239"
+        }
+      ],
+      "default": "过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，…",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1238"
+        }
+      ],
+      "default": "A girl is dancing in a sea of flowers, slowly moving her hands, stretching her arms. There is a supe…",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "1225"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    }
   },
   "required_gpu": [
     "4090",
     "4090_48G"
   ],
-  "notes": "官方模板导入，未本地真机验证（compat=experimental）",
-  "fps": 16
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

@@ -1,130 +1,135 @@
 {
- "schema": "p20.workflow/v1",
- "key": "pack_video_wan_animate2",
- "name": "动作迁移 · Wan Animate 2",
- "description": "把驱动视频的动作迁移到目标人物。输入：人物图 + 驱动视频；输出：MP4。（✅ 可使用）",
- "version": 1,
- "kind": "video",
- "engine": "comfyui",
- "graph": "workflows/pack/video_wan_animate2.api.json",
- "model": {
-  "key": "wan_animate_2_int8_convrot",
-  "slots": {
-   "unet": {
-    "node": "1686",
-    "input": "unet_name"
-   },
-   "lora": {
-    "node": "1687",
-    "input": "lora_name"
-   },
-   "clip": {
-    "node": "1688",
-    "input": "clip_name"
-   },
-   "vae": {
-    "node": "1690",
-    "input": "vae_name"
-   }
-  }
- },
- "params": {
-  "neg_prompt": {
-   "type": "string",
-   "required": false,
-   "default": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
-   "bindings": [
-    {
-     "node": "1696",
-     "input": "text"
-    }
-   ]
+  "description": "把驱动视频的动作迁移到目标人物。输入：人物图 + 驱动视频；输出：MP4。（✅ 可使用）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
   },
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "default": "Character Description: Cartoon character lost\nBackground description: The background is an empty white room",
-   "bindings": [
-    {
-     "node": "1697",
-     "input": "text"
-    }
-   ]
-  },
-  "prompt_2": {
-   "type": "string",
-   "required": false,
-   "default": "A girl doing energetic street dance with rhythmic steps and dynamic arm gestures, background stationary\n",
-   "bindings": [
-    {
-     "node": "1698",
-     "input": "text"
-    }
-   ]
-  },
-  "seed": {
-   "type": "int",
-   "min": 0,
-   "max": 2147483647,
-   "default": 0,
-   "bindings": [
-    {
-     "node": "1722",
-     "input": "noise_seed"
-    }
-   ]
-  },
-  "image": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "189",
-     "input": "image"
-    }
-   ]
-  },
-  "video": {
-   "type": "video",
-   "required": true,
-   "bindings": [
-    {
-     "node": "240",
-     "input": "file"
-    }
-   ],
-   "description": "驱动/源视频（MP4/MOV/WebM）。驱动视频；CLI 传本地路径，运行器会归一化并上传到实例 input/"
-  },
-  "trim_seconds": {
-   "type": "float",
-   "default": 0,
-   "min": 0,
-   "max": 60,
-   "virtual": true,
-   "description": "驱动视频截取秒数（0 = 用整条）。模板会按视频帧数分轮跑，每 81 帧约 3 分钟；截 4 秒（16fps→64 帧）约 ¥0.2"
-  }
- },
- "output": {
-  "node": "246",
-  "input": "filename_prefix",
+  "graph": "workflows/pack/video_wan_animate2.api.json",
+  "key": "pack_video_wan_animate2",
   "kind": "video",
-  "ext": "mp4",
-  "pick": [
-   "videos",
-   "gifs"
-  ]
- },
- "expect_defaults": {
-  "ext": "mp4",
-  "min_bytes": 50000
- },
- "limits": {
-  "max_minutes": 40,
-  "max_cost": 1.6
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "vid.animate · ★ 人物动作迁移（Wan Animate 2） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
+  },
+  "model": {
+    "key": "wan_animate_2_int8_convrot",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "1688"
+      },
+      "lora": {
+        "input": "lora_name",
+        "node": "1687"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "1686"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "1690"
+      }
+    }
+  },
+  "name": "动作迁移 · Wan Animate 2",
+  "notes": "vid.animate · ★ 人物动作迁移（Wan Animate 2） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "output": {
+    "ext": "mp4",
+    "input": "filename_prefix",
+    "kind": "video",
+    "node": "246",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "params": {
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "189"
+        }
+      ],
+      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1696"
+        }
+      ],
+      "default": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1697"
+        }
+      ],
+      "default": "Character Description: Cartoon character lost\nBackground description: The background is an empty white room",
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "prompt_2": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1698"
+        }
+      ],
+      "default": "A girl doing energetic street dance with rhythmic steps and dynamic arm gestures, background stationary\n",
+      "description": "第二组提示词。多阶段工作流里对应后一阶段；单阶段工作流里通常与 prompt 相同，无需单独修改。",
+      "required": false,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "noise_seed",
+          "node": "1722"
+        }
+      ],
+      "default": 0,
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "max": 2147483647,
+      "min": 0,
+      "type": "int"
+    },
+    "trim_seconds": {
+      "default": 0,
+      "description": "驱动视频截取秒数（0 = 用整条）。模板会按视频帧数分轮跑，每 81 帧约 3 分钟；截 4 秒（16fps→64 帧）约 ¥0.2",
+      "max": 60,
+      "min": 0,
+      "type": "float",
+      "virtual": true
+    },
+    "video": {
+      "bindings": [
+        {
+          "input": "file",
+          "node": "240"
+        }
+      ],
+      "description": "驱动/源视频（MP4/MOV/WebM）。驱动视频；CLI 传本地路径，运行器会归一化并上传到实例 input/",
+      "required": true,
+      "type": "video"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

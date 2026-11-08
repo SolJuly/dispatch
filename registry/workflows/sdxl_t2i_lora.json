@@ -1,199 +1,210 @@
 {
- "schema": "p20.workflow/v1",
- "key": "sdxl_t2i_lora",
- "name": "文生图 + 风格 LoRA · SDXL（厚涂）",
- "description": "带厚涂风格 LoRA 的 SDXL 出图。输入：提示词；输出：1024 PNG。（✅ 可使用）",
- "version": 1,
- "kind": "image",
- "engine": "comfyui",
- "graph": "workflows/sdxl_t2i_lora.api.json",
- "model": {
-  "key": "sdxl_juggernaut",
-  "slots": {
-   "ckpt": {
-    "node": "ckpt",
-    "input": "ckpt_name"
-   }
-  }
- },
- "params": {
-  "seed": {
-   "type": "int",
-   "required": true,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "seed"
-    }
-   ]
+  "deprecated": true,
+  "deprecated_reason": "P2.2 起由 zimage_turbo_t2i_hq 替换；仅保留供历史作业复现/回滚，控制台不再展示",
+  "description": "带厚涂风格 LoRA 的 SDXL 出图。输入：提示词；输出：1024 PNG。（✅ 可使用）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "min_bytes": 20000
   },
-  "steps": {
-   "type": "int",
-   "default": 25,
-   "min": 1,
-   "max": 60,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "steps"
-    }
-   ]
-  },
-  "cfg": {
-   "type": "float",
-   "default": 6.0,
-   "min": 0.0,
-   "max": 30.0,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "cfg"
-    }
-   ]
-  },
-  "sampler": {
-   "type": "enum",
-   "default": "dpmpp_2m",
-   "values": [
-    "euler",
-    "euler_ancestral",
-    "dpmpp_2m",
-    "dpmpp_2m_sde",
-    "uni_pc"
-   ],
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "sampler_name"
-    }
-   ]
-  },
-  "scheduler": {
-   "type": "enum",
-   "default": "karras",
-   "values": [
-    "simple",
-    "normal",
-    "karras",
-    "beta"
-   ],
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "scheduler"
-    }
-   ]
-  },
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "bindings": [
-    {
-     "node": "pos",
-     "input": "text"
-    }
-   ]
-  },
-  "neg_prompt": {
-   "type": "string",
-   "default": "blurry, lowres, watermark",
-   "bindings": [
-    {
-     "node": "neg",
-     "input": "text"
-    }
-   ]
-  },
-  "width": {
-   "type": "int",
-   "default": 1024,
-   "min": 512,
-   "max": 1536,
-   "multiple": 8,
-   "bindings": [
-    {
-     "node": "lat",
-     "input": "width"
-    }
-   ]
-  },
-  "height": {
-   "type": "int",
-   "default": 1024,
-   "min": 512,
-   "max": 1536,
-   "multiple": 8,
-   "bindings": [
-    {
-     "node": "lat",
-     "input": "height"
-    }
-   ]
-  },
-  "batch_size": {
-   "type": "int",
-   "default": 1,
-   "min": 1,
-   "max": 4,
-   "bindings": [
-    {
-     "node": "lat",
-     "input": "batch_size"
-    }
-   ]
-  },
-  "lora": {
-   "type": "string",
-   "required": true,
-   "default": "Sdxl/绪儿_厚涂构图光影质感增强V3.safetensors",
-   "bindings": [
-    {
-     "node": "lora",
-     "input": "lora_name"
-    }
-   ],
-   "description": "LoRA 文件名（相对 models/loras）"
-  },
-  "lora_strength": {
-   "type": "float",
-   "default": 0.8,
-   "min": 0.0,
-   "max": 1.5,
-   "bindings": [
-    {
-     "node": "lora",
-     "input": "strength_model"
-    },
-    {
-     "node": "lora",
-     "input": "strength_clip"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "save",
-  "input": "filename_prefix",
+  "graph": "workflows/sdxl_t2i_lora.api.json",
+  "key": "sdxl_t2i_lora",
   "kind": "image",
-  "ext": "png",
-  "pick": [
-   "images"
-  ]
- },
- "expect_defaults": {
-  "ext": "png",
-  "min_bytes": 20000,
-  "black_ratio_max": 0.5
- },
- "limits": {
-  "max_minutes": 20,
-  "max_cost": 0.8
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "P2.1 5.4：LoraLoader 插在 ckpt 与采样器之间；lora 文件名来自 M0 盘点（loras/Sdxl）。",
- "deprecated": true,
- "deprecated_reason": "P2.2 起由 zimage_turbo_t2i_hq 替换；仅保留供历史作业复现/回滚，控制台不再展示"
+  "limits": {
+    "max_cost": 0.8,
+    "max_minutes": 20
+  },
+  "model": {
+    "key": "sdxl_juggernaut",
+    "slots": {
+      "ckpt": {
+        "input": "ckpt_name",
+        "node": "ckpt"
+      }
+    }
+  },
+  "name": "文生图 + 风格 LoRA · SDXL（厚涂）",
+  "notes": "P2.1 5.4：LoraLoader 插在 ckpt 与采样器之间；lora 文件名来自 M0 盘点（loras/Sdxl）。",
+  "output": {
+    "ext": "png",
+    "input": "filename_prefix",
+    "kind": "image",
+    "node": "save",
+    "pick": [
+      "images"
+    ]
+  },
+  "params": {
+    "batch_size": {
+      "bindings": [
+        {
+          "input": "batch_size",
+          "node": "lat"
+        }
+      ],
+      "default": 1,
+      "description": "一次生成几张/几段。批量能省下重复的建机与加载时间，但显存占用会成倍上升，OOM 时先降这个。",
+      "max": 4,
+      "min": 1,
+      "type": "int"
+    },
+    "cfg": {
+      "bindings": [
+        {
+          "input": "cfg",
+          "node": "ks"
+        }
+      ],
+      "default": 6.0,
+      "description": "提示词遵从度（CFG scale）。低（1-2）= 更自由、更贴合输入素材；高（7+）= 更严格按提示词来，但容易僵硬或过饱和。改图/动作迁移类建议留在低位。",
+      "max": 30.0,
+      "min": 0.0,
+      "type": "float"
+    },
+    "height": {
+      "bindings": [
+        {
+          "input": "height",
+          "node": "lat"
+        }
+      ],
+      "default": 1024,
+      "description": "输出高度（像素）。与宽度配套调整，保持原始素材的宽高比。",
+      "max": 1536,
+      "min": 512,
+      "multiple": 8,
+      "type": "int"
+    },
+    "lora": {
+      "bindings": [
+        {
+          "input": "lora_name",
+          "node": "lora"
+        }
+      ],
+      "default": "Sdxl/绪儿_厚涂构图光影质感增强V3.safetensors",
+      "description": "LoRA 文件名（相对 models/loras）",
+      "required": true,
+      "type": "string"
+    },
+    "lora_strength": {
+      "bindings": [
+        {
+          "input": "strength_model",
+          "node": "lora"
+        },
+        {
+          "input": "strength_clip",
+          "node": "lora"
+        }
+      ],
+      "default": 0.8,
+      "description": "LoRA 权重强度。0 = 不生效（等于基础模型），1 = 标准强度。超过 1 容易过拟合出怪样子；建议 0.6-0.9 之间试。",
+      "max": 1.5,
+      "min": 0.0,
+      "type": "float"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "neg"
+        }
+      ],
+      "default": "blurry, lowres, watermark",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "pos"
+        }
+      ],
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "sampler": {
+      "bindings": [
+        {
+          "input": "sampler_name",
+          "node": "ks"
+        }
+      ],
+      "default": "dpmpp_2m",
+      "description": "采样器。不同采样器的风格倾向不同；没有特别理由就沿用默认值，换采样器可能让原本稳定的结果变得不可预期。",
+      "type": "enum",
+      "values": [
+        "euler",
+        "euler_ancestral",
+        "dpmpp_2m",
+        "dpmpp_2m_sde",
+        "uni_pc"
+      ]
+    },
+    "scheduler": {
+      "bindings": [
+        {
+          "input": "scheduler",
+          "node": "ks"
+        }
+      ],
+      "default": "karras",
+      "description": "噪声调度器。与采样器配合决定去噪节奏；默认值通常已针对该模型调过。",
+      "type": "enum",
+      "values": [
+        "simple",
+        "normal",
+        "karras",
+        "beta"
+      ]
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "ks"
+        }
+      ],
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "required": true,
+      "type": "int"
+    },
+    "steps": {
+      "bindings": [
+        {
+          "input": "steps",
+          "node": "ks"
+        }
+      ],
+      "default": 25,
+      "description": "采样步数。步数越多细节越好但线性变慢；蒸馏版模型（名字带 distilled / fast / 8 步）刻意用很少的步数换速度，不要随意调高。",
+      "max": 60,
+      "min": 1,
+      "type": "int"
+    },
+    "width": {
+      "bindings": [
+        {
+          "input": "width",
+          "node": "lat"
+        }
+      ],
+      "default": 1024,
+      "description": "输出宽度（像素）。越大越清晰但越慢越贵；改完后高度要按同样的比例缩放，否则画面会被拉变形。",
+      "max": 1536,
+      "min": 512,
+      "multiple": 8,
+      "type": "int"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

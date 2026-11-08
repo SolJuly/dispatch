@@ -1,158 +1,164 @@
 {
- "schema": "p20.workflow/v1",
- "key": "ltxv_2b_t2v",
- "name": "文生视频 · LTXV 2B（73 帧）",
- "description": "轻量文生视频，约 2.9 秒。输入：提示词；输出：MP4。快但画质一般。（✅ 可使用）",
- "version": 1,
- "kind": "video",
- "engine": "comfyui",
- "graph": "workflows/ltxv_2b_t2v.api.json",
- "model": {
-  "key": "ltxv_2b",
-  "slots": {
-   "ckpt": {
-    "node": "ckpt",
-    "input": "ckpt_name"
-   },
-   "clip": {
-    "node": "clip",
-    "input": "clip_name"
-   }
-  }
- },
- "params": {
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "bindings": [
-    {
-     "node": "pos",
-     "input": "text"
-    }
-   ]
+  "description": "轻量文生视频，约 2.9 秒。输入：提示词；输出：MP4。快但画质一般。（✅ 可使用）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "black_ratio_max": 0.3,
+    "duration_s": [
+      2.7,
+      3.2
+    ],
+    "ext": "mp4",
+    "freeze": {
+      "longest_max_s": 1.0,
+      "ratio_max": 0.2
+    },
+    "height": [
+      512
+    ],
+    "min_bytes": 50000,
+    "width": [
+      768
+    ]
   },
-  "neg_prompt": {
-   "type": "string",
-   "default": "",
-   "bindings": [
-    {
-     "node": "neg",
-     "input": "text"
-    }
-   ]
-  },
-  "seed": {
-   "type": "int",
-   "required": true,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "noise_seed"
-    }
-   ],
-   "description": "SamplerCustom.noise_seed（注意不是 KSampler.seed）"
-  },
-  "width": {
-   "type": "int",
-   "default": 768,
-   "min": 256,
-   "max": 1280,
-   "multiple": 32,
-   "bindings": [
-    {
-     "node": "lat",
-     "input": "width"
-    }
-   ]
-  },
-  "height": {
-   "type": "int",
-   "default": 512,
-   "min": 256,
-   "max": 1280,
-   "multiple": 32,
-   "bindings": [
-    {
-     "node": "lat",
-     "input": "height"
-    }
-   ]
-  },
-  "frames": {
-   "type": "int",
-   "default": 73,
-   "min": 1,
-   "max": 257,
-   "bindings": [
-    {
-     "node": "lat",
-     "input": "length"
-    }
-   ],
-   "description": "73 帧稳定；97 帧会崩"
-  },
-  "steps": {
-   "type": "int",
-   "default": 30,
-   "min": 1,
-   "max": 60,
-   "bindings": [
-    {
-     "node": "sched",
-     "input": "steps"
-    }
-   ]
-  },
-  "cfg": {
-   "type": "float",
-   "default": 3.0,
-   "min": 0.0,
-   "max": 30.0,
-   "bindings": [
-    {
-     "node": "ks",
-     "input": "cfg"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "save",
-  "input": "filename_prefix",
+  "fps": 25,
+  "graph": "workflows/ltxv_2b_t2v.api.json",
+  "key": "ltxv_2b_t2v",
   "kind": "video",
-  "ext": "mp4",
-  "pick": [
-   "videos",
-   "gifs"
-  ]
- },
- "expect_defaults": {
-  "ext": "mp4",
-  "min_bytes": 50000,
-  "duration_s": [
-   2.7,
-   3.2
+  "limits": {
+    "max_cost": 1.0,
+    "max_minutes": 30
+  },
+  "model": {
+    "key": "ltxv_2b",
+    "slots": {
+      "ckpt": {
+        "input": "ckpt_name",
+        "node": "ckpt"
+      },
+      "clip": {
+        "input": "clip_name",
+        "node": "clip"
+      }
+    }
+  },
+  "name": "文生视频 · LTXV 2B（73 帧）",
+  "notes": "SamplerCustom + LTXVScheduler(res_multistep)。P1 的 legacy 渲染只把 seed 字段转 int，noise_seed 会留字符串；registry 渲染按参数类型转 int，属修复。",
+  "output": {
+    "ext": "mp4",
+    "input": "filename_prefix",
+    "kind": "video",
+    "node": "save",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "params": {
+    "cfg": {
+      "bindings": [
+        {
+          "input": "cfg",
+          "node": "ks"
+        }
+      ],
+      "default": 3.0,
+      "description": "提示词遵从度（CFG scale）。低（1-2）= 更自由、更贴合输入素材；高（7+）= 更严格按提示词来，但容易僵硬或过饱和。改图/动作迁移类建议留在低位。",
+      "max": 30.0,
+      "min": 0.0,
+      "type": "float"
+    },
+    "frames": {
+      "bindings": [
+        {
+          "input": "length",
+          "node": "lat"
+        }
+      ],
+      "default": 73,
+      "description": "73 帧稳定；97 帧会崩",
+      "max": 257,
+      "min": 1,
+      "type": "int"
+    },
+    "height": {
+      "bindings": [
+        {
+          "input": "height",
+          "node": "lat"
+        }
+      ],
+      "default": 512,
+      "description": "输出高度（像素）。与宽度配套调整，保持原始素材的宽高比。",
+      "max": 1280,
+      "min": 256,
+      "multiple": 32,
+      "type": "int"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "neg"
+        }
+      ],
+      "default": "",
+      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "pos"
+        }
+      ],
+      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "noise_seed",
+          "node": "ks"
+        }
+      ],
+      "description": "SamplerCustom.noise_seed（注意不是 KSampler.seed）",
+      "required": true,
+      "type": "int"
+    },
+    "steps": {
+      "bindings": [
+        {
+          "input": "steps",
+          "node": "sched"
+        }
+      ],
+      "default": 30,
+      "description": "采样步数。步数越多细节越好但线性变慢；蒸馏版模型（名字带 distilled / fast / 8 步）刻意用很少的步数换速度，不要随意调高。",
+      "max": 60,
+      "min": 1,
+      "type": "int"
+    },
+    "width": {
+      "bindings": [
+        {
+          "input": "width",
+          "node": "lat"
+        }
+      ],
+      "default": 768,
+      "description": "输出宽度（像素）。越大越清晰但越慢越贵；改完后高度要按同样的比例缩放，否则画面会被拉变形。",
+      "max": 1280,
+      "min": 256,
+      "multiple": 32,
+      "type": "int"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
   ],
-  "width": [
-   768
-  ],
-  "height": [
-   512
-  ],
-  "black_ratio_max": 0.3,
-  "freeze": {
-   "ratio_max": 0.2,
-   "longest_max_s": 1.0
-  }
- },
- "fps": 25,
- "limits": {
-  "max_minutes": 30,
-  "max_cost": 1.0
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "SamplerCustom + LTXVScheduler(res_multistep)。P1 的 legacy 渲染只把 seed 字段转 int，noise_seed 会留字符串；registry 渲染按参数类型转 int，属修复。"
+  "schema": "p20.workflow/v1",
+  "version": 1
 }

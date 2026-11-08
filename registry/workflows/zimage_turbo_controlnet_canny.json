@@ -1,207 +1,217 @@
 {
- "schema": "p20.workflow/v1",
- "key": "zimage_turbo_controlnet_canny",
- "name": "ControlNet 构图 · Z-Image-Turbo（Canny 边缘）",
- "description": "用边缘图控制构图。输入：参考图 + 提示词；输出：1024 PNG。（✅ 可使用）",
- "version": 1,
- "kind": "image",
- "engine": "comfyui",
- "graph": "workflows/zimage_turbo_controlnet_canny.api.json",
- "model": {
-  "key": "zimage_turbo_controlnet",
-  "slots": {
-   "unet": {
-    "node": "70:46",
-    "input": "unet_name"
-   },
-   "clip": {
-    "node": "70:39",
-    "input": "clip_name"
-   },
-   "vae": {
-    "node": "70:40",
-    "input": "vae_name"
-   },
-   "patch": {
-    "node": "70:64",
-    "input": "name"
-   }
-  }
- },
- "params": {
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "bindings": [
-    {
-     "node": "70:45",
-     "input": "text"
-    }
-   ],
-   "description": "正向提示词；ControlNet 保持输入构图"
+  "description": "用边缘图控制构图。输入：参考图 + 提示词；输出：1024 PNG。（✅ 可使用）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "images": 1,
+    "min_bytes": 20000
   },
-  "seed": {
-   "type": "int",
-   "required": true,
-   "bindings": [
-    {
-     "node": "70:44",
-     "input": "seed"
-    }
-   ]
-  },
-  "image": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "58",
-     "input": "image"
-    }
-   ],
-   "description": "参考图；Canny 边缘 + 原图尺寸"
-  },
-  "canny_low": {
-   "type": "float",
-   "default": 0.1,
-   "min": 0.0,
-   "max": 1.0,
-   "bindings": [
-    {
-     "node": "57",
-     "input": "low_threshold"
-    }
-   ]
-  },
-  "canny_high": {
-   "type": "float",
-   "default": 0.32,
-   "min": 0.0,
-   "max": 1.0,
-   "bindings": [
-    {
-     "node": "57",
-     "input": "high_threshold"
-    }
-   ]
-  },
-  "strength": {
-   "type": "float",
-   "default": 1.0,
-   "min": 0.0,
-   "max": 2.0,
-   "bindings": [
-    {
-     "node": "70:60",
-     "input": "strength"
-    }
-   ]
-  },
-  "start": {
-   "type": "float",
-   "default": 0.0,
-   "min": 0.0,
-   "max": 1.0,
-   "bindings": [
-    {
-     "node": "70:60",
-     "input": "start_percent"
-    }
-   ]
-  },
-  "end": {
-   "type": "float",
-   "default": 1.0,
-   "min": 0.0,
-   "max": 1.0,
-   "bindings": [
-    {
-     "node": "70:60",
-     "input": "end_percent"
-    }
-   ]
-  },
-  "steps": {
-   "type": "int",
-   "default": 8,
-   "min": 4,
-   "max": 12,
-   "bindings": [
-    {
-     "node": "70:44",
-     "input": "steps"
-    }
-   ]
-  },
-  "cfg": {
-   "type": "float",
-   "default": 1.0,
-   "min": 0.5,
-   "max": 2.0,
-   "bindings": [
-    {
-     "node": "70:44",
-     "input": "cfg"
-    }
-   ]
-  },
-  "sampler": {
-   "type": "enum",
-   "default": "res_multistep",
-   "values": [
-    "res_multistep",
-    "euler",
-    "euler_ancestral",
-    "dpmpp_2m",
-    "uni_pc"
-   ],
-   "bindings": [
-    {
-     "node": "70:44",
-     "input": "sampler_name"
-    }
-   ]
-  },
-  "scheduler": {
-   "type": "enum",
-   "default": "simple",
-   "values": [
-    "simple",
-    "normal",
-    "karras",
-    "beta"
-   ],
-   "bindings": [
-    {
-     "node": "70:44",
-     "input": "scheduler"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "9",
-  "input": "filename_prefix",
+  "graph": "workflows/zimage_turbo_controlnet_canny.api.json",
+  "key": "zimage_turbo_controlnet_canny",
   "kind": "image",
-  "ext": "png",
-  "pick": [
-   "images"
+  "limits": {
+    "max_cost": 0.8,
+    "max_minutes": 20
+  },
+  "model": {
+    "key": "zimage_turbo_controlnet",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "70:39"
+      },
+      "patch": {
+        "input": "name",
+        "node": "70:64"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "70:46"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "70:40"
+      }
+    }
+  },
+  "name": "ControlNet 构图 · Z-Image-Turbo（Canny 边缘）",
+  "notes": "06 号 ControlNet Canny：输入图 → Canny 边缘 → Fun Union ControlNet 保持构图；输出尺寸跟随输入。",
+  "output": {
+    "count": 1,
+    "ext": "png",
+    "input": "filename_prefix",
+    "kind": "image",
+    "node": "9",
+    "pick": [
+      "images"
+    ]
+  },
+  "params": {
+    "canny_high": {
+      "bindings": [
+        {
+          "input": "high_threshold",
+          "node": "57"
+        }
+      ],
+      "default": 0.32,
+      "description": "Canny 边缘检测的强阈值。梯度高于它一定算边缘，介于两者之间的按连通性决定。与 canny_low 配合，一般高:低 ≈ 2:1 或 3:1。",
+      "max": 1.0,
+      "min": 0.0,
+      "type": "float"
+    },
+    "canny_low": {
+      "bindings": [
+        {
+          "input": "low_threshold",
+          "node": "57"
+        }
+      ],
+      "default": 0.1,
+      "description": "Canny 边缘检测的弱阈值。像素梯度低于它就一定不是边缘。调低 = 保留更多细节线条，可能把噪点也当成边；调高 = 只留最明显的轮廓。",
+      "max": 1.0,
+      "min": 0.0,
+      "type": "float"
+    },
+    "cfg": {
+      "bindings": [
+        {
+          "input": "cfg",
+          "node": "70:44"
+        }
+      ],
+      "default": 1.0,
+      "description": "提示词遵从度（CFG scale）。低（1-2）= 更自由、更贴合输入素材；高（7+）= 更严格按提示词来，但容易僵硬或过饱和。改图/动作迁移类建议留在低位。",
+      "max": 2.0,
+      "min": 0.5,
+      "type": "float"
+    },
+    "end": {
+      "bindings": [
+        {
+          "input": "end_percent",
+          "node": "70:60"
+        }
+      ],
+      "default": 1.0,
+      "description": "ControlNet 停止生效的步数比例（0-1）。1 = 全程约束；提前结束（如 0.8）能减少线条感残留，让成品更自然。",
+      "max": 1.0,
+      "min": 0.0,
+      "type": "float"
+    },
+    "image": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "58"
+        }
+      ],
+      "description": "参考图；Canny 边缘 + 原图尺寸",
+      "required": true,
+      "type": "image"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "70:45"
+        }
+      ],
+      "description": "正向提示词；ControlNet 保持输入构图",
+      "required": true,
+      "type": "string"
+    },
+    "sampler": {
+      "bindings": [
+        {
+          "input": "sampler_name",
+          "node": "70:44"
+        }
+      ],
+      "default": "res_multistep",
+      "description": "采样器。不同采样器的风格倾向不同；没有特别理由就沿用默认值，换采样器可能让原本稳定的结果变得不可预期。",
+      "type": "enum",
+      "values": [
+        "res_multistep",
+        "euler",
+        "euler_ancestral",
+        "dpmpp_2m",
+        "uni_pc"
+      ]
+    },
+    "scheduler": {
+      "bindings": [
+        {
+          "input": "scheduler",
+          "node": "70:44"
+        }
+      ],
+      "default": "simple",
+      "description": "噪声调度器。与采样器配合决定去噪节奏；默认值通常已针对该模型调过。",
+      "type": "enum",
+      "values": [
+        "simple",
+        "normal",
+        "karras",
+        "beta"
+      ]
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "70:44"
+        }
+      ],
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "required": true,
+      "type": "int"
+    },
+    "start": {
+      "bindings": [
+        {
+          "input": "start_percent",
+          "node": "70:60"
+        }
+      ],
+      "default": 0.0,
+      "description": "ControlNet 生效的起始步数比例（0-1）。0 = 从第一步就约束构图，越接近 1 = 越晚介入，留给模型自由发挥的空间越大。",
+      "max": 1.0,
+      "min": 0.0,
+      "type": "float"
+    },
+    "steps": {
+      "bindings": [
+        {
+          "input": "steps",
+          "node": "70:44"
+        }
+      ],
+      "default": 8,
+      "description": "采样步数。步数越多细节越好但线性变慢；蒸馏版模型（名字带 distilled / fast / 8 步）刻意用很少的步数换速度，不要随意调高。",
+      "max": 12,
+      "min": 4,
+      "type": "int"
+    },
+    "strength": {
+      "bindings": [
+        {
+          "input": "strength",
+          "node": "70:60"
+        }
+      ],
+      "default": 1.0,
+      "description": "变换强度/权重，具体含义取决于工作流用途；先用默认值出一版再微调。",
+      "max": 2.0,
+      "min": 0.0,
+      "type": "float"
+    }
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
   ],
-  "count": 1
- },
- "expect_defaults": {
-  "ext": "png",
-  "min_bytes": 20000,
-  "images": 1,
-  "black_ratio_max": 0.5
- },
- "limits": {
-  "max_minutes": 20,
-  "max_cost": 0.8
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "06 号 ControlNet Canny：输入图 → Canny 边缘 → Fun Union ControlNet 保持构图；输出尺寸跟随输入。"
+  "schema": "p20.workflow/v1",
+  "version": 1
 }
