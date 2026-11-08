@@ -76,3 +76,43 @@ class TestFrontendUnits(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestHistoryDeleteUi(unittest.TestCase):
+    """历史页删除能力：按钮必须存在、事件必须绑定、文案不能误导。
+
+    回归背景：「清空」按钮原本只调 S.filter 重置筛选，一个字都不删，
+    但文案让人以为是清空数据 —— 用户点了发现历史还在，报「无法清空」。
+    现在拆成「删除选中」（真删，进 .trash）与「重置筛选」（只改筛选）。
+    """
+
+    def setUp(self):
+        self.html = (WEB / "dist" / "index.html").read_text(encoding="utf-8")
+        self.js = (WEB / "dist" / "app.js").read_text(encoding="utf-8")
+
+    def test_delete_button_exists(self):
+        self.assertIn('id="del"', self.html)
+        self.assertIn("删除选中", self.html)
+
+    def test_reset_label_is_not_misleading(self):
+        """「清空」会让人以为清数据；必须改名成能表达「只重置筛选」的说法。"""
+        self.assertNotIn('id="reset">清空<', self.html)
+        self.assertIn("重置筛选", self.html)
+
+    def test_delete_event_bound(self):
+        self.assertIn("$('#del').addEventListener", self.js)
+        self.assertIn("deleteJobs", self.js)
+
+    def test_delete_uses_backend_endpoint(self):
+        """必须真的调 /jobs/delete，不能只做前端过滤。"""
+        self.assertIn("post('/jobs/delete'", self.js)
+
+    def test_force_retry_path_exists(self):
+        """被拒后要有 force 重试通道，否则 CREATED 僵尸永远是清的。"""
+        self.assertIn("force: true", self.js)
+        self.assertIn("REFUSED", self.js)
+
+    def test_delete_button_disabled_without_selection(self):
+        """没勾选时按钮必须禁用，避免误点全删。"""
+        n = self.js.count("$('#del').disabled")
+        self.assertGreaterEqual(n, 3, f"禁用状态控制点过少：{n}")

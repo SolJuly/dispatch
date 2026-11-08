@@ -533,6 +533,7 @@ function renderHistory() {
     </tr>`;
   }).join('');
   $('#zip').disabled = S.selected.size === 0;
+  $('#del').disabled = S.selected.size === 0;
 
   tb.onclick = e => {
     const cb = e.target.closest('[data-sel]');
@@ -540,6 +541,7 @@ function renderHistory() {
       const id = cb.dataset.sel;
       cb.checked ? S.selected.add(id) : S.selected.delete(id);
       $('#zip').disabled = S.selected.size === 0;
+      $('#del').disabled = S.selected.size === 0;
       return;
     }
     if (e.target.closest('a')) return;
@@ -652,6 +654,57 @@ async function downloadZip(ids) {
   }
 }
 
+/* 删除作业：默认只移到 .trash（可恢复），不做彻底删除。
+ * 后端 jobctl rm 对未终态（CREATED/RUNNING…）会 REFUSED，需 force 才动。
+ * 这里做两段式：先常规删；若有被拒且都是从未执行过的，再问一次是否强删。
+ * 为什么不默认强删：RUNNING 的作业可能真在跑，强删会留下计费中的实例。
+ */
+async function deleteJobs(ids) {
+  if (!ids.length) return;
+  const ok = confirm(
+    `删除 ${ids.length} 个作业？\n\n` +
+    `· 会移到 jobs/.trash/，可恢复\n` +
+    `· 正在执行的作业不会被删（后端会拒绝）`);
+  if (!ok) return;
+
+  $('#del').disabled = true;
+  try {
+    let r = await post('/jobs/delete', {ids, purge: false});
+    let out = String(r.output || '');
+    let bad = (out.match(/REFUSED/g) || []).length;
+
+    // 有被拒的：问一次是否强制删（僵尸作业的出路）
+    if (bad) {
+      const refused = (out.match(/✗ (\S+) REFUSED/g) || [])
+        .map(m => m.replace(/^✗ /, '').replace(/ REFUSED$/, ''));
+      const more = confirm(
+        `${bad} 个作业因为「状态未结束」被拒绝：\n\n` +
+        refused.map(x => '  · ' + x).join('\n') +
+        `\n\n强制删除它们？\n` +
+        `（只对从未执行过的残留作业安全；正在跑的可能留下计费实例）`);
+      if (more) {
+        r = await post('/jobs/delete', {ids: refused, purge: false, force: true});
+        out += '\n' + String(r.output || '');
+        bad = (out.match(/REFUSED/g) || []).length;
+      }
+    }
+
+    const notFound = (out.match(/NOT_FOUND/g) || []).length;
+    const done = ids.length - bad - notFound;
+    const bits = [`已删除 ${done} 个`];
+    if (bad) bits.push(`${bad} 个仍在运行，跳过了`);
+    if (notFound) bits.push(`${notFound} 个不存在`);
+    $('#submitMsg').innerHTML =
+      `<span style="color:${bad || notFound ? 'var(--amber, #d8b46a)' : 'var(--green)'}">${esc(bits.join(' · '))}</span>`;
+    S.selected.clear();
+    await tick();
+  } catch (e) {
+    alert('删除失败：' + (e.message || e));
+  } finally {
+    $('#del').disabled = S.selected.size === 0;
+  }
+}
+
 /* ==================================================================== 运行环境 */
 async function loadInstances() {
   try { S.queue = await get('/queue'); } catch (e) { S.queue = null; }
@@ -759,6 +812,7 @@ function bind() {
   $('#q').addEventListener('change', () => tick());
   $('#wfFilter').addEventListener('change', e => { S.filter.wf = e.target.value; tick(); });
   $('#zip').addEventListener('click', () => downloadZip([...S.selected]));
+  $('#del').addEventListener('click', () => deleteJobs([...S.selected]));
   $('#checkAll').addEventListener('change', e => {
     S.selected = e.target.checked ? new Set(S.jobs.map(j => j.job_id)) : new Set();
     renderHistory();

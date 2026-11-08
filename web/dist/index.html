@@ -101,7 +101,8 @@
       <select id="wfFilter"><option value="all">全部工作流</option></select>
       <input type="text" id="q" placeholder="搜索 job_id / prompt" autocomplete="off">
       <button class="btn" id="zip" disabled>批量下载 zip</button>
-      <button class="btn" id="reset">清空</button>
+      <button class="btn" id="del" disabled title="把选中的作业移到 .trash（可恢复）">删除选中</button>
+      <button class="btn" id="reset" title="只重置筛选条件，不删数据">重置筛选</button>
     </div>
     <div class="tw">
       <table id="jt">

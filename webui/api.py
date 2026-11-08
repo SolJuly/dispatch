@@ -294,16 +294,26 @@ def rerun_jobs(ids: list[str], *, run: bool = False, jobs_dir: Path | None = Non
     return out
 
 
-def delete_jobs(ids: list[str], *, purge: bool = False) -> dict:
-    """删除作业（默认进 .trash，可恢复；purge=True 彻底删）。"""
+def delete_jobs(ids: list[str], *, purge: bool = False, force: bool = False) -> dict:
+    """删除作业（默认进 .trash，可恢复；purge=True 彻底删）。
+
+    force：允许删掉未终态（CREATED 等）的作业。
+    为什么需要：控制台提交时若没勾「立即执行」，作业会永远停在 CREATED
+    且没有任何自动过期机制——既没跑过、也不会跑到，纯属残留。
+    jobctl 的默认拒绝是对的（保护真在跑的作业），但要给用户一个
+    显式清理僵尸的入口，所以这里把 force 透传下去。
+    """
     clean = [str(x) for x in ids if x]
     if not clean:
         raise ApiError("ids 为空", 400)
     cmd = [sys.executable, str(JOBCTL), "rm", *clean]
     if purge:
         cmd.append("--purge")
+    if force:
+        cmd.append("--force")
     p = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT), timeout=180)
-    return {"ok": p.returncode == 0, "output": ((p.stdout or "") + (p.stderr or ""))[-1500:]}
+    return {"ok": p.returncode == 0,
+            "output": ((p.stdout or "") + (p.stderr or ""))[-1500:]}
 
 
 def run_jobs(ids: list[str], *, jobs_dir: Path | None = None,

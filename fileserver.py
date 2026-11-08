@@ -817,7 +817,8 @@ class Handler(BaseHTTPRequestHandler):
             n = int(self.headers.get("Content-Length") or 0)
             body = json.loads(self.rfile.read(n).decode("utf-8")) if n else {}
             ids = [str(x) for x in (body.get("ids") or []) if x]
-            data = webapi.delete_jobs(ids, purge=bool(body.get("purge")))
+            data = webapi.delete_jobs(ids, purge=bool(body.get("purge")),
+                                     force=bool(body.get("force")))
             return _json(data, 200)
         except webapi.ApiError as e:
             return _json({"error": e.msg}, e.code)

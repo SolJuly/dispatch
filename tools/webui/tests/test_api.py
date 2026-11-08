@@ -465,3 +465,48 @@ class TestArtifactUrl(unittest.TestCase):
         url = api._first_artifact_url(jid, self.root / "jobs")
         self.assertTrue(url.startswith("/f/"), f"缩略图应走 /f/，实际 {url}")
         self.assertIn(jid, url)
+
+
+class TestDeleteJobs(unittest.TestCase):
+    """删除链路：force 必须透传到 jobctl rm，否则僵尸作业永远清不掉。
+
+    背景：控制台提交时若没勾「立即执行」，作业会停在 CREATED 且无过期机制。
+    jobctl 默认拒绝删未终态（保护真在跑的作业），但没有 force 通道时
+    用户只能在界面上看着这些从没执行过的作业永远留着。
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.calls = []
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _run_capture(self, **kw):
+        with mock.patch.object(api.subprocess, "run") as m:
+            m.return_value = mock.Mock(returncode=0, stdout="ok", stderr="")
+            api.delete_jobs(["p1-x"], **kw)
+            return m.call_args[0][0]
+
+    def test_purge_flag_appended(self):
+        self.assertIn("--purge", self._run_capture(purge=True))
+
+    def test_purge_absent_by_default(self):
+        self.assertNotIn("--purge", self._run_capture())
+
+    def test_force_flag_appended(self):
+        """force=True 必须变成 --force，否则 CREATED 僵尸清不掉。"""
+        self.assertIn("--force", self._run_capture(force=True))
+
+    def test_force_absent_by_default(self):
+        self.assertNotIn("--force", self._run_capture())
+
+    def test_empty_ids_raises(self):
+        with self.assertRaises(api.ApiError):
+            api.delete_jobs([])
+
+    def test_force_and_purge_together(self):
+        cmd = self._run_capture(force=True, purge=True)
+        self.assertIn("--force", cmd)
+        self.assertIn("--purge", cmd)
