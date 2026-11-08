@@ -1,0 +1,73 @@
+{
+  "schema": "p20.model/v1",
+  "key": "z_image_turbo_bf16_templates_hellorob_faceg",
+  "name": "z_image_turbo_bf16",
+  "version": 1,
+  "kind": "image",
+  "family": "z_image_turbo_bf16",
+  "primary": "unet",
+  "files": {
+    "clip": {
+      "name": "qwen_3_4b.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "qwen_3_4b"
+      }
+    },
+    "vae": {
+      "name": "ae.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "ae"
+      }
+    },
+    "unet": {
+      "name": "z_image_turbo_bf16.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "z_image_turbo_bf16"
+      }
+    },
+    "lora": {
+      "name": "zimage-grainscape_ultrareal.safetensors",
+      "loader": "LoraLoaderModelOnly",
+      "input": "lora_name",
+      "match": {
+        "contains": "zimage-grainscape_ultrareal"
+      }
+    },
+    "ckpt": {
+      "name": "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors",
+      "loader": "CheckpointLoaderSimple",
+      "input": "ckpt_name",
+      "match": {
+        "contains": "Juggernaut-XL_v9_RunDiffusionPhoto_v2"
+      }
+    },
+    "upscale": {
+      "name": "8xNMKDFaces160000G_v10.pt",
+      "loader": "UpscaleModelLoader",
+      "input": "model_name",
+      "match": {
+        "contains": "8xNMKDFaces160000G_v10"
+      }
+    },
+    "lora_2": {
+      "name": "sdxl-skin_realism_acne_skin_details_imperfections.safetensors",
+      "loader": "LoraLoaderModelOnly",
+      "input": "lora_name",
+      "match": {
+        "contains": "sdxl-skin_realism_acne_skin_details_imperfections"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}

@@ -1,0 +1,158 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_video_wan2_2_14b_flf2v",
+  "name": "首尾帧生视频 · Wan 2.2 14B",
+  "description": "给首帧和尾帧生成过渡，可调尺寸/帧数。输入：2 张图 + 提示词；输出：MP4（默认 640×640 / 81 帧）。（✅ 可使用）",
+  "version": 1,
+  "kind": "video",
+  "engine": "comfyui",
+  "graph": "workflows/pack/video_wan2_2_14B_flf2v.api.json",
+  "model": {
+    "key": "wan2_2_i2v_high_noise_14b_fp8_scaled",
+    "slots": {
+      "clip": {
+        "node": "72",
+        "input": "clip_name"
+      },
+      "unet": {
+        "node": "76",
+        "input": "unet_name"
+      },
+      "unet_2": {
+        "node": "77",
+        "input": "unet_name"
+      },
+      "vae": {
+        "node": "79",
+        "input": "vae_name"
+      }
+    }
+  },
+  "params": {
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
+      "bindings": [
+        {
+          "node": "78",
+          "input": "text"
+        }
+      ]
+    },
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "冰晶组成的小猫突然被惊醒，愤怒的它抬头，渐渐长出色彩毛发变成为一个巨兽，像发现危险一样呲牙，瞪大眼睛",
+      "bindings": [
+        {
+          "node": "90",
+          "input": "text"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "84",
+          "input": "noise_seed"
+        },
+        {
+          "node": "87",
+          "input": "noise_seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "80",
+          "input": "image"
+        }
+      ]
+    },
+    "image_2": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "89",
+          "input": "image"
+        }
+      ]
+    },
+    "width": {
+      "type": "int",
+      "default": 640,
+      "min": 256,
+      "max": 1280,
+      "bindings": [
+        {
+          "node": "81",
+          "input": "width"
+        }
+      ],
+      "multiple": 32
+    },
+    "height": {
+      "type": "int",
+      "default": 640,
+      "min": 256,
+      "max": 1280,
+      "bindings": [
+        {
+          "node": "81",
+          "input": "height"
+        }
+      ],
+      "multiple": 32
+    },
+    "frames": {
+      "type": "int",
+      "default": 81,
+      "min": 17,
+      "max": 161,
+      "bindings": [
+        {
+          "node": "81",
+          "input": "length"
+        }
+      ],
+      "multiple": 4
+    }
+  },
+  "output": {
+    "node": "83",
+    "input": "filename_prefix",
+    "kind": "video",
+    "ext": "mp4",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "duration_s": [
+      4.76,
+      5.42
+    ]
+  },
+  "fps": 16,
+  "limits": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "vid.flf.wan · ★ 首尾帧生视频（Wan 2.2 FLF2V） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+}

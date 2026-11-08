@@ -1,0 +1,52 @@
+{
+  "kind": "image",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "zimage_turbo",
+    "workflow": "workflows/zimage_turbo_t2i_hq.api.json",
+    "checkpoint": "z_image_turbo/z_image_turbo_bf16.safetensors",
+    "workflow_sha256": "ed44d4fb4eed7080e1663cf7f4b3fe6b860b162fd2638abac922d89d4eedc360",
+    "registry": {
+      "workflow_key": "zimage_turbo_t2i_hq",
+      "workflow_version": 1,
+      "model_key": "zimage_turbo",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "all",
+      "graph_sha256": "ed44d4fb4eed7080e1663cf7f4b3fe6b860b162fd2638abac922d89d4eedc360"
+    }
+  },
+  "params": {
+    "cfg": 1,
+    "height": 1024,
+    "prompt": "loli, fair_skin, curvy, baby face, bunches, unbuttoned clothes, bent_over, middle_finger, squatting,_open_legs, lifted_by_self, disgust, Ultra-HD, realistic, photorealistic,realistic, new_school_swimsuit, filmic, bedroom, professional, A stunning 18-year-old Chinese girl with a youthful,pure face and realistic skin texture,sitting on a cozy,slightly messy bed in her bedroom. She is taking a mirror selfie with a smartphone,capturing a natural and intimate moment. Wearing casual gray loungewear and neat white crew socks. Soft natural light (golden hour) streams in from a side window,creating a warm,moody,and cinematic atmosphere. 35mm lens,sharp focus on the subject in the mirror,depth of field with a beautifully blurred background (bokeh). Photorealistic,8K,high resolution,studio quality,masterpiece.",
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "seed": 5555,
+    "steps": 8,
+    "width": 1024
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "height": [
+      2048
+    ],
+    "images": 1,
+    "min_bytes": 20000,
+    "width": [
+      2048
+    ]
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

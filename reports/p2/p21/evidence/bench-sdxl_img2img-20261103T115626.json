@@ -1,0 +1,401 @@
+{
+  "schema": "p21.bench/v1",
+  "workflow": "sdxl_img2img",
+  "model": "sdxl_juggernaut",
+  "gpu": "4090",
+  "started_at": "20261103T115626",
+  "cases": [
+    {
+      "i": 1,
+      "category": "人像",
+      "seed": 85020816,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 2,
+      "category": "人像",
+      "seed": 1634165962,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "young woman in hanfu, bamboo forest, soft rim light, cinematic",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 3,
+      "category": "人像",
+      "seed": 2045764695,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "street portrait, neon rain, shallow depth of field, 50mm",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 4,
+      "category": "人像",
+      "seed": 1597009116,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "ballet dancer mid-air, studio strobe, high detail fabric",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 5,
+      "category": "人像",
+      "seed": 1530999204,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "elderly craftsman hands, macro detail, warm tungsten light",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 6,
+      "category": "场景",
+      "seed": 118786233,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "misty mountain lake at dawn, pine forest, long exposure",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 7,
+      "category": "场景",
+      "seed": 606597228,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "tokyo alley at night, wet asphalt reflections, film grain",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 8,
+      "category": "场景",
+      "seed": 1031778214,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "desert dunes, low sun, long shadows, minimal composition",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 9,
+      "category": "场景",
+      "seed": 715317790,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "abandoned factory, god rays through broken roof, dust",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 10,
+      "category": "场景",
+      "seed": 1901972509,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "snow cabin window, warm interior, cold blue exterior",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 11,
+      "category": "文字排版",
+      "seed": 1466588995,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "poster with the words \"SILENT SPRING\", bold grotesque type, off-white paper",
+      "inference_s": 0.0,
+      "total_s": 1.5,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 12,
+      "category": "文字排版",
+      "seed": 574029764,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "vintage book cover, title \"NORTH\", serif type, muted palette",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 13,
+      "category": "文字排版",
+      "seed": 161791708,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "neon sign reading \"OPEN 24H\", rain, bokeh, night street",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 14,
+      "category": "风格化",
+      "seed": 1957901590,
+      "size": [
+        1024,
+        768
+      ],
+      "prompt": "ukiyo-e style great wave, indigo and cream, woodblock texture",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 15,
+      "category": "风格化",
+      "seed": 1678365175,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "impasto oil painting, sunflower field, thick brush strokes",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 16,
+      "category": "风格化",
+      "seed": 779561313,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "isometric miniature city block, pastel, soft shadows",
+      "inference_s": 0.0,
+      "total_s": 1.3,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 17,
+      "category": "风格化",
+      "seed": 2019072835,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "pixel art forest shrine, 32 colors, dithering",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 18,
+      "category": "风格化",
+      "seed": 1611329676,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "claymation astronaut, felt texture, studio lighting",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 19,
+      "category": "边界",
+      "seed": 1491152443,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "very long prompt: lush botanical garden with ferns, orchids, mossy stones, dappl",
+      "inference_s": 0.0,
+      "total_s": 1.3,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 20,
+      "category": "边界",
+      "seed": 1384805457,
+      "size": [
+        1536,
+        512
+      ],
+      "prompt": "extreme aspect ratio test, lighthouse on cliff, wide panorama",
+      "inference_s": 0.0,
+      "total_s": 1.3,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 90,
+      "category": "seed",
+      "seed": 12345,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    },
+    {
+      "i": 91,
+      "category": "seed",
+      "seed": 12345,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 0.0,
+      "total_s": 1.4,
+      "files": 0,
+      "verdict": "FAIL",
+      "error": "RuntimeError: 提交失败：root/miniconda3/lib/python3.10/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n  File \"/root/miniconda3/lib/python3.10/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n",
+      "sha256": [],
+      "pixel_sha256": []
+    }
+  ],
+  "seed_check": {
+    "seed": 12345,
+    "same_file": false,
+    "same_pixels": false,
+    "sha_a": [],
+    "sha_b": [],
+    "pixel_sha_a": [],
+    "pixel_sha_b": []
+  },
+  "vram_peak_mb": 396,
+  "finished_at": "2026-11-03T11:58:49+08:00",
+  "total": 22,
+  "pass": 0,
+  "success_rate": 0.0,
+  "inference_p50_s": 0.0,
+  "inference_p95_s": 0.0,
+  "elapsed_min": 2.4,
+  "est_cost": 0.085
+}

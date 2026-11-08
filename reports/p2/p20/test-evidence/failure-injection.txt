@@ -1,0 +1,16 @@
+失败场景：P1_FAIL_AT=submit 注入（registry 作业：qwen_image_t2i）
+作业: p1-20261101T2133-a855b6
+命令: P1_FAIL_AT=submit python3 tools/p1/run.py p1-20261101T2133-a855b6 --gpu 4090 --hours 1 --no-keep
+退出码: 1
+事件:
+{"seq": 1, "at": "2026-11-01T21:33:49+08:00", "from": null, "to": "CREATED", "reason": "新建作业（P2.0-qwen_image_t2i）"}
+{"seq": 2, "at": "2026-11-01T21:35:16+08:00", "from": "CREATED", "to": "PROVISIONING", "reason": "步骤 provision"}
+{"seq": 3, "at": "2026-11-01T21:37:14+08:00", "from": "PROVISIONING", "to": "READY", "reason": "步骤 ready"}
+{"seq": 4, "at": "2026-11-01T21:37:16+08:00", "from": "READY", "to": "SUBMITTED", "reason": "步骤 submit"}
+{"seq": 5, "at": "2026-11-01T21:37:16+08:00", "from": "SUBMITTED", "to": "FAILED_RUN", "reason": "注入失败（测试）：submit"}
+{"seq": 6, "at": "2026-11-01T21:37:16+08:00", "from": "FAILED_RUN", "to": "RELEASING", "reason": "失败后清理"}
+{"seq": 7, "at": "2026-11-01T21:37:20+08:00", "from": "RELEASING", "to": "FAILED", "reason": "失败收尾"}
+产物: 无（未提交推理）
+manifest: 不存在（符合预期）
+实例: 没有实例。（部署: python3 csctl.py up --gpu 4090 --hours 4）
+账本: 未记录失败作业成本（遗留问题；balance 37.71→37.69）

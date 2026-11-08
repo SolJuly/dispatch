@@ -1,0 +1,192 @@
+{
+ "schema": "p20.workflow/v1",
+ "key": "qwen_image_t2i",
+ "name": "文生图 · Qwen-Image 1024（全参数）",
+ "description": "Qwen-Image 20B，步数/CFG/采样器/尺寸都可调。输入：提示词；输出：1024×1024 PNG。（✅ 可使用）",
+ "version": 2,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/qwen_image_t2i_v2.api.json",
+ "model": {
+  "key": "qwen_image",
+  "slots": {
+   "unet": {
+    "node": "unet",
+    "input": "unet_name"
+   },
+   "clip": {
+    "node": "clip",
+    "input": "clip_name"
+   },
+   "vae": {
+    "node": "vae",
+    "input": "vae_name"
+   }
+  }
+ },
+ "params": {
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "bindings": [
+    {
+     "node": "pos",
+     "input": "text"
+    }
+   ],
+   "description": "正向提示词"
+  },
+  "neg_prompt": {
+   "type": "string",
+   "default": "",
+   "bindings": [
+    {
+     "node": "neg",
+     "input": "text"
+    }
+   ],
+   "description": "负向提示词"
+  },
+  "seed": {
+   "type": "int",
+   "required": true,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "seed"
+    }
+   ]
+  },
+  "width": {
+   "type": "int",
+   "default": 1024,
+   "min": 256,
+   "max": 2048,
+   "multiple": 16,
+   "bindings": [
+    {
+     "node": "lat",
+     "input": "width"
+    }
+   ]
+  },
+  "height": {
+   "type": "int",
+   "default": 1024,
+   "min": 256,
+   "max": 2048,
+   "multiple": 16,
+   "bindings": [
+    {
+     "node": "lat",
+     "input": "height"
+    }
+   ]
+  },
+  "steps": {
+   "type": "int",
+   "default": 20,
+   "min": 1,
+   "max": 60,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "steps"
+    }
+   ]
+  },
+  "cfg": {
+   "type": "float",
+   "default": 2.5,
+   "min": 0.0,
+   "max": 30.0,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "cfg"
+    }
+   ]
+  },
+  "sampler": {
+   "type": "enum",
+   "default": "euler",
+   "values": [
+    "euler",
+    "euler_ancestral",
+    "dpmpp_2m",
+    "dpmpp_2m_sde",
+    "uni_pc"
+   ],
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "sampler_name"
+    }
+   ],
+   "description": "采样器；白名单来自实例 /object_info，M1 首作业复核"
+  },
+  "scheduler": {
+   "type": "enum",
+   "default": "simple",
+   "values": [
+    "simple",
+    "normal",
+    "karras",
+    "beta"
+   ],
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "scheduler"
+    }
+   ],
+   "description": "噪声调度器"
+  },
+  "batch_size": {
+   "type": "int",
+   "default": 1,
+   "min": 1,
+   "max": 4,
+   "bindings": [
+    {
+     "node": "lat",
+     "input": "batch_size"
+    }
+   ],
+   "description": "单次出图张数（1–4）"
+  }
+ },
+ "output": {
+  "node": "save",
+  "input": "filename_prefix",
+  "kind": "image",
+  "ext": "png",
+  "pick": [
+   "images"
+  ],
+  "count": "{{BATCH_SIZE}}"
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 20000,
+  "width": [
+   1024
+  ],
+  "height": [
+   1024
+  ],
+  "black_ratio_max": 0.5,
+  "images": "{{BATCH_SIZE}}"
+ },
+ "limits": {
+  "max_minutes": 30,
+  "max_cost": 1.0
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "v2：补齐 sampler/scheduler/batch_size 与多图输出契约（P2.1 5.1）。显存：1024² batch=1 峰值 23.7GB，batch 1–4 均可跑（20.8–23.7GB），并发或多进程需 4090_48G；768×1024 batch=4 吞吐最优。",
+ "deprecated": true,
+ "deprecated_reason": "P2.2 起由 zimage_turbo_t2i_hq 替换；仅保留供历史作业复现/回滚，控制台不再展示"
+}

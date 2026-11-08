@@ -1,0 +1,543 @@
+{
+  "1304": {
+    "class_type": "LayerUtility: If ",
+    "inputs": {
+      "if_condition": [
+        "1305",
+        0
+      ],
+      "when_TRUE": [
+        "1311",
+        0
+      ],
+      "when_FALSE": [
+        "1311",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "IfElse"
+    }
+  },
+  "1305": {
+    "class_type": "ImpactCompare",
+    "inputs": {
+      "a": [
+        "1311",
+        0
+      ],
+      "b": [
+        "1311",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Image Upscale(SeedVR2)"
+    }
+  },
+  "1306": {
+    "class_type": "SimpleMath+",
+    "inputs": {
+      "a": [
+        "1304",
+        0
+      ],
+      "b": 4
+    },
+    "_meta": {
+      "title": "Upscale to Shortest Edge (pixels)"
+    }
+  },
+  "1308": {
+    "class_type": "SeedVR2VideoUpscaler",
+    "inputs": {
+      "dit": [
+        "1310",
+        0
+      ],
+      "vae": [
+        "1309",
+        0
+      ],
+      "resolution": [
+        "1306",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Upscale(SeedVR2)"
+    }
+  },
+  "1309": {
+    "class_type": "SeedVR2LoadVAEModel",
+    "inputs": {},
+    "_meta": {
+      "title": "Image Upscale(SeedVR2)"
+    }
+  },
+  "1310": {
+    "class_type": "SeedVR2LoadDiTModel",
+    "inputs": {},
+    "_meta": {
+      "title": "Image Upscale(SeedVR2)"
+    }
+  },
+  "1311": {
+    "class_type": "GetImageSize",
+    "inputs": {},
+    "_meta": {
+      "title": "Image Upscale(SeedVR2)"
+    }
+  },
+  "1313": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "lumina2",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Text to Image (Z-Image-Turbo)"
+    }
+  },
+  "1314": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    },
+    "_meta": {
+      "title": "Text to Image (Z-Image-Turbo)"
+    }
+  },
+  "1315": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "1318",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (Z-Image-Turbo)"
+    }
+  },
+  "1316": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1321",
+        0
+      ],
+      "vae": [
+        "1314",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (Z-Image-Turbo)"
+    }
+  },
+  "1317": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "z_image_turbo_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Text to Image (Z-Image-Turbo)"
+    }
+  },
+  "1318": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "A clean, high-key studio portrait features a central subject captured in a sharp headshot composition against a solid, vibrant cerulean blue backdrop. The lighting is soft and even, characteristic of a professional beauty dish or large softbox, which minimizes harsh shadows and creates a subtle, healthy glow across the skin. The focus is tack-sharp on the eyes, with a shallow depth of field that gently softens the texture of the hair as it recedes toward the shoulders.\n\nThe subject possesses a symmetrical, heart-shaped face with a neutral, poised expression and a direct gaze. Their hair is a bright, cool-toned platinum blonde, styled in a sleek, center-parted bob that falls just to the collarbone with slightly textured ends. Their complexion is smooth and radiant, complemented by a light application of makeup that emphasizes the natural arch of the well-defined, dark blonde eyebrows. The eyes are a warm hazel-brown, framed by dark, delicate lashes, while the lips are a soft, natural rose-pink with a slight satin finish.\n\nThe subject wears a crisp, minimalist white turtleneck sweater made of a fine-ribbed, lightweight knit fabric. The garment's clean lines and bright tone provide a high-contrast transition between the subject and the saturated blue background. The overall atmosphere is modern and clinical yet approachable, defined by the precision of the studio environment and the clarity of the facial features.",
+      "clip": [
+        "1313",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (Z-Image-Turbo)"
+    }
+  },
+  "1319": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "width": 896,
+      "height": 1152,
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "Text to Image (Z-Image-Turbo)"
+    }
+  },
+  "1320": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "shift": 3,
+      "model": [
+        "1322",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (Z-Image-Turbo)"
+    }
+  },
+  "1321": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 223832286985235,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "res_multistep",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "1320",
+        0
+      ],
+      "positive": [
+        "1318",
+        0
+      ],
+      "negative": [
+        "1315",
+        0
+      ],
+      "latent_image": [
+        "1319",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (Z-Image-Turbo)"
+    }
+  },
+  "1322": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "zimage-grainscape_ultrareal.safetensors",
+      "strength_model": 1,
+      "model": [
+        "1317",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Text to Image (Z-Image-Turbo)"
+    }
+  },
+  "1324": {
+    "class_type": "BBoxDetect(FaceParsing)",
+    "inputs": {
+      "bbox_detector": [
+        "1360",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1326": {
+    "class_type": "FaceParse(FaceParsing)",
+    "inputs": {
+      "model": [
+        "1340",
+        0
+      ],
+      "processor": [
+        "1327",
+        0
+      ],
+      "image": [
+        "1336",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1327": {
+    "class_type": "FaceParsingProcessorLoader(FaceParsing)",
+    "inputs": {},
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1334": {
+    "class_type": "BBoxListItemSelect(FaceParsing)",
+    "inputs": {
+      "bbox_list": [
+        "1324",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1336": {
+    "class_type": "ImageCropWithBBox(FaceParsing)",
+    "inputs": {
+      "bbox": [
+        "1334",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1338": {
+    "class_type": "ImageResizeKJv2",
+    "inputs": {
+      "image": [
+        "1343",
+        0
+      ],
+      "width": [
+        "1342",
+        0
+      ],
+      "height": [
+        "1342",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1340": {
+    "class_type": "FaceParsingModelLoader(FaceParsing)",
+    "inputs": {},
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1342": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "1336",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1343": {
+    "class_type": "UltimateSDUpscale",
+    "inputs": {
+      "image": [
+        "1336",
+        0
+      ],
+      "model": [
+        "1362",
+        0
+      ],
+      "positive": [
+        "1356",
+        0
+      ],
+      "negative": [
+        "1353",
+        0
+      ],
+      "vae": [
+        "1344",
+        2
+      ],
+      "upscale_model": [
+        "1345",
+        0
+      ],
+      "upscale_by": 2
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1344": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1345": {
+    "class_type": "UpscaleModelLoader",
+    "inputs": {
+      "model_name": "8xNMKDFaces160000G_v10.pt"
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1346": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": [
+        "1336",
+        0
+      ],
+      "source": [
+        "1338",
+        0
+      ],
+      "mask": [
+        "1352",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1350": {
+    "class_type": "ImageInsertWithBBox(FaceParsing)",
+    "inputs": {
+      "bbox": [
+        "1334",
+        0
+      ],
+      "image": [
+        "1346",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1352": {
+    "class_type": "GrowMaskWithBlur",
+    "inputs": {
+      "mask": [
+        "1357",
+        0
+      ],
+      "blur_radius": 8
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1353": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "plastic, smooth, glossy, cartoon, anime, worst quality, low quality, illustration, 3d, 2d, painting, cartoons, sketch, anime",
+      "clip": [
+        "1344",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Negative Prompt"
+    }
+  },
+  "1356": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "Close-up professional photograph of a woman, detailed face skin and visible skin pores, detailed natural skin and blemishes without-makeup, detailed skin texure, detailed lips, natural skin pores, subtle skin imperfections, visible skin pores, slightly cracked lips, skin discoloration, intricate detailed iris, perfect eyes, soft freckles",
+      "clip": [
+        "1344",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Positive Prompt"
+    }
+  },
+  "1357": {
+    "class_type": "FaceParsingResultsParser(FaceParsing)",
+    "inputs": {
+      "result": [
+        "1326",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1360": {
+    "class_type": "BBoxDetectorLoader(FaceParsing)",
+    "inputs": {},
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "1362": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "sdxl-skin_realism_acne_skin_details_imperfections.safetensors",
+      "strength_model": 0.6,
+      "model": [
+        "1344",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "New Subgraph"
+    }
+  },
+  "17": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "input_face-1.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  },
+  "282": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "portrait-upscaled",
+      "images": [
+        "1308",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveImage"
+    }
+  },
+  "286": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "portrait-z-image-turbo",
+      "images": [
+        "1316",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveImage"
+    }
+  },
+  "300": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "1316",
+        0
+      ],
+      "on_true": [
+        "17",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Switch"
+    }
+  }
+}

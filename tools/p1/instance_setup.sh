@@ -29,6 +29,21 @@ die() { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 # ---------- 自检（--check 模式只跑这一段） ----------
 NEED="${2:-all}"; [[ "$NEED" == --need=* ]] && NEED="${NEED#--need=}"
+
+# 兼容软链：legacy 工作流不经过 registry 的 setup.links，且部分资产只在
+# /model/ModelScope 下。清单见 tools/p1/compat_links.txt（dir<TAB>name<TAB>target），
+# 幂等、失败不阻塞。
+compat_links() {
+  local f="$ROOT/tools/p1/compat_links.txt"
+  [[ -f "$f" ]] || return 0
+  local cmd="mkdir -p /root/ComfyUI/models; "
+  while IFS=$'\t' read -r d n t; do
+    [[ -z "$d" ]] && continue
+    cmd+="mkdir -p \$(dirname /root/ComfyUI/models/$d/$n); ln -sf $t /root/ComfyUI/models/$d/$n; "
+  done < "$f"
+  $CS ssh "$ID" --exec "$cmd echo compat-links-done" >/dev/null 2>&1 || true
+}
+
 check() {
   local ok=0 out
   for i in $(seq 1 25); do
@@ -84,6 +99,7 @@ fi
 # Manager / 挂载配置 / 软链 / rsync），这里不再 sed/scp/ln/重启，5s 内返回。
 if $CS ssh "$ID" --exec "test -f /root/.p2_image.json && echo P2_BAKED || echo NOT_BAKED" 2>/dev/null | grep -q P2_BAKED; then
   say "已烘焙镜像（/root/.p2_image.json），走轻量核对"
+  compat_links
   check
   exit $?
 fi
@@ -141,6 +157,7 @@ $CS ssh "$ID" --exec "F=/start.d/comfyui.sh; if [ -f \"\$F\" ] && grep -q -- '--
 $CS ssh "$ID" --exec "pkill -f '[m]ain.py --listen' 2>/dev/null; sleep 2; pkill -f '[m]ain.py --listen' 2>/dev/null; echo killed" >/dev/null 2>&1 || true
 $CS ssh "$ID" --exec "if [ -d /root/ComfyUI/custom_nodes/ComfyUI-Manager ]; then mv /root/ComfyUI/custom_nodes/ComfyUI-Manager /root/ComfyUI/custom_nodes/ComfyUI-Manager.disabled; echo mgr-moved; else echo mgr-absent; fi" >/dev/null 2>&1 || true
 $CS ssh "$ID" --exec "ln -sf /model/ModelScope/FireRedTeam/FireRed-Image-Edit-1.1-ComfyUI/qwen_image_vae.safetensors /root/ComfyUI/models/vae/qwen_std_vae.safetensors; ln -sf /model/ModelScope/FireRedTeam/FireRed-Image-Edit-1.1-ComfyUI/qwen2.5vl-7b-bf16.safetensors /root/ComfyUI/models/text_encoders/qwen25vl7b_std.safetensors; echo links-done" >/dev/null 2>&1 || true
+compat_links
 say "  远端准备完成"
 
 # ---------- 3. 启动 ----------

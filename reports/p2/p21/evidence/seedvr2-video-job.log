@@ -1,0 +1,38 @@
+[18:20:32] 作业 p1-20261105T1820-5abacf · 模型 seedvr2_3b · 预算 ¥1.6
+[18:20:33] 计划 4090 ×1 · 镜像 p2-comfy-media-v3 · ≈¥2.15/h
+[18:20:33] 预算上限 ¥1.6（预计 1.0h 上限 ¥2.15）
+[18:20:37] 已创建 uhost-1xc91szi21sw，等 Running…
+  [   1s] uhost-1xc91szi21sw p1-5abacf -> Initializing (Initializing)
+  [  79s] uhost-1xc91szi21sw p1-5abacf -> 运行中 (Running)
+[18:22:07] sshd 就绪（10s）
+[18:22:07] 配置实例环境（挂载 + 禁 Manager + 软链 + 启动），资产需求=none
+[18:22:54] setup 完成，自检通过
+[18:22:57] ComfyUI 就绪，2 项模型资产可见（第 1 次探活）
+[18:22:57] registry 渲染：seedvr2_3b_upscale_video v1 × seedvr2_3b v1 · 7 节点
+[18:22:59] 输入已上传：video=in-902baae2.mp4
+[18:23:00] 已提交 prompt_id=6f91d2f7-b84c-40ae-be67-5061342be1ca
+[18:24:45] 推理完成：2 个文件，耗时 105s
+[18:24:45] 拉取 in-902baae2.mp4（1/2）…
+[18:24:46]   scp 失败（第 1/2 次）：scp: /root/ComfyUI/output/in-902baae2.mp4: No such file or directory
+
+[18:24:52]   scp 失败（第 2/2 次）：scp: /root/ComfyUI/output/in-902baae2.mp4: No such file or directory
+
+[18:24:52] ✗ 拉取失败（已成功 0/2）：/root/ComfyUI/output/in-902baae2.mp4
+[18:24:53] 实例 uhost-1xc91szi21sw 已保留（15 分钟后自动关机兜底）
+[18:24:53]   续跑：python3 tools/p1/run.py p1-20261105T1820-5abacf --resume
+[18:24:53]   放弃：python3 tools/p1/run.py p1-20261105T1820-5abacf --abort
+  seed 未指定，随机生成 2065160273（已写进 spec，可复现）
+✓ spec 已生成：reports/p2/p20/specs/seedvr2_3b_upscale_video-20261105T182031.json
+  工作流 seedvr2_3b_upscale_video v1 × 模型 seedvr2_3b · 兼容性 experimental
+  参数   {"batch_size": 5, "color_correction": "lab", "resolution": 1080, "seed": 2065160273, "video": "in-902baae2.mp4"}
+  预算   ¥1.6 / 40min · 卡型 ['4090', '4090_48G']
+✓ 作业已建：p1-20261105T1820-5abacf
+  目录   reports/p1/jobs/p1-20261105T1820-5abacf
+  参数   hash sha256:e2fa7125a55a…
+  任务   P2.0-seedvr2_3b_upscale_video · 模型 seedvr2_3b · 期望 mp4 ≥50000B
+  预算   ¥1.6 / 40 分钟
+  状态   CREATED(已建)
+
+下一步：python3 tools/p1/jobctl.py show p1-20261105T1820-5abacf
+
+▶ 执行：/usr/bin/python3 /root/智云视频工作流/tools/p1/run.py p1-20261105T1820-5abacf --gpu 4090 --hours 1.0

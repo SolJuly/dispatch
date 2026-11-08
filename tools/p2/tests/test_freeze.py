@@ -106,6 +106,73 @@ class GateTest(unittest.TestCase):
             self.assertTrue(any("冻结" in w for w in r["warnings"]))
 
 
+class MaterialDrivenTest(unittest.TestCase):
+    """素材驱动类：中度静止降级为告警，整片冻结仍硬拦（2026-11-07 animate2 事故）。"""
+
+    def _expect(self, mode):
+        return {"freeze": {"mode": mode, "ratio_max": 0.2, "longest_max_s": 1.0}}
+
+    @unittest.skipUnless(HAS_FFMPEG, "ffmpeg 不可用")
+    def test_partial_freeze_downgraded_not_fail(self):
+        # 前半静止后半运动：ratio≈0.5，是静态素材驱动的合法产出
+        job = {"params": {}}
+        with tempfile.TemporaryDirectory() as td:
+            p = _freeze_then_move(Path(td))
+            r = v.verify_file(p, self._expect("full_freeze_only"), job, None, "video")
+            self.assertIs(r["checks"]["freeze"], True)
+            self.assertEqual(r["verdict"], "PASS")
+            self.assertTrue(any("冻结" in w for w in r["warnings"]),
+                            "降级后仍应提示用户换素材")
+            self.assertTrue(r["details"]["freeze"].get("downgraded"))
+
+    @unittest.skipUnless(HAS_FFMPEG, "ffmpeg 不可用")
+    def test_full_freeze_still_blocked(self):
+        # 整片冻结：无论哪一类都必须拦（标定报告 shot1/shot2）
+        job = {"params": {}}
+        with tempfile.TemporaryDirectory() as td:
+            p = _clip(Path(td), "static.mp4", "color=c=0x3355aa")
+            r = v.verify_file(p, self._expect("full_freeze_only"), job, None, "video")
+            self.assertIs(r["checks"]["freeze"], False)
+            self.assertEqual(r["verdict"], "FAIL")
+            self.assertIn("freeze", r["failed"])
+
+    @unittest.skipUnless(HAS_FFMPEG, "ffmpeg 不可用")
+    def test_generative_gate_unchanged(self):
+        # 生成类/无 mode：0.26 的崩坏片照拦（标定报告 h3-diag/A）
+        job = {"params": {}}
+        with tempfile.TemporaryDirectory() as td:
+            p = _freeze_then_move(Path(td))     # ratio≈0.5 > 0.2
+            r = v.verify_file(p, {"freeze": {"ratio_max": 0.2, "longest_max_s": 1.0}},
+                              job, None, "video")
+            self.assertIs(r["checks"]["freeze"], False)
+            self.assertEqual(r["verdict"], "FAIL")
+
+    def test_is_full_freeze_pure_logic(self):
+        self.assertTrue(fz.is_full_freeze({"ok": True, "ratio": 1.0,
+                                          "longest_s": 5.0, "duration": 5.0}))
+        self.assertFalse(fz.is_full_freeze({"ok": True, "ratio": 0.716,
+                                           "longest_s": 1.875, "duration": 5.063}))
+        self.assertIsNone(fz.is_full_freeze({"ok": False}))
+
+    def test_expect_for_classification(self):
+        import json
+        from tools.p20 import render
+        wf_dir = _ROOT / "registry/workflows"
+        # 素材驱动：有 type=video 输入 / LoadVideo
+        for key in ("pack_video_wan_animate2_distilled", "seedvr2_3b_upscale_video",
+                    "pack_video_wan_vace_14b_v2v"):
+            wf = json.loads((wf_dir / f"{key}.json").read_text(encoding="utf-8"))
+            self.assertTrue(render._is_material_driven(wf), key)
+            self.assertEqual(render.expect_for(wf, {})["freeze"]["mode"],
+                             "full_freeze_only", key)
+        # 生成类：保留标定硬门禁
+        for key in ("pack_video_wan2_2_14b_i2v", "h3_t2v_121f",
+                    "pack_video_minimax_h3_r2v"):
+            wf = json.loads((wf_dir / f"{key}.json").read_text(encoding="utf-8"))
+            self.assertFalse(render._is_material_driven(wf), key)
+            self.assertNotIn("mode", render.expect_for(wf, {})["freeze"], key)
+
+
 class DegradeTest(unittest.TestCase):
     def test_no_ffmpeg_strict_fail(self):
         orig = fz._run

@@ -1,0 +1,49 @@
+{
+  "schema": "p20.model/v1",
+  "key": "z_image_turbo_bf16_utility_z_image_turbo_2k",
+  "name": "z_image_turbo_bf16",
+  "version": 1,
+  "kind": "image",
+  "family": "z_image_turbo_bf16",
+  "primary": "unet",
+  "files": {
+    "unet": {
+      "name": "z_image_turbo_bf16.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "z_image_turbo_bf16"
+      }
+    },
+    "clip": {
+      "name": "qwen_3_4b.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "qwen_3_4b"
+      }
+    },
+    "vae": {
+      "name": "ae.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "ae"
+      }
+    },
+    "upscale": {
+      "name": "RealESRGAN_x4plus.safetensors",
+      "loader": "UpscaleModelLoader",
+      "input": "model_name",
+      "match": {
+        "contains": "RealESRGAN_x4plus"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}

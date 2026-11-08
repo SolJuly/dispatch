@@ -1,0 +1,9 @@
+== p20ctl validate ==
+⚠ h3_i2v_121f × h3 未验证（执行需 --allow-experimental）
+
+工作流 7 · 模型 4 · verified 4 · equivalent 2 · experimental 1 · incompatible 0
+✓ 全部通过
+
+== jobctl validate --deep ==
+
+全部通过（共 19 个）

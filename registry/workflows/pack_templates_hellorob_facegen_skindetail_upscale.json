@@ -1,0 +1,122 @@
+{
+ "schema": "p20.workflow/v1",
+ "key": "pack_templates_hellorob_facegen_skindetail_upscale",
+ "name": "人像精修 · 皮肤细节 + 风格 LoRA + 放大（尚未开发）",
+ "description": "人像洗图流水线：皮肤细节、风格化、超分。输入：1 张人像；输出：高清图。缺权重与节点。（🚧 尚未开发）",
+ "version": 1,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/pack/templates_hellorob_facegen_skindetail_upscale.api.json",
+ "model": {
+  "key": "z_image_turbo_bf16_templates_hellorob_faceg",
+  "slots": {
+   "clip": {
+    "node": "1313",
+    "input": "clip_name"
+   },
+   "vae": {
+    "node": "1314",
+    "input": "vae_name"
+   },
+   "unet": {
+    "node": "1317",
+    "input": "unet_name"
+   },
+   "lora": {
+    "node": "1322",
+    "input": "lora_name"
+   },
+   "ckpt": {
+    "node": "1344",
+    "input": "ckpt_name"
+   },
+   "upscale": {
+    "node": "1345",
+    "input": "model_name"
+   },
+   "lora_2": {
+    "node": "1362",
+    "input": "lora_name"
+   }
+  }
+ },
+ "params": {
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "default": "A clean, high-key studio portrait features a central subject captured in a sharp headshot compositio…",
+   "bindings": [
+    {
+     "node": "1318",
+     "input": "text"
+    }
+   ]
+  },
+  "neg_prompt": {
+   "type": "string",
+   "required": false,
+   "default": "plastic, smooth, glossy, cartoon, anime, worst quality, low quality, illustration, 3d, 2d, painting,…",
+   "bindings": [
+    {
+     "node": "1353",
+     "input": "text"
+    }
+   ]
+  },
+  "prompt_2": {
+   "type": "string",
+   "required": false,
+   "default": "Close-up professional photograph of a woman, detailed face skin and visible skin pores, detailed nat…",
+   "bindings": [
+    {
+     "node": "1356",
+     "input": "text"
+    }
+   ]
+  },
+  "seed": {
+   "type": "int",
+   "min": 0,
+   "max": 2147483647,
+   "default": 0,
+   "bindings": [
+    {
+     "node": "1321",
+     "input": "seed"
+    }
+   ]
+  },
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "17",
+     "input": "image"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "282",
+  "input": "filename_prefix",
+  "kind": "image",
+  "ext": "png",
+  "pick": [
+   "images"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 20000
+ },
+ "limits": {
+  "max_minutes": 20,
+  "max_cost": 0.8
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "img.wash.skin · 洗图 · 人像皮肤细节 + 风格 LoRA · 许可：需自行核对模型卡 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+}

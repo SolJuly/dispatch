@@ -1,0 +1,51 @@
+{
+  "kind": "image",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "flux2_klein_4b",
+    "workflow": "workflows/flux2_klein_4b_fast.api.json",
+    "checkpoint": "flux-2-klein-4b/flux-2-klein-4b.safetensors",
+    "workflow_sha256": "dfa3ae3e16263f5a8fa88a7c34189dbb5a64770e124270ae0c4f0c944f1179fb",
+    "registry": {
+      "workflow_key": "flux2_klein_4b_fast",
+      "workflow_version": 1,
+      "model_key": "flux2_klein_4b",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "all",
+      "graph_sha256": "dfa3ae3e16263f5a8fa88a7c34189dbb5a64770e124270ae0c4f0c944f1179fb"
+    }
+  },
+  "params": {
+    "cfg": 1,
+    "height": 1024,
+    "prompt": "Cinematic close-up portrait of a young person with messy, dark brown hair dusted with fresh white snowflakes, featuring striking bright blue eyes and subtle freckles across the nose. The subject is bundled in a thick, textured scarf with earthy tones of purple, brown, and olive green, wearing a red garment visible at the collar. A hand gently touches the chin area near the mouth, conveying a sense of cold or contemplation. The background consists of a blurred snowy landscape with soft bokeh, emphasizing depth of field. Natural diffused lighting enhances the realistic skin texture and individual hair strands, creating an intimate, high-resolution 8k photorealistic atmosphere with cool winter color grading.",
+    "sampler": "euler",
+    "seed": 999,
+    "steps": 4,
+    "width": 1024
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "height": [
+      1024
+    ],
+    "images": 1,
+    "min_bytes": 20000,
+    "width": [
+      1024
+    ]
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

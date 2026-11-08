@@ -8,6 +8,7 @@
   python3 tools/p1/jobctl.py show <job_id>         # 状态链 + 事件 + 花费
   python3 tools/p1/jobctl.py status                # 刷新 reports/p1/status.json（架构图 H 区）
   python3 tools/p1/jobctl.py validate [--deep]     # 校验 tasks / job / manifest
+  python3 tools/p1/jobctl.py rm <job_id> [...]     # 删除作业（默认进 .trash，--purge 彻底删）
 
 只做单任务：同一时刻只允许一个作业（reports/p1/.job.lock），不排队、不并发。
 """
@@ -27,6 +28,16 @@ if str(ROOT) not in sys.path:
 from tools.p1 import ids, store, schema, state, status as status_mod  # noqa: E402
 from tools.p1 import verify as verify_mod  # noqa: E402
 from tools.p1 import tasks as tasks_mod  # noqa: E402
+
+# 提交锁排队窗口（秒）：并发/双击提交时，第二个请求等第一个建完再查重，
+# 而不是「两个都查到没重复、各建一个作业各开一台 GPU」。
+SUBMIT_LOCK_WAIT = 15
+# 只有「主链中还没走到终态」的作业才叫进行中（幂等复用）。
+# FAILED_* / FAILED / ABORTED / RESUMING 不在主链：失败作业不该被复用，
+# 否则用户重提一个失败任务会拿到那个死掉的 job_id 且什么都不执行（2026-11-08 审计实测）。
+DEDUP_ACTIVE_STATES = set(state.MAIN_CHAIN) - {state.DONE}
+# 复用标记：webui / p20ctl 据此识别「这次没有新建作业」，避免重复 spawn run.py
+DEDUP_REUSE_MARK = "DEDUP_REUSE"
 
 SPEC_DEFAULTS = {
     "kind": "video",
@@ -126,22 +137,22 @@ def _sha256_file(p: Path) -> str:
     return h.hexdigest()
 
 
-def _find_same_hash(ph: str) -> list[tuple[str, str]]:
-    out = []
-    for jid in store.list_jobs():
-        j = store.read_json(store.job_file(jid))
-        if j and j.get("params_hash") == ph:
-            out.append((jid, j.get("state", "?")))
-    return out
-
-
 def cmd_new(a) -> int:
     spec = _load_spec(Path(a.spec))
+    kind_hint = spec.get("kind", "video")
+    # 视频专属的期望项（时长/冻结/黑帧）不能套到 image 作业上：
+    # 否则 png 产物会被拿去测时长，复验必挂（P2.2 导入官方模板时暴露出来的老问题）。
+    VIDEO_ONLY_EXPECT = ("duration_s", "freeze")
+    # registry 工作流的产出来自输入素材（如放大的视频），时长/冻结阈值不该套模板默认值；
+    # 以 workflow 配置里的 expect_defaults 为准，缺省就交给 verify 跳过。
+    registry_wf = bool((spec.get("model") or {}).get("registry"))
     for k, v in SPEC_DEFAULTS.items():
         if k not in spec:
             spec[k] = v
         elif isinstance(v, dict) and isinstance(spec.get(k), dict):
             for kk, vv in v.items():
+                if k == "expect" and (kind_hint != "video" or registry_wf) and kk in VIDEO_ONLY_EXPECT:
+                    continue
                 spec[k].setdefault(kk, vv)
 
     model = spec.get("model") or {}
@@ -168,56 +179,79 @@ def cmd_new(a) -> int:
     if kind == "video" and "freeze" not in expect:
         expect["freeze"] = {"ratio_max": 0.20, "longest_max_s": 1.0}
     ph = store.params_hash(model, params, expect)
+    dedup = store.task_dedup_key(model, params)
 
-    same = _find_same_hash(ph)
-    finished = [x for x in same if x[1] == state.DONE]
-    if finished and not a.force:
-        _die(f"同参数作业已完成：{finished[0][0]}（state={finished[0][1]}）。"
-             f"重复跑会白烧钱；确实要重跑加 --force。")
-    if same and not finished:
-        print(f"⚠ 同参数作业尚未完成：{', '.join(x[0] for x in same)}（算一次新尝试）")
+    # 提交锁：把「查重 → 决定复用/拒绝 → mkdir 占位」变成一个原子操作。
+    # 没有这把锁，双击提交的两个进程会同时查到「无重复」、各建一个作业各开一台 GPU。
+    # 用独立的 .submit.lock，不与执行用的 .job.lock 互锁（执行可以跑几十分钟，
+    # 提交不该被它堵住；两个提交之间才需要互斥）。
+    try:
+        with store.JobLock(path=store.SUBMIT_LOCK_FILE, wait=SUBMIT_LOCK_WAIT):
+            same = store.find_same_task(model, params)
+            active = [x for x in same if x[1] in DEDUP_ACTIVE_STATES]
+            finished = [x for x in same if x[1] == state.DONE]
+            dead = [x for x in same if x[1] not in DEDUP_ACTIVE_STATES
+                    and x[1] != state.DONE]
 
-    # 幂等键落盘（job_id 先定，否则整体校验必然报 ID 非法）
-    job = {
-        "schema": schema.JOB_SCHEMA,
-        "job_id": ids.new_job_id(),
-        "created_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
-        "branch": a.branch or _branch(),
-        "kind": kind,
-        "task_ref": a.task or spec.get("task_ref"),
-        "model": model,
-        "params": params,
-        "params_hash": ph,
-        "expect": expect,
-        "freeze_policy": "strict" if kind == "video" else None,
-        "budget": spec.get("budget") or SPEC_DEFAULTS["budget"],
-        "instance": spec.get("instance") or SPEC_DEFAULTS["instance"],
-        "state": state.CREATED,
-        "state_seq": 1,
-    }
+            if not a.force:
+                if active:
+                    # 进行中：幂等复用，返回已有 job_id，绝不新建第二份
+                    jid, st = active[0]
+                    print(f"{store.DEDUP_REUSE_MARK} {jid}")
+                    _ok(f"同参数作业已在 {_fmt_state(st)}，复用：{jid}（未新建、未重复建机）")
+                    return 0
+                if finished:
+                    _die(f"同参数作业已完成：{finished[0][0]}（state={finished[0][1]}）。"
+                         f"重复跑会白烧钱；确实要重跑加 --force。")
+                if dead:
+                    # 失败/中止的旧作业不复用、也不拦：用户重提就是要再跑一次
+                    print(f"  同参数旧作业已结束（{dead[0][1]}），按新提交处理：{dead[0][0]}")
 
-    errs = schema.validate_job(job)
-    if errs:
-        print("✗ spec 校验不通过：", file=sys.stderr)
-        for e in errs:
-            print(f"  · {e}", file=sys.stderr)
-        return 1
+            # 幂等键落盘（job_id 先定，否则整体校验必然报 ID 非法）
+            job = {
+                "schema": schema.JOB_SCHEMA,
+                "job_id": ids.new_job_id(),
+                "created_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+                "branch": a.branch or _branch(),
+                "kind": kind,
+                "task_ref": a.task or spec.get("task_ref"),
+                "model": model,
+                "params": params,
+                "params_hash": ph,
+                "task_dedup_key": dedup,
+                "expect": expect,
+                "freeze_policy": "strict" if kind == "video" else None,
+                "budget": spec.get("budget") or SPEC_DEFAULTS["budget"],
+                "instance": spec.get("instance") or SPEC_DEFAULTS["instance"],
+                "state": state.CREATED,
+                "state_seq": 1,
+            }
 
-    # 原子占位：mkdir 撞了换 id（其余字段不变，无需重校验）
-    last = None
-    for _ in range(ids.MAX_RETRY):
-        try:
-            store.ensure_job_dir(job["job_id"])
-            break
-        except store.JobExists as e:
-            last = e
-            job["job_id"] = ids.new_job_id()
-            continue
-    else:
-        _die(f"job_id 连续 {ids.MAX_RETRY} 次冲突，放弃：{last}")
-    jid = job["job_id"]
+            errs = schema.validate_job(job)
+            if errs:
+                print("✗ spec 校验不通过：", file=sys.stderr)
+                for e in errs:
+                    print(f"  · {e}", file=sys.stderr)
+                return 1
 
-    state.init_job(job, reason=f"新建作业（{job.get('task_ref') or '未关联任务'}）")
+            # 原子占位：mkdir 撞了换 id（其余字段不变，无需重校验）
+            last = None
+            for _ in range(ids.MAX_RETRY):
+                try:
+                    store.ensure_job_dir(job["job_id"])
+                    break
+                except store.JobExists as e:
+                    last = e
+                    job["job_id"] = ids.new_job_id()
+                    continue
+            else:
+                _die(f"job_id 连续 {ids.MAX_RETRY} 次冲突，放弃：{last}")
+            jid = job["job_id"]
+
+            state.init_job(job, reason=f"新建作业（{job.get('task_ref') or '未关联任务'}）")
+    except store.JobLocked as e:
+        _die(f"提交排队超时：{e}")
+
     d = store.job_dir(jid)
     _ok(f"作业已建：{jid}")
     print(f"  目录   {store.rel(d)}")
@@ -282,7 +316,26 @@ def cmd_verify(a) -> int:
     if wf_path and not wf_path.exists():
         print(f"⚠ workflow 不存在：{wf}（params 项将跳过）")
 
-    res = verify_mod.verify_job(job, jdir / "artifacts", wf_path)
+    # registry 作业要看**渲染后**的图（frames/duration 是占位符，模板里还是默认值），
+    # 否则会像 run.py 之前那样把改过帧数的作业误判成 params 不匹配。
+    reg = (job.get("model") or {}).get("registry") or {}
+    rr = store.read_json(jdir / "render.json") or {}
+    graph = rr.get("graph") or {}
+    if reg.get("workflow_key") and graph:
+        from tools.p20 import registry as p20registry
+        try:
+            wf_cfg = p20registry.get_workflow(reg["workflow_key"],
+                                              version=reg.get("workflow_version"))
+        except Exception as e:
+            print(f"⚠ 取不到工作流配置（{e}），按 legacy 方式校验")
+            wf_cfg = None
+        if wf_cfg:
+            res = verify_mod.verify_job(job, jdir / "artifacts", None,
+                                        rendered_graph=graph, wf_config=wf_cfg)
+        else:
+            res = verify_mod.verify_job(job, jdir / "artifacts", wf_path)
+    else:
+        res = verify_mod.verify_job(job, jdir / "artifacts", wf_path)
     print(f"作业 {jid} · workflow {wf or '—'}")
     if res.get("reason"):
         print(f"✗ {res['reason']}")
@@ -344,6 +397,53 @@ def cmd_status(a) -> int:
     return 0
 
 
+# --------------------------------------------------------------------- rm
+def cmd_rm(a) -> int:
+    """删除作业目录：默认移到 jobs/.trash/（可恢复），--purge 彻底删除。"""
+    import shutil
+
+    ids_ = [x for x in a.job_id if x]
+    if not ids_:
+        _die("至少给一个 job_id")
+    trash = store.JOBS_DIR / ".trash"
+    rows = []
+    for jid in ids_:
+        d = store.JOBS_DIR / jid
+        if not d.is_dir():
+            rows.append((jid, "NOT_FOUND", ""))
+            continue
+        state_ = ""
+        try:
+            state_ = json.loads((d / "job.json").read_text(encoding="utf-8")).get("state") or ""
+        except (OSError, json.JSONDecodeError):
+            pass
+        if state_ in state.TERMINAL or not state_:
+            pass
+        elif not a.force:
+            rows.append((jid, "REFUSED", f"状态 {state_} 未结束（--force 可强删）"))
+            continue
+        # 发布副本
+        pub = store.ROOT / "reports" / "p1" / "jobs" / jid  # 仅用于路径基准
+        pub2 = Path("/srv/dsh-pub/jobs") / jid
+        if a.purge:
+            shutil.rmtree(d, ignore_errors=True)
+            shutil.rmtree(pub2, ignore_errors=True)
+            rows.append((jid, "PURGED", ""))
+        else:
+            trash.mkdir(parents=True, exist_ok=True)
+            dst = trash / jid
+            if dst.exists():
+                dst = trash / f"{jid}-{dt.datetime.now():%Y%m%d%H%M%S}"
+            shutil.move(str(d), str(dst))
+            shutil.rmtree(pub2, ignore_errors=True)
+            rows.append((jid, "TRASHED", str(dst.relative_to(store.ROOT))))
+    for jid, what, extra in rows:
+        print(f"{'✓' if what in ('TRASHED', 'PURGED') else '✗'} {jid} {what} {extra}")
+    bad = sum(1 for _, w, _ in rows if w not in ("TRASHED", "PURGED"))
+    print(f"共 {len(rows)} 个：成功 {len(rows) - bad}，失败 {bad}")
+    return 1 if bad else 0
+
+
 # --------------------------------------------------------------- validate
 def cmd_validate(a) -> int:
     res = schema.validate_all(deep=a.deep, job_id=a.job)
@@ -389,6 +489,12 @@ def main(argv=None) -> int:
     sp = sub.add_parser("verify", help="校验作业产物（6 条复验项）")
     sp.add_argument("job_id")
     sp.set_defaults(fn=cmd_verify)
+
+    sp = sub.add_parser("rm", help="删除作业（默认进 .trash，可恢复）")
+    sp.add_argument("job_id", nargs="+")
+    sp.add_argument("--purge", action="store_true", help="彻底删除，不进回收站")
+    sp.add_argument("--force", action="store_true", help="未结束的作业也删")
+    sp.set_defaults(fn=cmd_rm)
 
     sp = sub.add_parser("validate", help="校验 tasks / job / manifest")
     sp.add_argument("--deep", action="store_true", help="核对产物大小与 sha256")

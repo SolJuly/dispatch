@@ -1,0 +1,617 @@
+{
+  "1706": {
+    "class_type": "LTXVEmptyLatentAudio",
+    "inputs": {
+      "frames_number": [
+        "1733",
+        2
+      ],
+      "frame_rate": 25,
+      "batch_size": 1,
+      "audio_vae": [
+        "1723",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1707": {
+    "class_type": "LTXVCropGuides",
+    "inputs": {
+      "positive": [
+        "1711",
+        0
+      ],
+      "negative": [
+        "1711",
+        1
+      ],
+      "latent": [
+        "1720",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1708": {
+    "class_type": "EmptyLTXVLatentVideo",
+    "inputs": {
+      "width": 1280,
+      "height": 704,
+      "length": [
+        "1733",
+        2
+      ],
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1709": {
+    "class_type": "LTXVConditioning",
+    "inputs": {
+      "frame_rate": [
+        "1713",
+        0
+      ],
+      "positive": [
+        "1721",
+        0
+      ],
+      "negative": [
+        "1716",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1711": {
+    "class_type": "LTXVAddGuide",
+    "inputs": {
+      "frame_idx": 0,
+      "strength": 1,
+      "positive": [
+        "1709",
+        0
+      ],
+      "negative": [
+        "1709",
+        1
+      ],
+      "vae": [
+        "1722",
+        2
+      ],
+      "latent": [
+        "1727",
+        0
+      ],
+      "iclora_parameters": [
+        "1726",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1712": {
+    "class_type": "LTXVConcatAVLatent",
+    "inputs": {
+      "video_latent": [
+        "1711",
+        2
+      ],
+      "audio_latent": [
+        "1706",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1713": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a",
+      "values.a": 25
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1716": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, unreadable text on shirt or hat, incorrect lettering on cap (“PNTR”), incorrect t-shirt slogan (“JUST DO IT”), missing microphone, misplaced microphone, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, smiling, laughing, exaggerated sadness, wrong gaze direction, eyes looking at camera, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio, missing sniff sounds, incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, missing door or shelves, missing shallow depth of field, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.",
+      "clip": [
+        "1724",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1717": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": [
+        "1713",
+        0
+      ],
+      "bit_depth": "auto",
+      "color_space": "sRGB",
+      "images": [
+        "1718",
+        0
+      ],
+      "audio": [
+        "1719",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1718": {
+    "class_type": "VAEDecodeTiled",
+    "inputs": {
+      "tile_size": 768,
+      "overlap": 64,
+      "temporal_size": 4096,
+      "temporal_overlap": 64,
+      "samples": [
+        "1707",
+        2
+      ],
+      "vae": [
+        "1722",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1719": {
+    "class_type": "LTXVAudioVAEDecode",
+    "inputs": {
+      "samples": [
+        "1720",
+        1
+      ],
+      "audio_vae": [
+        "1723",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1720": {
+    "class_type": "LTXVSeparateAVLatent",
+    "inputs": {
+      "av_latent": [
+        "1734",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1721": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": [
+        "1731",
+        0
+      ],
+      "clip": [
+        "1724",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1722": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "ltx-2.3-22b-distilled-fp8.safetensors"
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1723": {
+    "class_type": "LTXVAudioVAELoader",
+    "inputs": {
+      "ckpt_name": "ltx-2.3-22b-distilled-fp8.safetensors"
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1724": {
+    "class_type": "LTXAVTextEncoderLoader",
+    "inputs": {
+      "text_encoder": "gemma_3_12B_it_fp4_mixed.safetensors",
+      "ckpt_name": "ltx-2.3-22b-distilled-fp8.safetensors",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1725": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors",
+      "strength_model": 1,
+      "model": [
+        "1722",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1726": {
+    "class_type": "GetICLoRAParameters",
+    "inputs": {
+      "iclora_model": [
+        "1725",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1727": {
+    "class_type": "LTXVImgToVideoInplace",
+    "inputs": {
+      "strength": 1,
+      "bypass": false,
+      "vae": [
+        "1722",
+        2
+      ],
+      "image": [
+        "200",
+        0
+      ],
+      "latent": [
+        "1708",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1728": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "1722",
+        0
+      ],
+      "clip": [
+        "1724",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1729": {
+    "class_type": "TextGenerateLTX2Prompt",
+    "inputs": {
+      "prompt": "A slow forward dolly shot on a bright, sunlit day in a lush jungle ruin. A lone figure in nature-themed armor stands before a weathered stone arch overgrown with ivy. A textured marble sphere wrapped in twisting vines levitates in the arch’s center, spinning slowly. As the camera glides forward, vines sway softly, leaves flutter in the light breeze. Strong golden sunlight streams through the canopy, illuminating the mossy ruins with bright, clear light. The scene feels vibrant and peaceful, with subtle natural motion.",
+      "max_length": 2048,
+      "sampling_mode": "on",
+      "thinking": false,
+      "use_default_template": true,
+      "clip": [
+        "1728",
+        1
+      ],
+      "image": [
+        "200",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1731": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": false,
+      "on_false": "A slow forward dolly shot on a bright, sunlit day in a lush jungle ruin. A lone figure in nature-themed armor stands before a weathered stone arch overgrown with ivy. A textured marble sphere wrapped in twisting vines levitates in the arch’s center, spinning slowly. As the camera glides forward, vines sway softly, leaves flutter in the light breeze. Strong golden sunlight streams through the canopy, illuminating the mossy ruins with bright, clear light. The scene feels vibrant and peaceful, with subtle natural motion.",
+      "on_true": [
+        "1729",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1733": {
+    "class_type": "GetImageSize",
+    "inputs": {},
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1734": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 0,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "linear_quadratic",
+      "denoise": 1,
+      "model": [
+        "1725",
+        0
+      ],
+      "positive": [
+        "1711",
+        0
+      ],
+      "negative": [
+        "1711",
+        1
+      ],
+      "latent_image": [
+        "1712",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "First-Last-Frame to Video (LTX-2.3)"
+    }
+  },
+  "1735": {
+    "class_type": "MoGeInference",
+    "inputs": {
+      "resolution_level": 9,
+      "fov_x_degrees": 0,
+      "batch_size": 4,
+      "force_projection": true,
+      "apply_mask": true,
+      "moge_model": [
+        "1738",
+        0
+      ],
+      "image": [
+        "1743",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Depth Estimation (MoGe)"
+    }
+  },
+  "1736": {
+    "class_type": "MoGeRender",
+    "inputs": {
+      "output": "depth_colored",
+      "moge_geometry": [
+        "1735",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Depth Estimation (MoGe)"
+    }
+  },
+  "1737": {
+    "class_type": "MoGeRender",
+    "inputs": {
+      "output": "depth",
+      "moge_geometry": [
+        "1735",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Depth Estimation (MoGe)"
+    }
+  },
+  "1738": {
+    "class_type": "LoadMoGeModel",
+    "inputs": {
+      "model_name": "moge_2_vitl_normal_fp16.safetensors"
+    },
+    "_meta": {
+      "title": "Video Depth Estimation (MoGe)"
+    }
+  },
+  "1739": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a > 2048",
+      "values.a": [
+        "1740",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Depth Estimation (MoGe)"
+    }
+  },
+  "1740": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "1745",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Depth Estimation (MoGe)"
+    }
+  },
+  "1741": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": [
+        "1739",
+        2
+      ],
+      "on_false": [
+        "1745",
+        0
+      ],
+      "on_true": [
+        "1746",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Depth Estimation (MoGe)"
+    }
+  },
+  "1742": {
+    "class_type": "MoGeRender",
+    "inputs": {
+      "output": "mask",
+      "moge_geometry": [
+        "1735",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Depth Estimation (MoGe)"
+    }
+  },
+  "1743": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": true,
+      "on_false": [
+        "1745",
+        0
+      ],
+      "on_true": [
+        "1741",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Depth Estimation (MoGe)"
+    }
+  },
+  "1744": {
+    "class_type": "ImageToMask",
+    "inputs": {
+      "channel": "red",
+      "image": [
+        "1742",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Depth Estimation (MoGe)"
+    }
+  },
+  "1745": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "692",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Depth Estimation (MoGe)"
+    }
+  },
+  "1746": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "resize_type": "scale longer dimension",
+      "resize_type.longer_size": 2048,
+      "scale_method": "area",
+      "input": [
+        "1745",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Depth Estimation (MoGe)"
+    }
+  },
+  "199": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "stone_ruins.mp4"
+    },
+    "_meta": {
+      "title": "LoadVideo"
+    }
+  },
+  "200": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "the_forgotten_gate.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  },
+  "68": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "video/ltx2.3_ic_lora",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "1717",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveVideo"
+    }
+  },
+  "692": {
+    "class_type": "Video Slice",
+    "inputs": {
+      "start_time": 0,
+      "duration": 5,
+      "strict_duration": false,
+      "video": [
+        "199",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Video Slice"
+    }
+  }
+}

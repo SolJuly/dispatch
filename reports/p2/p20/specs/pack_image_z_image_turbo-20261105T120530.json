@@ -1,0 +1,38 @@
+{
+  "kind": "image",
+  "task_ref": "PACK-SMOKE",
+  "model": {
+    "key": "z_image_turbo_bf16",
+    "workflow": "workflows/pack/image_z_image_turbo.api.json",
+    "checkpoint": "z_image_turbo_bf16.safetensors",
+    "workflow_sha256": "5bef494947d92555f2ef29b4b9e25e52b8a472f48d7e567252203c78411e4e47",
+    "registry": {
+      "workflow_key": "pack_image_z_image_turbo",
+      "workflow_version": 1,
+      "model_key": "z_image_turbo_bf16",
+      "model_version": 1,
+      "compat": "experimental",
+      "compat_basis": "unverified",
+      "setup_need": "all",
+      "graph_sha256": "5bef494947d92555f2ef29b4b9e25e52b8a472f48d7e567252203c78411e4e47"
+    }
+  },
+  "params": {
+    "prompt": "a red apple",
+    "seed": 7
+  },
+  "expect": {
+    "ext": "png",
+    "min_bytes": 20000
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

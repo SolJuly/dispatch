@@ -29,15 +29,19 @@ JOBCTL = _ROOT / "tools" / "p1" / "jobctl.py"
 JOB_ID_RE = re.compile(r"p1-\d{8}T\d{4}-[0-9a-f]{6}")
 
 
-def _new_job(spec: Path) -> tuple[str | None, str]:
-    """调 jobctl new 建作业（复用其校验/查重/原子占位），返回 (job_id, 错误)。"""
+def _new_job(spec: Path) -> tuple[str | None, str, bool]:
+    """调 jobctl new 建作业（复用其校验/查重/原子占位）。
+
+    返回 (job_id, 错误, 是否复用已有作业)。复用时调用方不应再次入队，
+    否则同一个 job 会在批次里排两次。
+    """
     p = subprocess.run([sys.executable, str(JOBCTL), "new", "--spec", str(spec)],
                        capture_output=True, text=True, cwd=str(_ROOT))
     out = (p.stdout or "") + (p.stderr or "")
     if p.returncode != 0:
-        return None, out.strip().splitlines()[-1] if out.strip() else f"rc={p.returncode}"
+        return None, out.strip().splitlines()[-1] if out.strip() else f"rc={p.returncode}", False
     m = JOB_ID_RE.search(out)
-    return (m.group(0) if m else None), ""
+    return (m.group(0) if m else None), "", store.DEDUP_REUSE_MARK in out
 
 
 def cmd_submit(a) -> int:
@@ -53,9 +57,14 @@ def cmd_submit(a) -> int:
     print(f"批次 {batch_id} · {len(specs)} 个 spec")
     ok_n = 0
     for s in specs:
-        jid, err = _new_job(s)
+        jid, err, reused = _new_job(s)
         if not jid:
             print(f"  ✗ {s.name}: {err}")
+            continue
+        if reused:
+            # 同参数作业已在跑/已建：jobctl 返回了它的 id，但本次没有新建，
+            # 别把它再塞进批次队列排一次（会重复执行同一份产物）。
+            print(f"  ↻ {s.name} → {jid} 同参数作业已存在，跳过重复入队")
             continue
         j = store.read_json(store.job_file(jid)) or {}
         ok, why = queue.submit(

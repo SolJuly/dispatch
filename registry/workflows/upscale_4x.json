@@ -1,0 +1,54 @@
+{
+ "schema": "p20.workflow/v1",
+ "key": "upscale_4x",
+ "name": "放大 4× · UltraSharp",
+ "description": "传统超分，4 倍放大，快但不补细节。输入：1 张图；输出：4× PNG。（✅ 可使用）",
+ "version": 1,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/upscale_4x.api.json",
+ "model": {
+  "key": "upscale_ultrasharp",
+  "slots": {
+   "up": {
+    "node": "up",
+    "input": "model_name"
+   }
+  }
+ },
+ "params": {
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "load",
+     "input": "image"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "save",
+  "input": "filename_prefix",
+  "kind": "image",
+  "ext": "png",
+  "pick": [
+   "images"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 200000,
+  "black_ratio_max": 0.5
+ },
+ "limits": {
+  "max_minutes": 20,
+  "max_cost": 0.8
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "P2.1 5.4：ImageUpscaleWithModel + 4x-UltraSharp；输出边长是输入的 4 倍。"
+}

@@ -21,6 +21,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -121,7 +122,7 @@ def _lock(job_id: str, opts):
     """批量模式用作业级锁（不同 job 可并行）；legacy 单机模式仍用全局锁。"""
     if getattr(opts, "batch", False):
         return store.per_job_lock(job_id)
-    return store.JobLock()
+    return store.JobLock(wait=getattr(opts, "wait_lock", 0) or 0)
 
 
 def _render_workflow(wf: dict, params: dict, prefix: str) -> dict:
@@ -166,6 +167,18 @@ def _ssh_run(host: str, port: str, password: str, cmd: str, timeout=600) -> tupl
 
 SCP_TIMEOUT = 300      # 单文件 5 分钟：100MB@10MB/s 只需 10s，留足余量
 SCP_RETRY = 2          # 失败重试次数（网络抖动很常见）
+
+
+def _scp_put(host: str, port: str, password: str, local: Path, remote: str,
+             timeout: int = 180) -> bool:
+    """把本地文件推到实例（img2img / inpaint 的输入图）。"""
+    cmd = ["sshpass", "-p", password, "scp", "-q", "-P", str(port),
+           "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+           str(local), f"root@{host}:{remote}"]
+    p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    if p.returncode != 0:
+        _say(f"  scp 上传失败：{(p.stderr or '')[:160]}")
+    return p.returncode == 0
 
 
 def _scp_get(host: str, port: str, password: str, remote: str, local: Path,
@@ -218,14 +231,66 @@ def _pick_image(cs, opts, job: dict) -> dict:
     return cs.resolve_image(IMAGE_KEYWORD)
 
 
+def _gpu_candidates(job: dict, opts) -> list[str]:
+    """候选卡型：--gpu 指定则只它一个，否则按 required_gpu 顺序去重。"""
+    if getattr(opts, "gpu", None):
+        return [opts.gpu]
+    raw = (job.get("instance") or {}).get("required_gpu") or ["4090_48G"]
+    out: list[str] = []
+    for g in raw:
+        if g and g not in out:
+            out.append(str(g))
+    return out or ["4090_48G"]
+
+
+def _pick_gpu(cs, job: dict, opts) -> str:
+    """按候选顺序挑第一个有现货的卡；全没货时最多等 --wait-stock 秒。
+
+    以前是 required_gpu[0] 定死：4090_48G 一旦没货，即使列表里还有 4090 也直接失败
+    （2026-11-07 的 wan21_i2v 作业就是这么死的）。
+    """
+    cands = _gpu_candidates(job, opts)
+    wait_s = int(getattr(opts, "wait_stock", 0) or 0)
+    stocks: dict[str, int] = {}
+    for g in cands:
+        try:
+            stocks[g] = cs.stock(g)
+        except Exception as e:                      # noqa: BLE001
+            _say(f"  {g} 库存查询失败（{type(e).__name__}: {e}），跳过预检")
+            stocks[g] = 1
+        if stocks[g] > 0:
+            if g != cands[0]:
+                _say(f"{cands[0]} 无现货 → 改用 {g}（{stocks[g]} 台可用）")
+            return g
+        if len(cands) > 1:
+            _say(f"  {g} 无现货，看下一个候选")
+    if wait_s > 0:
+        _say(f"候选卡都没货，最多等 {wait_s}s…")
+        t0 = time.time()
+        while time.time() - t0 < wait_s:
+            for g in cands:
+                try:
+                    if cs.stock(g) > 0:
+                        _say(f"{g} 有货了（等了 {time.time() - t0:.0f}s）")
+                        return g
+                except Exception:                   # noqa: BLE001
+                    pass
+            time.sleep(15)
+        raise RunError(f"{'/'.join(cands)} 等了 {wait_s}s 仍无现货（226604）",
+                       state.FAILED_PROVISION)
+    raise RunError(f"{'/'.join(cands)} 当前无现货（226604）。"
+                   f"换 --gpu，或加 --wait-stock 秒数排队等货",
+                   state.FAILED_PROVISION)
+
+
 def step_provision(job: dict, opts) -> dict:
     """建机并等 Running。"""
     from compshare.cs import CS, CompShareError
 
     cs = CS()
-    gpu = opts.gpu or (job.get("instance", {}).get("required_gpu") or ["4090_48G"])[0]
     hours = opts.hours
     img = _pick_image(cs, opts, job)
+    gpu = _pick_gpu(cs, job, opts)          # 按 required_gpu 顺序挑第一个有货的卡
     cpu_n, mem_gb = GPU_SPEC.get(gpu, (16, 64))
     price = cs.price(gpu, 1, cpu_n, mem_gb, "Postpay", 100, 0, image_id=img["CompShareImageId"])
     est = float(price.get("total") or 0) * hours
@@ -258,17 +323,6 @@ def step_provision(job: dict, opts) -> dict:
                     "host": got["host"], "port": got["port"], "password": got["password"],
                     "from_pool": True}
         _say("池内无空闲实例，回落到新建")
-
-    # 库存预检：无货直接失败，不要盲下单（226604 是常态，不是异常）
-    wait_s = int(getattr(opts, "wait_stock", 0) or 0)
-    if cs.stock(gpu) <= 0 and wait_s:
-        _say(f"{gpu} 无现货，最多等 {wait_s}s…")
-        t0 = time.time()
-        while time.time() - t0 < wait_s and cs.stock(gpu) <= 0:
-            time.sleep(15)
-    if cs.stock(gpu) <= 0:
-        raise RunError(f"{gpu} 当前无现货（226604）。换 --gpu 或加 --wait-stock 秒数",
-                       state.FAILED_PROVISION)
 
     # 库存检查通过≠下单成功：热门卡会被别人抢（226604 竞态），重试几次
     ids, last_err = None, None
@@ -331,11 +385,67 @@ def run_setup(uid: str, need: str = "all", ctx: dict | None = None) -> None:
     _say("setup 完成，自检通过")
 
 
-def step_ready(job: dict, opts, ctx: dict) -> None:
-    """等 ComfyUI 就绪 + 6 项资产可见。"""
-    from compshare.cs import CS
+def _registry_meta(job: dict) -> dict:
+    """registry 作业的元数据；legacy 作业返回 {}（所有新分支都以它为准，保证向后兼容）。"""
+    return ((job.get("model") or {}).get("registry") or {})
 
+
+def _apply_model_links(job: dict, ctx: dict) -> None:
+    """registry 模型可在配置里声明软链（setup.links）；legacy 作业零操作。"""
+    reg = _registry_meta(job)
+    if not reg:
+        return
+    from tools.p20 import assets as p20assets, registry as p20registry
+    model = p20registry.get_model(reg["model_key"], version=reg.get("model_version"))
+    ssh = lambda cmd, timeout=60: _ssh_run(ctx["host"], ctx["port"],   # noqa: E731
+                                          ctx["password"], cmd, timeout=timeout)
+
+    # 1) 配置里显式声明的软链（旧口径，保留兼容）
+    links = p20assets.apply_links(model, ssh)
+    bad = [x for x in links if not x.get("ok")]
+    if links:
+        _say(f"模型软链 {len(links) - len(bad)}/{len(links)} 就绪")
+    if bad:
+        raise RunError(f"模型软链失败：{bad[0].get('link')}（{bad[0].get('out')}）",
+                       state.FAILED_PROVISION)
+
+    # 2) 自动补链：按模型卡里的文件名去 /model 找，再链进 ComfyUI/models/<类型>/
+    #    静态表 compat_links.txt 覆盖不到新导入的 pack_* 模型，这里兜底。
+    try:
+        missing = p20assets.link_model_files(model, ssh)
+    except Exception as e:                      # noqa: BLE001
+        _say(f"  ⚠ 自动补链跳过（{type(e).__name__}: {e}）")
+        return
+    if missing:
+        _say(f"  ⚠ 这些权重在 /model 里没找到：{', '.join(missing[:6])}")
+    else:
+        _say("  自动软链已就绪（按文件名匹配 /model）")
+
+
+def step_ready(job: dict, opts, ctx: dict) -> None:
+    """等 ComfyUI 就绪 + 模型资产可见。
+
+    registry 作业：资产清单来自 registry/models/*.json（不再写死 H3/Qwen 文件名）；
+    legacy 作业：保持原逻辑一字不动。
+    """
     host, port, pwd = ctx["host"], ctx["port"], ctx["password"]
+    reg = _registry_meta(job)
+    if reg:
+        from tools.p20 import assets as p20assets, registry as p20registry
+        try:
+            model = p20registry.get_model(reg["model_key"],
+                                          version=reg.get("model_version"))
+        except Exception as e:
+            raise RunError(f"registry 模型读取失败：{e}", state.FAILED_PROVISION) from e
+        ok, missing, detail = p20assets.run_check(
+            model, lambda cmd, timeout=90: _ssh_run(host, port, pwd, cmd, timeout=timeout))
+        if ok:
+            _say(f"ComfyUI 就绪，{len(p20assets.asset_rules(model))} 项模型资产可见"
+                 f"（第 {detail.get('attempt')} 次探活）")
+            return
+        why = detail.get("why") or detail.get("error") or ""
+        raise RunError(f"模型资产不可见：{missing or why}（{str(why)[:200]}）",
+                       state.FAILED_PROVISION)
 
     check = ("source /root/miniconda3/bin/activate && python3 -c \""
              "import json,urllib.request;"
@@ -352,14 +462,55 @@ def step_ready(job: dict, opts, ctx: dict) -> None:
 
 
 def step_submit(job: dict, opts, ctx: dict) -> None:
-    """渲染 workflow 并提交，拿 prompt_id。"""
+    """渲染 workflow 并提交，拿 prompt_id。
+
+    registry 作业：节点/参数绑定全部来自配置（render_job），run.py 不认识任何节点名；
+    legacy 作业：仍走写死 5 个占位符的 _render_workflow，行为不变。
+    """
     wf_path = ROOT / job["model"]["workflow"]
     if not wf_path.exists():
         raise RunError(f"workflow 不存在：{wf_path}", state.FAILED_RUN)
-    wf = json.loads(wf_path.read_text(encoding="utf-8"))
-    graph = _render_workflow(wf, job.get("params") or {}, job["job_id"])
+    reg = _registry_meta(job)
+    if reg:
+        from tools.p20 import render as p20render
+        try:
+            graph, meta = p20render.render_job(job)
+        except Exception as e:
+            raise RunError(f"registry 渲染失败：{type(e).__name__}: {e}", state.FAILED_RUN) from e
+        store.atomic_write_json(store.job_file(job["job_id"], "render.json"),
+                                {"schema": "p20.render/v1", "job_id": job["job_id"],
+                                 "meta": meta, "graph": graph})
+        _say(f"registry 渲染：{meta['workflow_key']} v{meta['workflow_version']} × "
+             f"{meta['model_key']} v{meta['model_version']} · {meta['nodes']} 节点")
+        # 记下 output 节点：fetch 阶段要把它的产物排到主产物位
+        try:
+            from tools.p20 import registry as p20registry
+            wf_rec = p20registry.get_workflow(reg["workflow_key"],
+                                             version=reg.get("workflow_version"))
+            ctx["output_node"] = str((wf_rec.get("output") or {}).get("node") or "")
+        except Exception as e:
+            _say(f"  ⚠ 取 output 节点失败：{e}")
+            ctx["output_node"] = ""
+    else:
+        wf = json.loads(wf_path.read_text(encoding="utf-8"))
+        graph = _render_workflow(wf, job.get("params") or {}, job["job_id"])
 
     host, port, pwd = ctx["host"], ctx["port"], ctx["password"]
+
+    # img2img / inpaint：把本地输入图推到实例 input/（job.params.image_local 由 spec 归一化写入）
+    params = job.get("params") or {}
+    _ssh_run(host, port, pwd, "mkdir -p /root/ComfyUI/input", timeout=60)
+    for key in [k for k in params if re.fullmatch(r"(?:image|mask|audio|video)(?:_\d+)?", k)]:
+        remote_name = params.get(key)
+        if not remote_name:
+            continue
+        local_path = ROOT / "reports/p2/p21/inputs" / remote_name
+        if not local_path.is_file():
+            continue
+        if not _scp_put(host, port, pwd, local_path, f"/root/ComfyUI/input/{remote_name}"):
+            raise RunError(f"输入文件上传失败：{remote_name}", state.FAILED_RUN)
+        _say(f"输入已上传：{key}={remote_name}")
+
     payload = json.dumps({"prompt": graph, "client_id": "p1"}, ensure_ascii=False)
     cmd = ("source /root/miniconda3/bin/activate && python3 -c \""
            "import json,sys,urllib.request;"
@@ -369,11 +520,10 @@ def step_submit(job: dict, opts, ctx: dict) -> None:
            "print(urllib.request.urlopen(r,timeout=120).read().decode())\" "
            + "'" + payload.replace("'", "'\"'\"'") + "'")
     rc, out = _ssh_run(host, port, pwd, cmd, timeout=180)
-    import re as _re
-    m = _re.search(r'"prompt_id"\s*:\s*"([^"]+)"', out)
-    if not m:
+    from tools.p20 import comfy as p20comfy
+    pid = p20comfy.parse_prompt_id(out)
+    if not pid:
         raise RunError(f"提交失败：{out[-400:]}", state.FAILED_RUN)
-    pid = m.group(1)
     ctx["prompt_id"] = pid
     _say(f"已提交 prompt_id={pid}")
 
@@ -390,37 +540,90 @@ def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
            f"pid=sys.argv[1];"
            "e=h.get(pid);"
            "print(json.dumps(e if e else {}))\" " + pid)
+    fail_streak = 0
+    last_note = 0.0
     while time.time() - t0 < limit:
         rc, out = _ssh_run(host, port, pwd, cmd, timeout=120)
-        if rc == 0 and out.strip().startswith("{"):
-            try:
-                raw = out[out.index("{"):].splitlines()[0]
-                ent = json.loads(raw)
-            except (json.JSONDecodeError, ValueError):
-                ent = {}
+        if rc == 0:
+            fail_streak = 0
+            from tools.p20 import comfy as p20comfy
+            ent = p20comfy.parse_history(out)
             if ent:
-                st = ent.get("status", {})
-                if st.get("status_str") == "success":
-                    files = []
-                    for o in (ent.get("outputs") or {}).values():
-                        for k in ("images", "videos", "gifs"):
-                            for f in (o.get(k) or []):
-                                files.append((f.get("subfolder", ""), f.get("filename")))
+                st = p20comfy.status_of(ent)
+                if st == "success":
+                    files = p20comfy.extract_files(ent)
                     if not files:
                         raise RunError("任务成功但无输出文件", state.FAILED_FETCH)
+                    # 文件名 → 产出节点：主产物判定要用 output 节点，不能靠文件名排序
+                    try:
+                        by_node = p20comfy.extract_files_by_node(ent)
+                        ctx["file_nodes"] = {fn: nid for nid, _sub, fn in by_node}
+                    except Exception:
+                        ctx["file_nodes"] = {}
                     _say(f"推理完成：{len(files)} 个文件，耗时 {int(time.time()-t0)}s")
                     return sorted(files)
-                if st.get("status_str") == "error":
-                    detail = ""
-                    for m in (st.get("messages") or []):
-                        if isinstance(m, list) and m and m[0] == "execution_error":
-                            info = m[1]
-                            detail = f"{info.get('node_type')}: {info.get('exception_message')}"
-                            break
-                    raise RunError(f"推理失败：{detail or str(st.get('messages'))[:600]}",
-                                   state.FAILED_RUN)
+                if st == "error":
+                    raise RunError(f"推理失败：{p20comfy.extract_error(ent)}", state.FAILED_RUN)
+        else:
+            # 查询失败可能是 ssh 抖动，也可能是 ComfyUI 挂了（OOM/崩溃）。
+            # 以前这里只会一直等到 max_minutes（45 分钟）白烧 GPU：
+            # 每 30s 连续失败就去问一次进程还在不在。
+            fail_streak += 1
+            if fail_streak % 6 == 1:
+                alive = _comfy_alive(host, port, pwd)
+                if alive is False:
+                    raise RunError(
+                        f"ComfyUI 进程已退出（第 {int(time.time()-t0)}s，疑似显存不足/崩溃）",
+                        state.FAILED_RUN)
+        elapsed = int(time.time() - t0)
+        if elapsed - last_note >= 120:
+            _say(f"  推理中… 已等 {elapsed}s（每 2 分钟一次心跳）")
+            last_note = elapsed
         time.sleep(5)
     raise RunError(f"推理超时（{limit}s）", state.FAILED_RUN)
+
+
+_COMFY_PROC_RE = re.compile(r"[m]ain\.py")
+
+
+def _parse_comfy_alive(out: str, rc: int) -> bool | None:
+    """从一次探活的输出里判断 ComfyUI 死活。
+
+    三个坑（2026-11-07 修）：
+      1. 命令串自己会进远端 `bash -c` 的 cmdline，`pgrep -af 'ComfyUI.*main.py'`
+         会匹配到这条 shell，于是恒真 —— 模式写成 `[m]ain\.py` 才躲得掉自匹配；
+      2. 真实启动命令是 `python -u main.py --listen ...`，不带 ComfyUI 路径，
+         所以模式里不能依赖 ComfyUI 字样；
+      3. 只看进程不看端口，会被同名脚本骗过去，所以补一发 /system_stats。
+
+    True=活着；False=确实没了；None=这台机器 ssh 都不通，别判死刑。
+    """
+    text = out or ""
+    proc, marker, code = text.partition("---PROC---")
+    for line in proc.splitlines():
+        # 探活命令自己会出现在远端 bash 的 cmdline 里，跳过这些行再找进程
+        if "pgrep" in line or "bash -c" in line or "system_stats" in line:
+            continue
+        if _COMFY_PROC_RE.search(line):
+            return True
+    if code.strip().startswith("200"):
+        return True
+    # 看到 ---PROC--- 就说明远端命令真的跑完了（curl 连不上会返回 7，别把退出码当"未知"）
+    if marker:
+        return False
+    if rc == 0:
+        return False
+    return None
+
+
+def _comfy_alive(host: str, port: str, pwd: str) -> bool | None:
+    """ComfyUI 进程还在吗？True/False；ssh 都连不上就 None（别乱判死刑）。"""
+    rc, out = _ssh_run(host, port, pwd,
+                       "pgrep -af '[m]ain\\.py --listen' | head -5; echo '---PROC---'; "
+                       "curl -s -m 3 -o /dev/null -w '%{http_code}' "
+                       "http://127.0.0.1:8188/system_stats; true",
+                       timeout=60)
+    return _parse_comfy_alive(out, rc)
 
 
 def step_fetch(job: dict, opts, ctx: dict, files: list[tuple[str, str]]) -> list[Path]:
@@ -429,9 +632,15 @@ def step_fetch(job: dict, opts, ctx: dict, files: list[tuple[str, str]]) -> list
     art = jdir / "artifacts"
     art.mkdir(parents=True, exist_ok=True)
     local = []
+    primary_node = str(ctx.get("output_node") or "")
+    file_nodes = ctx.get("file_nodes") or {}
     for idx, (sub, fn) in enumerate(files, 1):
         remote = f"/root/ComfyUI/output/{sub}/{fn}" if sub else f"/root/ComfyUI/output/{fn}"
-        dst = art / f"{idx:02d}-{fn}"
+        # 00- 前缀保证 output 节点的产物排在最前，verify 以它为唯一主产物
+        if primary_node and str(file_nodes.get(fn, "")) == primary_node:
+            dst = art / f"00-primary-{fn}"
+        else:
+            dst = art / f"{idx:02d}-{fn}"
         _say(f"拉取 {fn}（{idx}/{len(files)}）…")
         if not _scp_get(ctx["host"], ctx["port"], ctx["password"], remote, dst):
             raise RunError(f"拉取失败（已成功 {len(local)}/{len(files)}）：{remote}",
@@ -441,13 +650,29 @@ def step_fetch(job: dict, opts, ctx: dict, files: list[tuple[str, str]]) -> list
 
 
 def step_verify(job: dict, opts, ctx: dict, arts: list[Path]) -> dict:
-    """跑 6 条复验项。"""
-    wf_path = ROOT / job["model"]["workflow"]
-    res = verify_mod.verify_job(job, store.job_dir(job["job_id"]) / "artifacts", wf_path)
+    """跑复验项。
+
+    registry 作业用「渲染后的图 + 配置里的绑定」回读参数（不再依赖 verify.py 的节点白名单）；
+    legacy 作业仍用模板图 + 内置 _PARAM_NODES。
+    """
+    jdir = store.job_dir(job["job_id"])
+    reg = _registry_meta(job)
+    if reg:
+        from tools.p20 import registry as p20registry
+        wf = p20registry.get_workflow(reg["workflow_key"], version=reg.get("workflow_version"))
+        rr = store.read_json(jdir / "render.json") or {}
+        graph = rr.get("graph") or {}
+        res = verify_mod.verify_job(job, jdir / "artifacts", None,
+                                    rendered_graph=graph, wf_config=wf)
+    else:
+        wf_path = ROOT / job["model"]["workflow"]
+        res = verify_mod.verify_job(job, jdir / "artifacts", wf_path)
     for a in res.get("artifacts", []):
         _say(f"  {a['file']}: {a['verdict']}  failed={a['failed'] or '—'}")
     if res["verdict"] != "PASS":
-        raise RunError(f"校验未通过：{res['artifacts'][0]['failed'] if res.get('artifacts') else '?'}",
+        bad = [f"{a['file']}: {','.join(a['failed'])}"
+               for a in (res.get("artifacts") or []) if a["verdict"] != "PASS"]
+        raise RunError(f"校验未通过：{'; '.join(bad) or res.get('reason') or '?'}",
                        state.FAILED_VERIFY)
     return res
 
@@ -498,6 +723,21 @@ def step_persist(job: dict, opts, ctx: dict, res: dict, arts: list[Path]) -> dic
                  "amount": round(hourly * minutes / 60, 4)},
         "state_history": [e.get("to") for e in state.read_events(job["job_id"]) if e.get("to")],
     }
+    reg = _registry_meta(job)
+    if reg:
+        rr = store.read_json(jdir / "render.json") or {}
+        meta = rr.get("meta") or {}
+        manifest["registry"] = {
+            "workflow_key": reg.get("workflow_key"),
+            "workflow_version": reg.get("workflow_version"),
+            "model_key": reg.get("model_key"),
+            "model_version": reg.get("model_version"),
+            "compat": (meta.get("compat") or {}).get("status") or reg.get("compat"),
+            "compat_basis": (meta.get("compat") or {}).get("basis") or reg.get("compat_basis"),
+            "graph_sha256": meta.get("graph_sha256"),
+            "template_sha256": meta.get("template_sha256"),
+            "registry_fingerprint": meta.get("registry_fingerprint"),
+        }
     man_path = jdir / "manifest.json"
     store.atomic_write_json(man_path, manifest)
     back = store.read_json(man_path)
@@ -567,6 +807,10 @@ STEP_STATE_MAP = {
 
 
 def _need(job: dict) -> str:
+    """setup 资产档位：registry 作业读模型配置，legacy 仍按模型 key 猜。"""
+    reg = _registry_meta(job)
+    if reg.get("setup_need"):
+        return reg["setup_need"]
     return "qwen" if str(job["model"]["key"]).startswith("qwen") else "h3"
 
 
@@ -623,6 +867,7 @@ def _do_step(name: str, job_id: str, job: dict, opts, ctx: dict) -> None:
                    gpu=(ctx.get("inst") or {}).get("GpuType"), hourly=ctx.get("hourly"))
     elif name == "setup":
         run_setup(ctx["uhost_id"], _need(job), ctx)
+        _apply_model_links(job, ctx)
         _mark_step(job_id, name)
     elif name == "ready":
         step_ready(job, opts, ctx)
@@ -644,7 +889,10 @@ def _do_step(name: str, job_id: str, job: dict, opts, ctx: dict) -> None:
         _run_posts(job, job_id)
         _mark_step(job_id, name)
     elif name == "release":
-        step_release(job, opts, ctx)
+        if ctx.get("salvage"):
+            _say("salvage：实例早已销毁，跳过销毁动作")
+        else:
+            step_release(job, opts, ctx)
         _mark_step(job_id, name)
     else:
         raise RunError(f"未知步骤 {name}", state.FAILED)
@@ -840,13 +1088,103 @@ def _abort(job_id: str, job: dict, opts) -> int:
                 state.transition(job_id, state.RELEASING, reason="abort：放弃续跑")
             except Exception as e:
                 _say(f"  ⚠ 转移到 RELEASING 失败：{e}")
-        try:
-            step_release(job, opts, ctx)
-        except Exception as e:
-            _say(f"  ⚠ 销毁异常：{e}")
+        elif cur not in state.TERMINAL:
+            # 正在跑的作业 abort 后必须落到 ABORTED，否则状态永远停在 RUNNING
+            try:
+                state.transition(job_id, state.ABORTED, reason="abort：人工中止")
+            except Exception as e:
+                _say(f"  ⚠ 转移到 ABORTED 失败：{e}")
+        released = False
+        for attempt in (1, 2):
+            try:
+                step_release(job, opts, ctx)
+                released = True
+                break
+            except Exception as e:
+                _say(f"  ⚠ 销毁异常（第 {attempt} 次）：{e}")
+                if attempt == 1:
+                    time.sleep(5)
         if state.load_job(job_id).get("state") == state.RELEASING:
             state.transition(job_id, state.FAILED, reason="abort 收尾")
-        _say("✓ 已放弃并清理")
+        if released:
+            _say("✓ 已放弃并清理")
+        else:
+            _say("✗ 作业已中止，但实例释放失败：请到控制台手动销毁，避免继续计费")
+    return 0
+
+
+def _refresh_expect(job_id: str, job: dict) -> dict:
+    """按当前工作流配置重算 expect（只对 registry 作业）。
+
+    作业 spec 是提交那一刻生成的：如果之后修了期望口径（例如 fps/duration_s），
+    老作业的 expect 会一直是错的。salvage 前先按现在的配置重算一次再校验。
+    """
+    reg = _registry_meta(job)
+    if not reg:
+        return job
+    try:
+        from tools.p20 import registry as p20registry, render as p20render
+        wf = p20registry.get_workflow(reg["workflow_key"], version=reg.get("workflow_version"))
+        new = p20render.expect_for(wf, job.get("params") or {})
+    except Exception as e:
+        _say(f"  ⚠ 重算 expect 失败（沿用原值）：{type(e).__name__}: {e}")
+        return job
+    old = job.get("expect") or {}
+    if new == old:
+        return job
+    _say(f"  重算 expect：时长 {old.get('duration_s')} → {new.get('duration_s')}")
+    job["expect"] = new
+    job["expect_refreshed_at"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
+    store.atomic_write_json(store.job_file(job_id), job)
+    return job
+
+
+def _salvage(job_id: str, job: dict, opts) -> int:
+    """产物已在 artifacts/：重新校验 + 落 manifest + 收尾，全程不建机、不销毁。
+
+    用途：校验口径本身错了（例如 expect 没跟着 frames 重算）导致 FAILED，
+    但 mp4/png 是好的。重跑一整单要再花一遍钱，salvage 只补状态，零 GPU 成本。
+    """
+    cur = job.get("state")
+    if cur not in state.FAIL_BRANCH and cur != state.FAILED:
+        _say(f"✗ salvage 只用于 FAILED/FAILED_*（当前 {cur}）")
+        return 1
+    arts = sorted(p for p in (store.job_dir(job_id) / "artifacts").glob("*") if p.is_file())
+    if not arts:
+        _say("✗ artifacts/ 里没有产物，无从收尾（只能重跑）")
+        return 1
+    steps = job.get("steps") or {}
+    job = _refresh_expect(job_id, job)
+    ctx = {
+        "uhost_id": (job.get("instance") or {}).get("uhost_id"),
+        "hourly": (steps.get("provision") or {}).get("hourly"),
+        "arts": arts,
+        "salvage": True,
+    }
+    with _lock(job_id, opts):
+        if cur in state.FAIL_BRANCH or cur == state.FAILED:
+            state.transition(job_id, state.RESUMING, reason="salvage：仅重跑校验后收尾")
+        job = state.load_job(job_id)
+        start = "persist" if (steps.get("verify") or {}).get("done") else "verify"
+        _say(f"salvage：{len(arts)} 个产物已在本地，从 {start} 起重放")
+        try:
+            _execute(job_id, job, opts, ctx, start_at=start)
+        except RunError as e:
+            _say(f"✗ salvage 失败：{e}")
+            cur2 = state.load_job(job_id).get("state")
+            if cur2 not in state.TERMINAL:
+                try:
+                    state.transition(job_id, state.FAILED, reason=f"salvage：{str(e)[:150]}")
+                except Exception:
+                    pass
+            return 1
+        if state.load_job(job_id).get("state") != state.DONE:
+            state.transition(job_id, state.DONE, reason="salvage 完成")
+        man = store.read_json(store.job_file(job_id, "manifest.json")) or {}
+        step_done(job, opts, ctx, man)
+        _say("✓ salvage 完成（未新建实例、未产生新费用）")
+        _ledger(job_id, (man.get("cost") or {}).get("amount", 0),
+                uhost=ctx.get("uhost_id"), model=job["model"]["key"], salvage=True)
     return 0
 
 
@@ -860,17 +1198,36 @@ def run(job_id: str, opts) -> int:
 
     if opts.dry_run:
         _say("--dry-run：只走状态机，不建机、不花钱")
-        wf = json.loads((ROOT / job["model"]["workflow"]).read_text(encoding="utf-8"))
-        g = _render_workflow(wf, job.get("params") or {}, job_id)
-        seeds = [n["inputs"].get("seed") for n in g.values() if "seed" in (n.get("inputs") or {})]
-        prompts = [n["inputs"].get("prompt") for n in g.values() if "prompt" in (n.get("inputs") or {})]
-        _say(f"  占位符渲染 OK：seed={seeds} · prompt 长度={[len(p) for p in prompts if p]}")
+        reg = _registry_meta(job)
+        if reg:
+            from tools.p20 import render as p20render
+            g, meta = p20render.render_job(job)
+            _say(f"  registry 渲染 OK：{meta['workflow_key']} v{meta['workflow_version']} × "
+                 f"{meta['model_key']} v{meta['model_version']} · 兼容性 "
+                 f"{meta['compat']['status']}")
+        else:
+            wf = json.loads((ROOT / job["model"]["workflow"]).read_text(encoding="utf-8"))
+            g = _render_workflow(wf, job.get("params") or {}, job_id)
+        seeds = []
+        prompts = []
+        for n in g.values():
+            ins = n.get("inputs") or {}
+            for k in ("seed", "noise_seed"):
+                if k in ins:
+                    seeds.append(ins[k])
+            for k in ("prompt", "text"):
+                if isinstance(ins.get(k), str):
+                    prompts.append(ins[k])
+        _say(f"  占位符渲染 OK：seed={seeds} · prompt 长度={[len(p) for p in prompts]}")
         _say(f"  节点数 {len(g)}，输出目录 {store.rel(store.job_dir(job_id))}")
         _say("  （真实执行请去掉 --dry-run）")
         return 0
 
     if getattr(opts, "abort", False):
         return _abort(job_id, job, opts)
+
+    if getattr(opts, "salvage", False):
+        return _salvage(job_id, job, opts)
 
     if opts.resume:
         return _resume(job_id, job, opts)
@@ -954,6 +1311,10 @@ def main(argv=None) -> int:
                     help="实例丢失后整条重跑：crashed/FAILED_* → PROVISIONING（清断点）")
     ap.add_argument("--batch", action="store_true",
                     help="批量模式：用作业级锁（不同 job 可并行），日志加 job 前缀")
+    ap.add_argument("--wait-lock", type=int, default=0,
+                    help="排队等单任务锁的最大秒数（0=拿不到立刻退出；控制台提交用 14400）")
+    ap.add_argument("--salvage", action="store_true",
+                    help="产物已在 artifacts/：只重跑校验+收尾，不建机、不销毁")
     a = ap.parse_args(argv)
     return run(a.job_id, a)
 

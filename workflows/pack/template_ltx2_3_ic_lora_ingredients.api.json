@@ -1,0 +1,465 @@
+{
+  "1725": {
+    "class_type": "LTXVEmptyLatentAudio",
+    "inputs": {
+      "audio_vae": [
+        "1742",
+        0
+      ],
+      "frames_number": [
+        "1753",
+        2
+      ],
+      "frame_rate": 25
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1726": {
+    "class_type": "LTXVCropGuides",
+    "inputs": {
+      "positive": [
+        "1730",
+        0
+      ],
+      "negative": [
+        "1730",
+        1
+      ],
+      "latent": [
+        "1739",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1727": {
+    "class_type": "EmptyLTXVLatentVideo",
+    "inputs": {
+      "width": 1280,
+      "height": 704,
+      "length": [
+        "1753",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1728": {
+    "class_type": "LTXVConditioning",
+    "inputs": {
+      "positive": [
+        "1740",
+        0
+      ],
+      "negative": [
+        "1735",
+        0
+      ],
+      "frame_rate": [
+        "1732",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1730": {
+    "class_type": "LTXVAddGuide",
+    "inputs": {
+      "positive": [
+        "1728",
+        0
+      ],
+      "negative": [
+        "1728",
+        1
+      ],
+      "vae": [
+        "1741",
+        2
+      ],
+      "latent": [
+        "1746",
+        0
+      ],
+      "image": [
+        "722",
+        0
+      ],
+      "iclora_parameters": [
+        "1745",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1731": {
+    "class_type": "LTXVConcatAVLatent",
+    "inputs": {
+      "video_latent": [
+        "1730",
+        2
+      ],
+      "audio_latent": [
+        "1725",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1732": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "values.a": 25
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1735": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, unreadable text on shirt or hat, incorrect lettering on cap (“PNTR”), incorrect t-shirt slogan (“JUST DO IT”), missing microphone, misplaced microphone, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, smiling, laughing, exaggerated sadness, wrong gaze direction, eyes looking at camera, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio, missing sniff sounds, incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, missing door or shelves, missing shallow depth of field, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.",
+      "clip": [
+        "1743",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1736": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": [
+        "1732",
+        0
+      ],
+      "bit_depth": 8,
+      "images": [
+        "1737",
+        0
+      ],
+      "audio": [
+        "1738",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1737": {
+    "class_type": "VAEDecodeTiled",
+    "inputs": {
+      "samples": [
+        "1726",
+        2
+      ],
+      "vae": [
+        "1741",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1738": {
+    "class_type": "LTXVAudioVAEDecode",
+    "inputs": {
+      "samples": [
+        "1739",
+        1
+      ],
+      "audio_vae": [
+        "1742",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1739": {
+    "class_type": "LTXVSeparateAVLatent",
+    "inputs": {
+      "av_latent": [
+        "1752",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1740": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": [
+        "1750",
+        0
+      ],
+      "clip": [
+        "1743",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1741": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "ltx-2.3-22b-distilled-fp8.safetensors"
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1742": {
+    "class_type": "LTXVAudioVAELoader",
+    "inputs": {},
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1743": {
+    "class_type": "LTXAVTextEncoderLoader",
+    "inputs": {},
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1744": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors",
+      "strength_model": 1,
+      "model": [
+        "1741",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1745": {
+    "class_type": "GetICLoRAParameters",
+    "inputs": {
+      "iclora_model": [
+        "1744",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1746": {
+    "class_type": "LTXVImgToVideoInplace",
+    "inputs": {
+      "vae": [
+        "1741",
+        2
+      ],
+      "image": [
+        "712",
+        0
+      ],
+      "latent": [
+        "1727",
+        0
+      ],
+      "bypass": true
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1747": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "1741",
+        0
+      ],
+      "clip": [
+        "1743",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1748": {
+    "class_type": "TextGenerateLTX2Prompt",
+    "inputs": {
+      "clip": [
+        "1747",
+        1
+      ],
+      "image": [
+        "712",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1750": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_true": [
+        "1748",
+        0
+      ],
+      "switch": false
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1752": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 288370150520961,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "linear_quadratic",
+      "denoise": 1,
+      "model": [
+        "1744",
+        0
+      ],
+      "positive": [
+        "1730",
+        0
+      ],
+      "negative": [
+        "1730",
+        1
+      ],
+      "latent_image": [
+        "1731",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "1753": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "722",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "LTX-2.3 IC-LoRA Video Generation"
+    }
+  },
+  "68": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "video/ltx2.3_ic_lora",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "1736",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveVideo"
+    }
+  },
+  "709": {
+    "class_type": "RepeatImageBatch",
+    "inputs": {
+      "image": [
+        "724",
+        0
+      ],
+      "amount": [
+        "717",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "RepeatImageBatch"
+    }
+  },
+  "712": {
+    "class_type": "EmptyImage",
+    "inputs": {},
+    "_meta": {
+      "title": "EmptyImage"
+    }
+  },
+  "717": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "values.a": 5,
+      "values.b": 25
+    },
+    "_meta": {
+      "title": "ComfyMathExpression"
+    }
+  },
+  "721": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "722",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "GetImageSize"
+    }
+  },
+  "722": {
+    "class_type": "ResizeAndPadImage",
+    "inputs": {
+      "image": [
+        "709",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Resize And Pad Image (Size)"
+    }
+  },
+  "724": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "german_shepherd_news_anchor_ref.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  }
+}

@@ -1,0 +1,181 @@
+{
+ "schema": "p20.workflow/v1",
+ "key": "sdxl_t2i",
+ "name": "文生图 · SDXL 1024（最快基线）",
+ "description": "约 7 秒一张的基础出图。输入：提示词；输出：1024×1024 PNG。（✅ 可使用）",
+ "version": 1,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/sdxl_t2i.api.json",
+ "model": {
+  "key": "sdxl_juggernaut",
+  "slots": {
+   "ckpt": {
+    "node": "ckpt",
+    "input": "ckpt_name"
+   }
+  }
+ },
+ "params": {
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "bindings": [
+    {
+     "node": "pos",
+     "input": "text"
+    }
+   ],
+   "description": "正向提示词"
+  },
+  "neg_prompt": {
+   "type": "string",
+   "default": "",
+   "bindings": [
+    {
+     "node": "neg",
+     "input": "text"
+    }
+   ],
+   "description": "负向提示词"
+  },
+  "seed": {
+   "type": "int",
+   "required": true,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "seed"
+    }
+   ]
+  },
+  "width": {
+   "type": "int",
+   "default": 1024,
+   "min": 512,
+   "max": 1536,
+   "multiple": 8,
+   "bindings": [
+    {
+     "node": "lat",
+     "input": "width"
+    }
+   ]
+  },
+  "height": {
+   "type": "int",
+   "default": 1024,
+   "min": 512,
+   "max": 1536,
+   "multiple": 8,
+   "bindings": [
+    {
+     "node": "lat",
+     "input": "height"
+    }
+   ]
+  },
+  "steps": {
+   "type": "int",
+   "default": 25,
+   "min": 1,
+   "max": 60,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "steps"
+    }
+   ]
+  },
+  "cfg": {
+   "type": "float",
+   "default": 6.0,
+   "min": 0.0,
+   "max": 30.0,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "cfg"
+    }
+   ]
+  },
+  "sampler": {
+   "type": "enum",
+   "default": "dpmpp_2m",
+   "values": [
+    "euler",
+    "euler_ancestral",
+    "dpmpp_2m",
+    "dpmpp_2m_sde",
+    "uni_pc"
+   ],
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "sampler_name"
+    }
+   ]
+  },
+  "scheduler": {
+   "type": "enum",
+   "default": "karras",
+   "values": [
+    "simple",
+    "normal",
+    "karras",
+    "beta"
+   ],
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "scheduler"
+    }
+   ]
+  },
+  "batch_size": {
+   "type": "int",
+   "default": 1,
+   "min": 1,
+   "max": 4,
+   "bindings": [
+    {
+     "node": "lat",
+     "input": "batch_size"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "save",
+  "input": "filename_prefix",
+  "kind": "image",
+  "ext": "png",
+  "pick": [
+   "images"
+  ],
+  "count": "{{BATCH_SIZE}}"
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 20000,
+  "images": "{{BATCH_SIZE}}",
+  "width": [
+   1024
+  ],
+  "height": [
+   1024
+  ],
+  "black_ratio_max": 0.5
+ },
+ "limits": {
+  "max_minutes": 20,
+  "max_cost": 0.8
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "P2.1 5.1 第二模型：4090 预热后约 3s/张，用于模型选择与 5.2/5.3 底座测试。",
+ "deprecated": true,
+ "deprecated_reason": "P2.2 起由 zimage_turbo_t2i_hq 替换；仅保留供历史作业复现/回滚，控制台不再展示"
+}

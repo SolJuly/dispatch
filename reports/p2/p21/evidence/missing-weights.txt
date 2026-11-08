@@ -1,0 +1,152 @@
+### scail2
+/model/ModelScope/Comfy-Org/SCAIL-2/diffusion_models/wan2.1_14B_SCAIL_2_fp16.safetensors
+/model/ModelScope/Comfy-Org/SCAIL-2/diffusion_models/wan2.1_14B_SCAIL_2_fp8_scaled.safetensors
+/model/ModelScope/Comfy-Org/SCAIL-2/diffusion_models/wan2.1_14B_SCAIL_2_int8_convrot.safetensors
+/model/ModelScope/Comfy-Org/SCAIL-2/diffusion_models/wan2.1_14B_SCAIL_2_mxfp8.safetensors
+/model/ModelScope/Comfy-Org/SCAIL-2/loras/wan2.1_SCAIL_2_DPO_lora_bf16.safetensors
+### minimax
+/model/ModelScope/Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_fl2va_bf16.safetensors
+/model/ModelScope/Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_fl2va_int8_convrot.safetensors
+/model/ModelScope/Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_fl2va_pruned_bf16.safetensors
+/model/ModelScope/Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_fl2va_pruned_fp8_scaled.safetensors
+/model/ModelScope/Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors
+/model/ModelScope/Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_fl2va_pruned_w6a8.safetensors
+/model/ModelScope/Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_ref2va_bf16.safetensors
+/model/ModelScope/Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_ref2va_int8_convrot.safetensors
+/model/ModelScope/Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_ref2va_pruned_bf16.safetensors
+/model/ModelScope/Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_ref2va_pruned_fp8_scaled.safetensors
+/model/ModelScope/Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors
+/model/ModelScope/Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_ref2va_pruned_w6a8.safetensors
+### esrgan
+/model/ModelScope/Comfy-Org/Real-ESRGAN_repackaged
+/model/ModelScope/Comfy-Org/Real-ESRGAN_repackaged/RealESRGAN_x4plus.safetensors
+### kijai
+DepthAnythingV2-safetensors
+LTX2.3_comfy
+MiniMax-H3-experimental
+MiniMax-H3_comfy
+vitpose_comfy
+### ltx
+/model/ModelScope/Kijai/LTX2.3_comfy
+/model/ModelScope/Kijai/LTX2.3_comfy/diffusion_models/ltx-2-3-22b-dev_transformer_only_fp8_input_scaled.safetensors
+/model/ModelScope/Kijai/LTX2.3_comfy/diffusion_models/ltx-2.3-22b-dev_transformer_only_bf16.safetensors
+/model/ModelScope/Kijai/LTX2.3_comfy/diffusion_models/ltx-2.3-22b-dev_transformer_only_fp8_scaled.safetensors
+/model/ModelScope/Kijai/LTX2.3_comfy/diffusion_models/ltx-2.3-22b-dev_transformer_only_mxfp8_block32.safetensors
+/model/ModelScope/Kijai/LTX2.3_comfy/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_bf16.safetensors
+/model/ModelScope/Kijai/LTX2.3_comfy/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_fp8_scaled.safetensors
+/model/ModelScope/Kijai/LTX2.3_comfy/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_mxfp8_block32.safetensors
+/model/ModelScope/Kijai/LTX2.3_comfy/diffusion_models/ltx-2.3-22b-distilled_transformer_only_bf16.safetensors
+/model/ModelScope/Kijai/LTX2.3_comfy/diffusion_models/ltx-2.3-22b-distilled_transformer_only_fp8_input_scaled.safetensors
+/model/ModelScope/Kijai/LTX2.3_comfy/diffusion_models/ltx-2.3-22b-distilled_transformer_only_fp8_input_scaled_v2.safetensors
+/model/ModelScope/Kijai/LTX2.3_comfy/diffusion_models/ltx-2.3-22b-distilled_transformer_only_fp8_input_scaled_v3.safetensors
+/model/ModelScope/Kijai/LTX2.3_comfy/diffusion_models/ltx-2.3-22b-distilled_transformer_only_fp8_scaled.safetensors
+### pai
+Wan2.2-Fun-Reward-LoRAs
+### wan_dirs
+/model/ModelScope/DesignerAZ/AniWan_I2V_14B_720P_GGUF
+/model/ModelScope/PAI/Wan2.2-Fun-Reward-LoRAs
+/model/ModelScope/QuantStack/Wan2.1-14B-T2V-FusionX-VACE
+/model/ModelScope/TurboDiffusion/TurboWan2.1-T2V-1.3B-480P
+/model/ModelScope/TurboDiffusion/TurboWan2.1-T2V-14B-480P
+/model/ModelScope/TurboDiffusion/TurboWan2.2-I2V-A14B-720P
+/model/ModelScope/TurboWan2.1-T2V-14B-720P
+/model/ModelScope/Wan-AI
+/model/ModelScope/Wan-AI/Wan2.1-T2V-1.3B-Diffusers
+/model/ModelScope/huyuefeitool/smoothMixWan22
+### seedvr7b
+lrwxrwxrwx 1 root root  83 Nov  4  2025 seedvr2_ema_7b_fp8_e4m3fn.safetensors -> /model/ModelScope/mirror013/SeedVR2_comfyUI/./seedvr2_ema_7b_fp8_e4m3fn.safetensors
+lrwxrwxrwx 1 root root  89 Nov  4  2025 seedvr2_ema_7b_sharp_fp8_e4m3fn.safetensors -> /model/ModelScope/mirror013/SeedVR2_comfyUI/./seedvr2_ema_7b_sharp_fp8_e4m3fn.safetensors
+### qwen_layered
+/model/ModelScope/Comfy-Org/Qwen-Image-Layered_ComfyUI/split_files/diffusion_models/qwen_image_layered_bf16.safetensors
+/model/ModelScope/Comfy-Org/Qwen-Image-Layered_ComfyUI/split_files/diffusion_models/qwen_image_layered_fp8mixed.safetensors
+/model/ModelScope/Comfy-Org/Qwen-Image-Layered_ComfyUI/split_files/vae/qwen_image_layered_vae.safetensors
+Warning: Permanently added '[117.50.185.109]:23' (ED25519) to the list of known hosts.
+### vace_dirs
+/model/ModelScope/QuantStack/Wan2.1-14B-T2V-FusionX-VACE
+### wanai
+Wan2.1-T2V-1.3B-Diffusers
+### wanai_vace
+### kijai_wan
+### ltx25
+/model/ModelScope/Kijai/LTX2.3_comfy
+/model/ModelScope/Lightricks/LTX-2.5
+/model/ModelScope/Lightricks/LTX-2.5
+### ltx_all
+/model/ModelScope/Kijai/LTX2.3_comfy
+/model/ModelScope/Lightricks/LTX-2
+/model/ModelScope/Lightricks/LTX-2-19b-IC-LoRA-Canny-Control
+/model/ModelScope/Lightricks/LTX-2-19b-IC-LoRA-Depth-Control
+/model/ModelScope/Lightricks/LTX-2-19b-IC-LoRA-Detailer
+/model/ModelScope/Lightricks/LTX-2-19b-IC-LoRA-Pose-Control
+/model/ModelScope/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-In
+/model/ModelScope/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Left
+/model/ModelScope/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Out
+/model/ModelScope/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Right
+Warning: Permanently added '[117.50.185.109]:23' (ED25519) to the list of known hosts.
+### ltx25_tree
+/model/ModelScope/Lightricks/LTX-2.5
+/model/ModelScope/Lightricks/LTX-2.5/._____temp
+/model/ModelScope/Lightricks/LTX-2.5/._____temp/diffusion_models
+/model/ModelScope/Lightricks/LTX-2.5/._____temp/latent_upscale_models
+/model/ModelScope/Lightricks/LTX-2.5/._____temp/loras
+/model/ModelScope/Lightricks/LTX-2.5/._____temp/model_patches
+/model/ModelScope/Lightricks/LTX-2.5/._____temp/text_encoders
+/model/ModelScope/Lightricks/LTX-2.5/._____temp/vae
+/model/ModelScope/Lightricks/LTX-2.5/diffusion_models
+/model/ModelScope/Lightricks/LTX-2.5/diffusion_models/ltx-2.5-22b-dev-transformer-bf16.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/diffusion_models/ltx-2.5-22b-dev-transformer-comfy-int8-convrot.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/diffusion_models/ltx-2.5-22b-distilled-transformer-bf16.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/latent_upscale_models
+/model/ModelScope/Lightricks/LTX-2.5/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/loras
+/model/ModelScope/Lightricks/LTX-2.5/loras/ltx-2.5-22b-distilled-lora-450-bf16.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/model_patches
+/model/ModelScope/Lightricks/LTX-2.5/model_patches/ltx-2.5-duration-head-bf16.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/text_encoders
+/model/ModelScope/Lightricks/LTX-2.5/text_encoders/gemma4-12b-with-proj-ltx-2.5-bf16.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/vae
+/model/ModelScope/Lightricks/LTX-2.5/vae/ltx-2.5-audio-vae-bf16.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/vae/ltx-2.5-video-vae-bf16.safetensors
+/model/ModelScope/Lightricks/LTX-2.5/vae/ltx-2.5-video-vae-conv-bf16.safetensors
+### ltx2_tree
+LICENSE
+README.md
+audio_vae
+configuration.json
+connectors
+latent_upsampler
+ltx-2-19b-dev-fp4.safetensors
+ltx-2-19b-dev-fp8.safetensors
+ltx-2-19b-dev.safetensors
+ltx-2-19b-distilled-fp8.safetensors
+Warning: Permanently added '[117.50.185.109]:23' (ED25519) to the list of known hosts.
+### qwen21
+/model/ModelScope/Comfy-Org/Qwen-Image-2.1/diffusion_models/qwen_image_2.1_bf16.safetensors
+/model/ModelScope/Comfy-Org/Qwen-Image-2.1/diffusion_models/qwen_image_2.1_int8_convrot.safetensors
+/model/ModelScope/Comfy-Org/Qwen-Image-2.1/diffusion_models/qwen_image_2.1_turbo_int8_convrot.safetensors
+/model/ModelScope/Comfy-Org/Qwen-Image-2.1/text_encoders/qwen3.5_9b_qwen_image_2.1_pe_i2i.int8_convrot.safetensors
+/model/ModelScope/Comfy-Org/Qwen-Image-2.1/text_encoders/qwen3.5_9b_qwen_image_2.1_pe_t2i.int8_convrot.safetensors
+/model/ModelScope/Comfy-Org/Qwen-Image-2.1/text_encoders/qwen3vl_8b_bf16.safetensors
+/model/ModelScope/Comfy-Org/Qwen-Image-2.1/text_encoders/qwen3vl_8b_int8_convrot.safetensors
+/model/ModelScope/Comfy-Org/Qwen-Image-2.1/text_encoders/qwen3vl_8b_w4a8.safetensors
+/model/ModelScope/Comfy-Org/Qwen-Image-2.1/vae/qwen_image_2.1_vae_bf16.safetensors
+### jugg
+/model/ModelScope/ONETranquil/juggernaut_XL_V9_Lightning
+/model/ModelScope/ONETranquil/juggernaut_XL_V9_Lightning/juggernaut XL_V9 + RDPhoto 2.safetensors
+### nmkd
+### skin_lora
+### void
+### fasth3
+/model/ModelScope/FastVideo/FastH3-Omni-Comfy
+/model/ModelScope/FastVideo/FastH3-Omni-Comfy/conversion/convert_omniref_comfy.py
+/model/ModelScope/FastVideo/FastH3-Omni-Comfy/diffusion_models/fasth3_omniref_8step_pruned_bf16.safetensors
+/model/ModelScope/FastVideo/FastH3-Omni-Comfy/diffusion_models/fasth3_omniref_8step_pruned_bf16.safetensors.receipt.json
+/model/ModelScope/FastVideo/FastH3-Omni-Comfy/diffusion_models/fasth3_omniref_8step_pruned_int8_convrot.safetensors
+/model/ModelScope/FastVideo/FastH3-Omni-Comfy/diffusion_models/fasth3_omniref_8step_pruned_int8_convrot.safetensors.receipt.json
+/model/ModelScope/FastVideo/FastVideo-FastH3-4-step-Preview-v1-LoRA
+/model/ModelScope/FastVideo/FastVideo-FastH3-4-step-Preview-v1-VSA-DataFree
+Warning: Permanently added '[117.50.185.109]:23' (ED25519) to the list of known hosts.

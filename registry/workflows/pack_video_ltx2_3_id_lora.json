@@ -1,0 +1,105 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_video_ltx2_3_id_lora",
+  "name": "人物一致性 · LTX 2.3 ID-LoRA（尚未开发）",
+  "description": "ID-LoRA 保持人物一致。输入：参考图 + 提示词；输出：MP4。缺 LoRA。（🚧 尚未开发）",
+  "version": 1,
+  "kind": "video",
+  "engine": "comfyui",
+  "graph": "workflows/pack/video_ltx2_3_id_lora.api.json",
+  "model": {
+    "key": "ltx_2_3_22b_dev_fp8_video_ltx2_3_id_lora",
+    "slots": {
+      "upscale": {
+        "node": "1394",
+        "input": "model_name"
+      },
+      "lora": {
+        "node": "1395",
+        "input": "lora_name"
+      },
+      "ckpt": {
+        "node": "1396",
+        "input": "ckpt_name"
+      },
+      "lora_2": {
+        "node": "1400",
+        "input": "lora_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "[VISUAL]: Opens with a medium shot, camera slowly pushes in toward the character. A man with short d…",
+      "bindings": [
+        {
+          "node": "1370",
+          "input": "text"
+        }
+      ]
+    },
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "pc game, console game, video game, cartoon, childish, ugly",
+      "bindings": [
+        {
+          "node": "1376",
+          "input": "text"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "1357",
+          "input": "noise_seed"
+        },
+        {
+          "node": "1358",
+          "input": "noise_seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "269",
+          "input": "image"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "341",
+    "input": "filename_prefix",
+    "kind": "video",
+    "ext": "mp4",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "limits": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "官方模板导入，未本地真机验证（compat=experimental）",
+  "fps": 25
+}

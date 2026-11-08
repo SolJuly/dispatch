@@ -1,0 +1,19 @@
+[17:43:33] 作业 p1-20261105T1739-94934d · 模型 seedvr2_3b · 预算 ¥1.2
+[17:43:34] 计划 4090 ×1 · 镜像 p2-comfy-media-v3 · ≈¥2.15/h
+[17:43:34] 预算上限 ¥1.2（预计 1.0h 上限 ¥2.15）
+[17:43:38] 已创建 uhost-1xc7qaoqvtqo，等 Running…
+  [   0s] uhost-1xc7qaoqvtqo p1-94934d -> Initializing (Initializing)
+  [  66s] uhost-1xc7qaoqvtqo p1-94934d -> 运行中 (Running)
+[17:44:45] sshd 就绪（0s）
+[17:44:45] 配置实例环境（挂载 + 禁 Manager + 软链 + 启动），资产需求=none
+[17:45:40] setup 完成，自检通过
+[17:45:43] ComfyUI 就绪，2 项模型资产可见（第 1 次探活）
+[17:45:43] registry 渲染：seedvr2_3b_upscale v1 × seedvr2_3b v1 · 5 节点
+[17:45:45] 输入已上传：image=in-f9bd4904.jpg
+[17:45:46] 已提交 prompt_id=cb4ee560-b1a9-4542-88e4-ba93376d0b83
+[17:46:08] 推理完成：1 个文件，耗时 21s
+[17:46:08] 拉取 p1-20261105T1739-94934d_00001_.png（1/1）…
+[17:46:09]   01-p1-20261105T1739-94934d_00001_.png: PASS  failed=—
+[17:46:09] manifest 已落盘（1 个产物，1.4 分钟）
+[17:46:10] 已提交销毁 uhost-1xc7qaoqvtqo
+[17:46:10] ✓ 闭环完成

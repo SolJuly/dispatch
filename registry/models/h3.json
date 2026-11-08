@@ -1,0 +1,75 @@
+{
+  "schema": "p20.model/v1",
+  "key": "h3",
+  "name": "MiniMax H3 Dasiwa Hybrid V2 INT8",
+  "version": 1,
+  "kind": "video",
+  "family": "minimax",
+  "primary": "unet",
+  "files": {
+    "unet": {
+      "name": "minimax/DasiwaMinimaxH3_dasiwaHybridV2_int8.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "dasiwaHybridV2"
+      }
+    },
+    "clip": {
+      "name": "qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "extra": {
+        "type": "minimax"
+      },
+      "match": {
+        "contains": "qwen3vl_32b_minimax_h3"
+      }
+    },
+    "vae": {
+      "name": "minimax_h3_video_vae_int8_convrot-v2.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "minimax_h3_video_vae"
+      }
+    }
+  },
+  "defaults": {
+    "steps": 20,
+    "cfg": 1.0,
+    "width": 768,
+    "height": 512,
+    "frames": 121
+  },
+  "constraints": {
+    "width": {
+      "min": 256,
+      "max": 1280,
+      "multiple": 16
+    },
+    "height": {
+      "min": 256,
+      "max": 1280,
+      "multiple": 16
+    },
+    "frames": {
+      "min": 1,
+      "max": 241
+    },
+    "steps": {
+      "min": 1,
+      "max": 50
+    }
+  },
+  "setup": {
+    "profile": "h3",
+    "links": [
+      {
+        "link": "/root/ComfyUI/models/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+        "target": "/model/ModelScope/Comfy-Org/MiniMax-H3/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors"
+      }
+    ]
+  },
+  "notes": "P1 已验证 T2V（p1-20261028T2145-85e4d5 / p1-20261028T2328-72fd7f）；I2V 结构多一个 LoadImage，兼容性单独判定。"
+}

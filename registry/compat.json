@@ -1,0 +1,350 @@
+{
+  "schema": "p20.compat/v1",
+  "note": "只记录人工确认的 verified / incompatible。equivalent 由「同模型文件 + 同图结构」自动推导；其余一律 experimental（默认拒绝执行）。",
+  "entries": [
+    {
+      "workflow": "detail_polish",
+      "model": "sdxl_juggernaut",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261103T1247-30c13c"
+      ],
+      "verified_at": "2026-11-03",
+      "notes": "低 denoise 0.25 重绘 + 4x 放大：768x1024 → 3072x4096，细节清晰，PASS"
+    },
+    {
+      "workflow": "flux2_klein_4b_fast",
+      "model": "flux2_klein_4b",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1227-611afe"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1227-611afe）"
+    },
+    {
+      "workflow": "h3_t2v_121f",
+      "model": "h3",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261028T2145-85e4d5",
+        "p1-20261028T2328-72fd7f"
+      ],
+      "verified_at": "2026-10-28",
+      "notes": "P1 H3 T2V 闭环两次 DONE，manifest PASS"
+    },
+    {
+      "workflow": "ltxv_2b_t2v",
+      "model": "ltxv_2b",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261101T1458-2e7352",
+        "p1-20261101T1534-569378"
+      ],
+      "verified_at": "2026-11-01",
+      "notes": "P2 M4 批量 LTXV 多次 DONE，manifest PASS"
+    },
+    {
+      "workflow": "pack_video_wan2_2_14b_flf2v",
+      "model": "wan2_2_i2v_high_noise_14b_fp8_scaled",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1321-1ae3c5"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1321-1ae3c5）"
+    },
+    {
+      "workflow": "pack_video_wan2_2_14b_i2v",
+      "model": "wan2_2_i2v_low_noise_14b_fp8_scaled",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1311-483d2d"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1311-483d2d）"
+    },
+    {
+      "workflow": "qwen_image_edit_2509",
+      "model": "qwen_image_edit_2509",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1817-70e8f8"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1817-70e8f8）"
+    },
+    {
+      "workflow": "qwen_image_t2i",
+      "model": "qwen_image",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261101T1822-8407bd"
+      ],
+      "verified_at": "2026-11-01",
+      "notes": "Qwen-Image 1024×1024 实跑 PASS，成本 ¥0.0681"
+    },
+    {
+      "workflow": "sdxl_img2img",
+      "model": "sdxl_juggernaut",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261103T1137-f17e27"
+      ],
+      "verified_at": "2026-11-03",
+      "notes": "M2 首次真机：原图上传→ImageScale→VAEEncode→denoise 0.55，27s PASS，构图保持、光线按 prompt 改变"
+    },
+    {
+      "workflow": "sdxl_inpaint",
+      "model": "sdxl_juggernaut",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261103T1219-b2df1a"
+      ],
+      "verified_at": "2026-11-03",
+      "notes": "M3 首次真机：底图+蒙版(白框+模糊16) denoise 0.85，24s PASS；蒙版外平均差 1.17/255、蒙版内 69.4/255"
+    },
+    {
+      "workflow": "sdxl_t2i",
+      "model": "sdxl_juggernaut",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261103T0059-998e34"
+      ],
+      "verified_at": "2026-11-03",
+      "notes": "M1 D2 首次真机：batch=2 两张 1024²，26s 推理，DONE+双 PASS，质量人工验收通过"
+    },
+    {
+      "workflow": "sdxl_t2i_lora",
+      "model": "sdxl_juggernaut",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261103T1252-d9b765"
+      ],
+      "verified_at": "2026-11-03",
+      "notes": "A/B 同 seed 同 prompt：strength 0 vs 1.2，PSNR 13.5dB / SSIM 0.33，LoRA 明显生效（厚涂）；对照作业 p1-20261103T1250-5a78db"
+    },
+    {
+      "workflow": "seedvr2_3b_upscale",
+      "model": "seedvr2_3b",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1739-94934d"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1739-94934d）"
+    },
+    {
+      "workflow": "seedvr2_3b_upscale_video",
+      "model": "seedvr2_3b",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1820-5abacf"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1820-5abacf）"
+    },
+    {
+      "workflow": "upscale_4x",
+      "model": "upscale_ultrasharp",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261103T1259-551e20"
+      ],
+      "verified_at": "2026-11-03",
+      "notes": "768x1024 → 3072x4096，13.2MB，PASS；修复 COMBO 选项解析后资产可见"
+    },
+    {
+      "workflow": "wan21_i2v_480p",
+      "model": "wan21_i2v",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261101T1818-71b2a0"
+      ],
+      "verified_at": "2026-11-01",
+      "notes": "官方 fp8 版实跑 PASS（社区 NVFP4 版已排除）"
+    },
+    {
+      "workflow": "zimage_turbo_batch4",
+      "model": "zimage_turbo",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1221-a9464d",
+        "p1-20261105T1224-958aaf"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1224-958aaf）"
+    },
+    {
+      "workflow": "zimage_turbo_controlnet_canny",
+      "model": "zimage_turbo_controlnet",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1231-246093"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1231-246093）"
+    },
+    {
+      "workflow": "zimage_turbo_img2img",
+      "model": "zimage_turbo",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1218-c198ca"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1218-c198ca）"
+    },
+    {
+      "workflow": "zimage_turbo_t2i",
+      "model": "zimage_turbo",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T1221-a9464d"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "p20ctl compat verify（p1-20261105T1221-a9464d）"
+    },
+    {
+      "workflow": "zimage_turbo_t2i_hq",
+      "model": "zimage_turbo",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261105T0857-ed3d5d"
+      ],
+      "verified_at": "2026-11-05",
+      "notes": "真机 4090：1024 基础 + 2x 细化到 2048，59s，PASS；成本 ¥0.1827（含两次提交失败重试）"
+    },
+    {
+      "workflow": "qwen_image_t2i_landscape",
+      "model": "qwen_image",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "81.5s，1024×768 横版，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "qwen_image_t2i_portrait",
+      "model": "qwen_image",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "21.4s，768×1024 竖版，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "h3_i2v_121f",
+      "model": "h3",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "307.2s，121 帧视频，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_fastvideo_fasth3_i2v",
+      "model": "fastvideo_fasth3_8step_v2_pruned_int",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "151.9s，FastH3 8 步 I2V，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_minimax_h3_r2v",
+      "model": "minimax_h3_ref2va_pruned_int8_convro",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "276.7s，多参考图生视频，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_minimax_h3_multiframe_reference",
+      "model": "minimax_h3_ref2va_pruned_int8_convro",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "266.7s，4 帧参考，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_wan_animate2",
+      "model": "wan_animate_2_int8_convrot",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "196.8s，动作迁移，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_wan_animate2_distilled",
+      "model": "wan_animate_2_distill_int8_convrot",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "257.1s，蒸馏加速版动作迁移，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_wan2_2_14b_s2v",
+      "model": "wan2_2_s2v_14b_fp8_scaled",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "141.6s，两段式 S2V（音频+参考图→视频）；原 8 段长视频模板图缺失，已重建为 base+1 段 extend，v4 API 直跑；首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_utility_z_image_turbo_2k_upscaler_app",
+      "model": "z_image_turbo_bf16_utility_z_image_turbo_2k",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-07",
+      "notes": "51.7s，2K 高清精绘 app，v4 API 直跑；首次正式作业后应替换为 job id"
+    }
+  ]
+}

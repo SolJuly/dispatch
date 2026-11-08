@@ -1,0 +1,75 @@
+{
+  "schema": "p20.model/v1",
+  "key": "flux2_klein_4b",
+  "name": "FLUX.2 Klein 4B（蒸馏，4 步）",
+  "version": 1,
+  "kind": "image",
+  "family": "flux2",
+  "primary": "unet",
+  "files": {
+    "unet": {
+      "name": "flux-2-klein-4b/flux-2-klein-4b.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "flux-2-klein-4b.safetensors"
+      }
+    },
+    "clip": {
+      "name": "qwen_3_4b.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "qwen_3_4b"
+      }
+    },
+    "vae": {
+      "name": "flux2-vae.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "flux2-vae"
+      }
+    }
+  },
+  "defaults": {
+    "steps": 4,
+    "cfg": 1.0,
+    "sampler_name": "euler",
+    "scheduler": "simple"
+  },
+  "constraints": {
+    "width": {
+      "min": 512,
+      "max": 1536,
+      "multiple": 32
+    },
+    "height": {
+      "min": 512,
+      "max": 1536,
+      "multiple": 32
+    },
+    "steps": {
+      "min": 2,
+      "max": 8
+    },
+    "cfg": {
+      "min": 0.5,
+      "max": 2.0
+    }
+  },
+  "setup": {
+    "profile": "all",
+    "links": [
+      {
+        "link": "/root/ComfyUI/models/vae/flux2-vae.safetensors",
+        "target": "/model/ModelScope/black-forest-labs/flux-3-image-klein-comfy/vae/flux2-vae.safetensors"
+      },
+      {
+        "link": "/root/ComfyUI/models/diffusion_models/flux-2-klein-4b/flux-2-klein-4b.safetensors",
+        "target": "/model/ModelScope/Comfy-Org/flux2-klein-4B/split_files/diffusion_models/flux-2-klein-4b.safetensors"
+      }
+    ]
+  },
+  "notes": "FLUX.2 Klein 4B（Apache-2.0，蒸馏 4 步）；UNET 用 flux-2-klein-4b/flux-2-klein-4b.safetensors；共享库的 flux2-vae 软链是断的，setup.links 指向 flux-3-image-klein-comfy 下的真实 VAE。"
+}

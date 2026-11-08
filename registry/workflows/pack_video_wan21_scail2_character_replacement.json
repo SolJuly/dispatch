@@ -1,0 +1,107 @@
+{
+ "schema": "p20.workflow/v1",
+ "key": "pack_video_wan21_scail2_character_replacement",
+ "name": "角色替换 · SCAIL-2（fp16，尚未开发）",
+ "description": "把视频里的人换成目标角色。输入：视频 + 角色图；输出：MP4。当前节点调用不匹配。（🚧 尚未开发）",
+ "version": 1,
+ "kind": "video",
+ "engine": "comfyui",
+ "graph": "workflows/pack/video_wan21_scail2_character_replacement.api.json",
+ "model": {
+  "key": "wan2_1_14b_scail_2_fp16",
+  "slots": {
+   "lora": {
+    "node": "1321",
+    "input": "lora_name"
+   },
+   "vae": {
+    "node": "1322",
+    "input": "vae_name"
+   },
+   "clip": {
+    "node": "1326",
+    "input": "clip_name"
+   },
+   "unet": {
+    "node": "1328",
+    "input": "unet_name"
+   },
+   "ckpt": {
+    "node": "1348",
+    "input": "ckpt_name"
+   },
+   "lora_2": {
+    "node": "1362",
+    "input": "lora_name"
+   }
+  }
+ },
+ "params": {
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "default": "A young woman with dark hair tied in a neat high bun, with a few loose strands framing her face, is …",
+   "bindings": [
+    {
+     "node": "1359",
+     "input": "text"
+    }
+   ]
+  },
+  "neg_prompt": {
+   "type": "string",
+   "required": false,
+   "default": "A young woman with dark hair tied in a neat high bun, with a few loose strands framing her face, is …",
+   "bindings": [
+    {
+     "node": "1404",
+     "input": "text"
+    }
+   ]
+  },
+  "image": {
+   "type": "video",
+   "required": true,
+   "bindings": [
+    {
+     "node": "155",
+     "input": "file"
+    }
+   ],
+   "description": "驱动/源视频（MP4/MOV/WebM）。"
+  },
+  "image_2": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "30",
+     "input": "image"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "202",
+  "input": "filename_prefix",
+  "kind": "video",
+  "ext": "mp4",
+  "pick": [
+   "videos",
+   "gifs"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "mp4",
+  "min_bytes": 50000
+ },
+ "limits": {
+  "max_minutes": 40,
+  "max_cost": 1.6
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "vid.character_replace · ★ 角色替换 / 视频换人（SCAIL-2） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+}

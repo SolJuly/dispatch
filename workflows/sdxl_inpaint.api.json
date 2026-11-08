@@ -1,0 +1,131 @@
+{
+  "ckpt": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "juggernautXL_v8Rundiffusion_V8.safetensors"
+    }
+  },
+  "img": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{IMAGE}}",
+      "upload": "image"
+    }
+  },
+  "msk": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{MASK}}",
+      "upload": "image"
+    }
+  },
+  "enc": {
+    "class_type": "VAEEncodeForInpaint",
+    "inputs": {
+      "pixels": [
+        "img",
+        0
+      ],
+      "vae": [
+        "ckpt",
+        2
+      ],
+      "mask": [
+        "tomask",
+        0
+      ],
+      "grow_mask_by": 6
+    }
+  },
+  "pos": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "{{PROMPT}}",
+      "clip": [
+        "ckpt",
+        1
+      ]
+    }
+  },
+  "neg": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "{{NEG_PROMPT}}",
+      "clip": [
+        "ckpt",
+        1
+      ]
+    }
+  },
+  "ks": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": "{{SEED}}",
+      "steps": 25,
+      "cfg": 6.0,
+      "sampler_name": "{{SAMPLER}}",
+      "scheduler": "{{SCHEDULER}}",
+      "denoise": "{{DENOISE}}",
+      "model": [
+        "ckpt",
+        0
+      ],
+      "positive": [
+        "pos",
+        0
+      ],
+      "negative": [
+        "neg",
+        0
+      ],
+      "latent_image": [
+        "enc",
+        0
+      ]
+    }
+  },
+  "dec": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "ks",
+        0
+      ],
+      "vae": [
+        "ckpt",
+        2
+      ]
+    }
+  },
+  "save": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "{{OUTPUT_PREFIX}}",
+      "images": [
+        "dec",
+        0
+      ]
+    }
+  },
+  "tomask": {
+    "class_type": "ImageToMask",
+    "inputs": {
+      "image": [
+        "blur",
+        0
+      ],
+      "channel": "red"
+    }
+  },
+  "blur": {
+    "class_type": "ImageBlur",
+    "inputs": {
+      "image": [
+        "msk",
+        0
+      ],
+      "blur_radius": 16,
+      "sigma": 1.0
+    }
+  }
+}

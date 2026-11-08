@@ -1,0 +1,44 @@
+{
+  "schema": "p20.model/v1",
+  "key": "seedvr2_3b",
+  "name": "SeedVR2 3B fp8（图片/视频还原放大）",
+  "version": 1,
+  "kind": "image",
+  "family": "seedvr2",
+  "primary": "dit",
+  "files": {
+    "dit": {
+      "name": "seedvr2_ema_3b_fp8_e4m3fn.safetensors",
+      "loader": "SeedVR2LoadDiTModel",
+      "input": "model",
+      "match": {
+        "contains": "seedvr2_ema_3b_fp8"
+      }
+    },
+    "vae": {
+      "name": "ema_vae_fp16.safetensors",
+      "loader": "SeedVR2LoadVAEModel",
+      "input": "model",
+      "match": {
+        "contains": "ema_vae_fp16"
+      }
+    }
+  },
+  "defaults": {
+    "resolution": 2048,
+    "seed": 42,
+    "color_correction": "lab"
+  },
+  "constraints": {
+    "resolution": {
+      "min": 512,
+      "max": 4096,
+      "multiple": 2
+    }
+  },
+  "setup": {
+    "profile": "none",
+    "links": []
+  },
+  "notes": "SeedVR2 3B fp8（ByteDance，Apache-2.0）：DiT + EMA VAE 都走 numz 的 SeedVR2 加载节点，不经过 UNETLoader（当前 ComfyUI 核心的 model_detection 不认 seedvr2 架构）。权重在共享库 /model/ModelScope/mirror013/SeedVR2_comfyUI，镜像里 /root/ComfyUI/models/SEEDVR2 有软链；resolution 是短边目标像素。"
+}

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>创作控制台 · P2</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><span class="logo">◧</span>创作控制台<span class="env" id="env">P2</span></div>
+  <nav class="tabs" id="tabs">
+    <a href="#/create" data-nav="create">创作台</a>
+    <a href="#/jobs" data-nav="jobs">任务</a>
+    <a href="#/history" data-nav="history">历史</a>
+    <a href="#/instances" data-nav="instances">运行环境</a>
+  </nav>
+  <div class="right">
+    <select id="base" title="数据源：真实后端 / 本地 Mock">
+      <option value="">线上（当前源）</option>
+      <option value="http://127.0.0.1:8099/files/23e00ec2">Mock :8099</option>
+    </select>
+    <label class="sw" title="开启后按间隔自动拉取；页面切到后台会自动暂停">
+      <input type="checkbox" id="auto" checked>自动刷新</label>
+    <select id="interval" title="轮询间隔">
+      <option value="3000">3s</option>
+      <option value="5000" selected>5s</option>
+      <option value="10000">10s</option>
+      <option value="0">手动</option>
+    </select>
+    <span class="sync" id="sync"><i class="live busy"></i><b>连接中…</b></span>
+  </div>
+</header>
+
+<div class="offline" id="offline" hidden>
+  <span>⚠ 与后端断开</span><span id="offlineMsg" class="mono"></span>
+  <button class="btn tiny" id="retry">立即重试</button>
+</div>
+
+<main>
+  <!-- ============ 创作台 ============ -->
+  <section id="view-create">
+    <div class="create-grid">
+      <div class="card">
+        <h3>新建作业 <span class="r" id="wfMeta"></span></h3>
+        <div class="pad">
+          <div class="flabel">选择工作流 <span class="hint-inline" id="wfCount"></span></div>
+          <div class="models" id="workflows"><div class="loading">加载 registry…</div></div>
+          <div id="formFields"></div>
+          <div class="actions">
+            <label class="sw" title="勾选后立即占用 GPU 执行并产生费用；不勾只建作业">
+              <input type="checkbox" id="runNow">立即执行（花钱）
+            </label>
+            <button class="btn" id="resolve">预演参数</button>
+            <button class="btn p big" id="submit">创建作业</button>
+            <span class="mono" id="submitMsg"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card side">
+        <h3>将要发生什么</h3>
+        <div class="pad">
+          <dl class="kv" id="wfSide"><dd>选择工作流后显示参数契约与预算</dd></dl>
+          <div id="resolveBox" hidden>
+            <div class="flabel">预演结果 <span class="hint-inline">/registry/resolve</span></div>
+            <dl class="kv" id="resolveKv"></dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 任务（进行中） ============ -->
+  <section id="view-jobs">
+    <div class="kpis" id="jkpis">
+      <div class="kpi"><div class="k">队列总数</div><div class="v">—</div><div class="s"></div></div>
+      <div class="kpi run"><div class="k">执行中</div><div class="v">—</div><div class="s"></div></div>
+      <div class="kpi que"><div class="k">排队</div><div class="v">—</div><div class="s"></div></div>
+      <div class="kpi ok"><div class="k">完成</div><div class="v">—</div><div class="s"></div></div>
+      <div class="kpi bad"><div class="k">失败</div><div class="v">—</div><div class="s"></div></div>
+    </div>
+    <div class="tip" id="dispatchbar" hidden></div>
+    <div class="card">
+      <h3>进行中的作业 <span class="r" id="qnote"></span></h3>
+      <div class="qlist" id="qlist"></div>
+      <div class="empty" id="qempty" hidden><span class="big">✓</span>没有进行中的作业</div>
+    </div>
+  </section>
+
+  <!-- ============ 结果 ============ -->
+  <section id="view-result"><div id="result"></div></section>
+
+  <!-- ============ 历史 ============ -->
+  <section id="view-history">
+    <div class="bar">
+      <div class="chips" id="chips"></div>
+      <div class="spacer"></div>
+      <select id="wfFilter"><option value="all">全部工作流</option></select>
+      <input type="text" id="q" placeholder="搜索 job_id / prompt" autocomplete="off">
+      <button class="btn" id="zip" disabled>批量下载 zip</button>
+      <button class="btn" id="reset">清空</button>
+    </div>
+    <div class="tw">
+      <table id="jt">
+        <colgroup><col style="width:38px"><col style="width:120px"><col style="width:150px">
+          <col><col style="width:150px"><col style="width:70px"><col style="width:96px"></colgroup>
+        <thead><tr><th><input type="checkbox" id="checkAll" title="全选"></th>
+          <th>状态</th><th>工作流</th><th>prompt</th><th>创建时间</th>
+          <th class="num">产物</th><th>操作</th></tr></thead>
+        <tbody id="jtb"></tbody>
+      </table>
+      <div class="empty" id="jempty" hidden><span class="big">▤</span><span id="jemptyMsg">没有作业</span></div>
+      <div class="loading" id="jloading" hidden>加载中…</div>
+    </div>
+    <div class="note" id="jfoot"></div>
+  </section>
+
+  <!-- ============ 运行环境 ============ -->
+  <section id="view-instances">
+    <div class="kpis" id="ikpis">
+      <div class="kpi"><div class="k">实例</div><div class="v">—</div><div class="s"></div></div>
+      <div class="kpi run"><div class="k">运行中</div><div class="v">—</div><div class="s"></div></div>
+      <div class="kpi"><div class="k">空闲</div><div class="v">—</div><div class="s"></div></div>
+      <div class="kpi rec"><div class="k">已回收</div><div class="v">—</div><div class="s"></div></div>
+      <div class="kpi"><div class="k">近窗花费</div><div class="v">—</div><div class="s"></div></div>
+    </div>
+    <div class="igrid" id="igrid"></div>
+    <div class="card" style="margin-top:12px">
+      <h3>Watchdog 回收记录 <span class="badge" id="wdn">—</span><span class="r" id="wdnote"></span></h3>
+      <div class="tw" style="border:0;border-radius:0">
+        <table><colgroup><col style="width:158px"><col style="width:230px"><col style="width:230px">
+          <col><col style="width:96px"></colgroup>
+          <thead><tr><th>时间</th><th>实例</th><th>关联任务</th><th>原因</th><th>动作</th></tr></thead>
+          <tbody id="wdb"><tr><td colspan="5" class="empty">—</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pad" id="wdfoot"></div>
+    </div>
+  </section>
+</main>
+
+<div class="drawer" id="drawer" hidden>
+  <div class="drawer-h"><b id="dtitle">详情</b><span class="mono" id="dmeta"></span>
+    <div class="spacer"></div>
+    <button class="btn tiny" id="dcopy">复制</button>
+    <button class="btn tiny" id="dclose">关闭</button>
+  </div>
+  <pre class="log" id="dlog"></pre>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

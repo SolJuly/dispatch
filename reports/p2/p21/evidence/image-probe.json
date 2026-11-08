@@ -1,0 +1,19 @@
+{
+  "started_at": "2026-11-06T00:50:39+08:00",
+  "gpu": "V100S",
+  "image": "compshareImage-1xc7km2mb0ob",
+  "raw": "### date\n2026-11-06T00:52:10+08:00\n### df\nFilesystem     Type     Size  Used Avail Use% Mounted on\noverlay        overlay   79G  2.1M   76G   1% /\noverlay        overlay   79G  2.1M   76G   1% /\noverlay        overlay   79G  2.1M   76G   1% /\noverlay        overlay   79G  2.1M   76G   1% /\noverlay        overlay   79G  2.1M   76G   1% /\n### du_top\n/root Warning: Permanently added '[117.50.213.132]:23' (ED25519) to the list of known hosts.\n",
+  "derived": {
+    "root_total": "",
+    "root_apparent": "",
+    "df_root": "Filesystem     Type     Size  Used Avail Use% Mounted on",
+    "done": false
+  },
+  "ssh_rc": 0,
+  "instance": "uhost-1xcmyx52i0ow",
+  "host": "117.50.213.132",
+  "hourly": 1.41,
+  "duration_s": 693.1,
+  "est_cost": 0.2715,
+  "finished_at": "2026-11-06T01:02:12+08:00"
+}

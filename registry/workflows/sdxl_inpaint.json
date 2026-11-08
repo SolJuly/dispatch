@@ -1,0 +1,179 @@
+{
+ "schema": "p20.workflow/v1",
+ "key": "sdxl_inpaint",
+ "name": "局部重绘 · SDXL（蒙版）",
+ "description": "只改蒙版区域，其余保持。输入：底图 + 蒙版 + 提示词；输出：1024 PNG。（✅ 可使用）",
+ "version": 1,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/sdxl_inpaint.api.json",
+ "model": {
+  "key": "sdxl_juggernaut",
+  "slots": {
+   "ckpt": {
+    "node": "ckpt",
+    "input": "ckpt_name"
+   }
+  }
+ },
+ "params": {
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "img",
+     "input": "image"
+    }
+   ],
+   "description": "底图"
+  },
+  "mask": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "msk",
+     "input": "image"
+    }
+   ],
+   "description": "蒙版 PNG：白色=重绘区域，黑色=保留"
+  },
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "bindings": [
+    {
+     "node": "pos",
+     "input": "text"
+    }
+   ]
+  },
+  "neg_prompt": {
+   "type": "string",
+   "default": "blurry, lowres, watermark",
+   "bindings": [
+    {
+     "node": "neg",
+     "input": "text"
+    }
+   ]
+  },
+  "denoise": {
+   "type": "float",
+   "default": 0.85,
+   "min": 0.3,
+   "max": 1.0,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "denoise"
+    }
+   ],
+   "description": "重绘强度；<1 时保留部分原纹理"
+  },
+  "grow_mask_by": {
+   "type": "int",
+   "default": 24,
+   "min": 0,
+   "max": 64,
+   "bindings": [
+    {
+     "node": "enc",
+     "input": "grow_mask_by"
+    }
+   ],
+   "description": "蒙版外扩像素，避免接缝"
+  },
+  "seed": {
+   "type": "int",
+   "required": true,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "seed"
+    }
+   ]
+  },
+  "steps": {
+   "type": "int",
+   "default": 25,
+   "min": 1,
+   "max": 60,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "steps"
+    }
+   ]
+  },
+  "cfg": {
+   "type": "float",
+   "default": 6.0,
+   "min": 0.0,
+   "max": 30.0,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "cfg"
+    }
+   ]
+  },
+  "sampler": {
+   "type": "enum",
+   "default": "dpmpp_2m",
+   "values": [
+    "euler",
+    "euler_ancestral",
+    "dpmpp_2m",
+    "dpmpp_2m_sde",
+    "uni_pc"
+   ],
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "sampler_name"
+    }
+   ]
+  },
+  "scheduler": {
+   "type": "enum",
+   "default": "karras",
+   "values": [
+    "simple",
+    "normal",
+    "karras",
+    "beta"
+   ],
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "scheduler"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "save",
+  "input": "filename_prefix",
+  "kind": "image",
+  "ext": "png",
+  "pick": [
+   "images"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 20000,
+  "black_ratio_max": 0.5
+ },
+ "limits": {
+  "max_minutes": 20,
+  "max_cost": 0.8
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "P2.1 5.3：LoadImage(底图) + LoadImage(蒙版) → VAEEncodeForInpaint(grow_mask_by) → KSampler(denoise) → 解码。保留区由 latent 的 noise mask 保证；M3 首选 SDXL 版（资产确定），Qwen-Image-ControlNet-Inpainting 作为 P2.2 质量升级项。"
+}

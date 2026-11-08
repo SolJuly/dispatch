@@ -1,0 +1,59 @@
+{
+  "kind": "video",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "ltxv_2b",
+    "workflow": "workflows/ltxv_2b_t2v.api.json",
+    "checkpoint": "ltx-2/ltx-video-2b-v0.9.5.safetensors",
+    "workflow_sha256": "647c8be5b4b76480d57977e760679ed95b83be1ddbdc9ca59e18c8a7c4ffe8a4",
+    "registry": {
+      "workflow_key": "ltxv_2b_t2v",
+      "workflow_version": 1,
+      "model_key": "ltxv_2b",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "real-run",
+      "setup_need": "all",
+      "graph_sha256": "647c8be5b4b76480d57977e760679ed95b83be1ddbdc9ca59e18c8a7c4ffe8a4"
+    }
+  },
+  "params": {
+    "cfg": 3,
+    "frames": 251,
+    "height": 768,
+    "neg_prompt": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
+    "prompt": "Cinematic montage of a serene young woman in flowing traditional white and blue robes, living harmoniously with nature. The sequence begins with her kneeling by a clear stream, smiling gently as she holds a small fish in her cupped hands, water droplets glistening on her skin. Transition to a wide shot of her sitting peacefully on a grassy riverbank at golden hour, eyes closed, face tilted toward the warm sunlight, bare feet resting near the water's edge. A close-up follows, capturing her profile bathed in dappled light filtering through bamboo leaves. Next, she is seen laughing joyfully while reaching up into a lush green tree to pick fruit, wearing a deep indigo garment. The scene shifts to her fishing under weeping willows, holding a bamboo rod with a woven basket beside her. Finally, she sits elegantly in a wooden boat amidst a lotus pond, holding a paper umbrella, looking back over her shoulder with a soft expression. High-quality 4k resolution, photorealistic style, dreamy atmosphere, soft focus background, natural lighting, slow motion effects, ethereal and tranquil mood.",
+    "seed": 6658,
+    "steps": 45,
+    "width": 1280
+  },
+  "expect": {
+    "black_ratio_max": 0.3,
+    "duration_s": [
+      9.74,
+      10.39
+    ],
+    "ext": "mp4",
+    "freeze": {
+      "longest_max_s": 1.0,
+      "ratio_max": 0.2
+    },
+    "height": [
+      768
+    ],
+    "min_bytes": 50000,
+    "width": [
+      1280
+    ]
+  },
+  "budget": {
+    "max_minutes": 30,
+    "max_cost": 1.0
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

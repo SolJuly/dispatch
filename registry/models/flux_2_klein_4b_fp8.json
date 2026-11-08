@@ -1,0 +1,41 @@
+{
+  "schema": "p20.model/v1",
+  "key": "flux_2_klein_4b_fp8",
+  "name": "flux-2-klein-4b-fp8",
+  "version": 1,
+  "kind": "image",
+  "family": "flux_2_klein_4b_fp8",
+  "primary": "unet",
+  "files": {
+    "unet": {
+      "name": "flux-2-klein-4b-fp8.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "flux-2-klein-4b-fp8"
+      }
+    },
+    "clip": {
+      "name": "qwen_3_4b.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "qwen_3_4b"
+      }
+    },
+    "vae": {
+      "name": "flux2-vae.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "flux2-vae"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}

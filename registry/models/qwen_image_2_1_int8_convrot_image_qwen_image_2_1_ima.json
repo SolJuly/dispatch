@@ -1,0 +1,49 @@
+{
+  "schema": "p20.model/v1",
+  "key": "qwen_image_2_1_int8_convrot_image_qwen_image_2_1_ima",
+  "name": "qwen_image_2.1_int8_convrot",
+  "version": 1,
+  "kind": "image",
+  "family": "qwen_image_2_1_int8_",
+  "primary": "unet",
+  "files": {
+    "unet": {
+      "name": "qwen_image_2.1_int8_convrot.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "qwen_image_2.1_int8_convrot"
+      }
+    },
+    "clip": {
+      "name": "qwen3vl_8b_int8_convrot.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "qwen3vl_8b_int8_convrot"
+      }
+    },
+    "vae": {
+      "name": "qwen_image_2.1_vae_bf16.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "qwen_image_2.1_vae_bf16"
+      }
+    },
+    "clip_2": {
+      "name": "qwen3.5_9b_qwen_image_2.1_pe_i2i.int8_convrot.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "qwen3.5_9b_qwen_image_2.1_pe_i2i.int8_convrot"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}

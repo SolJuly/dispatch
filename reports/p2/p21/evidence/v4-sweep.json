@@ -1,0 +1,259 @@
+{
+  "generated_at": "2026-11-07T01:28:19+08:00",
+  "uid": "uhost-1xe255rs9xyp",
+  "results": [
+    {
+      "workflow": "detail_polish",
+      "started_at": "2026-11-07T01:02:29+08:00",
+      "nodes": 10,
+      "meta": {
+        "workflow_key": "detail_polish",
+        "model_key": "sdxl_juggernaut"
+      },
+      "seconds": 34.3,
+      "status": "PASS",
+      "outputs": "{\"save\": {\"images\": [{\"filename\": \"p1-20261103T1247-30c13c_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 3072, \"height\": 4096}}]}}"
+    },
+    {
+      "workflow": "flux2_klein_4b_fast",
+      "started_at": "2026-11-07T01:03:04+08:00",
+      "nodes": 13,
+      "meta": {
+        "workflow_key": "flux2_klein_4b_fast",
+        "model_key": "flux2_klein_4b"
+      },
+      "seconds": 26.8,
+      "status": "PASS",
+      "outputs": "{\"13\": {\"images\": [{\"filename\": \"p1-20261105T1227-611afe_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 1024}}]}}"
+    },
+    {
+      "workflow": "pack_video_wan2_2_14b_flf2v",
+      "started_at": "2026-11-07T01:03:30+08:00",
+      "nodes": 16,
+      "meta": {
+        "workflow_key": "pack_video_wan2_2_14b_flf2v",
+        "model_key": "wan2_2_i2v_high_noise_14b_fp8_scaled"
+      },
+      "seconds": 460.5,
+      "status": "PASS",
+      "outputs": "{\"83\": {\"images\": [{\"filename\": \"p1-20261105T1321-1ae3c5_00001_.mp4\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"video\", \"width\": 640, \"height\": 640, \"duration\": 5.0625, \"fps\": 16.0, \"frame_count\": 81}}], \"animated\": [true]}}"
+    },
+    {
+      "workflow": "pack_video_wan2_2_14b_i2v",
+      "started_at": "2026-11-07T01:11:11+08:00",
+      "nodes": 23,
+      "meta": {
+        "workflow_key": "pack_video_wan2_2_14b_i2v",
+        "model_key": "wan2_2_i2v_low_noise_14b_fp8_scaled"
+      },
+      "seconds": 449.8,
+      "status": "PASS",
+      "outputs": "{\"108\": {\"images\": [{\"filename\": \"p1-20261106T1509-172e87_00001_.mp4\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"video\", \"width\": 640, \"height\": 640, \"duration\": 5.0625, \"fps\": 16.0, \"frame_count\": 81}}], \"animated\": [true]}}"
+    },
+    {
+      "workflow": "pack_video_wan2_2_14b_s2v",
+      "started_at": "2026-11-07T01:18:41+08:00",
+      "nodes": 19,
+      "meta": {
+        "workflow_key": "pack_video_wan2_2_14b_s2v",
+        "model_key": "wan2_2_s2v_14b_fp8_scaled"
+      },
+      "seconds": 5.9,
+      "status": "FAIL",
+      "error": "n2.2_s2v_14B_fp8_scaled.safetensors\"}}], \"dependent_outputs\": [\"113\"], \"class_type\": \"UNETLoader\"}, \"107\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"lora_name: 'wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors' not in (list of length 276)\", \"extra_info\": {\"input_name\": \"lora_name\", \"input_config\": null, \"received_value\": \"wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors\"}}], \"dependent_outputs\": [\"113\"], \"class_type\": \"LoraLoaderModelOnly\"}}}\nWarning: Permanently added '[117.50.180.115]:23' (ED25519) to the list of known hosts.\n",
+      "outputs": ""
+    },
+    {
+      "workflow": "qwen_image_edit_2509",
+      "started_at": "2026-11-07T01:18:47+08:00",
+      "nodes": 14,
+      "meta": {
+        "workflow_key": "qwen_image_edit_2509",
+        "model_key": "qwen_image_edit_2509"
+      },
+      "seconds": 67.7,
+      "status": "PASS",
+      "outputs": "{\"14\": {\"images\": [{\"filename\": \"p1-20261105T2252-f752fc_00002_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 1024}}]}}"
+    },
+    {
+      "workflow": "qwen_image_t2i",
+      "started_at": "2026-11-07T01:19:54+08:00",
+      "nodes": 9,
+      "meta": {
+        "workflow_key": "qwen_image_t2i",
+        "model_key": "qwen_image"
+      },
+      "seconds": 86.6,
+      "status": "PASS",
+      "outputs": "{\"save\": {\"images\": [{\"filename\": \"p1-20261103T1130-6520ef_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 1024}}]}}"
+    },
+    {
+      "workflow": "qwen_image_t2i_landscape",
+      "started_at": "2026-11-07T01:21:21+08:00",
+      "nodes": 9,
+      "meta": {
+        "workflow_key": "qwen_image_t2i_landscape",
+        "model_key": "qwen_image"
+      },
+      "seconds": 26.6,
+      "status": "PASS",
+      "outputs": "{\"save\": {\"images\": [{\"filename\": \"p1-20261101T2131-4d366a_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 768}}]}}"
+    },
+    {
+      "workflow": "qwen_image_t2i_portrait",
+      "started_at": "2026-11-07T01:21:48+08:00",
+      "nodes": 9,
+      "meta": {
+        "workflow_key": "qwen_image_t2i_portrait",
+        "model_key": "qwen_image"
+      },
+      "seconds": 21.6,
+      "status": "PASS",
+      "outputs": "{\"save\": {\"images\": [{\"filename\": \"p1-20261101T2126-9fb4ed_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 768, \"height\": 1024}}]}}"
+    },
+    {
+      "workflow": "sdxl_img2img",
+      "started_at": "2026-11-07T01:22:09+08:00",
+      "nodes": 9,
+      "meta": {
+        "workflow_key": "sdxl_img2img",
+        "model_key": "sdxl_juggernaut"
+      },
+      "seconds": 27.7,
+      "status": "PASS",
+      "outputs": "{\"save\": {\"images\": [{\"filename\": \"p1-20261103T1209-555bf0_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 1024}}]}}"
+    },
+    {
+      "workflow": "sdxl_inpaint",
+      "started_at": "2026-11-07T01:22:37+08:00",
+      "nodes": 11,
+      "meta": {
+        "workflow_key": "sdxl_inpaint",
+        "model_key": "sdxl_juggernaut"
+      },
+      "seconds": 15.0,
+      "status": "PASS",
+      "outputs": "{\"save\": {\"images\": [{\"filename\": \"p1-20261103T1219-b2df1a_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 1024}}]}}"
+    },
+    {
+      "workflow": "sdxl_t2i",
+      "started_at": "2026-11-07T01:22:52+08:00",
+      "nodes": 7,
+      "meta": {
+        "workflow_key": "sdxl_t2i",
+        "model_key": "sdxl_juggernaut"
+      },
+      "seconds": 6.5,
+      "status": "PASS",
+      "outputs": "{\"save\": {\"images\": [{\"filename\": \"p1-20261103T1325-8126cc_00002_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 1024}}]}}"
+    },
+    {
+      "workflow": "sdxl_t2i_lora",
+      "started_at": "2026-11-07T01:22:58+08:00",
+      "nodes": 8,
+      "meta": {
+        "workflow_key": "sdxl_t2i_lora",
+        "model_key": "sdxl_juggernaut"
+      },
+      "seconds": 11.5,
+      "status": "PASS",
+      "outputs": "{\"save\": {\"images\": [{\"filename\": \"p1-20261103T1333-5ab2a2_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 1024}}]}}"
+    },
+    {
+      "workflow": "seedvr2_3b_upscale",
+      "started_at": "2026-11-07T01:23:10+08:00",
+      "nodes": 5,
+      "meta": {
+        "workflow_key": "seedvr2_3b_upscale",
+        "model_key": "seedvr2_3b"
+      },
+      "seconds": 17.5,
+      "status": "PASS",
+      "outputs": "{\"5\": {\"images\": [{\"filename\": \"p1-20261105T2256-c6436d_00002_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 2048, \"height\": 2048}}]}}"
+    },
+    {
+      "workflow": "seedvr2_3b_upscale_video",
+      "started_at": "2026-11-07T01:23:27+08:00",
+      "nodes": 7,
+      "meta": {
+        "workflow_key": "seedvr2_3b_upscale_video",
+        "model_key": "seedvr2_3b"
+      },
+      "seconds": 163.7,
+      "status": "PASS",
+      "outputs": "{\"1\": {\"images\": [{\"filename\": \"in-902baae2.mp4\", \"subfolder\": \"\", \"type\": \"input\", \"metadata\": {\"kind\": \"video\", \"width\": 768, \"height\": 512, \"duration\": 3.0416666666666665, \"fps\": 24.0, \"frame_count\": 73}}], \"animated\": [true]}, \"7\": {\"images\": [{\"filename\": \"p1-20261105T1820-5abacf_00002_.mp4\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"video\", \"width\": 1620, \"height\": 1080, \"dura"
+    },
+    {
+      "workflow": "upscale_4x",
+      "started_at": "2026-11-07T01:26:11+08:00",
+      "nodes": 4,
+      "meta": {
+        "workflow_key": "upscale_4x",
+        "model_key": "upscale_ultrasharp"
+      },
+      "seconds": 9.0,
+      "status": "PASS",
+      "outputs": "{\"save\": {\"images\": [{\"filename\": \"p1-20261103T1259-551e20_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 3072, \"height\": 4096}}]}}"
+    },
+    {
+      "workflow": "zimage_turbo_batch4",
+      "started_at": "2026-11-07T01:26:20+08:00",
+      "nodes": 10,
+      "meta": {
+        "workflow_key": "zimage_turbo_batch4",
+        "model_key": "zimage_turbo"
+      },
+      "seconds": 46.6,
+      "status": "PASS",
+      "outputs": "{\"10\": {\"images\": [{\"filename\": \"p1-20261105T1224-958aaf_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 1024}}, {\"filename\": \"p1-20261105T1224-958aaf_00002_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 1024}}, {\"filename\": \"p1-20261105T1224-958aaf_00003_.png\", \"subfolder\": \"\", \"type\": \"output"
+    },
+    {
+      "workflow": "zimage_turbo_controlnet_canny",
+      "started_at": "2026-11-07T01:27:07+08:00",
+      "nodes": 15,
+      "meta": {
+        "workflow_key": "zimage_turbo_controlnet_canny",
+        "model_key": "zimage_turbo_controlnet"
+      },
+      "seconds": 19.5,
+      "status": "PASS",
+      "outputs": "{\"9\": {\"images\": [{\"filename\": \"p1-20261105T1231-246093_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 1024}}]}}"
+    },
+    {
+      "workflow": "zimage_turbo_img2img",
+      "started_at": "2026-11-07T01:27:26+08:00",
+      "nodes": 11,
+      "meta": {
+        "workflow_key": "zimage_turbo_img2img",
+        "model_key": "zimage_turbo"
+      },
+      "seconds": 14.4,
+      "status": "PASS",
+      "outputs": "{\"12\": {\"images\": [{\"filename\": \"p1-20261105T1218-c198ca_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 1024}}]}}"
+    },
+    {
+      "workflow": "zimage_turbo_t2i",
+      "started_at": "2026-11-07T01:27:41+08:00",
+      "nodes": 10,
+      "meta": {
+        "workflow_key": "zimage_turbo_t2i",
+        "model_key": "zimage_turbo"
+      },
+      "seconds": 6.9,
+      "status": "PASS",
+      "outputs": "{\"10\": {\"images\": [{\"filename\": \"p1-20261106T1505-269328_00002_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 1024, \"height\": 1024}}]}}"
+    },
+    {
+      "workflow": "zimage_turbo_t2i_hq",
+      "started_at": "2026-11-07T01:27:47+08:00",
+      "nodes": 14,
+      "meta": {
+        "workflow_key": "zimage_turbo_t2i_hq",
+        "model_key": "zimage_turbo"
+      },
+      "seconds": 31.6,
+      "status": "PASS",
+      "outputs": "{\"15\": {\"images\": [{\"filename\": \"p1-20261105T0940-8f18e8_00001_.png\", \"subfolder\": \"\", \"type\": \"output\", \"metadata\": {\"kind\": \"image\", \"width\": 2048, \"height\": 2048}}]}}"
+    }
+  ]
+}

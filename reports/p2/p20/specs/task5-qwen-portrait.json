@@ -1,0 +1,50 @@
+{
+  "kind": "image",
+  "task_ref": "P2.0-qwen_image_t2i_portrait",
+  "model": {
+    "key": "qwen_image",
+    "workflow": "workflows/qwen_image_t2i_portrait.api.json",
+    "checkpoint": "qwen/qwen_image_fp8_e4m3fn_scaled.safetensors",
+    "workflow_sha256": "34cfca2f70a91dc9dae49708eb017cddf2afec223762e981a22fc0dbaf1e7c0c",
+    "registry": {
+      "workflow_key": "qwen_image_t2i_portrait",
+      "workflow_version": 1,
+      "model_key": "qwen_image",
+      "model_version": 1,
+      "compat": "equivalent",
+      "compat_basis": "structure-equal:qwen_image_t2i",
+      "setup_need": "qwen",
+      "graph_sha256": "34cfca2f70a91dc9dae49708eb017cddf2afec223762e981a22fc0dbaf1e7c0c"
+    }
+  },
+  "params": {
+    "cfg": 2.5,
+    "height": 1024,
+    "neg_prompt": "low quality, blurry, watermark, text, deformed",
+    "prompt": "A tall ceramic vase with dried lavender on a wooden windowsill, soft overcast daylight, minimalist interior, photorealistic, vertical composition",
+    "seed": 20261103,
+    "steps": 15,
+    "width": 768
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "height": [
+      1024
+    ],
+    "min_bytes": 15000,
+    "width": [
+      768
+    ]
+  },
+  "budget": {
+    "max_minutes": 30,
+    "max_cost": 1.0
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

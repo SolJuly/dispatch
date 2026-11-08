@@ -1,0 +1,52 @@
+{
+  "kind": "image",
+  "task_ref": "P2.0-zimage_turbo_t2i",
+  "model": {
+    "key": "zimage_turbo",
+    "workflow": "workflows/zimage_turbo_t2i.api.json",
+    "checkpoint": "z_image_turbo/z_image_turbo_bf16.safetensors",
+    "workflow_sha256": "fbd404efcaa5ef395d4386881c8bc0105c77e96d6a5fe78b9a328319a341081d",
+    "registry": {
+      "workflow_key": "zimage_turbo_t2i",
+      "workflow_version": 1,
+      "model_key": "zimage_turbo",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "all",
+      "graph_sha256": "fbd404efcaa5ef395d4386881c8bc0105c77e96d6a5fe78b9a328319a341081d"
+    }
+  },
+  "params": {
+    "cfg": 1.0,
+    "height": 512,
+    "prompt": "a red apple on a table",
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "seed": 1556208433,
+    "steps": 8,
+    "width": 512
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "height": [
+      512
+    ],
+    "images": 1,
+    "min_bytes": 20000,
+    "width": [
+      512
+    ]
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

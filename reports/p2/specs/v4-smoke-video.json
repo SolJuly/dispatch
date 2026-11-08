@@ -1,0 +1,43 @@
+{
+ "kind": "video",
+ "task_ref": "P2.2-v4-smoke-video",
+ "model": {
+  "key": "wan2_2_i2v_low_noise_14b_fp8_scaled",
+  "workflow": "workflows/pack/video_wan2_2_14B_i2v.api.json",
+  "checkpoint": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+  "workflow_sha256": "af14c248f59e7ccef3f39a804366d4daf39ad18660b76583fc12fef403d24bb7",
+  "registry": {
+   "workflow_key": "pack_video_wan2_2_14b_i2v",
+   "workflow_version": 1,
+   "model_key": "wan2_2_i2v_low_noise_14b_fp8_scaled",
+   "model_version": 1,
+   "compat": "experimental",
+   "compat_basis": "unverified",
+   "setup_need": "all",
+   "graph_sha256": "af14c248f59e7ccef3f39a804366d4daf39ad18660b76583fc12fef403d24bb7"
+  }
+ },
+ "params": {
+  "image": "in-a6891d7b.png",
+  "neg_prompt": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸…",
+  "prompt": "A young woman in a light dress walks slowly through a sunlit garden, camera follows her, gentle breeze, cinematic.",
+  "seed": 42
+ },
+ "expect": {
+  "ext": "mp4",
+  "min_bytes": 50000,
+  "freeze": {
+   "ratio_max": 0.2,
+   "longest_max_s": 1.0
+  },
+  "duration_s": [
+   4.8,
+   5.2
+  ],
+  "black_ratio_max": 0.5
+ },
+ "budget": {
+  "max_minutes": 30,
+  "max_cost": 1.5
+ }
+}

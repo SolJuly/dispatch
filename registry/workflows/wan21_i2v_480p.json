@@ -1,0 +1,175 @@
+{
+ "schema": "p20.workflow/v1",
+ "key": "wan21_i2v_480p",
+ "name": "图生视频 · Wan2.1 480P（49 帧）",
+ "description": "首帧生成约 3 秒 480P 视频。输入：首帧图 + 提示词；输出：MP4。（✅ 可使用）",
+ "version": 1,
+ "kind": "video",
+ "engine": "comfyui",
+ "graph": "workflows/wan21_i2v_480p.api.json",
+ "model": {
+  "key": "wan21_i2v",
+  "slots": {
+   "unet": {
+    "node": "unet",
+    "input": "unet_name"
+   },
+   "clip": {
+    "node": "clip",
+    "input": "clip_name"
+   },
+   "vae": {
+    "node": "vae",
+    "input": "vae_name"
+   },
+   "clip_vision": {
+    "node": "cvis",
+    "input": "clip_name"
+   }
+  }
+ },
+ "params": {
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "bindings": [
+    {
+     "node": "pos",
+     "input": "text"
+    }
+   ]
+  },
+  "neg_prompt": {
+   "type": "string",
+   "default": "",
+   "bindings": [
+    {
+     "node": "neg",
+     "input": "text"
+    }
+   ]
+  },
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "img",
+     "input": "image"
+    }
+   ],
+   "description": "首帧文件名（需已上传到 ComfyUI/input）"
+  },
+  "seed": {
+   "type": "int",
+   "required": true,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "seed"
+    }
+   ]
+  },
+  "width": {
+   "type": "int",
+   "default": 832,
+   "min": 256,
+   "max": 1280,
+   "multiple": 16,
+   "bindings": [
+    {
+     "node": "i2v",
+     "input": "width"
+    }
+   ]
+  },
+  "height": {
+   "type": "int",
+   "default": 480,
+   "min": 256,
+   "max": 1280,
+   "multiple": 16,
+   "bindings": [
+    {
+     "node": "i2v",
+     "input": "height"
+    }
+   ]
+  },
+  "frames": {
+   "type": "int",
+   "default": 49,
+   "min": 1,
+   "max": 121,
+   "bindings": [
+    {
+     "node": "i2v",
+     "input": "length"
+    }
+   ]
+  },
+  "steps": {
+   "type": "int",
+   "default": 20,
+   "min": 1,
+   "max": 50,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "steps"
+    }
+   ]
+  },
+  "cfg": {
+   "type": "float",
+   "default": 3.5,
+   "min": 0.0,
+   "max": 30.0,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "cfg"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "save",
+  "input": "filename_prefix",
+  "kind": "video",
+  "ext": "mp4",
+  "pick": [
+   "videos",
+   "gifs"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "mp4",
+  "min_bytes": 100000,
+  "duration_s": [
+   2.8,
+   3.3
+  ],
+  "width": [
+   832
+  ],
+  "height": [
+   480
+  ],
+  "black_ratio_max": 0.3,
+  "freeze": {
+   "ratio_max": 0.2,
+   "longest_max_s": 1.0
+  }
+ },
+ "fps": 16,
+ "limits": {
+  "max_minutes": 30,
+  "max_cost": 1.0
+ },
+ "required_gpu": [
+  "4090_48G",
+  "4090"
+ ],
+ "notes": "必须官方 fp8。四个模型槽位（unet/clip/vae/clip_vision）由模型配置统一注入。"
+}

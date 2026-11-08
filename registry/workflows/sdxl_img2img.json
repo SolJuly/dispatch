@@ -1,0 +1,184 @@
+{
+ "schema": "p20.workflow/v1",
+ "key": "sdxl_img2img",
+ "name": "图生图 · SDXL（denoise 控制）",
+ "description": "以原图为底重绘，denoise 越低越接近原图。输入：图片 + 提示词；输出：1024 PNG。（✅ 可使用）",
+ "version": 1,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/sdxl_img2img.api.json",
+ "model": {
+  "key": "sdxl_juggernaut",
+  "slots": {
+   "ckpt": {
+    "node": "ckpt",
+    "input": "ckpt_name"
+   }
+  }
+ },
+ "params": {
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "load",
+     "input": "image"
+    }
+   ],
+   "description": "原图（上传后为实例 input/ 下的文件名）"
+  },
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "bindings": [
+    {
+     "node": "pos",
+     "input": "text"
+    }
+   ],
+   "description": "目标描述"
+  },
+  "neg_prompt": {
+   "type": "string",
+   "default": "blurry, lowres, watermark",
+   "bindings": [
+    {
+     "node": "neg",
+     "input": "text"
+    }
+   ]
+  },
+  "denoise": {
+   "type": "float",
+   "default": 0.55,
+   "min": 0.05,
+   "max": 1.0,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "denoise"
+    }
+   ],
+   "description": "重绘强度：越低越接近原图"
+  },
+  "seed": {
+   "type": "int",
+   "required": true,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "seed"
+    }
+   ]
+  },
+  "width": {
+   "type": "int",
+   "default": 1024,
+   "min": 512,
+   "max": 1536,
+   "multiple": 8,
+   "bindings": [
+    {
+     "node": "scale",
+     "input": "width"
+    }
+   ]
+  },
+  "height": {
+   "type": "int",
+   "default": 1024,
+   "min": 512,
+   "max": 1536,
+   "multiple": 8,
+   "bindings": [
+    {
+     "node": "scale",
+     "input": "height"
+    }
+   ]
+  },
+  "steps": {
+   "type": "int",
+   "default": 25,
+   "min": 1,
+   "max": 60,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "steps"
+    }
+   ]
+  },
+  "cfg": {
+   "type": "float",
+   "default": 6.0,
+   "min": 0.0,
+   "max": 30.0,
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "cfg"
+    }
+   ]
+  },
+  "sampler": {
+   "type": "enum",
+   "default": "dpmpp_2m",
+   "values": [
+    "euler",
+    "euler_ancestral",
+    "dpmpp_2m",
+    "dpmpp_2m_sde",
+    "uni_pc"
+   ],
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "sampler_name"
+    }
+   ]
+  },
+  "scheduler": {
+   "type": "enum",
+   "default": "karras",
+   "values": [
+    "simple",
+    "normal",
+    "karras",
+    "beta"
+   ],
+   "bindings": [
+    {
+     "node": "ks",
+     "input": "scheduler"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "save",
+  "input": "filename_prefix",
+  "kind": "image",
+  "ext": "png",
+  "pick": [
+   "images"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 20000,
+  "black_ratio_max": 0.5
+ },
+ "limits": {
+  "max_minutes": 20,
+  "max_cost": 0.8
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "P2.1 5.2：LoadImage → ImageScale → VAEEncode → KSampler(denoise) → 解码。img2img 的输出张数由输入图决定（1 张），batch_size 不在本工作流暴露。",
+ "deprecated": true,
+ "deprecated_reason": "P2.2 起由 zimage_turbo_img2img 替换；仅保留供历史作业复现/回滚，控制台不再展示"
+}

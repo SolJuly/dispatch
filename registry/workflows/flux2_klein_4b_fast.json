@@ -1,0 +1,155 @@
+{
+ "schema": "p20.workflow/v1",
+ "key": "flux2_klein_4b_fast",
+ "name": "文生图 · FLUX.2 Klein 4B（4 步，快）",
+ "description": "4 步出 1024 图，速度优先，适合快速出方案。输入：提示词；输出：PNG。（✅ 可使用）",
+ "version": 1,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/flux2_klein_4b_fast.api.json",
+ "model": {
+  "key": "flux2_klein_4b",
+  "slots": {
+   "unet": {
+    "node": "1",
+    "input": "unet_name"
+   },
+   "clip": {
+    "node": "2",
+    "input": "clip_name"
+   },
+   "vae": {
+    "node": "3",
+    "input": "vae_name"
+   }
+  }
+ },
+ "params": {
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "bindings": [
+    {
+     "node": "4",
+     "input": "text"
+    }
+   ],
+   "description": "正向提示词；Flux2 蒸馏模型负面词无效"
+  },
+  "seed": {
+   "type": "int",
+   "required": true,
+   "bindings": [
+    {
+     "node": "10",
+     "input": "noise_seed"
+    }
+   ]
+  },
+  "width": {
+   "type": "int",
+   "default": 1024,
+   "min": 512,
+   "max": 1536,
+   "multiple": 32,
+   "bindings": [
+    {
+     "node": "6",
+     "input": "width"
+    },
+    {
+     "node": "7",
+     "input": "width"
+    }
+   ]
+  },
+  "height": {
+   "type": "int",
+   "default": 1024,
+   "min": 512,
+   "max": 1536,
+   "multiple": 32,
+   "bindings": [
+    {
+     "node": "6",
+     "input": "height"
+    },
+    {
+     "node": "7",
+     "input": "height"
+    }
+   ]
+  },
+  "steps": {
+   "type": "int",
+   "default": 4,
+   "min": 2,
+   "max": 8,
+   "bindings": [
+    {
+     "node": "7",
+     "input": "steps"
+    }
+   ]
+  },
+  "cfg": {
+   "type": "float",
+   "default": 1.0,
+   "min": 0.5,
+   "max": 2.0,
+   "bindings": [
+    {
+     "node": "9",
+     "input": "cfg"
+    }
+   ]
+  },
+  "sampler": {
+   "type": "enum",
+   "default": "euler",
+   "values": [
+    "euler",
+    "euler_ancestral",
+    "dpmpp_2m",
+    "uni_pc"
+   ],
+   "bindings": [
+    {
+     "node": "8",
+     "input": "sampler_name"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "13",
+  "input": "filename_prefix",
+  "kind": "image",
+  "ext": "png",
+  "pick": [
+   "images"
+  ],
+  "count": 1
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 20000,
+  "images": 1,
+  "width": [
+   1024
+  ],
+  "height": [
+   1024
+  ],
+  "black_ratio_max": 0.5
+ },
+ "limits": {
+  "max_minutes": 20,
+  "max_cost": 0.8
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "04 号：FLUX.2 Klein 4B 蒸馏，4 步 euler；适合快速多方案。"
+}

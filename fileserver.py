@@ -29,6 +29,9 @@ BIND = os.environ.get("SHARE_BIND", "127.0.0.1")
 MAX_UPLOAD = int(os.environ.get("SHARE_MAX_UPLOAD_MB", "200")) * 1024 * 1024
 BASE = os.environ.get("SHARE_BASE", "/files")  # nginx 反代的路径前缀
 PROJ = ROOT.parent
+# 产物/文档的发布根：nginx 用 /pub/ 直接静态服务，这里再给 /files/<token>/pub/ 一条等价路由，
+# 这样没有 nginx 时（本地起服务、只读部署）控制台缩略图也能出图。
+PUB_ROOT = Path(os.environ.get("P21_PUB_DIR", "/srv/dsh-pub")).resolve()
 ARCH_SVG = PROJ / "reports" / "architecture.svg"
 ARCH_TS = {"t": 0.0}
 LOG_FILES = {
@@ -45,6 +48,16 @@ TEXT_EXT = {".md", ".py", ".sh", ".txt", ".json", ".yml", ".yaml", ".cfg", ".ini
 IMG_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
 CODE_EXT = {".py", ".sh", ".json", ".yml", ".yaml", ".cfg", ".ini", ".txt", ".csv", ".log"}
 
+# 前端构建产物根目录（Vite 的 web/dist）。不入库，缺失时 /ui/ 返回可读的构建提示，
+# 而不是 500 —— 部署机上没装 node 也能照常跑旧控制台。
+UI_ROOT = Path(os.environ.get("UI_ROOT", PROJ / "web" / "dist")).resolve()
+
+# SPA 页面专用 CSP：必须放开 'self' 的脚本，否则 JS bundle 全被 default-src 'none' 拦死。
+# 与 /f/*.html 的严格策略分开：那是用户可写入的共享目录，这里是自己的构建产物。
+UI_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+          "img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; "
+          "font-src 'self' data:; base-uri 'self'; form-action 'self'")
+
 
 def load_token() -> str:
     if TOKEN_FILE.exists():
@@ -58,6 +71,59 @@ def load_token() -> str:
 
 
 TOKEN = load_token()
+
+# ------------------------------------------------------------------ 构建标识
+# 线上 /files/ 曾被一个残留的旧进程占着（对外的 /app 页面 404，但看起来"服务还在"）。
+# /api/p2/version 让人一眼判断"这个后端到底是哪一版、支持哪些路由"，
+# 而不是对着旧响应调 UI。
+API_VERSION = "p2.1"
+API_CONTRACT = "openapi-3.1"
+CAPABILITIES = ["console", "registry", "jobs", "uploads", "zip", "version"]
+STARTED_AT = time.time()
+_BUILD: dict = {}
+
+
+def _iso(ts: float) -> str:
+    s = time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(ts))
+    return f"{s[:-2]}:{s[-2:]}" if len(s) > 5 else s
+
+
+def build_info() -> dict:
+    """启动后读一次 git 信息（git 不可用也不影响服务）。"""
+    if _BUILD:
+        return _BUILD
+    info: dict = {"commit": None, "branch": None, "dirty": None, "dirty_files": None}
+    try:
+        def _git(*args: str) -> tuple[int, str]:
+            try:
+                r = subprocess.run(["git", "-C", str(PROJ), *args], capture_output=True,
+                                   text=True, timeout=5)
+            except (OSError, subprocess.SubprocessError):
+                return 1, ""
+            return r.returncode, (r.stdout or "").strip()
+
+        rc, sha = _git("rev-parse", "--short", "HEAD")
+        if rc == 0 and sha:
+            info["commit"] = sha
+            _, br = _git("rev-parse", "--abbrev-ref", "HEAD")
+            info["branch"] = br or None
+            _, st = _git("status", "--porcelain")
+            files = [ln for ln in st.splitlines() if ln.strip()]
+            info["dirty"] = bool(files)
+            info["dirty_files"] = len(files)
+    except Exception:  # noqa: BLE001 - 仅展示用
+        pass
+    if not info["commit"]:
+        # 部署包没有 .git：读包内 BUILD（deploy_bundle.sh 生成），至少能对上提交号
+        try:
+            raw = (PROJ / "BUILD").read_text(encoding="utf-8").strip().splitlines()
+            if raw and raw[0]:
+                info["commit"] = raw[0][:40]
+                info["packaged"] = True
+        except OSError:
+            pass
+    _BUILD.update(info)
+    return _BUILD
 
 
 def human(n: float) -> str:
@@ -263,6 +329,9 @@ def page(title: str, body: str, back: str | None = None, extra_btn: str = "",
 
 
 class Handler(BaseHTTPRequestHandler):
+    # 上传最长 128MB：慢连接别一直占着线程（StreamRequestHandler 用这个值设 socket 超时）
+    timeout = 120
+    # 顺手给请求体读取加个上限保护，避免 Content-Length 撒谎时无限读
     server_version = "share/1.0"
     protocol_version = "HTTP/1.1"
 
@@ -271,11 +340,16 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------------- 工具
     def _send(self, code: int, body: bytes, ctype="text/html; charset=utf-8", headers=None):
+        headers = headers or {}
+        # 调用方显式给了 Cache-Control 就不要再补 no-store：重复发送同名头时
+        # 浏览器取第一个，等于把 public/immutable 静默降级成 no-store（前端指纹缓存失效）。
+        overridden = {k.lower() for k in headers}
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
-        for k, v in (headers or {}).items():
+        if "cache-control" not in overridden:
+            self.send_header("Cache-Control", "no-store")
+        for k, v in headers.items():
             self.send_header(k, v)
         self.end_headers()
         if self.command != "HEAD":
@@ -312,6 +386,12 @@ class Handler(BaseHTTPRequestHandler):
         if not rest:
             return self._index()
         kind = rest[0]
+        if kind == "app":
+            return self._app_page(rest[1:], q)
+        if kind == "static":
+            return self._static_asset(rest[1:])
+        if kind == "ui":
+            return self._ui_asset(rest[1:])
         if kind == "zip":
             return self._zip()
         if kind == "monitor" and not rest[1:]:
@@ -326,6 +406,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._arch_page()
         if kind == "api" and len(rest) >= 2:
             if rest[1] == "p2":
+                # 版本探测：旧后端没有这条路由（404），前端据此识别"线上是旧进程"
+                if rest[2:3] == ["version"]:
+                    return self._api_version()
+                # 兼容旧契约：队列视角的 jobs 挪到 /api/p2/queue/jobs*
+                if rest[2:5] == ["queue", "jobs"]:
+                    return self._api_p2(["jobs"] + rest[5:], q)
+                if rest[2:3] == ["jobs"]:
+                    return self._api_jobs(rest[3:], q)
+                if rest[2:3] == ["registry"]:
+                    return self._api_registry(rest[3:], q)
                 return self._api_p2(rest[2:], q)
             if rest[1] == "status":
                 return self._send(200, json.dumps(self._api_status(), ensure_ascii=False).encode(),
@@ -359,6 +449,8 @@ class Handler(BaseHTTPRequestHandler):
             rel = "/".join(rest[1:])
             return self._file(rel, inline=(kind == "raw" or q.get("raw") == ["1"]),
                               force_dl=q.get("dl") == ["1"])
+        if kind == "pub" and len(rest) >= 2:
+            return self._pub_file(rest[1:], force_dl=q.get("dl") == ["1"])
         if kind == "upload":
             return self._upload_page(q.get("ok", [""])[0])
         return self._err(404, "路径不存在")
@@ -368,6 +460,22 @@ class Handler(BaseHTTPRequestHandler):
         parts = [x for x in u.path.split("/") if x != ""]
         if len(parts) >= 2 and self._token_ok(parts[0]) and parts[1] == "upload":
             return self._receive_upload()
+        if len(parts) == 6 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"] \
+                and parts[5] == "cancel":
+            return self._api_jobs([parts[4], "cancel"], {})
+        if len(parts) == 4 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "uploads"]:
+            return self._api_upload()
+        if len(parts) == 5 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"] \
+                and parts[4] == "rerun":
+            return self._api_jobs_rerun()
+        if len(parts) == 5 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"] \
+                and parts[4] == "delete":
+            return self._api_jobs_delete()
+        if len(parts) == 5 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"] \
+                and parts[4] == "run":
+            return self._api_jobs_run()
+        if len(parts) == 4 and self._token_ok(parts[0]) and parts[1:4] == ["api", "p2", "jobs"]:
+            return self._api_job_create()
         return self._err(404, "路径不存在")
 
     # ---------------- 页面
@@ -410,6 +518,24 @@ class Handler(BaseHTTPRequestHandler):
         extra = f'<a class="btn p" href="{BASE}/{TOKEN}/zip">全部 zip</a>'
         self._send(200, page("文件 · 智云视频工作流", body, extra_btn=extra))
 
+    def _pub_file(self, parts: list[str], force_dl: bool = False):
+        """GET /<token>/pub/<rel>：等价于 nginx 的 `/pub/`，读 PUB_ROOT（/srv/dsh-pub）。
+
+        控制台缩略图用的是 `/<token>/pub/jobs/<id>/<file>`，没有这条路由就会 404。
+        """
+        rel = urllib.parse.unquote("/".join(parts)).lstrip("/")
+        p = (PUB_ROOT / rel).resolve()
+        if not str(p).startswith(str(PUB_ROOT)) or not p.is_file():
+            return self._err(404, "文件不存在")
+        ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
+        headers = {}
+        if force_dl:
+            fn = p.name.encode("ascii", "ignore").decode() or "file"
+            headers["Content-Disposition"] = (
+                "attachment; filename=\"%s\"; filename*=UTF-8''%s"
+                % (fn, urllib.parse.quote(p.name)))
+        return self._send(200, p.read_bytes(), ctype, headers)
+
     def _file(self, rel: str, inline: bool, force_dl: bool):
         p = self._safe(rel)
         if p is None or not p.exists():
@@ -429,7 +555,17 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, page(f"📁 {rel}", "".join(rows) or "<p class='hint'>空目录</p>",
                                         back=back))
         ext = p.suffix.lower()
-        if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT) or not inline:
+        # .html 要能在浏览器里直接打开（报告类文件），但 ?dl=1 仍要能下载。
+        # 安全边界：只允许 share/ 内（_safe 已限制）的 .html，且加 CSP 禁止外部脚本，
+        # 避免有人往共享目录塞一个带脚本的页面拿到本站 token 上下文。
+        if ext in (".html", ".htm") and not force_dl:
+            data = p.read_bytes()
+            return self._send(200, data, "text/html; charset=utf-8", {
+                "Content-Security-Policy":
+                    "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:",
+                "X-Content-Type-Options": "nosniff",
+            })
+        if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT):
             if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT):
                 data = p.read_bytes()
                 ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
@@ -469,6 +605,393 @@ class Handler(BaseHTTPRequestHandler):
         disp = ("attachment; filename=\"cs-tools.zip\"; filename*=UTF-8''%s"
                 % urllib.parse.quote(fn))
         self._send(200, data, "application/zip", {"Content-Disposition": disp})
+
+    # ---------------- P2.0 Registry 只读接口
+    # ---------------- 图片控制台（M1 骨架）
+    def _app_page(self, rest: list[str], q: dict):
+        from webui import api as webapi, pages as webpages
+
+        base = BASE
+        page = rest[0] if rest else "create"
+        try:
+            if page in ("", "create"):
+                body = webpages.create_page(base, TOKEN, (q.get("workflow") or [""])[0])
+            elif page == "video" and len(rest) == 1:
+                body = webpages.video_page(base, TOKEN, (q.get("workflow") or [""])[0])
+            elif page == "jobs" and len(rest) == 1:
+                body = webpages.jobs_page(base, TOKEN, (q.get("state") or [""])[0],
+                                          (q.get("q") or [""])[0])
+            elif page == "jobs" and len(rest) == 2:
+                body = webpages.detail_page(base, TOKEN, rest[1])
+            elif page == "gallery" and len(rest) == 1:
+                body = webpages.gallery_page(base, TOKEN, (q.get("workflow") or [""])[0],
+                                             int((q.get("page") or ["1"])[0] or 1))
+            elif page == "registry" and len(rest) == 1:
+                body = webpages.registry_page(base, TOKEN)
+            else:
+                return self._err(404, "页面不存在")
+        except webapi.ApiError as e:
+            return self._err(e.code, e.msg)
+        return self._send(200, body.encode("utf-8"), "text/html; charset=utf-8")
+
+    def _static_asset(self, rest: list[str]):
+        from webui import assets as webassets
+
+        name = rest[0] if rest else ""
+        if name == "app.css":
+            body, ct = webassets.CSS.encode("utf-8"), "text/css; charset=utf-8"
+        elif name == "app.js":
+            body, ct = webassets.JS.encode("utf-8"), "application/javascript; charset=utf-8"
+        else:
+            return self._err(404, "资源不存在")
+        return self._send(200, body, ct, {"Cache-Control": "public, max-age=60"})
+
+    # ---------------- 前端 SPA（Vite 构建产物）
+    def _ui_asset(self, rest: list[str]):
+        """托管 web/dist 里的 SPA 产物。
+
+        路由约定：`/files/<token>/ui/`            → index.html
+                  `/files/<token>/ui/assets/x.js` → 静态资源（长缓存 + immutable）
+                  `/files/<token>/ui/任意深层路径` → 回落 index.html（history 路由）
+
+        与 `/f/` 的差别只有两点：目录被限制在 UI_ROOT 内、CSP 放开 'self' 脚本。
+        为什么要单开一条：`/f/*.html` 带 default-src 'none'（共享目录可写，防脚本窃 token），
+        直接复用会让 SPA 白屏——bundle 一个字节都不会执行。
+        """
+        if not UI_ROOT.is_dir():
+            return self._err(404, "前端未构建：在项目根执行 cd web && npm run build"
+                                  "（或设 UI_ROOT 指向已有的 dist 目录）")
+        rel = "/".join(rest).strip("/")
+        index = UI_ROOT / "index.html"
+        if not rel or rel.endswith("/"):
+            p = (UI_ROOT / rel / "index.html") if rel else index
+        else:
+            p = UI_ROOT / rel
+        target = p.resolve()
+        # 目录穿越防护：解析后必须在 UI_ROOT 之内，否则一律当作路由回落
+        if not str(target).startswith(str(UI_ROOT) + os.sep) and target != index:
+            target = index
+        if not target.is_file():
+            # history 路由：/ui/jobs/p1-xxx 这类前端路由没有实体文件，交回 index.html
+            target = index
+            if not target.is_file():
+                return self._err(404, "前端产物缺 index.html：cd web && npm run build")
+
+        ctype = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+        headers = {"X-Content-Type-Options": "nosniff"}
+        if target.suffix.lower() in (".html", ".htm"):
+            headers["Content-Security-Policy"] = UI_CSP
+            headers["Cache-Control"] = "no-cache"          # HTML 不缓存，发版即生效
+        else:
+            # Vite 产物名带内容 hash，可以放心长缓存；改一次变一次名
+            headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return self._send(200, target.read_bytes(), ctype, headers)
+
+    def _api_jobs(self, rest: list[str], q: dict):
+        from webui import api as webapi
+
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False, default=str).encode(),
+                              "application/json; charset=utf-8")
+        try:
+            if rest == ["zip"]:
+                ids = [x for x in ((q.get("ids") or [""])[0]).split(",") if x]
+                data = webapi.zip_artifacts(ids)
+                return self._send(200, data, "application/zip",
+                                  {"Content-Disposition": 'attachment; filename="jobs.zip"'})
+            if not rest:
+                items = webapi.list_jobs(
+                    limit=int((q.get("limit") or ["20"])[0] or 20),
+                    state_prefix=(q.get("state") or [""])[0],
+                    workflow=(q.get("workflow") or [""])[0],
+                    q=(q.get("q") or [""])[0])
+                return _json({"items": items, "count": len(items)})
+            jid = rest[0]
+            if len(rest) == 1:
+                return _json(webapi.get_job(jid))
+            if rest[1] == "cancel" and len(rest) == 2:
+                return _json(webapi.cancel_job(jid))
+            return _json({"error": "路径不存在"}, 404)
+        except webapi.ApiError as e:
+            return _json({"error": e.msg}, e.code)
+        except Exception as e:  # noqa: BLE001
+            return _json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+    def _api_upload(self):
+        """multipart 上传输入图（img2img / inpaint），返回内容寻址文件名。"""
+        from webui import api as webapi
+
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False).encode(),
+                              "application/json; charset=utf-8")
+        ctype = self.headers.get("Content-Type", "")
+        length = int(self.headers.get("Content-Length") or 0)
+        if "boundary=" not in ctype or length <= 0:
+            return _json({"error": "需要 multipart 上传"}, 400)
+        cap = webapi.max_upload_bytes()
+        if length > cap:
+            return _json({"error": f"请求体过大（上限 {cap // 1048576}MB）"}, 413)
+        boundary = ctype.split("boundary=", 1)[1].strip().strip('"')
+        # 128MB 视频整块 read 进内存会顶爆常驻内存：先落 8MB 内存池/溢出到磁盘的临时文件，
+        # 再从里面切出唯一一个 file 部分，流式交给 save_upload_file。
+        import tempfile
+        from pathlib import Path as _P
+
+        with tempfile.SpooledTemporaryFile(max_size=8 << 20) as spool:
+            left = length
+            while left > 0:
+                chunk = self.rfile.read(min(1 << 16, left))
+                if not chunk:
+                    break
+                spool.write(chunk)
+                left -= len(chunk)
+            total = spool.tell()
+            spool.seek(0)
+            head16 = spool.read(min(total, 1 << 16))
+            cut = head16.find(b"\r\n\r\n")
+            if cut < 0:
+                return _json({"error": "multipart 头解析失败"}, 400)
+            m = re.search(rb'filename="([^"]*)"', head16[:cut])
+            if not m:
+                return _json({"error": "没有文件字段"}, 400)
+            name = m.group(1).decode("utf-8", "ignore") or "upload.png"
+            start = cut + 4
+            tail_len = min(total, 1 << 13)
+            spool.seek(total - tail_len)
+            tail = spool.read(tail_len)
+            pos = tail.rfind(b"\r\n--" + boundary.encode())
+            end = (total - tail_len + pos) if pos >= 0 else total
+            if end <= start:
+                return _json({"error": "上传内容为空"}, 400)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".upload") as out:
+                tmp_path = _P(out.name)
+                spool.seek(start)
+                left = end - start
+                while left > 0:
+                    chunk = spool.read(min(1 << 20, left))
+                    if not chunk:
+                        break
+                    out.write(chunk)
+                    left -= len(chunk)
+        try:
+            info = webapi.save_upload_file(name, tmp_path)
+        except webapi.ApiError as e:
+            return _json({"error": e.msg}, e.code)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+        return _json(info, 201)
+
+    def _api_job_create(self):
+        from webui import api as webapi
+
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False, default=str).encode(),
+                              "application/json; charset=utf-8")
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            if n <= 0 or n > 1_000_000:
+                return _json({"error": "请求体为空或过大"}, 400)
+            body = json.loads(self.rfile.read(n).decode("utf-8"))
+            if not isinstance(body, dict):
+                return _json({"error": "请求体应为 JSON 对象"}, 400)
+            budget = body.get("budget")
+            data = webapi.create_job(str(body.get("workflow") or ""),
+                                     body.get("params") or {},
+                                     run=bool(body.get("run")),
+                                     budget=float(budget) if budget not in (None, "") else None)
+            return _json(data, 201)
+        except webapi.ApiError as e:
+            return _json({"error": e.msg}, e.code)
+        except json.JSONDecodeError:
+            return _json({"error": "JSON 解析失败"}, 400)
+        except Exception as e:  # noqa: BLE001
+            return _json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+    def _api_jobs_delete(self):
+        from webui import api as webapi
+
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False, default=str).encode(),
+                              "application/json; charset=utf-8")
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            body = json.loads(self.rfile.read(n).decode("utf-8")) if n else {}
+            ids = [str(x) for x in (body.get("ids") or []) if x]
+            data = webapi.delete_jobs(ids, purge=bool(body.get("purge")))
+            return _json(data, 200)
+        except webapi.ApiError as e:
+            return _json({"error": e.msg}, e.code)
+        except Exception as e:  # noqa: BLE001
+            return _json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+    def _api_jobs_run(self):
+        """POST /api/p2/jobs/run —— 把 CREATED 作业真正跑起来。"""
+        from webui import api as webapi
+
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False, default=str).encode(),
+                              "application/json; charset=utf-8")
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            body = json.loads(self.rfile.read(n).decode("utf-8")) if n else {}
+            ids = [str(x) for x in (body.get("ids") or []) if x]
+            if not ids:
+                return _json({"error": "ids 为空"}, 400)
+            return _json({"items": webapi.run_jobs(ids)}, 201)
+        except webapi.ApiError as e:
+            return _json({"error": e.msg}, e.code)
+        except Exception as e:  # noqa: BLE001
+            return _json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+    def _api_jobs_rerun(self):
+        from webui import api as webapi
+
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False, default=str).encode(),
+                              "application/json; charset=utf-8")
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            body = json.loads(self.rfile.read(n).decode("utf-8")) if n else {}
+            ids = [str(x) for x in (body.get("ids") or []) if x]
+            if not ids:
+                return _json({"error": "ids 为空"}, 400)
+            items = webapi.rerun_jobs(ids, run=bool(body.get("run")))
+            return _json({"items": items}, 201)
+        except webapi.ApiError as e:
+            return _json({"error": e.msg}, e.code)
+        except Exception as e:  # noqa: BLE001
+            return _json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+    def _api_version(self):
+        """GET /api/p2/version —— 前端启动时探测后端版本。
+
+        为什么要有：线上 /files/ 可能指向一个还没更新的旧进程。前端打到旧进程时，
+        /app/* 和 /api/p2/registry 会 404，但其它接口仍返回旧形状的数据，很容易被
+        误当成"新后端有 bug"。这里一次性返回构建标识 + 能力清单，前端据此提示。
+        """
+        reg_stats: dict = {}
+        try:
+            from tools.p20 import registry as reg
+            reg_stats = reg.stats()
+        except Exception as e:  # noqa: BLE001
+            reg_stats = {"error": f"{type(e).__name__}: {e}"}
+        payload = {
+            "service": "dsh-share",
+            "ok": True,
+            "api": API_VERSION,
+            "contract": API_CONTRACT,
+            "build": build_info(),
+            "started_at": _iso(STARTED_AT),
+            "uptime_s": int(time.time() - STARTED_AT),
+            "pid": os.getpid(),
+            "bind": f"{BIND}:{PORT}",
+            "base": BASE,
+            "root": str(ROOT),
+            "capabilities": CAPABILITIES,
+            "features": {"console": True, "registry": True, "jobs": True,
+                         "uploads": True, "zip": True, "version": True},
+            "registry": reg_stats,
+            "docs": {"openapi": "/pub/api/openapi.json",
+                     "handoff": "/pub/p21/07-API契约与Mock.html"},
+        }
+        self._send(200, json.dumps(payload, ensure_ascii=False, default=str).encode(),
+                   "application/json; charset=utf-8")
+
+    def _api_registry(self, sub: list[str], q: dict):
+        """Workflow/Model Registry 只读 API（UI 用）。
+
+        GET /api/p2/registry                     统计 + 目录摘要
+        GET /api/p2/registry/workflows           工作流列表
+        GET /api/p2/registry/workflows/<key>     工作流详情（参数/绑定/兼容性）
+        GET /api/p2/registry/models              模型列表
+        GET /api/p2/registry/models/<key>        模型详情
+        GET /api/p2/registry/compat              兼容性矩阵
+        GET /api/p2/registry/resolve?workflow=&model=&params=<urlencoded JSON>
+        GET /api/p2/registry/stats               库统计
+        """
+        def _json(obj, code=200):
+            return self._send(code, json.dumps(obj, ensure_ascii=False, default=str).encode(),
+                              "application/json; charset=utf-8")
+
+        try:
+            from tools.p20 import registry as reg, render as p20render, config_schema as cs
+        except Exception as e:
+            return _json({"error": f"P20 模块不可用: {e}"}, 500)
+
+        def _wf_summary(w: dict) -> dict:
+            return {"key": w.get("key"), "name": w.get("name"), "version": w.get("version"),
+                    "kind": w.get("kind"), "model_key": w.get("model_key"),
+                    "graph_sha256": w.get("graph_sha256"), "compat": w.get("compat"),
+                    "params": sorted((w.get("params") or {}).keys()),
+                    "nodes": len(w.get("graph_obj") or {})}
+
+        def _wf_detail(w: dict) -> dict:
+            d = {k: v for k, v in w.items() if k != "graph"}
+            d["nodes"] = len(w.get("graph_obj") or {})
+            d["params"] = w.get("params") or {}
+            return d
+
+        try:
+            if not sub or sub == ["stats"]:
+                return _json({"stats": reg.stats(), "workflows": len(reg.list_workflows()),
+                              "models": len(reg.list_models())})
+            if sub[0] == "workflows":
+                if len(sub) == 1:
+                    return _json({"total": len(reg.list_workflows()),
+                                  "workflows": [_wf_summary(w) for w in reg.list_workflows()]})
+                key = sub[1]
+                try:
+                    w = reg.get_workflow(key)
+                except reg.RegistryError as e:
+                    return _json({"error": str(e)}, 404)
+                return _json({"workflow": _wf_detail(w),
+                              "compat": reg.compat_for(key, (w.get("model") or {}).get("key"))})
+            if sub[0] == "models":
+                if len(sub) == 1:
+                    rows = []
+                    for m in reg.list_models():
+                        rows.append({"key": m.get("key"), "name": m.get("name"),
+                                     "version": m.get("version"), "kind": m.get("kind"),
+                                     "family": m.get("family"),
+                                     "files": {r: f.get("name") for r, f in
+                                               (m.get("files") or {}).items()}})
+                    return _json({"total": len(rows), "models": rows})
+                key = sub[1]
+                try:
+                    return _json({"model": reg.get_model(key)})
+                except reg.RegistryError as e:
+                    return _json({"error": str(e)}, 404)
+            if sub[0] == "compat":
+                return _json({"matrix": reg.compat_matrix()})
+            if sub[0] == "resolve":
+                wkey = (q.get("workflow") or [None])[0]
+                if not wkey:
+                    return _json({"error": "缺少 workflow 参数"}, 400)
+                mkey = (q.get("model") or [None])[0]
+                raw = (q.get("params") or ["{}"])[0] or "{}"
+                try:
+                    params = json.loads(raw)
+                except json.JSONDecodeError:
+                    return _json({"error": "params 不是合法 JSON"}, 400)
+                allow = (q.get("allow_experimental") or ["0"])[0] in ("1", "true", "yes")
+                try:
+                    r = reg.resolve(wkey, model_key=mkey, params=params,
+                                    allow_experimental=allow)
+                    graph, meta = p20render.render(r["workflow"], r["model"], r["params"], "preview",
+                                                   graph=r["workflow"].get("graph_obj"))
+                except (reg.RegistryError, cs.ConfigError, p20render.RenderError) as e:
+                    return _json({"error": str(e)}, 400)
+                out = {"workflow": r["workflow"]["key"], "model": r["model_key"],
+                       "compat": r["compat"], "params": r["params"],
+                       "defaults_applied": r["defaults_applied"],
+                       "expect": p20render.expect_for(r["workflow"], r["params"]),
+                       "render": {k: v for k, v in meta.items() if k != "params"}}
+                if (q.get("graph") or ["0"])[0] in ("1", "true"):
+                    out["graph"] = graph
+                return _json(out)
+            return _json({"error": f"未知 registry 路径: {sub}"}, 404)
+        except Exception as e:
+            return _json({"error": f"{type(e).__name__}: {e}"}, 500)
 
     # ---------------- 监控接口
     def _api_p2(self, sub: list[str], q: dict):

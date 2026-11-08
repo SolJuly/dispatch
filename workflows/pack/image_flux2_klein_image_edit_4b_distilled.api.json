@@ -1,0 +1,579 @@
+{
+  "1124": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1125": {
+    "class_type": "Flux2Scheduler",
+    "inputs": {
+      "steps": 4,
+      "width": [
+        "1140",
+        0
+      ],
+      "height": [
+        "1140",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1126": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "1130",
+        0
+      ],
+      "positive": [
+        "1132",
+        0
+      ],
+      "negative": [
+        "1132",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1127": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "1129",
+        0
+      ],
+      "guider": [
+        "1126",
+        0
+      ],
+      "sampler": [
+        "1124",
+        0
+      ],
+      "sigmas": [
+        "1125",
+        0
+      ],
+      "latent_image": [
+        "1139",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1128": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1127",
+        0
+      ],
+      "vae": [
+        "1133",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1129": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 786795143695419
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1130": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux-2-klein-4b-fp8.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1131": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1132": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "stylize the handbag in image1 with the colours and logo from image 2",
+      "clip": [
+        "1131",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1133": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1134": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "image": [
+        "76",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1135": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "image": [
+        "81",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1138": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "1132",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1139": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": [
+        "1140",
+        0
+      ],
+      "height": [
+        "1140",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1140": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "1134",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1141": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "1138",
+        0
+      ],
+      "latent": [
+        "1142",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Reference Conditioning"
+    }
+  },
+  "1142": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "1134",
+        0
+      ],
+      "vae": [
+        "1133",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Reference Conditioning"
+    }
+  },
+  "1143": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "1132",
+        0
+      ],
+      "latent": [
+        "1142",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Reference Conditioning"
+    }
+  },
+  "1144": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "1132",
+        0
+      ],
+      "latent": [
+        "1145",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Reference Conditioning"
+    }
+  },
+  "1145": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "1135",
+        0
+      ],
+      "vae": [
+        "1133",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Reference Conditioning"
+    }
+  },
+  "1146": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "1132",
+        0
+      ],
+      "latent": [
+        "1145",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Reference Conditioning"
+    }
+  },
+  "1147": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1148": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux-2-klein-4b-fp8.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1149": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1150": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1151": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": [
+        "1157",
+        0
+      ],
+      "height": [
+        "1157",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1152": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "image": [
+        "76",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1153": {
+    "class_type": "Flux2Scheduler",
+    "inputs": {
+      "steps": 4,
+      "width": [
+        "1157",
+        0
+      ],
+      "height": [
+        "1157",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1154": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "Change the bag color to blue.",
+      "clip": [
+        "1149",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1155": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "1154",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1156": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "1155",
+        0
+      ],
+      "latent": [
+        "1159",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1157": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "1152",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1158": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "1154",
+        0
+      ],
+      "latent": [
+        "1159",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1159": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "1152",
+        0
+      ],
+      "vae": [
+        "1150",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1160": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "1162",
+        0
+      ],
+      "guider": [
+        "1163",
+        0
+      ],
+      "sampler": [
+        "1147",
+        0
+      ],
+      "sigmas": [
+        "1153",
+        0
+      ],
+      "latent_image": [
+        "1151",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1161": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1160",
+        0
+      ],
+      "vae": [
+        "1150",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1162": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 43301611940728
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "1163": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "1148",
+        0
+      ],
+      "positive": [
+        "1158",
+        0
+      ],
+      "negative": [
+        "1156",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
+    }
+  },
+  "76": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "handbag_white.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  },
+  "81": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "comfy_logo_blue.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "Flux2-Klein",
+      "images": [
+        "1161",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveImage"
+    }
+  }
+}

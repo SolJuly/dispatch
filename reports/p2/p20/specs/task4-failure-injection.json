@@ -1,0 +1,50 @@
+{
+  "kind": "image",
+  "task_ref": "P2.0-qwen_image_t2i",
+  "model": {
+    "key": "qwen_image",
+    "workflow": "workflows/qwen_image_t2i.api.json",
+    "checkpoint": "qwen/qwen_image_fp8_e4m3fn_scaled.safetensors",
+    "workflow_sha256": "16fd3eeb78f3fa2ab1b953ded95d8cba3ab8fc1aa1278c79d54a0178cdf59583",
+    "registry": {
+      "workflow_key": "qwen_image_t2i",
+      "workflow_version": 1,
+      "model_key": "qwen_image",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "real-run",
+      "setup_need": "qwen",
+      "graph_sha256": "16fd3eeb78f3fa2ab1b953ded95d8cba3ab8fc1aa1278c79d54a0178cdf59583"
+    }
+  },
+  "params": {
+    "cfg": 2.5,
+    "height": 1024,
+    "neg_prompt": "bad",
+    "prompt": "failure injection test",
+    "seed": 20261105,
+    "steps": 20,
+    "width": 1024
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "height": [
+      1024
+    ],
+    "min_bytes": 20000,
+    "width": [
+      1024
+    ]
+  },
+  "budget": {
+    "max_minutes": 30,
+    "max_cost": 1.0
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

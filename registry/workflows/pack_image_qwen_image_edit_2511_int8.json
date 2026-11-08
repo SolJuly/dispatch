@@ -1,0 +1,77 @@
+{
+ "schema": "p20.workflow/v1",
+ "key": "pack_image_qwen_image_edit_2511_int8",
+ "name": "指令改图 · Qwen-Image-Edit 2511（int8，尚未开发）",
+ "description": "2511 新版指令改图，int8 省显存。输入：底图 + 指令；输出：编辑图。当前缺节点输入。（🚧 尚未开发）",
+ "version": 1,
+ "kind": "image",
+ "engine": "comfyui",
+ "graph": "workflows/pack/image_qwen_image_edit_2511_int8.api.json",
+ "model": {
+  "key": "qwen_image_edit_2511_int8_convrot",
+  "slots": {
+   "vae": {
+    "node": "1197",
+    "input": "vae_name"
+   },
+   "lora": {
+    "node": "1204",
+    "input": "lora_name"
+   },
+   "unet": {
+    "node": "1208",
+    "input": "unet_name"
+   },
+   "clip": {
+    "node": "1209",
+    "input": "clip_name"
+   }
+  }
+ },
+ "params": {
+  "seed": {
+   "type": "int",
+   "min": 0,
+   "max": 2147483647,
+   "default": 0,
+   "bindings": [
+    {
+     "node": "1216",
+     "input": "seed"
+    }
+   ]
+  },
+  "image": {
+   "type": "image",
+   "required": true,
+   "bindings": [
+    {
+     "node": "41",
+     "input": "image"
+    }
+   ]
+  }
+ },
+ "output": {
+  "node": "195",
+  "input": "filename_prefix",
+  "kind": "image",
+  "ext": "png",
+  "pick": [
+   "images"
+  ]
+ },
+ "expect_defaults": {
+  "ext": "png",
+  "min_bytes": 20000
+ },
+ "limits": {
+  "max_minutes": 20,
+  "max_cost": 0.8
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "notes": "官方模板导入，未本地真机验证（compat=experimental）"
+}

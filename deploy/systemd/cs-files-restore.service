@@ -1,0 +1,11 @@
+[Unit]
+Description=Restore cs-files share server (kill leaked listeners, start current code)
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /root/智云视频工作流/scripts/p21_restore_share.sh
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

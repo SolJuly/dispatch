@@ -1,0 +1,48 @@
+{
+  "kind": "image",
+  "task_ref": "P2.1-M3",
+  "model": {
+    "key": "sdxl_juggernaut",
+    "workflow": "workflows/sdxl_inpaint.api.json",
+    "checkpoint": "juggernautXL_v8Rundiffusion_V8.safetensors",
+    "workflow_sha256": "2dbd6f87ded7d10d3be74204c7e2dad4164ab4d0258a9d8d71d50d8a73648605",
+    "registry": {
+      "workflow_key": "sdxl_inpaint",
+      "workflow_version": 1,
+      "model_key": "sdxl_juggernaut",
+      "model_version": 1,
+      "compat": "experimental",
+      "compat_basis": "unverified",
+      "setup_need": "all",
+      "graph_sha256": "2dbd6f87ded7d10d3be74204c7e2dad4164ab4d0258a9d8d71d50d8a73648605"
+    }
+  },
+  "params": {
+    "cfg": 6.0,
+    "denoise": 0.9,
+    "grow_mask_by": 6,
+    "image": "in-a6891d7b.png",
+    "mask": "in-5935a044.png",
+    "neg_prompt": "blurry, lowres, watermark",
+    "prompt": "a green pear on wooden table, warm sunset light, film photograph",
+    "sampler": "dpmpp_2m",
+    "scheduler": "karras",
+    "seed": 11,
+    "steps": 25
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "min_bytes": 20000
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "schema": "p20.model/v1",
+  "key": "wan2_2_i2v_high_noise_14b_fp8_scaled",
+  "name": "wan2.2_i2v_high_noise_14B_fp8_scaled",
+  "version": 1,
+  "kind": "video",
+  "family": "wan2_2_i2v_high_nois",
+  "primary": "unet",
+  "files": {
+    "clip": {
+      "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "umt5_xxl_fp8_e4m3fn_scaled"
+      }
+    },
+    "unet": {
+      "name": "wan2.2/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "wan2.2_i2v_high_noise_14B_fp8_scaled"
+      }
+    },
+    "unet_2": {
+      "name": "wan2.2/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "wan2.2_i2v_low_noise_14B_fp8_scaled"
+      }
+    },
+    "vae": {
+      "name": "wan_2.1_vae.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "contains": "wan_2.1_vae"
+      }
+    }
+  },
+  "defaults": {},
+  "constraints": {},
+  "setup": {
+    "profile": "all",
+    "links": []
+  }
+}

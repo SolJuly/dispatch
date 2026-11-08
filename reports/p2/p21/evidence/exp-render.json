@@ -1,0 +1,511 @@
+{
+ "ok": [
+  {
+   "wf": "h3_i2v_121f",
+   "model": "h3",
+   "nodes": 11,
+   "files": [
+    "minimax/DasiwaMinimaxH3_dasiwaHybridV2_int8.safetensors",
+    "minimax_h3_video_vae_int8_convrot-v2.safetensors",
+    "qwen3vl_32b_minimax_h3_int8_convrot.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_image_flux2_klein_image_edit_4b_distilled",
+   "model": "flux_2_klein_4b_fp8",
+   "nodes": 41,
+   "files": [
+    "flux-2-klein-4b-fp8.safetensors",
+    "flux2-vae.safetensors",
+    "qwen_3_4b.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_image_qwen_image_2_1_background_removal",
+   "model": "qwen_image_2_1_int8_convrot",
+   "nodes": 11,
+   "files": [
+    "qwen3vl_8b_int8_convrot.safetensors",
+    "qwen_image_2.1_int8_convrot.safetensors",
+    "qwen_image_2.1_vae_bf16.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_image_qwen_image_2_1_image_edit",
+   "model": "qwen_image_2_1_int8_convrot_image_qwen_image_2_1_ima",
+   "nodes": 16,
+   "files": [
+    "qwen3.5_9b_qwen_image_2.1_pe_i2i.int8_convrot.safetensors",
+    "qwen3vl_8b_int8_convrot.safetensors",
+    "qwen_image_2.1_int8_convrot.safetensors",
+    "qwen_image_2.1_vae_bf16.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_image_qwen_image_edit_2511_int8",
+   "model": "qwen_image_edit_2511_int8_convrot",
+   "nodes": 19,
+   "files": [
+    "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+    "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+    "qwen_image_edit_2511_int8_convrot.safetensors",
+    "qwen_image_vae.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_image_qwen_image_layered",
+   "model": "qwen_image_layered_bf16",
+   "nodes": 29,
+   "files": [
+    "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+    "qwen_image_layered_bf16.safetensors",
+    "qwen_image_layered_vae.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_template_ltx2_3_ic_lora_ingredients",
+   "model": "ltx_2_3_22b_distilled_fp8",
+   "nodes": 31,
+   "files": [
+    "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
+    "ltx-2.3-22b-distilled-fp8.safetensors",
+    "ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_template_qwen_image_illustration_lora",
+   "model": "qwen_image_fp8_e4m3fn",
+   "nodes": 11,
+   "files": [
+    "illustration-1.0-qwen-image.safetensors",
+    "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+    "qwen_image_fp8_e4m3fn.safetensors",
+    "qwen_image_vae.safetensors"
+   ],
+   "inputs": [],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_templates_hellorob_facegen_skindetail_upscale",
+   "model": "z_image_turbo_bf16_templates_hellorob_faceg",
+   "nodes": 40,
+   "files": [
+    "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors",
+    "ae.safetensors",
+    "qwen_3_4b.safetensors",
+    "sdxl-skin_realism_acne_skin_details_imperfections.safetensors",
+    "z_image_turbo_bf16.safetensors",
+    "zimage-grainscape_ultrareal.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_utility_image_upscale_supir",
+   "model": "juggernautxl_v9rdphoto2lightning",
+   "nodes": 20,
+   "files": [
+    "juggernautXL_v9Rdphoto2Lightning.safetensors",
+    "qwen3.5_4b_bf16.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_utility_seedvr2_7b_int8_upscale_image",
+   "model": "seedvr2_7b_int8_convrot",
+   "nodes": 12,
+   "files": [
+    "seedvr2_7b_int8_convrot.safetensors",
+    "seedvr2_ema_vae_fp16.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_utility_void_video_inpainting",
+   "model": "void_pass2",
+   "nodes": 36,
+   "files": [
+    "cogvideox_vae.safetensors",
+    "sam3.1_multiplex_fp16.safetensors",
+    "t5xxl_fp16.safetensors",
+    "void_pass1.safetensors",
+    "void_pass2.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_utility_z_image_turbo_2k_upscaler_app",
+   "model": "z_image_turbo_bf16_utility_z_image_turbo_2k",
+   "nodes": 15,
+   "files": [
+    "RealESRGAN_x4plus.safetensors",
+    "ae.safetensors",
+    "qwen_3_4b.safetensors",
+    "z_image_turbo_bf16.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_fasth3_ominiref_r2v",
+   "model": "fasth3_omniref_8step_pruned_int8_con",
+   "nodes": 20,
+   "files": [
+    "fasth3_omniref_8step_pruned_int8_convrot.safetensors",
+    "minimax_h3_audio_vae_fp32.safetensors",
+    "minimax_h3_video_vae_int8_convrot.safetensors",
+    "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_fastvideo_fasth3_i2v",
+   "model": "fastvideo_fasth3_8step_v2_pruned_int",
+   "nodes": 21,
+   "files": [
+    "fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors",
+    "minimax_h3_audio_vae_fp32.safetensors",
+    "minimax_h3_video_vae_int8_convrot.safetensors",
+    "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_ltx2_3_flf2v",
+   "model": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_flf2v",
+   "nodes": 31,
+   "files": [
+    "ltx-2.3-22b-distilled-fp8.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_ltx2_3_i2v",
+   "model": "ltx_2_3_22b_dev_fp8",
+   "nodes": 43,
+   "files": [
+    "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
+    "gemma_3_12B_it_fp4_mixed.safetensors",
+    "ltx-2.3-22b-dev-fp8.safetensors",
+    "ltx-2.3-spatial-upscaler-x2-1.1.safetensors",
+    "ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_ltx2_3_ic_lora",
+   "model": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_ic_lora",
+   "nodes": 40,
+   "files": [
+    "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
+    "gemma_3_12B_it_fp4_mixed.safetensors",
+    "ltx-2.3-22b-distilled-fp8.safetensors",
+    "ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors",
+    "moge_2_vitl_normal_fp16.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_ltx2_3_id_lora",
+   "model": "ltx_2_3_22b_dev_fp8_video_ltx2_3_id_lora",
+   "nodes": 44,
+   "files": [
+    "gemma_3_12B_it_fp4_mixed.safetensors",
+    "ltx-2.3-22b-dev-fp8.safetensors",
+    "ltx-2.3-id-lora-talkvid-3k.safetensors",
+    "ltx-2.3-spatial-upscaler-x2-1.1.safetensors",
+    "ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_ltx2_5_flf2v",
+   "model": "ltx_2_5_audio_vae_bf16",
+   "nodes": 35,
+   "files": [
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_int8_convrot.safetensors",
+    "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_minimax_h3_multiframe_reference",
+   "model": "minimax_h3_ref2va_pruned_int8_convro",
+   "nodes": 29,
+   "files": [
+    "minimax_h3_audio_vae_fp32.safetensors",
+    "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
+    "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+    "minimax_h3_video_vae_int8_convrot.safetensors",
+    "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+   ],
+   "inputs": [
+    "in-5935a044.png",
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg",
+    "in-ff45f4b6.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_minimax_h3_r2v",
+   "model": "minimax_h3_ref2va_pruned_int8_convro_video_minimax_h3_r2v",
+   "nodes": 21,
+   "files": [
+    "minimax_h3_audio_vae_fp32.safetensors",
+    "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
+    "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+    "minimax_h3_video_vae_int8_convrot.safetensors",
+    "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_wan21_scail2_character_replacement",
+   "model": "wan2_1_14b_scail_2_fp16",
+   "nodes": 75,
+   "files": [
+    "Wan2_1_VAE_bf16.safetensors",
+    "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+    "sam3.1_multiplex_fp16.safetensors",
+    "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "wan2.1_14B_SCAIL_2_fp16.safetensors",
+    "wan2.1_SCAIL_2_DPO_lora_bf16.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_wan21_scail2_character_replacement_int8",
+   "model": "wan2_1_14b_scail_2_int8_convrot",
+   "nodes": 75,
+   "files": [
+    "Wan2_1_VAE_bf16.safetensors",
+    "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+    "sam3.1_multiplex_fp16.safetensors",
+    "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "wan2.1_14B_SCAIL_2_int8_convrot.safetensors",
+    "wan2.1_SCAIL_2_DPO_lora_bf16.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_wan2_2_14b_s2v",
+   "model": "wan2_2_s2v_14b_fp8_scaled",
+   "nodes": 37,
+   "files": [
+    "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "wan2.2_s2v_14B_fp8_scaled.safetensors",
+    "wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors",
+    "wan_2.1_vae.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "s2v-audio.wav"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_wan_animate2",
+   "model": "wan_animate_2_int8_convrot",
+   "nodes": 62,
+   "files": [
+    "Wan2_1_VAE_bf16.safetensors",
+    "clip_vision_h.safetensors",
+    "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+    "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "wan_animate_2_int8_convrot.safetensors"
+   ],
+   "inputs": [
+    "in-902baae2.mp4",
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_wan_animate2_distilled",
+   "model": "wan_animate_2_distill_int8_convrot",
+   "nodes": 74,
+   "files": [
+    "Wan2_1_VAE_bf16.safetensors",
+    "clip_vision_h.safetensors",
+    "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "wan_animate_2_distill_int8_convrot.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_wan_vace_14b_ref2v",
+   "model": "wan2_1_vace_14b_fp16",
+   "nodes": 14,
+   "files": [
+    "Wan21_CausVid_14B_T2V_lora_rank32.safetensors",
+    "umt5_xxl_fp16.safetensors",
+    "wan2.1_vace_14B_fp16.safetensors",
+    "wan_2.1_vae.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_wan_vace_14b_v2v",
+   "model": "wan2_1_vace_14b_fp16_video_wan_vace_14b_v2v",
+   "nodes": 16,
+   "files": [
+    "Wan21_CausVid_14B_T2V_lora_rank32.safetensors",
+    "umt5_xxl_fp16.safetensors",
+    "wan2.1_vace_14B_fp16.safetensors",
+    "wan_2.1_vae.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_wan_vace_flf2v",
+   "model": "wan2_1_vace_14b_fp16_video_wan_vace_flf2v",
+   "nodes": 30,
+   "files": [
+    "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+    "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "wan2.1_vace_14B_fp16.safetensors",
+    "wan_2.1_vae.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "pack_video_wan_vace_inpainting",
+   "model": "wan2_1_vace_14b_fp16_video_wan_vace_inpaintin",
+   "nodes": 32,
+   "files": [
+    "Wan21_CausVid_14B_T2V_lora_rank32.safetensors",
+    "sam3.1_multiplex_fp16.safetensors",
+    "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "wan2.1_vace_14B_fp16.safetensors",
+    "wan_2.1_vae.safetensors"
+   ],
+   "inputs": [
+    "in-a6891d7b.png",
+    "in-f9bd4904.jpg"
+   ],
+   "missing_params": []
+  },
+  {
+   "wf": "qwen_image_t2i_landscape",
+   "model": "qwen_image",
+   "nodes": 9,
+   "files": [
+    "qwen/qwen_image_fp8_e4m3fn_scaled.safetensors",
+    "qwen25vl7b_std.safetensors",
+    "qwen_std_vae.safetensors"
+   ],
+   "inputs": [],
+   "missing_params": []
+  },
+  {
+   "wf": "qwen_image_t2i_portrait",
+   "model": "qwen_image",
+   "nodes": 9,
+   "files": [
+    "qwen/qwen_image_fp8_e4m3fn_scaled.safetensors",
+    "qwen25vl7b_std.safetensors",
+    "qwen_std_vae.safetensors"
+   ],
+   "inputs": [],
+   "missing_params": []
+  }
+ ],
+ "bad": []
+}

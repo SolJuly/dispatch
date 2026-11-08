@@ -1,0 +1,341 @@
+{
+  "schema": "p21.bench/v1",
+  "workflow": "qwen_image_t2i",
+  "model": "qwen_image",
+  "gpu": "4090",
+  "started_at": "20261103T110250",
+  "cases": [
+    {
+      "i": 1,
+      "category": "batch",
+      "seed": 777,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 74.1,
+      "total_s": 76.5,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "ce6ae46f4bf72b35240fbbfd1171d3f7faeea4992bcabf0f0c9065b92d1f6f23"
+      ],
+      "pixel_sha256": [
+        "f5340f34f5a1ab8981c84219394aa9c7f22d6e2268145fe27feb92655ec52e04"
+      ],
+      "batch": 1,
+      "vram_peak_mb": 23692
+    },
+    {
+      "i": 1,
+      "category": "batch",
+      "seed": 777,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 34.0,
+      "total_s": 37.6,
+      "files": 2,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "277f804ea33566469f6690c10179e6e9b996ab7adf720fa86772a8bab6be6de9",
+        "390e0c5e377a2616447f2b81a3061a51e99e310c618cc85b8957aae3c8cde540"
+      ],
+      "pixel_sha256": [
+        "0420c43e1428193aebf7516e166f0b09b020ec139963f3cc4f7a153c7c764f38",
+        "c87e4a19740ca7f96fcf1dfe6a40d89b48090689262253adb8448b5fc43386da"
+      ],
+      "batch": 2,
+      "vram_peak_mb": 23186
+    },
+    {
+      "i": 1,
+      "category": "batch",
+      "seed": 777,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 65.3,
+      "total_s": 72.4,
+      "files": 4,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "f556dea6a8fdd7bd78cd335409dd9f755fd12f6425a95da21ee590cdc792084c",
+        "a2a51ce1cdc2e3ebad860f0aa3a042479715927279a7372e05168a89abbb3978",
+        "f536d7ea8b46e003723cff801b45cadb985795fe114416e9ba5559e2558fb979",
+        "8ed809c4990752685839f8606773f38b2d7df7e709c3264f98ffdd7be432657f"
+      ],
+      "pixel_sha256": [
+        "5925c82dc0f315e631ac13a73e862406ade41b94abf97a0ccc5f4e6204c70886",
+        "a3e1effa5dc71844f4e611309210b096bdaf6adb3de18b9c2cc4953b5ce65648",
+        "c276103767721510622cf005b1d491cb49fa0f6aa2d6fbcf788f47b4161b86ea",
+        "cd9cec3a8a2606d6bfa5dc631918f2c929fda60eafe8c2c9403cff1958b26f2f"
+      ],
+      "batch": 4,
+      "vram_peak_mb": 22482
+    },
+    {
+      "i": 1,
+      "category": "batch",
+      "seed": 777,
+      "size": [
+        512,
+        512
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 21.4,
+      "total_s": 27.3,
+      "files": 4,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "6505aad96ead00d6e20860f457df4b17c378692eecf2aac2cf906028f2a2a1f1",
+        "dbdffb6259e3a49350441bc916825baf312c66f37f76b684bb48f16e45862e24",
+        "c6f9c48fea62baa1052ef8cb4a76c44e336c842ea5aa2c2ad69a39ae4dd4c63d",
+        "e050527663eee1124fa4d05ef687bbe058b6ce743c9937f68c4575376a7277a7"
+      ],
+      "pixel_sha256": [
+        "0f3bcd17729d2250f6a91e14a757ee2f156d525bd43305c85af25e3de4d78b14",
+        "6117f95a3b10f9ca7d63574689530a5d24de4c63ff1dcfa5ca9a685fd0214bb8",
+        "63f89d2a6430503405b9f1348a832c75ccddd34746c4bc51cc4fa0cf6ab80192",
+        "5159e74d0418c42a6a02ed0751de9a8c17145ac62cbe428cb0a36276e98b2ed3"
+      ],
+      "batch": 4,
+      "vram_peak_mb": 20818
+    },
+    {
+      "i": 1,
+      "category": "batch",
+      "seed": 777,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 48.0,
+      "total_s": 51.8,
+      "files": 2,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "2cb4d746859405b356fcc101151e225858a3a017add92d6bf7f6d61df6b8b742",
+        "ab159d2c1c3383dfb0ebbe47f0c15303c6b275d3b25c35fa4b1c9318163d13c6"
+      ],
+      "pixel_sha256": [
+        "a209039ea53546dfa836099cf6f14b6ec46fcc40afb1b37b79911ab321ae6772",
+        "409e451d977a8cacc4cb8fc40ed22fdbb859b4c0c5d0ae385c622de072bd88bb"
+      ],
+      "batch": 2,
+      "vram_peak_mb": 21266
+    },
+    {
+      "i": 90,
+      "category": "seed",
+      "seed": 12345,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 17.5,
+      "total_s": 20.0,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "49fcfa35c6511c88a825cf1c93001420ac56fbf88ad576191da3869ae57f70d5"
+      ],
+      "pixel_sha256": [
+        "5a8443ec5059080dffe6aa0904b785d480ffce040cd984f2b80c3e7efc96ea43"
+      ]
+    },
+    {
+      "i": 91,
+      "category": "seed",
+      "seed": 12345,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 1.3,
+      "total_s": 3.9,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "49fcfa35c6511c88a825cf1c93001420ac56fbf88ad576191da3869ae57f70d5"
+      ],
+      "pixel_sha256": [
+        "5a8443ec5059080dffe6aa0904b785d480ffce040cd984f2b80c3e7efc96ea43"
+      ]
+    }
+  ],
+  "batch_scan": [
+    {
+      "i": 1,
+      "category": "batch",
+      "seed": 777,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 74.1,
+      "total_s": 76.5,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "ce6ae46f4bf72b35240fbbfd1171d3f7faeea4992bcabf0f0c9065b92d1f6f23"
+      ],
+      "pixel_sha256": [
+        "f5340f34f5a1ab8981c84219394aa9c7f22d6e2268145fe27feb92655ec52e04"
+      ],
+      "batch": 1,
+      "vram_peak_mb": 23692
+    },
+    {
+      "i": 1,
+      "category": "batch",
+      "seed": 777,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 34.0,
+      "total_s": 37.6,
+      "files": 2,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "277f804ea33566469f6690c10179e6e9b996ab7adf720fa86772a8bab6be6de9",
+        "390e0c5e377a2616447f2b81a3061a51e99e310c618cc85b8957aae3c8cde540"
+      ],
+      "pixel_sha256": [
+        "0420c43e1428193aebf7516e166f0b09b020ec139963f3cc4f7a153c7c764f38",
+        "c87e4a19740ca7f96fcf1dfe6a40d89b48090689262253adb8448b5fc43386da"
+      ],
+      "batch": 2,
+      "vram_peak_mb": 23186
+    },
+    {
+      "i": 1,
+      "category": "batch",
+      "seed": 777,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 65.3,
+      "total_s": 72.4,
+      "files": 4,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "f556dea6a8fdd7bd78cd335409dd9f755fd12f6425a95da21ee590cdc792084c",
+        "a2a51ce1cdc2e3ebad860f0aa3a042479715927279a7372e05168a89abbb3978",
+        "f536d7ea8b46e003723cff801b45cadb985795fe114416e9ba5559e2558fb979",
+        "8ed809c4990752685839f8606773f38b2d7df7e709c3264f98ffdd7be432657f"
+      ],
+      "pixel_sha256": [
+        "5925c82dc0f315e631ac13a73e862406ade41b94abf97a0ccc5f4e6204c70886",
+        "a3e1effa5dc71844f4e611309210b096bdaf6adb3de18b9c2cc4953b5ce65648",
+        "c276103767721510622cf005b1d491cb49fa0f6aa2d6fbcf788f47b4161b86ea",
+        "cd9cec3a8a2606d6bfa5dc631918f2c929fda60eafe8c2c9403cff1958b26f2f"
+      ],
+      "batch": 4,
+      "vram_peak_mb": 22482
+    },
+    {
+      "i": 1,
+      "category": "batch",
+      "seed": 777,
+      "size": [
+        512,
+        512
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 21.4,
+      "total_s": 27.3,
+      "files": 4,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "6505aad96ead00d6e20860f457df4b17c378692eecf2aac2cf906028f2a2a1f1",
+        "dbdffb6259e3a49350441bc916825baf312c66f37f76b684bb48f16e45862e24",
+        "c6f9c48fea62baa1052ef8cb4a76c44e336c842ea5aa2c2ad69a39ae4dd4c63d",
+        "e050527663eee1124fa4d05ef687bbe058b6ce743c9937f68c4575376a7277a7"
+      ],
+      "pixel_sha256": [
+        "0f3bcd17729d2250f6a91e14a757ee2f156d525bd43305c85af25e3de4d78b14",
+        "6117f95a3b10f9ca7d63574689530a5d24de4c63ff1dcfa5ca9a685fd0214bb8",
+        "63f89d2a6430503405b9f1348a832c75ccddd34746c4bc51cc4fa0cf6ab80192",
+        "5159e74d0418c42a6a02ed0751de9a8c17145ac62cbe428cb0a36276e98b2ed3"
+      ],
+      "batch": 4,
+      "vram_peak_mb": 20818
+    },
+    {
+      "i": 1,
+      "category": "batch",
+      "seed": 777,
+      "size": [
+        1024,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 48.0,
+      "total_s": 51.8,
+      "files": 2,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "2cb4d746859405b356fcc101151e225858a3a017add92d6bf7f6d61df6b8b742",
+        "ab159d2c1c3383dfb0ebbe47f0c15303c6b275d3b25c35fa4b1c9318163d13c6"
+      ],
+      "pixel_sha256": [
+        "a209039ea53546dfa836099cf6f14b6ec46fcc40afb1b37b79911ab321ae6772",
+        "409e451d977a8cacc4cb8fc40ed22fdbb859b4c0c5d0ae385c622de072bd88bb"
+      ],
+      "batch": 2,
+      "vram_peak_mb": 21266
+    }
+  ],
+  "seed_check": {
+    "seed": 12345,
+    "same_file": true,
+    "same_pixels": true,
+    "sha_a": [
+      "49fcfa35c6511c88a825cf1c93001420ac56fbf88ad576191da3869ae57f70d5"
+    ],
+    "sha_b": [
+      "49fcfa35c6511c88a825cf1c93001420ac56fbf88ad576191da3869ae57f70d5"
+    ],
+    "pixel_sha_a": [
+      "5a8443ec5059080dffe6aa0904b785d480ffce040cd984f2b80c3e7efc96ea43"
+    ],
+    "pixel_sha_b": [
+      "5a8443ec5059080dffe6aa0904b785d480ffce040cd984f2b80c3e7efc96ea43"
+    ]
+  },
+  "vram_peak_mb": 21266,
+  "finished_at": "2026-11-03T11:09:29+08:00",
+  "total": 7,
+  "pass": 7,
+  "success_rate": 1.0,
+  "inference_p50_s": 34.0,
+  "inference_p95_s": 74.1,
+  "elapsed_min": 6.7,
+  "est_cost": 0.239
+}

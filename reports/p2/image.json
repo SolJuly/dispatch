@@ -3,20 +3,31 @@
   "fallback_keyword": "ComfyUI基础镜像纯净版0.36.0",
   "layers": {
     "base": {
-      "name": "p2-comfy-base-v1",
-      "image_id": "compshareImage-1x65ieja8ncj",
-      "based_on": "compshareImage-1vjv4ef2vy94",
-      "has_ffmpeg": false,
-      "comfy_ver": "0.36.x",
-      "baked_at": "2026-11-01T11:47:55+0800"
+      "name": "p2-comfy-media-v4",
+      "image_id": "compshareImage-1xdh3lcu5dvu",
+      "based_on": "compshareImage-1jqfh9wcxpz7",
+      "has_ffmpeg": true,
+      "comfy_ver": "3c80da7f",
+      "torch": "2.8.0+cu128",
+      "size_gb": 70,
+      "baked_at": "2026-11-06T15:00:00+0800",
+      "note": "0.3.75 底座 + v3 同款运行时（ComfyUI 3c80da7f、10 节点、torch2.8/cu128）；4 条回归 PASS；不含权重"
     },
     "media": {
-      "name": "p2-comfy-media-v1",
-      "image_id": "compshareImage-1x65o3j08tdw",
-      "based_on": "compshareImage-1x65ieja8ncj",
+      "name": "p2-comfy-media-v4",
+      "image_id": "compshareImage-1xdh3lcu5dvu",
+      "based_on": "compshareImage-1jqfh9wcxpz7",
       "has_ffmpeg": true,
-      "comfy_ver": "0.36.x",
-      "baked_at": "2026-11-01T11:52:19+0800"
+      "comfy_ver": "3c80da7f",
+      "torch": "2.8.0+cu128",
+      "size_gb": 70,
+      "baked_at": "2026-11-06T15:00:00+0800",
+      "note": "0.3.75 底座 + v3 同款运行时（ComfyUI 3c80da7f、10 节点、torch2.8/cu128）；4 条回归 PASS；不含权重"
     }
+  },
+  "previous": {
+    "name": "p2-comfy-media-v3",
+    "image_id": "compshareImage-1xc7km2mb0ob",
+    "size_gb": 210
   }
 }

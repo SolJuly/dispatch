@@ -1,0 +1,83 @@
+{
+  "schema": "p20.model/v1",
+  "key": "zimage_turbo",
+  "name": "Z-Image-Turbo bf16（8 步蒸馏）",
+  "version": 1,
+  "kind": "image",
+  "family": "zimage",
+  "primary": "unet",
+  "files": {
+    "unet": {
+      "name": "z_image_turbo/z_image_turbo_bf16.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {
+        "contains": "z_image_turbo_bf16"
+      }
+    },
+    "clip": {
+      "name": "qwen_3_4b.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "match": {
+        "contains": "qwen_3_4b"
+      }
+    },
+    "vae": {
+      "name": "ae.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {
+        "equals": "ae.safetensors"
+      }
+    }
+  },
+  "defaults": {
+    "steps": 8,
+    "cfg": 1.0,
+    "sampler_name": "res_multistep",
+    "scheduler": "simple"
+  },
+  "constraints": {
+    "width": {
+      "min": 512,
+      "max": 1536,
+      "multiple": 32
+    },
+    "height": {
+      "min": 512,
+      "max": 1536,
+      "multiple": 32
+    },
+    "steps": {
+      "min": 4,
+      "max": 12
+    },
+    "cfg": {
+      "min": 0.5,
+      "max": 2.0
+    }
+  },
+  "setup": {
+    "profile": "all",
+    "links": [
+      {
+        "link": "/root/ComfyUI/models/diffusion_models/z_image_turbo/z_image_turbo_bf16.safetensors",
+        "target": "/model/ModelScope/Comfy-Org/z_image_turbo/split_files/diffusion_models/z_image_turbo_bf16.safetensors"
+      },
+      {
+        "link": "/root/ComfyUI/models/text_encoders/qwen_3_4b.safetensors",
+        "target": "/model/ModelScope/Comfy-Org/z_image_turbo/split_files/text_encoders/qwen_3_4b.safetensors"
+      },
+      {
+        "link": "/root/ComfyUI/models/vae/ziamge_ae.safetensors",
+        "target": "/model/ModelScope/Comfy-Org/z_image_turbo/split_files/vae/ae.safetensors"
+      },
+      {
+        "link": "/root/ComfyUI/models/vae/ae.safetensors",
+        "target": "/model/ModelScope/Comfy-Org/z_image_turbo/split_files/vae/ae.safetensors"
+      }
+    ]
+  },
+  "notes": "Z-Image-Turbo（Apache-2.0，dsh-comfy 配方）：DiT 三件套 UNETLoader + CLIPLoader(type=lumina2) + VAELoader；8 steps / cfg 1.0 / res_multistep + simple；最小 12GB 显存，推荐 16GB+。三个权重文件需在共享库 diffusion_models/、text_encoders/、vae/ 下可见。VAE 原名 ae.safetensors（2026-11-07 真机核对共享库 inode=2915678961491975696）；setup.links 保留 ziamge_ae 别名软链仅为兼容老作业 render.json 里已写死的旧名，新渲染一律用 ae.safetensors。"
+}

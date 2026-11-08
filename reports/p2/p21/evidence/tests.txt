@@ -1,0 +1,11 @@
+== P2.0 tests ==
+Ran 60 tests in 0.924s
+OK
+
+== P2 tests ==
+Ran 42 tests in 13.240s
+OK
+
+== P1 cases ==
+
+合计 13 条：PASS 12 · FAIL 0 · SKIP 1

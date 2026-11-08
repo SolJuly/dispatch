@@ -1,0 +1,90 @@
+{
+  "schema": "p20.workflow/v1",
+  "key": "pack_video_fasth3_ominiref_r2v",
+  "name": "多参考生视频 · FastH3 OmniRef（尚未开发）",
+  "description": "多张参考图驱动视频生成。输入：参考图 + 提示词；输出：MP4。当前张量尺寸不匹配。（🚧 尚未开发）",
+  "version": 1,
+  "kind": "video",
+  "engine": "comfyui",
+  "graph": "workflows/pack/video_fasth3_ominiref_r2v.api.json",
+  "model": {
+    "key": "fasth3_omniref_8step_pruned_int8_con",
+    "slots": {
+      "vae": {
+        "node": "119",
+        "input": "vae_name"
+      },
+      "vae_2": {
+        "node": "120",
+        "input": "vae_name"
+      },
+      "unet": {
+        "node": "127",
+        "input": "unet_name"
+      },
+      "clip": {
+        "node": "128",
+        "input": "clip_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "subject_definitions:\n<Subject 1> is the plane in <Picture 1>: a yellow propeller plane climbing vert…",
+      "bindings": [
+        {
+          "node": "136",
+          "input": "prompt"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "129",
+          "input": "noise_seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "137",
+          "input": "image"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "92",
+    "input": "filename_prefix",
+    "kind": "video",
+    "ext": "mp4",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "limits": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "vid.multiref.fast · 多参考 · 全参考加速版（FastH3） · 许可：MiniMax H3 Community License（排除美/欧/英/韩；年营收 >$20M 需授权；商用须经 Comfy 官方经销许可） · 商用：需授权 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "fps": 24
+}

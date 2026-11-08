@@ -1,0 +1,277 @@
+{
+  "1196": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "shift": 3.1,
+      "model": [
+        "1208",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "1197": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "1198": {
+    "class_type": "FluxKontextMultiReferenceLatentMethod",
+    "inputs": {
+      "conditioning": [
+        "1200",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "1199": {
+    "class_type": "FluxKontextMultiReferenceLatentMethod",
+    "inputs": {
+      "conditioning": [
+        "1202",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "1200": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": [
+        "1209",
+        0
+      ],
+      "vae": [
+        "1197",
+        0
+      ],
+      "image1": [
+        "1218",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "1202": {
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "inputs": {
+      "clip": [
+        "1209",
+        0
+      ],
+      "vae": [
+        "1197",
+        0
+      ],
+      "image1": [
+        "1218",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "TextEncodeQwenImageEditPlus (Positive)"
+    }
+  },
+  "1203": {
+    "class_type": "CFGNorm",
+    "inputs": {
+      "model": [
+        "1196",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "1204": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "1203",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "1207": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "1218",
+        0
+      ],
+      "vae": [
+        "1197",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "1208": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "qwen_image_edit_2511_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "1209": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "1210": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "1203",
+        0
+      ],
+      "on_true": [
+        "1204",
+        0
+      ],
+      "switch": false
+    },
+    "_meta": {
+      "title": "Switch (Model)"
+    }
+  },
+  "1214": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": 4,
+      "on_true": 1,
+      "switch": false
+    },
+    "_meta": {
+      "title": "Switch (CFG)"
+    }
+  },
+  "1215": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": 40,
+      "on_true": 4,
+      "switch": false
+    },
+    "_meta": {
+      "title": "Switch (Steps)"
+    }
+  },
+  "1216": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 1119496583977398,
+      "steps": [
+        "1215",
+        0
+      ],
+      "cfg": [
+        "1214",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "1210",
+        0
+      ],
+      "positive": [
+        "1199",
+        0
+      ],
+      "negative": [
+        "1198",
+        0
+      ],
+      "latent_image": [
+        "1207",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "1217": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "1216",
+        0
+      ],
+      "vae": [
+        "1197",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "1218": {
+    "class_type": "FluxKontextImageScale",
+    "inputs": {
+      "image": [
+        "41",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Image Edit (Qwen-Image 2511 Int8)"
+    }
+  },
+  "195": {
+    "class_type": "SaveImageAdvanced",
+    "inputs": {
+      "filename_prefix": "Qwen_Edit_2511",
+      "format": "png",
+      "images": [
+        "1217",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveImageAdvanced"
+    }
+  },
+  "41": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "lily_girl_blue.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
+  }
+}

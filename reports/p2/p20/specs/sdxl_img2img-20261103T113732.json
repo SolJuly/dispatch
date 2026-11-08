@@ -1,0 +1,54 @@
+{
+  "kind": "image",
+  "task_ref": "P2.1-M2",
+  "model": {
+    "key": "sdxl_juggernaut",
+    "workflow": "workflows/sdxl_img2img.api.json",
+    "checkpoint": "juggernautXL_v8Rundiffusion_V8.safetensors",
+    "workflow_sha256": "5d2ec78375fc8245f79fa7347cd9d1a67ebd98c420a0bd5975fbfefb25818966",
+    "registry": {
+      "workflow_key": "sdxl_img2img",
+      "workflow_version": 1,
+      "model_key": "sdxl_juggernaut",
+      "model_version": 1,
+      "compat": "experimental",
+      "compat_basis": "unverified",
+      "setup_need": "all",
+      "graph_sha256": "5d2ec78375fc8245f79fa7347cd9d1a67ebd98c420a0bd5975fbfefb25818966"
+    }
+  },
+  "params": {
+    "cfg": 6.0,
+    "denoise": 0.55,
+    "height": 1024,
+    "image": "in-a6891d7b.png",
+    "neg_prompt": "blurry, lowres, watermark",
+    "prompt": "same red apple on wooden table, warm sunset light, film photograph",
+    "sampler": "dpmpp_2m",
+    "scheduler": "karras",
+    "seed": 7,
+    "steps": 25,
+    "width": 1024
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "min_bytes": 20000,
+    "width": [
+      1024
+    ],
+    "height": [
+      1024
+    ]
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

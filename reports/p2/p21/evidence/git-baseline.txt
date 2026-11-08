@@ -1,0 +1,45 @@
+== date ==
+2026-11-02T23:09:32+08:00
+
+== branch ==
+feature-/creative-engine
+
+== HEAD ==
+ca2a352 merge(warm-pool): 预热池 M5（ensure/acquire/release/reconcile/drain）
+8e9802f infra(deploy): 部署守卫 + 一键发布
+c8ed28f feat(pool): 预热池 M5（ensure/acquire/release/reconcile/drain）+ 实测结论
+
+== remote ==
+(end)
+
+== status ==
+ M .gitignore
+ M docs/API.md
+ M fileserver.py
+ M reports/p2/status2.json
+ M tools/p1/run.py
+ M tools/p1/verify.py
+?? "docs/P2.0-Workflow-Model-Registry-\350\256\276\350\256\241.md"
+?? registry/
+?? reports/p2/p20/
+?? reports/p2/p21/
+?? scripts/build_p20_bundle.py
+?? scripts/md2html.py
+?? scripts/publish_public.py
+?? tools/p20/
+?? workflows/qwen_image_t2i_portrait.api.json
+
+== diff --stat ==
+ .gitignore              |   5 ++
+ docs/API.md             |  94 +++++++++++++++++++++++++-
+ fileserver.py           |  99 +++++++++++++++++++++++++++
+ reports/p2/status2.json | 101 +++++++++++++++++++++++++---
+ tools/p1/run.py         | 173 +++++++++++++++++++++++++++++++++++++-----------
+ tools/p1/verify.py      |  32 ++++++---
+ 6 files changed, 446 insertions(+), 58 deletions(-)
+
+== python ==
+Python 3.10.12
+
+== sqlite ==
+3.37.2

@@ -1,0 +1,45 @@
+{
+  "schema": "p20.model/v1",
+  "key": "wan21_i2v",
+  "name": "Wan2.1 I2V 480P 14B FP8",
+  "version": 1,
+  "kind": "video",
+  "family": "wan",
+  "primary": "unet",
+  "files": {
+    "unet": {
+      "name": "wan2.1/wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors",
+      "loader": "UNETLoader",
+      "input": "unet_name",
+      "match": {"contains": "wan2.1_i2v_480p_14B_fp8"}
+    },
+    "clip": {
+      "name": "umt5_xxl_int8_convrot.safetensors",
+      "loader": "CLIPLoader",
+      "input": "clip_name",
+      "extra": {"type": "wan"},
+      "match": {"contains": "umt5_xxl"}
+    },
+    "vae": {
+      "name": "Wan2_1_VAE_bf16.safetensors",
+      "loader": "VAELoader",
+      "input": "vae_name",
+      "match": {"equals": "Wan2_1_VAE_bf16.safetensors"}
+    },
+    "clip_vision": {
+      "name": "clip_vision_h.safetensors",
+      "loader": "CLIPVisionLoader",
+      "input": "clip_name",
+      "match": {"equals": "clip_vision_h.safetensors"}
+    }
+  },
+  "defaults": {"steps": 20, "cfg": 3.5, "width": 832, "height": 480, "frames": 49, "fps": 16},
+  "constraints": {
+    "width": {"min": 256, "max": 1280, "multiple": 16},
+    "height": {"min": 256, "max": 1280, "multiple": 16},
+    "frames": {"min": 1, "max": 121},
+    "steps": {"min": 1, "max": 50}
+  },
+  "setup": {"profile": "all", "links": []},
+  "notes": "P1 已验证（p1-20261101T1818-71b2a0）。必须用官方 fp8；社区 NVFP4 4bit 实测过曝+噪点+崩坏。"
+}

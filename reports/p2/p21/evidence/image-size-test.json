@@ -1,0 +1,17 @@
+{
+  "started_at": "2026-11-07T00:38:38+08:00",
+  "base_image": "compshareImage-1xdh3lcu5dvu",
+  "disk_gb": 100,
+  "name": "p22-size-test-003838",
+  "boot_ok": true,
+  "df": "Filesystem      Size  Used Avail Use% Mounted on\noverlay          79G  1.2M   76G   1% /\n12K\t/root/ComfyUI\n",
+  "image": {
+    "id": "compshareImage-1xe1yoxb0juy",
+    "size_mb": 71680,
+    "actual_mb": 70571
+  },
+  "instance": "uhost-1xe1x8rpc6mx",
+  "duration_s": 232.5,
+  "est_cost": 0.091,
+  "finished_at": "2026-11-07T00:42:31+08:00"
+}

@@ -1,0 +1,77 @@
+{
+  "schema": "p21.bench/v1",
+  "workflow": "sdxl_img2img",
+  "model": "sdxl_juggernaut",
+  "gpu": "4090",
+  "started_at": "20261103T120415",
+  "cases": [
+    {
+      "i": 90,
+      "category": "seed",
+      "seed": 12345,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 24.4,
+      "total_s": 26.9,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "f9575c4467e2d390fa4554229e2d366f7626af81b523302768b6e128c3672b2f"
+      ],
+      "pixel_sha256": [
+        "eb0c53a153f572645aee0e911382c974101a5954231863846c74963ab4bc7dec"
+      ]
+    },
+    {
+      "i": 91,
+      "category": "seed",
+      "seed": 12345,
+      "size": [
+        768,
+        1024
+      ],
+      "prompt": "portrait of an old fisherman, weathered face, dramatic side light, 85mm",
+      "inference_s": 1.2,
+      "total_s": 3.5,
+      "files": 1,
+      "verdict": "PASS",
+      "error": "",
+      "sha256": [
+        "f9575c4467e2d390fa4554229e2d366f7626af81b523302768b6e128c3672b2f"
+      ],
+      "pixel_sha256": [
+        "eb0c53a153f572645aee0e911382c974101a5954231863846c74963ab4bc7dec"
+      ]
+    }
+  ],
+  "seed_check": {
+    "seed": 12345,
+    "same_file": true,
+    "same_pixels": true,
+    "sha_a": [
+      "f9575c4467e2d390fa4554229e2d366f7626af81b523302768b6e128c3672b2f"
+    ],
+    "sha_b": [
+      "f9575c4467e2d390fa4554229e2d366f7626af81b523302768b6e128c3672b2f"
+    ],
+    "pixel_sha_a": [
+      "eb0c53a153f572645aee0e911382c974101a5954231863846c74963ab4bc7dec"
+    ],
+    "pixel_sha_b": [
+      "eb0c53a153f572645aee0e911382c974101a5954231863846c74963ab4bc7dec"
+    ]
+  },
+  "vram_peak_mb": 7588,
+  "finished_at": "2026-11-03T12:06:45+08:00",
+  "total": 2,
+  "pass": 2,
+  "success_rate": 1.0,
+  "inference_p50_s": 1.2,
+  "inference_p95_s": 24.4,
+  "elapsed_min": 2.5,
+  "est_cost": 0.089
+}
