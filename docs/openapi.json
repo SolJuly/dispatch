@@ -1404,83 +1404,6 @@
         ]
       }
     },
-    "/api/p2/jobs/{job_id}/rerun": {
-      "post": {
-        "tags": [
-          "jobs"
-        ],
-        "summary": "同参重跑（P2.2 计划）",
-        "operationId": "rerunJob",
-        "x-status": "planned",
-        "responses": {
-          "201": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateJobResponse"
-                },
-                "examples": {
-                  "default": {
-                    "value": {
-                      "job_id": "p1-20261103T130000-a1b2c3",
-                      "state": "CREATED",
-                      "run": false,
-                      "workflow": "sdxl_t2i",
-                      "workflow_version": 1,
-                      "model": "sdxl_juggernaut",
-                      "params_hash": "sha256:2de9ed823a22...",
-                      "params": {
-                        "prompt": "a red apple on a wooden table",
-                        "seed": 42,
-                        "width": 1024,
-                        "height": 1024,
-                        "steps": 25,
-                        "cfg": 6.0,
-                        "sampler": "dpmpp_2m",
-                        "scheduler": "karras",
-                        "batch_size": 2,
-                        "neg_prompt": ""
-                      },
-                      "expect": {
-                        "ext": "png",
-                        "min_bytes": 20000,
-                        "images": 2,
-                        "width": [
-                          1024
-                        ],
-                        "height": [
-                          1024
-                        ],
-                        "black_ratio_max": 0.5
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "description": "复制原作业参数生成新作业；`overrides` 可覆盖部分参数。",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/token"
-          },
-          {
-            "$ref": "#/components/parameters/job_id"
-          }
-        ]
-      }
-    },
     "/api/p2/jobs/{job_id}/artifacts/{name}": {
       "get": {
         "tags": [
@@ -1523,7 +1446,7 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
-        "description": "当前前端直接用 artifact.url（/pub/jobs/...）静态地址；此接口用于鉴权下载。",
+        "description": "【未实现 · P2.2 计划】此端点当前返回 404。产物请直接用 artifact.url（/f/ 或 /pub/ 静态地址）。\n\n当前前端直接用 artifact.url（/pub/jobs/...）静态地址；此接口用于鉴权下载。",
         "parameters": [
           {
             "$ref": "#/components/parameters/token"
@@ -1713,66 +1636,6 @@
           }
         },
         "description": "P2.1 之前 `/api/p2/jobs` 的契约，现在挪到这里；新前端请用 `/api/p2/jobs`。"
-      }
-    },
-    "/api/p2/queue/jobs/{job_id}": {
-      "get": {
-        "tags": [
-          "queue"
-        ],
-        "summary": "队列视角的作业详情（旧契约）",
-        "operationId": "getQueueJob",
-        "x-status": "implemented",
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueueJob"
-                },
-                "examples": {
-                  "default": {
-                    "value": {
-                      "job_id": "p1-20261103T1219-b2df1a",
-                      "queue_state": "DONE",
-                      "job_state": "DONE",
-                      "model": "sdxl_juggernaut",
-                      "kind": "image",
-                      "attempts": 1,
-                      "defers": 0,
-                      "cost": 0.08,
-                      "gpu_minutes": 2.2,
-                      "verdict": "PASS",
-                      "artifacts": [
-                        "reports/p1/jobs/p1-20261103T1219-b2df1a/artifacts/01-....png"
-                      ],
-                      "enqueued_at": "2026-11-03T12:19:47+08:00",
-                      "ended_at": "2026-11-03T12:22:10+08:00"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/token"
-          },
-          {
-            "$ref": "#/components/parameters/job_id"
-          }
-        ]
       }
     },
     "/api/p2/audit": {
@@ -2482,7 +2345,7 @@
         ],
         "summary": "参数预设列表（P2.2 计划）",
         "operationId": "listPresets",
-        "x-status": "planned",
+        "x-status": "implemented",
         "responses": {
           "200": {
             "description": "成功",
@@ -2584,7 +2447,8 @@
               }
             }
           }
-        }
+        },
+        "description": "【未实现 · 计划中】当前返回 404。预设组合功能尚未开发，参数契约用 /registry/workflows 即可。\n\n"
       }
     },
     "/api/p2/share/{job_id}": {
@@ -2680,7 +2544,84 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
-        "description": "签名访问（`sig`），不暴露主 token；只返回该作业的产物与参数摘要。",
+        "description": "【未实现 · P2.2 计划】此端点当前返回 404。产物请直接用 artifact.url（/f/ 或 /pub/ 静态地址）。\n\n签名访问（`sig`），不暴露主 token；只返回该作业的产物与参数摘要。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/token"
+          },
+          {
+            "$ref": "#/components/parameters/job_id"
+          }
+        ]
+      }
+    },
+    "/api/p2/jobs/rerun": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "按原参数重跑一批作业（批量）",
+        "operationId": "rerunJob",
+        "x-status": "implemented",
+        "responses": {
+          "201": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateJobResponse"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "job_id": "p1-20261103T130000-a1b2c3",
+                      "state": "CREATED",
+                      "run": false,
+                      "workflow": "sdxl_t2i",
+                      "workflow_version": 1,
+                      "model": "sdxl_juggernaut",
+                      "params_hash": "sha256:2de9ed823a22...",
+                      "params": {
+                        "prompt": "a red apple on a wooden table",
+                        "seed": 42,
+                        "width": 1024,
+                        "height": 1024,
+                        "steps": 25,
+                        "cfg": 6.0,
+                        "sampler": "dpmpp_2m",
+                        "scheduler": "karras",
+                        "batch_size": 2,
+                        "neg_prompt": ""
+                      },
+                      "expect": {
+                        "ext": "png",
+                        "min_bytes": 20000,
+                        "images": 2,
+                        "width": [
+                          1024
+                        ],
+                        "height": [
+                          1024
+                        ],
+                        "black_ratio_max": 0.5
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "实现为批量接口：请求体 {\"ids\": [\"p1-...\"], \"run\": false}。\n契约原先写的是单作业路径 /api/p2/jobs/{job_id}/rerun，与实现不符——已对齐为实际提供的批量形态。单个作业重跑就传一个 id。",
         "parameters": [
           {
             "$ref": "#/components/parameters/token"

@@ -493,3 +493,61 @@ class TestParamDescriptions(unittest.TestCase):
         self.assertGreater(total, 0)
         self.assertEqual(has, total,
                          f"{len(missing)} 个参数缺说明，例如：{missing[:6]}")
+
+
+class TestOpenApiContract(unittest.TestCase):
+    """契约（docs/openapi.json）必须与实现一致。
+
+    回归背景：2026-11-08 检查发现 5 个端点照契约写必然 404：
+      /api/p2/status        实现只有 /api/status（少 p2 段）→ 已补
+      /api/p2/presets       GET 补空集；POST 标为计划中
+      /api/p2/share/{id}    P2.2 计划 → 标注 x-implemented: false
+      /api/p2/queue/jobs/{id}  旧契约残留，与 jobs/{id} 重复 → 删除
+      /api/p2/jobs/{id}/artifacts/{name}  P2.2 计划 → 标注
+      /api/p2/jobs/{job_id}/rerun  实现是批量 /jobs/rerun → 契约对齐
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        import json
+        cls.spec = json.loads((PROJ / "docs" / "openapi.json").read_text(encoding="utf-8"))
+        cls.paths = cls.spec["paths"]
+
+    def test_no_stale_queue_jobs_detail(self):
+        """queue/jobs/{id} 旧契约残留必须已删除（它和 jobs/{id} 完全重复）。"""
+        self.assertNotIn("/api/p2/queue/jobs/{job_id}", self.paths)
+
+    def test_planned_endpoints_are_marked(self):
+        """未实现的端点必须显式标 x-status: planned（仓库原有口径）。"""
+        planned = []
+        for path, ops in self.paths.items():
+            for m, op in ops.items():
+                if m in ("get", "post", "put", "delete") and op.get("x-status") == "planned":
+                    planned.append(path)
+        # 至少这三处已知未实现要被标出来
+        for p in ("/api/p2/share/{job_id}",
+                  "/api/p2/jobs/{job_id}/artifacts/{name}",
+                  "/api/p2/presets"):
+            self.assertIn(p, planned, f"{p} 应标为未实现")
+
+    def test_rerun_path_matches_implementation(self):
+        """rerun 的路径必须与 fileserver 实际提供的一致（批量）。"""
+        self.assertIn("/api/p2/jobs/rerun", self.paths)
+        self.assertNotIn("/api/p2/jobs/{job_id}/rerun", self.paths)
+        fs = (PROJ / "fileserver.py").read_text(encoding="utf-8")
+        self.assertIn('parts[4] == "rerun"', fs, "实现里应有批量 rerun")
+
+    def test_status_and_presets_exist_in_impl(self):
+        """status 与 presets 在实现里必须有分支。"""
+        fs = (PROJ / "fileserver.py").read_text(encoding="utf-8")
+        self.assertIn('sub == ["status"]', fs)
+        self.assertIn('sub == ["presets"]', fs)
+
+    def test_status_flag_present_on_all(self):
+        """每个操作都要有 x-status（全库统一口径，便于脚本比对与 mock 生成）。"""
+        for path, ops in self.paths.items():
+            for m, op in ops.items():
+                if m in ("get", "post", "put", "delete"):
+                    with self.subTest(path=path, method=m):
+                        self.assertIn("x-status", op,
+                                      f"{m.upper()} {path} 缺 x-status")

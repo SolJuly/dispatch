@@ -104,10 +104,30 @@ class TestCodeMatchesSpec(unittest.TestCase):
                 self.assertIn(mark, SERVER, f"{path} 在 fileserver.py 里找不到实现标记 {mark!r}")
 
     def test_planned_paths_not_marked_implemented(self):
-        for path in ("/api/p2/presets", "/api/p2/share/{job_id}",
-                     "/api/p2/jobs/{job_id}/rerun"):
-            for method, op in SPEC["paths"][path].items():
-                self.assertEqual(op["x-status"], "planned", path)
+        """仍未实现的端点必须老实标 planned。
+
+        2026-11-08 变动：
+          · GET /api/p2/presets 已实现（返回空集，让照契约写的前端不白屏）
+            → 标 implemented；POST 仍未实现，保持 planned
+          · /api/p2/jobs/{job_id}/rerun 契约写错了（实现是批量 /api/p2/jobs/rerun）
+            → 路径已对齐，无需再断言
+        """
+        for path, method in (("/api/p2/presets", "post"),
+                             ("/api/p2/share/{job_id}", "get"),
+                             ("/api/p2/jobs/{job_id}/artifacts/{name}", "get")):
+            with self.subTest(path=path, method=method):
+                op = SPEC["paths"][path][method]
+                self.assertEqual(op["x-status"], "planned",
+                                 f"{method.upper()} {path} 仍未实现，应标 planned")
+
+    def test_implemented_paths_are_really_implemented(self):
+        """反过来：标 implemented 的，fileserver 里必须能找到对应分支。"""
+        for path, method in (("/api/p2/presets", "get"),
+                             ("/api/p2/jobs/rerun", "post"),
+                             ("/api/p2/status", "get")):
+            with self.subTest(path=path):
+                self.assertEqual(SPEC["paths"][path][method]["x-status"], "implemented",
+                                 f"{method.upper()} {path} 已实现，应标 implemented")
 
 
 class TestMockCoverage(unittest.TestCase):
