@@ -11,6 +11,7 @@ import json
 import os
 import zipfile
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -134,23 +135,70 @@ def sniff_upload(data: bytes, filename: str = "") -> str:
                    f"视频收 MP4/MOV/WebM", 415)
 
 
+VIDEO_EXTS = (".mp4", ".mov", ".m4v", ".webm", ".avi", ".gif")
+
+
+def _cap_for(ext: str) -> int:
+    return MAX_UPLOAD_VIDEO if ext in VIDEO_EXTS else MAX_UPLOAD
+
+
+def _drop_copy(src: Path, dst: Path) -> None:
+    """作业目录与 share 目录各留一份：优先硬链接（同一分区零额外空间），跨盘才复制。"""
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        if dst.exists():
+            dst.unlink()
+        os.link(src, dst)
+    except OSError:
+        shutil.copy2(src, dst)
+    dst.chmod(0o644)
+
+
+def save_upload_file(filename: str, tmp_path: Path) -> dict:
+    """流式上传落地：按内容哈希命名，内存里只有 64KB 缓冲（128MB 视频也不进内存）。"""
+    import hashlib
+
+    size = tmp_path.stat().st_size
+    if size <= 0:
+        raise ApiError("空文件", 400)
+    with tmp_path.open("rb") as fh:
+        head = fh.read(4096)
+    ext = sniff_upload(head, filename)
+    cap = _cap_for(ext)
+    if size > cap:
+        raise ApiError(f"文件太大（{cap // 1048576} MB 上限；当前 "
+                       f"{size / 1048576:.1f} MB）", 413)
+    h = hashlib.sha256()
+    with tmp_path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    name = f"in-{h.hexdigest()[:8]}{ext}"
+    dst = INPUTS_DIR / name
+    INPUTS_DIR.mkdir(parents=True, exist_ok=True)
+    if not dst.exists():
+        shutil.move(str(tmp_path), dst)
+    dst.chmod(0o644)
+    _drop_copy(dst, SHARE_INPUTS / name)
+    return {"name": name, "bytes": size, "url": f"/f/inputs/{name}"}
+
+
 def save_upload(filename: str, data: bytes) -> dict:
-    """上传输入素材：校验格式/大小 → 内容寻址命名 → 两份副本（作业用 + 静态可看）。"""
+    """小文件（图片）走内存版；大文件走 save_upload_file。"""
     if not data:
         raise ApiError("空文件", 400)
     ext = sniff_upload(data, filename)
-    is_video = ext in (".mp4", ".mov", ".m4v", ".webm", ".avi", ".gif")
-    cap = MAX_UPLOAD_VIDEO if is_video else MAX_UPLOAD
+    cap = _cap_for(ext)
     if len(data) > cap:
         raise ApiError(f"文件太大（{cap // 1048576} MB 上限；当前 "
                        f"{len(data) / 1048576:.1f} MB）", 413)
     import hashlib
     h = hashlib.sha256(data).hexdigest()[:8]
     name = f"in-{h}{ext}"
-    for d in (INPUTS_DIR, SHARE_INPUTS):
-        d.mkdir(parents=True, exist_ok=True)
-        (d / name).write_bytes(data)
-        (d / name).chmod(0o644)
+    INPUTS_DIR.mkdir(parents=True, exist_ok=True)
+    dst = INPUTS_DIR / name
+    dst.write_bytes(data)
+    dst.chmod(0o644)
+    _drop_copy(dst, SHARE_INPUTS / name)
     return {"name": name, "bytes": len(data), "url": f"/f/inputs/{name}"}
 
 
@@ -224,7 +272,8 @@ def rerun_jobs(ids: list[str], *, run: bool = False, jobs_dir: Path | None = Non
             out.append({"job_id": jid, "error": "旧作业没有 registry 工作流信息"})
             continue
         try:
-            res = create_job(wk, job.get("params") or {}, run=run, jobs_dir=jobs_dir)
+            res = create_job(wk, job.get("params") or {}, run=run, jobs_dir=jobs_dir,
+                             force=True)
             out.append({"job_id": jid, "new_job_id": res["job_id"], "state": res["state"]})
         except ApiError as e:
             out.append({"job_id": jid, "error": e.msg})
@@ -307,8 +356,13 @@ def get_job(job_id: str, jobs_dir: Path | None = None) -> dict:
 
 def create_job(workflow: str, params: dict, *, run: bool = False, budget: float | None = None,
                jobs_dir: Path | None = None, spec_dir: Path | None = None,
-               jobctl: Path | None = None, spawn=subprocess.Popen) -> dict:
-    """校验参数 → 生成 spec → jobctl new →（可选）后台执行。"""
+               jobctl: Path | None = None, spawn=subprocess.Popen,
+               force: bool = False) -> dict:
+    """校验参数 → 生成 spec → jobctl new →（可选）后台执行。
+
+    同一任务的重复提交由 jobctl 的提交锁兜住：进行中的作业幂等复用（返回已有
+    job_id，不 spawn 第二个 run.py），已完成的拒绝（--force 可强制重跑，rerun 用）。
+    """
     if not isinstance(params, dict) or not params:
         raise ApiError("params 必须是非空对象", 400)
     if not isinstance(workflow, str) or not workflow:
@@ -336,18 +390,28 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
         spec["budget"]["max_cost"] = min(float(budget), float(spec["budget"].get("max_cost") or budget))
     sd = Path(spec_dir) if spec_dir else SPEC_DIR
     sd.mkdir(parents=True, exist_ok=True)
-    spec_path = sd / f"{workflow}-{time.strftime('%Y%m%dT%H%M%S')}.json"
+    # 同一秒两个请求不能互相覆盖 spec：加 PID + 微秒
+    spec_path = sd / (f"{workflow}-{time.strftime('%Y%m%dT%H%M%S')}"
+                      f"-{os.getpid()}-{time.time_ns() % 1000000:06d}.json")
     spec_path.write_text(json.dumps(spec, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    p = subprocess.run([sys.executable, str(jobctl or JOBCTL), "new", "--spec", str(spec_path)],
-                       capture_output=True, text=True, cwd=str(ROOT), timeout=120)
+    cmd = [sys.executable, str(jobctl or JOBCTL), "new", "--spec", str(spec_path)]
+    if force:
+        cmd.append("--force")
+    p = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT), timeout=120)
     out = (p.stdout or "") + (p.stderr or "")
-    m = JOB_ID_RE.search(out)
-    if p.returncode != 0 or not m:
-        raise ApiError(f"建作业失败：{out.strip()[:400]}", 500)
-    job_id = m.group(1)
+    # 取最后一个 id：jobctl 可能先打印「旧作业已结束：<jid>」这类历史 id，
+    # 本次真正新建的那个总在最后（与 p20ctl._pick_job_id 同口径）。
+    found = JOB_ID_RE.findall(out)
+    if p.returncode != 0 or not found:
+        msg = out.strip()[:400]
+        code = 409 if "已完成" in msg or "白烧钱" in msg else 500
+        raise ApiError(f"建作业失败：{msg}", code)
+    job_id = found[-1]
+    # 复用了进行中的作业：绝不 spawn 第二个 run.py（否则同一个 job 会被两个进程抢着跑）
+    reused = store.DEDUP_REUSE_MARK in out
 
-    if run:
+    if run and not reused:
         log = _jobs_dir(jobs_dir) / job_id / "run.log"
         log.parent.mkdir(parents=True, exist_ok=True)
         with log.open("ab") as fh:
@@ -365,7 +429,8 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
     except (OSError, json.JSONDecodeError):
         pass
 
-    return {"job_id": job_id, "state": state, "run": bool(run),
+    return {"job_id": job_id, "state": state, "run": bool(run and not reused),
+            "reused": reused,
             "workflow": res["workflow"]["key"], "workflow_version": res["workflow"]["version"],
             "model": res["model"]["key"], "params_hash": phash,
             "params": res["params"], "expect": spec.get("expect")}

@@ -25,14 +25,33 @@ MEASURED = {
     "h3_i2v_121f": (292, 121, 768, 512),
     "ltxv_2b_t2v": (41, 73, 768, 512),
     "wan21_i2v_480p": (299, 49, 832, 480),
-    "pack_video_fastvideo_fasth3_i2v": (152, 121, 768, 512),
+    "pack_video_fastvideo_fasth3_i2v": (164, 121, 768, 512),   # 2026-11-07 真机 164s
     "pack_video_minimax_h3_r2v": (277, 121, 768, 512),
     "pack_video_minimax_h3_multiframe_reference": (267, 121, 768, 512),
-    "pack_video_wan_animate2": (192, 77, 768, 512),
+    "pack_video_wan_animate2": (172, 77, 768, 512),            # 2026-11-07 真机 172s
     "pack_video_wan_animate2_distilled": (277, 77, 768, 512),
     "seedvr2_3b_upscale_video": (164, 73, 768, 512),
 }
 DEFAULT_REF = (300, 81, 640, 640)
+
+# 没有真机基线的视频工作流，按「同族已实测档位」取锚点（不许拿图片档冒充视频）
+FAMILY_REF = (
+    ("ltx2_3", (600, 121, 1280, 720)),
+    ("ltx2_5", (600, 121, 1280, 720)),
+    ("ltx", (300, 73, 768, 512)),
+    ("scail", (450, 81, 832, 480)),
+    ("vace", (420, 81, 832, 480)),
+    ("animate", (192, 77, 768, 512)),
+    ("minimax_h3", (277, 121, 768, 512)),
+    ("fasth3", (164, 121, 768, 512)),
+)
+
+
+def _family_ref(key: str) -> tuple[int, int, int, int] | None:
+    for needle, ref in FAMILY_REF:
+        if needle in key:
+            return ref
+    return None
 
 
 def _probe_frames(path: str) -> int | None:
@@ -45,19 +64,41 @@ def _probe_frames(path: str) -> int | None:
             p = next((c for c in cand if c.is_file()), ROOT / path)
         if not p.is_file():
             return None
-        r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
-                            "-count_frames", "-show_entries", "stream=nb_read_frames",
-                            "-of", "json", str(p)],
-                           capture_output=True, text=True, timeout=60)
-        st = (json.loads(r.stdout or "{}").get("streams") or [{}])[0]
-        n = int(st.get("nb_read_frames") or 0)
-        return n or None
+        # 先只读容器元数据（毫秒级）；没有 nb_frames 才退化成全量数帧（长片很贵）
+        for args, key in ((["-show_entries", "stream=nb_frames"], "nb_frames"),
+                          (["-count_frames", "-show_entries", "stream=nb_read_frames"],
+                           "nb_read_frames")):
+            r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", *args,
+                                "-of", "json", str(p)],
+                               capture_output=True, text=True, timeout=60)
+            st = (json.loads(r.stdout or "{}").get("streams") or [{}])[0]
+            n = int(st.get(key) or 0)
+            if n:
+                return n
+        return None
     except (OSError, ValueError, subprocess.SubprocessError):
         return None
 
 
-def _scale(params: dict, ref_frames: int, ref_w: int, ref_h: int) -> float:
-    frames = params.get("frames") or params.get("length")
+def _video_keys(workflow: dict | None) -> set[str]:
+    """注册表里 type=video 的参数名（驱动视频可能叫 image_2 / image）。"""
+    return {k for k, v in ((workflow or {}).get("params") or {}).items()
+            if isinstance(v, dict) and v.get("type") == "video"}
+
+
+def _scale(params: dict, ref_frames: int, ref_w: int, ref_h: int,
+           video_keys: set[str] | None = None) -> float:
+    # 驱动视频的真实帧数优先：模板自带的 frames 默认值（如 77）只是单轮帧数，
+    # 不能代表「按驱动视频循环 N 轮」的真实工作量。
+    frames = None
+    for k in sorted(video_keys or ()):
+        v = params.get(k)
+        if isinstance(v, str) and v:
+            frames = _probe_frames(v)
+            if frames:
+                break
+    if not frames:
+        frames = params.get("frames") or params.get("length")
     if not frames and params.get("video"):
         frames = _probe_frames(str(params["video"]))
     if not frames and params.get("duration"):
@@ -81,21 +122,40 @@ def _scale(params: dict, ref_frames: int, ref_w: int, ref_h: int) -> float:
 def estimate(workflow: dict, params: dict) -> dict:
     """返回 {seconds, cost, budget_hint, measured}。"""
     key = (workflow or {}).get("key") or ""
-    secs, rf, rw, rh = MEASURED.get(key, DEFAULT_REF)
-    measured = key in MEASURED
-    seconds = secs * _scale(params or {}, rf, rw, rh)
+    basis = "measured"
+    if key in MEASURED:
+        secs, rf, rw, rh = MEASURED[key]
+    elif (fam := _family_ref(key)):
+        secs, rf, rw, rh = fam
+        basis = "family"
+    else:
+        secs, rf, rw, rh = DEFAULT_REF
+        basis = "default"
+    measured = basis == "measured"
+    seconds = secs * _scale(params or {}, rf, rw, rh, video_keys=_video_keys(workflow))
     cost = seconds / 3600.0 * PRICE_PER_HOUR + BOOT_COST
     return {
         "seconds": round(seconds, 1),
         "cost": round(cost, 2),
         "measured": measured,
-        "hint": f"≈{seconds/60:.1f} 分钟 · ≈¥{cost:.2f}",
+        "basis": basis,
+        "hint": (f"≈{seconds/60:.1f} 分钟 · ≈¥{cost:.2f}"
+                 + ("" if measured else
+                    ("（未实测，按同族基线估算）" if basis == "family"
+                     else "（未实测，按默认基线估算）"))),
     }
 
 
 def check_budget(workflow: dict, params: dict, budget: float | None) -> dict:
     """超预算抛 BudgetError；否则返回预估。"""
     est = estimate(workflow, params)
+    limits = (workflow or {}).get("limits") or {}
+    max_min = limits.get("max_minutes")
+    if isinstance(max_min, (int, float)) and max_min > 0 and est["seconds"] > max_min * 60:
+        raise BudgetError(
+            f"预估 {est['seconds'] / 60:.1f} 分钟超过该工作流运行上限 {max_min:g} 分钟"
+            f"（跑到上限会被判超时，实例时间照扣）。请调小帧数/分辨率，或先截短驱动视频。",
+            est)
     if budget is not None and budget > 0 and est["cost"] > float(budget):
         raise BudgetError(
             f"预估 ¥{est['cost']:.2f} 超过预算上限 ¥{float(budget):.2f}（{est['hint']}）", est)

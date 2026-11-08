@@ -58,11 +58,19 @@ code{background:#eef1f4;padding:1px 5px;border-radius:4px;font-size:12.5px}
 border-radius:10px;font-size:13px;opacity:0;transform:translateY(8px);transition:.2s}
 .toast.on{opacity:1;transform:none}
 .muted{color:var(--mut)}
-.recs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.rec{display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.rec img{display:block;width:100%;height:110px;object-fit:cover;background:#11151a}
-.rec .ph{display:flex;align-items:center;justify-content:center;height:110px;color:var(--mut);font-size:12px}
-.rec .recm{display:flex;gap:6px;align-items:center;padding:6px 8px;font-size:12px;flex-wrap:wrap}
+.recs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-items:start}
+.rec{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);
+border-radius:10px;overflow:hidden;height:100%}
+/* 视频和图片必须用同一套盒子尺寸：原来只给 img 写了 110px，
+   video 没有约束 → 竖版视频按原始比例把卡片撑成一条，整排高度参差（2026-11-08 修）。 */
+.rec img,.rec video{display:block;width:100%;height:110px;object-fit:cover;
+background:#11151a;flex:0 0 auto}
+.rec .ph{display:flex;align-items:center;justify-content:center;height:110px;
+color:var(--mut);font-size:12px;flex:0 0 auto}
+.rec .recm{display:flex;gap:6px;align-items:center;padding:6px 8px;font-size:12px;
+flex-wrap:wrap;flex:1 1 auto;align-content:flex-start}
+.rec .recm b{width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec .recm .muted{font-size:11.5px}
 .nowrap{white-space:nowrap}
 .day{margin:18px 0 8px;font-size:13px;color:var(--mut);font-weight:600}
 input.over{border-color:var(--bad);box-shadow:0 0 0 2px rgba(179,38,30,.12)}

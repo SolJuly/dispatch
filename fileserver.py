@@ -48,6 +48,16 @@ TEXT_EXT = {".md", ".py", ".sh", ".txt", ".json", ".yml", ".yaml", ".cfg", ".ini
 IMG_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
 CODE_EXT = {".py", ".sh", ".json", ".yml", ".yaml", ".cfg", ".ini", ".txt", ".csv", ".log"}
 
+# 前端构建产物根目录（Vite 的 web/dist）。不入库，缺失时 /ui/ 返回可读的构建提示，
+# 而不是 500 —— 部署机上没装 node 也能照常跑旧控制台。
+UI_ROOT = Path(os.environ.get("UI_ROOT", PROJ / "web" / "dist")).resolve()
+
+# SPA 页面专用 CSP：必须放开 'self' 的脚本，否则 JS bundle 全被 default-src 'none' 拦死。
+# 与 /f/*.html 的严格策略分开：那是用户可写入的共享目录，这里是自己的构建产物。
+UI_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+          "img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; "
+          "font-src 'self' data:; base-uri 'self'; form-action 'self'")
+
 
 def load_token() -> str:
     if TOKEN_FILE.exists():
@@ -319,6 +329,9 @@ def page(title: str, body: str, back: str | None = None, extra_btn: str = "",
 
 
 class Handler(BaseHTTPRequestHandler):
+    # 上传最长 128MB：慢连接别一直占着线程（StreamRequestHandler 用这个值设 socket 超时）
+    timeout = 120
+    # 顺手给请求体读取加个上限保护，避免 Content-Length 撒谎时无限读
     server_version = "share/1.0"
     protocol_version = "HTTP/1.1"
 
@@ -327,11 +340,16 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------------- 工具
     def _send(self, code: int, body: bytes, ctype="text/html; charset=utf-8", headers=None):
+        headers = headers or {}
+        # 调用方显式给了 Cache-Control 就不要再补 no-store：重复发送同名头时
+        # 浏览器取第一个，等于把 public/immutable 静默降级成 no-store（前端指纹缓存失效）。
+        overridden = {k.lower() for k in headers}
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
-        for k, v in (headers or {}).items():
+        if "cache-control" not in overridden:
+            self.send_header("Cache-Control", "no-store")
+        for k, v in headers.items():
             self.send_header(k, v)
         self.end_headers()
         if self.command != "HEAD":
@@ -372,6 +390,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._app_page(rest[1:], q)
         if kind == "static":
             return self._static_asset(rest[1:])
+        if kind == "ui":
+            return self._ui_asset(rest[1:])
         if kind == "zip":
             return self._zip()
         if kind == "monitor" and not rest[1:]:
@@ -535,7 +555,17 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, page(f"📁 {rel}", "".join(rows) or "<p class='hint'>空目录</p>",
                                         back=back))
         ext = p.suffix.lower()
-        if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT) or not inline:
+        # .html 要能在浏览器里直接打开（报告类文件），但 ?dl=1 仍要能下载。
+        # 安全边界：只允许 share/ 内（_safe 已限制）的 .html，且加 CSP 禁止外部脚本，
+        # 避免有人往共享目录塞一个带脚本的页面拿到本站 token 上下文。
+        if ext in (".html", ".htm") and not force_dl:
+            data = p.read_bytes()
+            return self._send(200, data, "text/html; charset=utf-8", {
+                "Content-Security-Policy":
+                    "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:",
+                "X-Content-Type-Options": "nosniff",
+            })
+        if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT):
             if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT):
                 data = p.read_bytes()
                 ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
@@ -616,6 +646,47 @@ class Handler(BaseHTTPRequestHandler):
             return self._err(404, "资源不存在")
         return self._send(200, body, ct, {"Cache-Control": "public, max-age=60"})
 
+    # ---------------- 前端 SPA（Vite 构建产物）
+    def _ui_asset(self, rest: list[str]):
+        """托管 web/dist 里的 SPA 产物。
+
+        路由约定：`/files/<token>/ui/`            → index.html
+                  `/files/<token>/ui/assets/x.js` → 静态资源（长缓存 + immutable）
+                  `/files/<token>/ui/任意深层路径` → 回落 index.html（history 路由）
+
+        与 `/f/` 的差别只有两点：目录被限制在 UI_ROOT 内、CSP 放开 'self' 脚本。
+        为什么要单开一条：`/f/*.html` 带 default-src 'none'（共享目录可写，防脚本窃 token），
+        直接复用会让 SPA 白屏——bundle 一个字节都不会执行。
+        """
+        if not UI_ROOT.is_dir():
+            return self._err(404, "前端未构建：在项目根执行 cd web && npm run build"
+                                  "（或设 UI_ROOT 指向已有的 dist 目录）")
+        rel = "/".join(rest).strip("/")
+        index = UI_ROOT / "index.html"
+        if not rel or rel.endswith("/"):
+            p = (UI_ROOT / rel / "index.html") if rel else index
+        else:
+            p = UI_ROOT / rel
+        target = p.resolve()
+        # 目录穿越防护：解析后必须在 UI_ROOT 之内，否则一律当作路由回落
+        if not str(target).startswith(str(UI_ROOT) + os.sep) and target != index:
+            target = index
+        if not target.is_file():
+            # history 路由：/ui/jobs/p1-xxx 这类前端路由没有实体文件，交回 index.html
+            target = index
+            if not target.is_file():
+                return self._err(404, "前端产物缺 index.html：cd web && npm run build")
+
+        ctype = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+        headers = {"X-Content-Type-Options": "nosniff"}
+        if target.suffix.lower() in (".html", ".htm"):
+            headers["Content-Security-Policy"] = UI_CSP
+            headers["Cache-Control"] = "no-cache"          # HTML 不缓存，发版即生效
+        else:
+            # Vite 产物名带内容 hash，可以放心长缓存；改一次变一次名
+            headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return self._send(200, target.read_bytes(), ctype, headers)
+
     def _api_jobs(self, rest: list[str], q: dict):
         from webui import api as webapi
 
@@ -661,22 +732,54 @@ class Handler(BaseHTTPRequestHandler):
         if length > cap:
             return _json({"error": f"请求体过大（上限 {cap // 1048576}MB）"}, 413)
         boundary = ctype.split("boundary=", 1)[1].strip().strip('"')
-        raw = self.rfile.read(length)
-        for chunk in raw.split(b"--" + boundary.encode()):
-            if b"\r\n\r\n" not in chunk:
-                continue
-            head, data = chunk.split(b"\r\n\r\n", 1)
-            if b"filename=" not in head:
-                continue
-            m = re.search(rb'filename="([^"]*)"', head)
-            name = m.group(1).decode("utf-8", "ignore") if m else "upload.png"
-            data = data[:-2] if data.endswith(b"\r\n") else data
-            try:
-                info = webapi.save_upload(name, data)
-            except webapi.ApiError as e:
-                return _json({"error": e.msg}, e.code)
-            return _json(info, 201)
-        return _json({"error": "没有文件字段"}, 400)
+        # 128MB 视频整块 read 进内存会顶爆常驻内存：先落 8MB 内存池/溢出到磁盘的临时文件，
+        # 再从里面切出唯一一个 file 部分，流式交给 save_upload_file。
+        import tempfile
+        from pathlib import Path as _P
+
+        with tempfile.SpooledTemporaryFile(max_size=8 << 20) as spool:
+            left = length
+            while left > 0:
+                chunk = self.rfile.read(min(1 << 16, left))
+                if not chunk:
+                    break
+                spool.write(chunk)
+                left -= len(chunk)
+            total = spool.tell()
+            spool.seek(0)
+            head16 = spool.read(min(total, 1 << 16))
+            cut = head16.find(b"\r\n\r\n")
+            if cut < 0:
+                return _json({"error": "multipart 头解析失败"}, 400)
+            m = re.search(rb'filename="([^"]*)"', head16[:cut])
+            if not m:
+                return _json({"error": "没有文件字段"}, 400)
+            name = m.group(1).decode("utf-8", "ignore") or "upload.png"
+            start = cut + 4
+            tail_len = min(total, 1 << 13)
+            spool.seek(total - tail_len)
+            tail = spool.read(tail_len)
+            pos = tail.rfind(b"\r\n--" + boundary.encode())
+            end = (total - tail_len + pos) if pos >= 0 else total
+            if end <= start:
+                return _json({"error": "上传内容为空"}, 400)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".upload") as out:
+                tmp_path = _P(out.name)
+                spool.seek(start)
+                left = end - start
+                while left > 0:
+                    chunk = spool.read(min(1 << 20, left))
+                    if not chunk:
+                        break
+                    out.write(chunk)
+                    left -= len(chunk)
+        try:
+            info = webapi.save_upload_file(name, tmp_path)
+        except webapi.ApiError as e:
+            return _json({"error": e.msg}, e.code)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+        return _json(info, 201)
 
     def _api_job_create(self):
         from webui import api as webapi
