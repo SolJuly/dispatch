@@ -237,6 +237,49 @@ class TestCreate(unittest.TestCase):
                            jobs_dir=self.jobs, spec_dir=self.specs, jobctl=self.fake)
         self.assertEqual(cm.exception.code, 409)
 
+    def test_duplicate_done_returns_409(self):
+        """jobctl 报「同参数已完成」时，webui 应回 409 而不是笼统的 500。"""
+        fake = self.root / "fake_duplicate.py"
+        fake.write_text(
+            "import sys\n"
+            "print('✗ 同参数作业已完成：p1-20260101T0000-abc123（state=DONE）。"
+            "重复跑会白烧钱；确实要重跑加 --force。', file=sys.stderr)\n"
+            "sys.exit(1)\n", encoding="utf-8")
+        with self.assertRaises(api.ApiError) as cm:
+            api.create_job("qwen_image_t2i", {"prompt": "x", "seed": 1},
+                           jobs_dir=self.jobs, spec_dir=self.specs, jobctl=fake)
+        self.assertEqual(cm.exception.code, 409)
+
+    def test_force_is_forwarded_to_jobctl(self):
+        """rerun 走 force=True，--force 必须透传到 jobctl。"""
+        argv_log = self.root / "argv.json"
+        fake = self.root / "fake_argv.py"
+        fake.write_text(
+            "import sys, json\n"
+            f"open({str(argv_log)!r}, 'w').write(json.dumps(sys.argv))\n"
+            "print('✗ 普通错误', file=sys.stderr)\n"
+            "sys.exit(1)\n", encoding="utf-8")
+        with self.assertRaises(api.ApiError):
+            api.create_job("qwen_image_t2i", {"prompt": "x", "seed": 1}, force=True,
+                           jobs_dir=self.jobs, spec_dir=self.specs, jobctl=fake)
+        self.assertIn("--force", json.loads(argv_log.read_text()))
+
+
+    def test_failed_old_job_id_not_picked(self):
+        """jobctl 先打印「旧作业已结束：<旧id>」时，必须取最后那个真正新建的 id。
+
+        2026-11-08 审计发现的真 bug：原实现用 JOB_ID_RE.search() 取第一个匹配，
+        拿到的是已失败的历史作业 id，run=True 时就会去执行那个死作业。
+        """
+        out = ("  同参数旧作业已结束（FAILED_RUN），按新提交处理："
+               "p1-20260101T0000-aaaaa1\n"
+               "✓ 作业已建：p1-20260101T0000-bbbbb2\n")
+        ids = api.JOB_ID_RE.findall(out)
+        self.assertEqual(ids[0], "p1-20260101T0000-aaaaa1")
+        self.assertEqual(ids[-1], "p1-20260101T0000-bbbbb2")
+        # create_job 现在取 [-1]；与 p20ctl._pick_job_id 同口径
+        src = Path(api.__file__).read_text(encoding="utf-8")
+        self.assertIn("job_id = found[-1]", src)
 
 
 class TestArtifactFallback(unittest.TestCase):

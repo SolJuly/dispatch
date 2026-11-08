@@ -108,6 +108,32 @@ class TestJobsPage(unittest.TestCase):
         self.assertNotIn("<img src=x", html)
 
 
+class TestRecentCardLayout(unittest.TestCase):
+    """视频台「最近作业」卡片：video 和 img 必须有同一套盒子尺寸。
+
+    2026-11-08 用户截图：竖版视频缩略图没有高度约束，按原始比例把卡片撑成长条，
+    整排高度参差。根因是 CSS 只给 .rec img 写了 height，漏了 .rec video。
+    """
+
+    def test_css_constrains_video_like_img(self):
+        from webui import assets
+        css = assets.CSS
+        self.assertRegex(css, r"\.rec img,\.rec video\{[^}]*height:110px", 
+                         "video 必须和 img 共用同一套尺寸规则")
+        self.assertIn("object-fit:cover", css)
+
+    def test_rec_card_is_flex_column(self):
+        from webui import assets
+        css = assets.CSS
+        self.assertRegex(css, r"\.rec\{[^}]*display:flex[^}]*flex-direction:column",
+                         "卡片要纵向 flex，媒体区固定、文字区自适应")
+
+    def test_recs_grid_top_aligned(self):
+        from webui import assets
+        self.assertRegex(assets.CSS, r"\.recs\{[^}]*align-items:start",
+                         "网格顶对齐，避免卡片被拉伸")
+
+
 if __name__ == "__main__":
     unittest.main()
 
