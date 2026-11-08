@@ -1,104 +1,105 @@
 {
- "schema": "p20.workflow/v1",
- "key": "pack_video_ltx2_3_i2v",
- "name": "图生视频 · LTX 2.3（带原生音频，尚未开发）",
- "description": "单图生成带音频的视频。输入：首帧图 + 提示词；输出：MP4。缺 LoRA 权重。（🚧 尚未开发）",
- "version": 1,
- "kind": "video",
- "engine": "comfyui",
- "graph": "workflows/pack/video_ltx2_3_i2v.api.json",
- "model": {
-  "key": "ltx_2_3_22b_dev_fp8",
-  "slots": {
-   "lora": {
-    "node": "1340",
-    "input": "lora_name"
-   },
-   "upscale": {
-    "node": "1365",
-    "input": "model_name"
-   },
-   "ckpt": {
-    "node": "1370",
-    "input": "ckpt_name"
-   },
-   "lora_2": {
-    "node": "1375",
-    "input": "lora_name"
-   }
-  }
- },
- "params": {
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "default": "pc game, console game, video game, cartoon, childish, ugly",
-   "bindings": [
-    {
-     "node": "1367",
-     "input": "text"
-    }
-   ]
-  },
-  "neg_prompt": {
-   "type": "string",
-   "required": false,
-   "default": "Egyptian royal in blue-and-gold headdress and high collar, white dress with golden embroidery and ar…",
-   "bindings": [
-    {
-     "node": "1376",
-     "input": "prompt"
-    }
-   ]
-  },
-  "seed": {
-   "type": "int",
-   "min": 0,
-   "max": 2147483647,
-   "default": 0,
-   "bindings": [
-    {
-     "node": "1331",
-     "input": "noise_seed"
-    },
-    {
-     "node": "1332",
-     "input": "noise_seed"
-    }
-   ]
-  },
-  "image": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "269",
-     "input": "image"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "75",
-  "input": "filename_prefix",
+  "schema": "p20.workflow/v1",
+  "key": "pack_video_ltx2_3_i2v",
+  "name": "图生视频 · LTX 2.3（带原生音频，尚未开发）",
+  "description": "单图生成带音频的视频。输入：首帧图 + 提示词；输出：MP4。缺 LoRA 权重。（🚧 尚未开发）",
+  "version": 1,
   "kind": "video",
-  "ext": "mp4",
-  "pick": [
-   "videos",
-   "gifs"
-  ]
- },
- "expect_defaults": {
-  "ext": "mp4",
-  "min_bytes": 50000
- },
- "limits": {
-  "max_minutes": 40,
-  "max_cost": 1.6
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "vid.i2v.fast · 图生视频 · 快速基线（带原生音频） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "engine": "comfyui",
+  "graph": "workflows/pack/video_ltx2_3_i2v.api.json",
+  "model": {
+    "key": "ltx_2_3_22b_dev_fp8",
+    "slots": {
+      "lora": {
+        "node": "1340",
+        "input": "lora_name"
+      },
+      "upscale": {
+        "node": "1365",
+        "input": "model_name"
+      },
+      "ckpt": {
+        "node": "1370",
+        "input": "ckpt_name"
+      },
+      "lora_2": {
+        "node": "1375",
+        "input": "lora_name"
+      }
+    }
+  },
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "pc game, console game, video game, cartoon, childish, ugly",
+      "bindings": [
+        {
+          "node": "1367",
+          "input": "text"
+        }
+      ]
+    },
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "Egyptian royal in blue-and-gold headdress and high collar, white dress with golden embroidery and ar…",
+      "bindings": [
+        {
+          "node": "1376",
+          "input": "prompt"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "1331",
+          "input": "noise_seed"
+        },
+        {
+          "node": "1332",
+          "input": "noise_seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "269",
+          "input": "image"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "75",
+    "input": "filename_prefix",
+    "kind": "video",
+    "ext": "mp4",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "limits": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "vid.i2v.fast · 图生视频 · 快速基线（带原生音频） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "fps": 25
 }

@@ -1,107 +1,133 @@
 {
- "schema": "p20.workflow/v1",
- "key": "pack_video_ltx2_3_ic_lora",
- "name": "视频风格/结构控制 · LTX 2.3 IC-LoRA（尚未开发）",
- "description": "用 IC-LoRA 控制风格或结构。输入：参考 + 提示词；输出：MP4。缺权重/节点。（🚧 尚未开发）",
- "version": 1,
- "kind": "video",
- "engine": "comfyui",
- "graph": "workflows/pack/video_ltx2_3_ic_lora.api.json",
- "model": {
-  "key": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_ic_lora",
-  "slots": {
-   "ckpt": {
-    "node": "1722",
-    "input": "ckpt_name"
-   },
-   "lora": {
-    "node": "1725",
-    "input": "lora_name"
-   },
-   "lora_2": {
-    "node": "1728",
-    "input": "lora_name"
-   }
-  }
- },
- "params": {
-  "neg_prompt": {
-   "type": "string",
-   "required": false,
-   "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, g…",
-   "bindings": [
-    {
-     "node": "1716",
-     "input": "text"
-    }
-   ]
-  },
-  "prompt": {
-   "type": "string",
-   "required": true,
-   "default": "A slow forward dolly shot on a bright, sunlit day in a lush jungle ruin. A lone figure in nature-the…",
-   "bindings": [
-    {
-     "node": "1729",
-     "input": "prompt"
-    }
-   ]
-  },
-  "seed": {
-   "type": "int",
-   "min": 0,
-   "max": 2147483647,
-   "default": 0,
-   "bindings": [
-    {
-     "node": "1734",
-     "input": "seed"
-    }
-   ]
-  },
-  "image": {
-   "type": "video",
-   "required": true,
-   "bindings": [
-    {
-     "node": "199",
-     "input": "file"
-    }
-   ],
-   "description": "驱动/源视频（MP4/MOV/WebM）。"
-  },
-  "image_2": {
-   "type": "image",
-   "required": true,
-   "bindings": [
-    {
-     "node": "200",
-     "input": "image"
-    }
-   ]
-  }
- },
- "output": {
-  "node": "68",
-  "input": "filename_prefix",
+  "schema": "p20.workflow/v1",
+  "key": "pack_video_ltx2_3_ic_lora",
+  "name": "视频风格/结构控制 · LTX 2.3 IC-LoRA（尚未开发）",
+  "description": "用 IC-LoRA 控制风格或结构。输入：参考 + 提示词；输出：MP4。缺权重/节点。（🚧 尚未开发）",
+  "version": 1,
   "kind": "video",
-  "ext": "mp4",
-  "pick": [
-   "videos",
-   "gifs"
-  ]
- },
- "expect_defaults": {
-  "ext": "mp4",
-  "min_bytes": 50000
- },
- "limits": {
-  "max_minutes": 40,
-  "max_cost": 1.6
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "notes": "vid.style.iclora · 视频风格化 / 结构控制（LTX IC-LoRA） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
+  "engine": "comfyui",
+  "graph": "workflows/pack/video_ltx2_3_ic_lora.api.json",
+  "model": {
+    "key": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_ic_lora",
+    "slots": {
+      "ckpt": {
+        "node": "1722",
+        "input": "ckpt_name"
+      },
+      "lora": {
+        "node": "1725",
+        "input": "lora_name"
+      },
+      "lora_2": {
+        "node": "1728",
+        "input": "lora_name"
+      }
+    }
+  },
+  "params": {
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, g…",
+      "bindings": [
+        {
+          "node": "1716",
+          "input": "text"
+        }
+      ]
+    },
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "A slow forward dolly shot on a bright, sunlit day in a lush jungle ruin. A lone figure in nature-the…",
+      "bindings": [
+        {
+          "node": "1729",
+          "input": "prompt"
+        }
+      ]
+    },
+    "seed": {
+      "type": "int",
+      "min": 0,
+      "max": 2147483647,
+      "default": 0,
+      "bindings": [
+        {
+          "node": "1734",
+          "input": "seed"
+        }
+      ]
+    },
+    "image": {
+      "type": "video",
+      "required": true,
+      "bindings": [
+        {
+          "node": "199",
+          "input": "file"
+        }
+      ],
+      "description": "驱动/源视频（MP4/MOV/WebM）。"
+    },
+    "image_2": {
+      "type": "image",
+      "required": true,
+      "bindings": [
+        {
+          "node": "200",
+          "input": "image"
+        }
+      ]
+    },
+    "width": {
+      "type": "int",
+      "default": 1280,
+      "min": 256,
+      "max": 2048,
+      "multiple": 32,
+      "bindings": [
+        {
+          "node": "1708",
+          "input": "width"
+        }
+      ]
+    },
+    "height": {
+      "type": "int",
+      "default": 704,
+      "min": 256,
+      "max": 2048,
+      "multiple": 32,
+      "bindings": [
+        {
+          "node": "1708",
+          "input": "height"
+        }
+      ]
+    }
+  },
+  "output": {
+    "node": "68",
+    "input": "filename_prefix",
+    "kind": "video",
+    "ext": "mp4",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "expect_defaults": {
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "limits": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "notes": "vid.style.iclora · 视频风格化 / 结构控制（LTX IC-LoRA） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）"
 }

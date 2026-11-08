@@ -24,11 +24,11 @@
       }
     },
     "vae": {
-      "name": "ziamge_ae.safetensors",
+      "name": "ae.safetensors",
       "loader": "VAELoader",
       "input": "vae_name",
       "match": {
-        "contains": "ziamge_ae"
+        "equals": "ae.safetensors"
       }
     },
     "patch": {

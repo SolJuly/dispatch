@@ -24,11 +24,11 @@
       }
     },
     "vae": {
-      "name": "ziamge_ae.safetensors",
+      "name": "ae.safetensors",
       "loader": "VAELoader",
       "input": "vae_name",
       "match": {
-        "contains": "ziamge_ae"
+        "equals": "ae.safetensors"
       }
     }
   },
@@ -79,5 +79,5 @@
       }
     ]
   },
-  "notes": "Z-Image-Turbo（Apache-2.0，dsh-comfy 配方）：DiT 三件套 UNETLoader + CLIPLoader(type=lumina2) + VAELoader；8 steps / cfg 1.0 / res_multistep + simple；最小 12GB 显存，推荐 16GB+。三个权重文件需在共享库 diffusion_models/、text_encoders/、vae/ 下可见。"
+  "notes": "Z-Image-Turbo（Apache-2.0，dsh-comfy 配方）：DiT 三件套 UNETLoader + CLIPLoader(type=lumina2) + VAELoader；8 steps / cfg 1.0 / res_multistep + simple；最小 12GB 显存，推荐 16GB+。三个权重文件需在共享库 diffusion_models/、text_encoders/、vae/ 下可见。VAE 原名 ae.safetensors（2026-11-07 真机核对共享库 inode=2915678961491975696）；setup.links 保留 ziamge_ae 别名软链仅为兼容老作业 render.json 里已写死的旧名，新渲染一律用 ae.safetensors。"
 }
