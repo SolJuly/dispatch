@@ -359,3 +359,14 @@ td.prompt .mini-vid{display:flex;align-items:center;justify-content:center;
   width:38px;height:38px}
 /* 缩略图加载失败时压暗，避免出现「破图」图标 */
 td.prompt img.mini.err{opacity:.28}
+
+/* 媒体上传预览：图片小缩略图，视频给能播放的最小播放器。
+   动作迁移要同时传人物图和驱动视频，两者视觉上要能区分。 */
+.up[data-kind=video]{align-items:flex-start}
+.up .upthumb{display:block;background:#0d1015}
+img.upthumb{width:auto;height:46px;object-fit:cover}
+video.upthumb{height:92px;max-width:200px;border-radius:6px;border:1px solid var(--line);
+  background:#000}
+.up .upinfo{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.up [data-clear]{padding:1px 6px;line-height:1.2;font-size:12px;color:#c7ccd6}
+.up [data-clear]:hover{color:#f87171;border-color:#6b2f2f}

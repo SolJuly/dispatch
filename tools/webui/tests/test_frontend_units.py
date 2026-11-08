@@ -233,3 +233,60 @@ class TestReadmeHasWorkflow(unittest.TestCase):
         for kw in ("/pub/", "compat.status", "toast"):
             with self.subTest(kw=kw):
                 self.assertIn(kw, self.md)
+
+
+class TestMediaFields(unittest.TestCase):
+    """媒体字段（image / video）都要有上传器 + 预览。
+
+    回归背景：动作迁移要同时传人物图（image）和驱动视频（image_2，type=video），
+    但 renderForm 只写了 `if (spec.type === 'image')` 分支，
+    type='video' 直接掉进最后的 <input type="text"> ——
+    用户看到「只有上传图像的界面」，驱动视频只能手打文件名。
+    后端其实早就支持视频上传（sniff_upload 认 mp4/mov/webm/avi）。
+    """
+
+    def setUp(self):
+        self.js = (WEB / "dist" / "app.js").read_text(encoding="utf-8")
+        self.css = (WEB / "dist" / "app.css").read_text(encoding="utf-8")
+
+    def test_video_type_has_uploader(self):
+        """type==='video' 必须走和 image 同一个上传器，不能掉进文本框。"""
+        # mediaCtl 里按 spec.type 区分，两者统一入口
+        self.assertIn("spec.type === 'image' || spec.type === 'video'", self.js)
+        self.assertIn("function mediaCtl(", self.js)
+
+    def test_video_accept_attribute(self):
+        """视频输入框要收 mp4/mov/webm/m4v。"""
+        self.assertIn("video/mp4", self.js)
+        self.assertIn(".mov", self.js)
+        self.assertIn(".webm", self.js)
+
+    def test_preview_tag_follows_actual_file_type(self):
+        """预览标签按**实际文件扩展名**决定，不是字段声明类型。
+
+        用户可能给 image 字段传 mp4（后端按内容判型，不会拒），
+        这时用 <img> 显示 mp4 又是黑块 —— 和列表页同一个坑。
+        """
+        self.assertIn("isVideoFile", self.js)
+        self.assertIn("/\\.(mp4|mov|webm|m4v|avi)$/i", self.js)
+
+    def test_upload_has_clear_button(self):
+        """上传后要能移除，否则选错文件只能重开页面。"""
+        self.assertIn("data-clear", self.js)
+        self.assertIn("delete S.uploads[name]", self.js)
+
+    def test_onchange_not_overwritten(self):
+        """onchange 只能赋值一次。
+
+        回归：原来连续两次 `box.onchange = ...`，第一份（普通字段回写）
+        被第二份覆盖，导致文本/数字输入改了不进 S.form。
+        """
+        import re
+        m = re.search(r"function renderForm\(params\)\s*\{(.*?)\n\}", self.js, re.S)
+        self.assertIsNotNone(m)
+        n = m.group(1).count("box.onchange =")
+        self.assertEqual(n, 1, f"renderForm 里 box.onchange 被赋值 {n} 次")
+
+    def test_video_preview_css(self):
+        self.assertIn("video.upthumb", self.css)
+        self.assertIn(".up[data-kind=video]", self.css)

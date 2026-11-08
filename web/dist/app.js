@@ -326,23 +326,60 @@ function fieldHint(name, spec) {
   return bits.join(' · ');
 }
 
+/* 媒体字段（image / video）统一渲染成上传器。
+ * 以前只有 type==='image' 有上传界面，type==='video' 直接掉进最后的
+ * <input type="text"> —— 动作迁移的驱动视频（image_2）提示只能手打文件名，
+ * 这就是「只有上传图像的界面」的原因。后端其实早就支持视频上传了
+ * （sniff_upload 认 mp4/mov/webm/avi，上限 128MB），缺的只是这块 UI。 */
+function mediaCtl(name, spec) {
+  const isVid = spec.type === 'video';
+  const up = S.uploads[name];
+  const accept = isVid
+    ? 'video/mp4,video/quicktime,video/webm,video/x-m4v,.mp4,.mov,.webm,.m4v'
+    : 'image/png,image/jpeg,image/webp';
+  const ph = spec.description || (isVid ? '未上传（视频）' : '未上传');
+  const label = isVid ? '选择视频' : '选择图片';
+  let preview = '';
+  if (up) {
+    // 预览标签按**实际文件扩展名**决定，而不是字段声明的类型。
+    // 为什么：用户可能给 image 字段传了 mp4（后端 sniff 按内容判型，不会拒），
+    // 这时用 <img> 显示 mp4 又是黑块 —— 和列表页踩过的是同一个坑。
+    const url = String(up.url || up.name || '');
+    const isVideoFile = /\.(mp4|mov|webm|m4v|avi)$/i.test(url);
+    preview = isVideoFile
+      ? `<video class="upthumb" src="${esc(artUrl(up.url))}" controls muted playsinline
+           preload="metadata"></video>`
+      : `<img class="upthumb" src="${esc(artUrl(up.url))}" alt="">`;
+  }
+  return `<div class="up" data-up="${esc(name)}" data-kind="${isVid ? 'video' : 'image'}">
+    <input type="file" accept="${accept}" hidden id="f_${esc(name)}">
+    <button class="btn tiny" data-pick="${esc(name)}">${label}</button>
+    <span class="mono upinfo">${up
+      ? esc(up.name) + ' · ' + bytes(up.bytes)
+      : esc(ph)}</span>
+    ${up ? `<button class="btn tiny" data-clear="${esc(name)}" title="移除">×</button>` : ''}
+    ${preview}
+  </div>`;
+}
+
 function renderForm(params) {
   const order = Object.keys(params).sort((a, b) => {
-    const w = n => n === 'prompt' ? 0 : n === 'neg_prompt' ? 1 : params[n].type === 'image' ? 2 : 3;
-    return w(a) - w(b) || a.localeCompare(b);
+    // 媒体字段排前面（prompt → media → 其它），视频和图片同等对待
+    const rank = n => {
+      const t = (params[n] || {}).type;
+      if (n === 'prompt') return 0;
+      if (n === 'neg_prompt') return 1;
+      if (t === 'image' || t === 'video') return 2;
+      return 3;
+    };
+    return rank(a) - rank(b) || a.localeCompare(b);
   });
   $('#formFields').innerHTML = order.map(name => {
     const spec = params[name] || {};
     const val = S.form[name] !== undefined ? S.form[name] : (spec.default !== undefined ? spec.default : '');
     let ctl;
-    if (spec.type === 'image') {
-      const up = S.uploads[name];
-      ctl = `<div class="up" data-up="${esc(name)}">
-        <input type="file" accept="image/png,image/jpeg,image/webp" hidden id="f_${esc(name)}">
-        <button class="btn tiny" data-pick="${esc(name)}">选择图片</button>
-        <span class="mono upinfo">${up ? esc(up.name) + ' · ' + bytes(up.bytes) : (spec.description || '未上传')}</span>
-        ${up ? `<img class="upthumb" src="${esc(artUrl(up.url))}" alt="">` : ''}
-      </div>`;
+    if (spec.type === 'image' || spec.type === 'video') {
+      ctl = mediaCtl(name, spec);
     } else if (spec.type === 'enum') {
       const opts = spec.values || [];
       ctl = `<select name="${esc(name)}">${opts.map(o =>
@@ -363,7 +400,6 @@ function renderForm(params) {
 
   const box = $('#formFields');
   box.oninput = e => { if (e.target.name) { S.form[e.target.name] = e.target.value; } };
-  box.onchange = e => { if (e.target.name) { S.form[e.target.name] = e.target.value; } };
   box.onclick = e => {
     const dice = e.target.closest('[data-dice]');
     if (dice) {
@@ -372,11 +408,25 @@ function renderForm(params) {
       const inp = box.querySelector('[name="seed"]'); if (inp) inp.value = v;
       return;
     }
+    const clear = e.target.closest('[data-clear]');
+    if (clear) {
+      const name = clear.dataset.clear;
+      delete S.uploads[name];
+      delete S.form[name];
+      renderForm(S.wfDetail.params);      // 重绘以清掉预览
+      return;
+    }
     const pick = e.target.closest('[data-pick]');
     if (pick) box.querySelector(`#f_${CSS.escape(pick.dataset.pick)}`).click();
   };
+  // 注意：onchange 只能有一个。原来这里赋了两次，第一份（普通字段回写）
+  // 被第二份覆盖掉了 —— 保留合并后的单一版本。
   box.onchange = e => {
-    if (e.target.type === 'file') { doUpload(e.target.name.replace(/^f_/, ''), e.target.files[0]); return; }
+    if (e.target.type === 'file') {
+      const field = e.target.name.replace(/^f_/, '');
+      doUpload(field, e.target.files && e.target.files[0]);
+      return;
+    }
     if (e.target.name) S.form[e.target.name] = e.target.value;
   };
 }
@@ -438,7 +488,15 @@ async function submitJob() {
   const params = {};
   Object.entries((w.params) || {}).forEach(([name, spec]) => {
     let v = S.form[name];
-    if (spec.type === 'image') { v = (S.uploads[name] || {}).name; return; }
+    // 媒体字段（image / video）一律取上传结果的文件名。
+    // 以前只判 'image'，video 字段靠 S.form 里恰好也存了文件名才没崩 ——
+    // 但那是巧合（doUpload 顺手写的），不是设计。
+    if (spec.type === 'image' || spec.type === 'video') {
+      const up = S.uploads[name];
+      if (up && up.name) { params[name] = up.name; return; }
+      // 没上传就不传，交给服务端报「必填缺失」，别送空值
+      return;
+    }
     if (v === undefined || v === '') {
       if (spec.default !== undefined) v = spec.default;
       else return;                     // 交给服务端补默认 / 报必填
