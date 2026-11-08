@@ -290,3 +290,64 @@ class TestMediaFields(unittest.TestCase):
     def test_video_preview_css(self):
         self.assertIn("video.upthumb", self.css)
         self.assertIn(".up[data-kind=video]", self.css)
+
+
+class TestFileInputFieldName(unittest.TestCase):
+    """文件框必须能被正确识别出是哪个字段。
+
+    回归背景（用户实测）：上传了图和视频，提交却报
+    「params.image 必填但未提供；params.image_2 必填但未提供」。
+
+    根因：<input type="file"> 只有 id="f_<name>"，没有 name 属性；
+    onchange 里写 e.target.name.replace(...) → e.target.name 是 undefined →
+    TypeError → doUpload 从未执行 → S.uploads 一直是空的。
+    界面看起来「上传成功了」（选了文件），实际一个字节都没发出去。
+
+    修法：文件框加 data-field，onchange 从 dataset 取（并保留 id 兜底）。
+    不要给它加 name 属性 —— 那会被 collect()/回写逻辑当成文本字段，
+    把假路径写进 S.form。
+    """
+
+    def setUp(self):
+        self.js = (WEB / "dist" / "app.js").read_text(encoding="utf-8")
+
+    def test_file_input_has_data_field(self):
+        import re
+        m = re.search(r'<input type="file"[^>]*>', self.js)
+        self.assertIsNotNone(m, "找不到文件输入框模板")
+        self.assertIn("data-field=", m.group(0),
+                      "文件框必须有 data-field，否则不知道是哪个参数")
+
+    def test_file_input_has_no_name_attr(self):
+        """有 name 会被当成文本字段回写 S.form。"""
+        import re
+        m = re.search(r'<input type="file"[^>]*>', self.js)
+        self.assertNotIn('name="', m.group(0),
+                         "文件框不该有 name 属性（会被当文本字段处理）")
+
+    def test_onchange_uses_dataset_not_name(self):
+        import re
+        m = re.search(r"box\.onchange = e => \{(.*?)\n  \};", self.js, re.S)
+        self.assertIsNotNone(m, "找不到 onchange 处理器")
+        body = m.group(1)
+        self.assertIn("dataset.field", body, "应从 data-field 取字段名")
+        self.assertNotIn("e.target.name.replace", body,
+                         "不能再对 e.target.name 调 replace（file 框没有 name）")
+
+    def test_upload_result_goes_to_uploads_map(self):
+        """上传结果必须写进 S.uploads（submitJob 从这里取文件名）。"""
+        import re
+        m = re.search(r"async function doUpload\(field, file\) \{(.*?)\n\}", self.js, re.S)
+        self.assertIsNotNone(m)
+        body = m.group(1)
+        self.assertIn("S.uploads[", body)
+        self.assertIn("renderForm(", body, "上传后要重绘表单才能显示预览")
+
+    def test_submit_reads_from_uploads(self):
+        """submitJob 的媒体字段必须从 S.uploads 取，不能靠 S.form 里的巧合。"""
+        import re
+        m = re.search(r"async function submitJob\(\) \{(.*?)\n\}", self.js, re.S)
+        self.assertIsNotNone(m)
+        body = m.group(1)
+        self.assertIn("S.uploads[name]", body)
+        self.assertIn("spec.type === 'image' || spec.type === 'video'", body)

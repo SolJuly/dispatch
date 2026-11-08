@@ -352,7 +352,8 @@ function mediaCtl(name, spec) {
       : `<img class="upthumb" src="${esc(artUrl(up.url))}" alt="">`;
   }
   return `<div class="up" data-up="${esc(name)}" data-kind="${isVid ? 'video' : 'image'}">
-    <input type="file" accept="${accept}" hidden id="f_${esc(name)}">
+    <input type="file" accept="${accept}" hidden id="f_${esc(name)}"
+           data-field="${esc(name)}">
     <button class="btn tiny" data-pick="${esc(name)}">${label}</button>
     <span class="mono upinfo">${up
       ? esc(up.name) + ' · ' + bytes(up.bytes)
@@ -423,7 +424,13 @@ function renderForm(params) {
   // 被第二份覆盖掉了 —— 保留合并后的单一版本。
   box.onchange = e => {
     if (e.target.type === 'file') {
-      const field = e.target.name.replace(/^f_/, '');
+      // 字段名取 data-field：文件框没有 name 属性（有 name 的话会被 collect/
+      // 回写逻辑当成文本字段处理，值是个假路径）。以前这里读 e.target.name，
+      // 拿到 undefined → undefined.replace() 抛 TypeError → doUpload 从未执行，
+      // 用户看到的就是「明明上传了却说必填未提供」。
+      const field = e.target.dataset.field
+        || (e.target.id || '').replace(/^f_/, '');
+      if (!field) return;
       doUpload(field, e.target.files && e.target.files[0]);
       return;
     }
