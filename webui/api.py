@@ -84,18 +84,32 @@ def _artifacts(job_id: str, jobs_dir: Path | None) -> list[dict]:
 
     优先作业目录里的原件；只读部署（台账迁过来了、产物没迁）时回退到发布副本
     `/srv/dsh-pub/jobs/<job_id>`，这样缩略图/下载仍然可用。
+
+    URL 必须跟着**实际找到文件的位置**走，不能恒定写 /pub/ ——
+    /pub/ 由 nginx 直读 /srv/dsh-pub，本地有产物但没跑过 publish 的作业
+    在那里不存在，前端拿到的是必 404 的链接（<video> 还会反复重试，
+    表现为「与后端失联」的假象）。本地存在的产物改走 /f/，那条路由读的是
+    作业目录本体，永远可用。
     """
     local = _jobs_dir(jobs_dir) / job_id / "artifacts"
     pub = PUB_DIR / job_id
     src = local if local.is_dir() else pub
     if not src.is_dir():
         return []
+    from_local = src == local
     out = []
     for p in sorted(src.iterdir()):
         if p.is_file() and p.suffix.lower() in ART_SUFFIX:
+            if from_local:
+                # /f/ 读 share/ 内的文件；sync_share 会把 reports/p1/jobs 同步过去，
+                # 所以本地产物在 share 里有一条等价路径，永远可用（不依赖 publish）。
+                url = f"/f/reports/p1/jobs/{job_id}/artifacts/{p.name}"
+            else:
+                url = f"/pub/jobs/{job_id}/{p.name}"
             out.append({"name": p.name, "bytes": p.stat().st_size,
-                        "url": f"/pub/jobs/{job_id}/{p.name}",
-                        "published": (pub / p.name).exists()})
+                        "url": url,
+                        "published": (pub / p.name).exists(),
+                        "source": "local" if from_local else "published"})
     return out
 
 

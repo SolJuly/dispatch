@@ -84,7 +84,11 @@ class TestListGet(unittest.TestCase):
         d = api.get_job("p1-20260101T0000-aaaaaa", jobs_dir=self.root)
         self.assertEqual(d["workflow"], "qwen_image_t2i")
         self.assertEqual(len(d["artifacts"]), 1)
-        self.assertTrue(d["artifacts"][0]["url"].endswith("/pub/jobs/p1-20260101T0000-aaaaaa/01-a.png"))
+        # 产物在作业目录里（夹具就是本地创建的），URL 必须走 /f/ 读作业目录，
+        # 不能是 /pub/——那条路由读 /srv/dsh-pub，本机上没有这个目录 → 必 404。
+        self.assertTrue(d["artifacts"][0]["url"].startswith("/f/"))
+        self.assertTrue(d["artifacts"][0]["url"].endswith(
+            "/reports/p1/jobs/p1-20260101T0000-aaaaaa/artifacts/01-a.png"))
 
     def test_get_missing(self):
         with self.assertRaises(api.ApiError) as cm:
@@ -378,3 +382,86 @@ class TestVideoParamBinding(unittest.TestCase):
         html = components.field("image_2", wf["params"]["image_2"])
         self.assertIn('accept="video/*"', html)
         self.assertIn("驱动视频", html)
+
+
+class TestArtifactUrl(unittest.TestCase):
+    """产物 URL 必须指向文件真正所在的位置。
+
+    回归背景：_artifacts() 曾把 URL 恒定写成 /pub/jobs/<id>/<name>，
+    但 /pub/ 由 nginx 直读 /srv/dsh-pub——只读部署的发布副本目录。
+    在开发机/自建机上，产物在 reports/p1/jobs/<id>/artifacts/，没跑过 publish
+    的作业在 /srv/dsh-pub 里根本不存在，于是前端拿到必 404 的链接。
+    <video> 遇到 404 会反复重试，UI 上表现为「与后端失联」的假弹窗。
+    """
+
+    def setUp(self):
+        self._pub = api.PUB_DIR
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.pubdir = self.root / "pub"
+        self.pubdir.mkdir()
+        api.PUB_DIR = self.pubdir
+
+    def tearDown(self):
+        api.PUB_DIR = self._pub
+        self.tmp.cleanup()
+
+    def _job_with(self, jid: str, name: str, where: str):
+        base = (self.root / "jobs" if where == "local" else self.pubdir) / jid
+        base.mkdir(parents=True)
+        (base / name).write_bytes(b"\x00" * 32)
+        return base
+
+    def test_local_artifact_uses_f_route_not_pub(self):
+        """有本地产物时，URL 必须走 /f/（读作业目录），不能是 /pub/（读发布副本）。"""
+        jid = "p1-20260101T0000-local1"
+        d = self.root / "jobs" / jid / "artifacts"
+        d.mkdir(parents=True)
+        (d / "00-primary-x.mp4").write_bytes(b"\x00" * 32)
+
+        arts = api._artifacts(jid, self.root / "jobs")
+        self.assertEqual(len(arts), 1)
+        url = arts[0]["url"]
+        self.assertTrue(url.startswith("/f/"), f"应以 /f/ 开头，实际 {url}")
+        self.assertNotIn("/pub/", url)
+        self.assertIn(jid, url)
+        self.assertIn("00-primary-x.mp4", url)
+        self.assertEqual(arts[0]["source"], "local")
+
+    def test_published_fallback_uses_pub_route(self):
+        """只有发布副本时（只读部署），URL 才用 /pub/。"""
+        jid = "p1-20260101T0000-pub0001"
+        d = self.pubdir / jid
+        d.mkdir(parents=True)
+        (d / "01-a.png").write_bytes(b"\x00" * 32)
+
+        arts = api._artifacts(jid, self.root / "jobs")
+        self.assertEqual(len(arts), 1)
+        self.assertTrue(arts[0]["url"].startswith("/pub/"))
+        self.assertEqual(arts[0]["source"], "published")
+
+    def test_local_wins_over_published(self):
+        """两者都在时优先本地（原件比发布副本可信）。"""
+        jid = "p1-20260101T0000-both01"
+        loc = self.root / "jobs" / jid / "artifacts"
+        loc.mkdir(parents=True)
+        (loc / "00-primary-y.png").write_bytes(b"\x00" * 32)
+        pub = self.pubdir / jid
+        pub.mkdir(parents=True)
+        (pub / "00-primary-y.png").write_bytes(b"\x00" * 32)
+
+        arts = api._artifacts(jid, self.root / "jobs")
+        self.assertEqual(arts[0]["source"], "local")
+        self.assertTrue(arts[0]["url"].startswith("/f/"))
+        self.assertTrue(arts[0]["published"], "published 标记应仍反映发布副本存在")
+
+    def test_first_artifact_url_matches_list_route(self):
+        """列表页缩略图用的 first_artifact_url 必须与详情页同一个路由前缀。"""
+        jid = "p1-20260101T0000-thumb1"
+        d = self.root / "jobs" / jid / "artifacts"
+        d.mkdir(parents=True)
+        (d / "00-primary-z.png").write_bytes(b"\x00" * 32)
+
+        url = api._first_artifact_url(jid, self.root / "jobs")
+        self.assertTrue(url.startswith("/f/"), f"缩略图应走 /f/，实际 {url}")
+        self.assertIn(jid, url)
