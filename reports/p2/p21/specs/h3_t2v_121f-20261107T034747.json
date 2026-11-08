@@ -1,0 +1,59 @@
+{
+  "kind": "video",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "h3",
+    "workflow": "workflows/h3_t2v_121f.api.json",
+    "checkpoint": "minimax/DasiwaMinimaxH3_dasiwaHybridV2_int8.safetensors",
+    "workflow_sha256": "339e1f0e3a50a41d49e5a1a8bda95f4225fb138e313c83be1e8bee31848ac966",
+    "registry": {
+      "workflow_key": "h3_t2v_121f",
+      "workflow_version": 1,
+      "model_key": "h3",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "real-run",
+      "setup_need": "h3",
+      "graph_sha256": "339e1f0e3a50a41d49e5a1a8bda95f4225fb138e313c83be1e8bee31848ac966"
+    }
+  },
+  "params": {
+    "cfg": 1,
+    "frames": 121,
+    "height": 512,
+    "neg_prompt": "",
+    "prompt": "Cinematic montage of a serene young woman in flowing traditional white and blue robes, living harmoniously with nature. The sequence begins with her kneeling by a clear stream, smiling gently as she holds a small fish in her cupped hands, water droplets glistening on her skin. Transition to a wide shot of her sitting peacefully on a grassy riverbank at golden hour, eyes closed, face tilted toward the warm sunlight, bare feet resting near the water's edge. A close-up follows, capturing her profile bathed in dappled light filtering through bamboo leaves. Next, she is seen laughing joyfully while reaching up into a lush green tree to pick fruit, wearing a deep indigo garment. The scene shifts to her fishing under weeping willows, holding a bamboo rod with a woven basket beside her. Finally, she sits elegantly in a wooden boat amidst a lotus pond, holding a paper umbrella, looking back over her shoulder with a soft expression. High-quality 4k resolution, photorealistic style, dreamy atmosphere, soft focus background, natural lighting, slow motion effects, ethereal and tranquil mood.",
+    "seed": 888,
+    "steps": 20,
+    "width": 768
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "duration_s": [
+      5.0,
+      5.4
+    ],
+    "ext": "mp4",
+    "freeze": {
+      "longest_max_s": 1.0,
+      "ratio_max": 0.2
+    },
+    "height": [
+      512
+    ],
+    "min_bytes": 300000,
+    "width": [
+      768
+    ]
+  },
+  "budget": {
+    "max_minutes": 45,
+    "max_cost": 1.0
+  },
+  "instance": {
+    "required_gpu": [
+      "4090_48G",
+      "4090"
+    ]
+  }
+}

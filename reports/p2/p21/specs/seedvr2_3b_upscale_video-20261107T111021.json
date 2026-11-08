@@ -1,0 +1,46 @@
+{
+  "kind": "video",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "seedvr2_3b",
+    "workflow": "workflows/seedvr2_3b_upscale_video.api.json",
+    "checkpoint": "seedvr2_ema_3b_fp8_e4m3fn.safetensors",
+    "workflow_sha256": "21e3baf6d6595f873fafb84d767269f3a0f3c1c8c120cc1e092bc31372549460",
+    "registry": {
+      "workflow_key": "seedvr2_3b_upscale_video",
+      "workflow_version": 1,
+      "model_key": "seedvr2_3b",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "none",
+      "graph_sha256": "21e3baf6d6595f873fafb84d767269f3a0f3c1c8c120cc1e092bc31372549460"
+    }
+  },
+  "params": {
+    "batch_size": 5,
+    "color_correction": "lab",
+    "resolution": 1080,
+    "seed": 42,
+    "video": "in-9131bc2d.mp4"
+  },
+  "expect": {
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "images": 1,
+    "freeze": {
+      "ratio_max": 0.2,
+      "longest_max_s": 1.0
+    }
+  },
+  "budget": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

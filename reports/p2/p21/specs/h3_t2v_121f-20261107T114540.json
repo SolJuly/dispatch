@@ -1,0 +1,59 @@
+{
+  "kind": "video",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "h3",
+    "workflow": "workflows/h3_t2v_121f.api.json",
+    "checkpoint": "minimax/DasiwaMinimaxH3_dasiwaHybridV2_int8.safetensors",
+    "workflow_sha256": "339e1f0e3a50a41d49e5a1a8bda95f4225fb138e313c83be1e8bee31848ac966",
+    "registry": {
+      "workflow_key": "h3_t2v_121f",
+      "workflow_version": 1,
+      "model_key": "h3",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "real-run",
+      "setup_need": "h3",
+      "graph_sha256": "339e1f0e3a50a41d49e5a1a8bda95f4225fb138e313c83be1e8bee31848ac966"
+    }
+  },
+  "params": {
+    "cfg": 1,
+    "frames": 200,
+    "height": 512,
+    "neg_prompt": "Bright tones, overexposure, static, blurry details, subtitles, style, work, painting, picture, stillness, overall graying, worst quality, low quality, JPEG compression residue, ugly, incomplete, redundant fingers, poorly drawn hands, Poorly painted faces, deformed, disfigured, deformed...",
+    "prompt": "Cinematic close-up shot, photorealistic 4k video. A young Asian girl with long dark hair and bangs, wearing a traditional Japanese navy blue sailor school uniform (seifuku), stands outdoors facing a blurred figure in the foreground left. The scene captures an emotional moment: she initially looks down with her eyes closed, holding back tears, her expression pained and vulnerable. She slowly lifts her head, opening her eyes which are filled with moisture and sadness, looking up at the person in front of her with a mix of resignation and hope. Soft, natural daylight illuminates her face, highlighting subtle skin textures and the gloss of her lips. Shallow depth of field keeps the background of trees and pavement softly blurred, focusing entirely on her facial micro-expressions. High-quality drama aesthetic, slow motion feel, poignant atmosphere.",
+    "seed": 3,
+    "steps": 20,
+    "width": 768
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "duration_s": [
+      8.03,
+      8.68
+    ],
+    "ext": "mp4",
+    "freeze": {
+      "longest_max_s": 1.0,
+      "ratio_max": 0.2
+    },
+    "height": [
+      512
+    ],
+    "min_bytes": 300000,
+    "width": [
+      768
+    ]
+  },
+  "budget": {
+    "max_minutes": 45,
+    "max_cost": 1.0
+  },
+  "instance": {
+    "required_gpu": [
+      "4090_48G",
+      "4090"
+    ]
+  }
+}

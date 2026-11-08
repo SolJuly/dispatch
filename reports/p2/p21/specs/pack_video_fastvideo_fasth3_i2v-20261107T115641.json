@@ -1,0 +1,43 @@
+{
+  "kind": "video",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "fastvideo_fasth3_8step_v2_pruned_int",
+    "workflow": "workflows/pack/video_fastvideo_fasth3_i2v.api.json",
+    "checkpoint": "fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors",
+    "workflow_sha256": "d843f80f1bc29cdfcbb594dd9d3e414c60fd4f524e0d5371766b30cfdad0d57a",
+    "registry": {
+      "workflow_key": "pack_video_fastvideo_fasth3_i2v",
+      "workflow_version": 1,
+      "model_key": "fastvideo_fasth3_8step_v2_pruned_int",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "all",
+      "graph_sha256": "d843f80f1bc29cdfcbb594dd9d3e414c60fd4f524e0d5371766b30cfdad0d57a"
+    }
+  },
+  "params": {
+    "image": "in-1957c001.jpg",
+    "prompt": "抬手低头，再抬起头时微笑",
+    "seed": 0
+  },
+  "expect": {
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "freeze": {
+      "ratio_max": 0.2,
+      "longest_max_s": 1.0
+    }
+  },
+  "budget": {
+    "max_minutes": 40,
+    "max_cost": 1.0
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}
