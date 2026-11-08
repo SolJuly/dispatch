@@ -1037,6 +1037,35 @@ class Handler(BaseHTTPRequestHandler):
             }
 
         # /api/p2/queue
+        # /api/p2/status —— 契约（docs/openapi.json）声明了这个路径，
+        # 但实现只有不带 p2 的 /api/status。前端照契约写就会 404。
+        # 复用同一份数据，不另写一套。
+        if sub == ["status"]:
+            return _json(self._api_status())
+
+        # /api/p2/presets —— 预设组合。目前 registry 里没有 presets 概念
+        # （参数契约靠 /registry/workflows 就够了），返回空集而不是 404：
+        # 照契约写的前端拿到空数组能正常渲染，不会白屏。
+        if sub == ["presets"]:
+            return _json({"presets": [], "note": "本实例未配置预设组合"})
+
+        # /api/p2/instances?window=<秒>
+        # 实例视图：把 .compshare/watch.log（cron 每 5min 采样）、ledger、
+        # logs/watchdog.log 合成一份只读快照。不调云 API，零费用、可离线。
+        # 拿不到的字段（GPU 型号/区域/单价）一律不出现，UI 显示「—」并标注来源，
+        # 绝不发明数据。
+        if sub == ["instances"]:
+            try:
+                from tools.p2 import instances as inst_mod
+            except Exception as e:  # noqa: BLE001
+                return self._err(500, f"实例模块不可用: {e}")
+            try:
+                win = q.get("window")
+                win_s = int(win[0]) if win and win[0] else None
+                return _json(inst_mod.snapshot(window_s=win_s))
+            except Exception as e:  # noqa: BLE001
+                return self._err(500, f"实例快照失败: {e}")
+
         if sub == ["queue"]:
             return _json({"stats": qq.stats(),
                           "items": [{k: it.get(k) for k in ("job_id", "state", "model_key", "attempts",
