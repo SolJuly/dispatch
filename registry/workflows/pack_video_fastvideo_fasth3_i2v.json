@@ -2,6 +2,10 @@
   "description": "FastH3 加速版，单图出短视频。输入：首帧图 + 提示词；输出：MP4。（✅ 可使用）",
   "engine": "comfyui",
   "expect_defaults": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
     "ext": "mp4",
     "min_bytes": 50000
   },

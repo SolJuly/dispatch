@@ -2,6 +2,10 @@
   "description": "ID-LoRA 保持人物一致。输入：参考图 + 提示词；输出：MP4。缺 LoRA。（🚧 尚未开发）",
   "engine": "comfyui",
   "expect_defaults": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
     "ext": "mp4",
     "min_bytes": 50000
   },

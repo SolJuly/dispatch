@@ -2,6 +2,10 @@
   "description": "用 4 张关键帧锚定时间线生成连贯视频。输入：4 张图 + 提示词；输出：MP4。（✅ 可使用）",
   "engine": "comfyui",
   "expect_defaults": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
     "ext": "mp4",
     "min_bytes": 50000
   },

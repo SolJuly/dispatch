@@ -2,6 +2,10 @@
   "description": "用音频驱动人物口型，可调帧数。输入：人物图 + 音频；输出：约 5 秒 MP4。（✅ 可使用）",
   "engine": "comfyui",
   "expect_defaults": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
     "ext": "mp4",
     "min_bytes": 50000
   },

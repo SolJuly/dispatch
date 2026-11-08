@@ -2,6 +2,10 @@
   "description": "LTX 2.5 首尾帧过渡，自带音频。输入：2 张图；输出：MP4。当前绑定错位。（🚧 尚未开发）",
   "engine": "comfyui",
   "expect_defaults": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
     "ext": "mp4",
     "min_bytes": 50000
   },

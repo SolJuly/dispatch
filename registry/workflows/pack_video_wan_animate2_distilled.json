@@ -2,6 +2,10 @@
   "description": "动作迁移蒸馏版，可调帧数。输入：人物图 + 驱动视频；输出：MP4。（✅ 可使用）",
   "engine": "comfyui",
   "expect_defaults": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
     "ext": "mp4",
     "min_bytes": 50000
   },

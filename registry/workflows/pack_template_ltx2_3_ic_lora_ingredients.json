@@ -2,6 +2,10 @@
   "description": "用参考素材 + IC-LoRA 控制视频风格。输入：参考图 + 提示词；输出：MP4。缺模型文件。（🚧 尚未开发）",
   "engine": "comfyui",
   "expect_defaults": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
     "ext": "mp4",
     "min_bytes": 50000
   },

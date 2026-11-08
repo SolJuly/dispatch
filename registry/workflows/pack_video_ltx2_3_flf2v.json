@@ -2,6 +2,10 @@
   "description": "首帧+尾帧生成过渡。输入：2 张图 + 提示词；输出：MP4。当前缺文本编码器输入。（🚧 尚未开发）",
   "engine": "comfyui",
   "expect_defaults": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
     "ext": "mp4",
     "min_bytes": 50000
   },
