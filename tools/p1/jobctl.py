@@ -417,7 +417,12 @@ def cmd_rm(a) -> int:
             state_ = json.loads((d / "job.json").read_text(encoding="utf-8")).get("state") or ""
         except (OSError, json.JSONDecodeError):
             pass
-        if state_ in state.TERMINAL or not state_:
+        # 可删 = 终态 ∪ 失败分支。FAILED_PROVISION/FAILED_RUN/FAILED_FETCH/FAILED_VERIFY
+        # 是「中间失败态」，正常流程会折成 FAILED 再进 TERMINAL；若流程本身崩在
+        # 折叠之前，作业就卡在这个状态且永远不会前进 —— 它不是「在跑」，是可以删的。
+        # 真正要保护的只有主链上还可能继续的状态（CREATED/RUNNING/PROVISIONING…）。
+        deletable = state_ in state.TERMINAL or state_ in getattr(state, "FAIL_BRANCH", ())
+        if deletable or not state_:
             pass
         elif not a.force:
             rows.append((jid, "REFUSED", f"状态 {state_} 未结束（--force 可强删）"))

@@ -116,3 +116,50 @@ class TestHistoryDeleteUi(unittest.TestCase):
         """没勾选时按钮必须禁用，避免误点全删。"""
         n = self.js.count("$('#del').disabled")
         self.assertGreaterEqual(n, 3, f"禁用状态控制点过少：{n}")
+
+
+class TestToastNotCrossPage(unittest.TestCase):
+    """提示必须在任何页面都能用。
+
+    回归背景：deleteJobs() 曾写 $('#submitMsg')，而 submitMsg 只存在于创作台
+    （view-create）。在历史页取到 null → TypeError → 后续 tick() 与 finally
+    全被跳过，删除其实成功了，界面却毫无反应。用户报「点了清不掉」。
+    """
+
+    def setUp(self):
+        self.html = (WEB / "dist" / "index.html").read_text(encoding="utf-8")
+        self.js = (WEB / "dist" / "app.js").read_text(encoding="utf-8")
+        self.css = (WEB / "dist" / "app.css").read_text(encoding="utf-8")
+
+    def test_toast_node_is_global(self):
+        """toast 节点必须挂在 body 末尾，不能在某个 view-* 区块里。"""
+        import re
+        i = self.html.find('id="toast"')
+        self.assertGreater(i, 0, "缺少 #toast 节点")
+        # 它必须出现在最后一个 </section> 之后
+        last_section = self.html.rfind("</section>")
+        self.assertGreater(i, last_section, "#toast 必须放在所有 section 之外")
+
+    def test_toast_function_exists(self):
+        self.assertIn("function toast(", self.js)
+
+    def test_delete_does_not_touch_submit_msg(self):
+        """删除逻辑不许再用 #submitMsg（跨页元素）。"""
+        import re
+        m = re.search(r"async function deleteJobs\(ids\)\s*\{(.*?)\n\}", self.js, re.S)
+        self.assertIsNotNone(m, "找不到 deleteJobs 函数")
+        body = m.group(1)
+        self.assertNotIn("submitMsg", body, "deleteJobs 里不该再碰 #submitMsg")
+        self.assertIn("toast(", body, "deleteJobs 应通过 toast() 反馈")
+
+    def test_toast_css_present(self):
+        self.assertIn(".toast{", self.css)
+        self.assertIn(".toast.ok{", self.css)
+
+    def test_delete_error_path_reports(self):
+        """catch 分支必须有提示，不能静默吞掉。"""
+        import re
+        m = re.search(r"async function deleteJobs\(ids\)\s*\{(.*?)\n\}", self.js, re.S)
+        body = m.group(1)
+        self.assertIn("catch (e)", body)
+        self.assertIn("'err'", body, "失败应走 toast(..., 'err')")

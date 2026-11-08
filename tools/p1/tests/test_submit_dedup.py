@@ -225,3 +225,36 @@ class TestWebuiReuse(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestRmDeletableStates(unittest.TestCase):
+    """jobctl rm 的可删状态判定。
+
+    回归背景：FAILED_PROVISION 等失败分支不在 TERMINAL（它们会被折叠成 FAILED
+    再进终态），但流程若崩在折叠之前，作业就永远卡在这个状态。它不是在跑，
+    却被 rm 拒绝 → 界面上清不掉（实测踩到：p1-20261103T1245-a47eee）。
+    """
+
+    def test_fail_branch_is_deletable(self):
+        from tools.p1 import state
+        # 可删 = 终态 ∪ 失败分支
+        for st in ("DONE", "FAILED", "ABORTED"):
+            self.assertIn(st, state.TERMINAL, f"{st} 应是终态")
+        for st in ("FAILED_PROVISION", "FAILED_RUN", "FAILED_FETCH", "FAILED_VERIFY"):
+            self.assertIn(st, state.FAIL_BRANCH, f"{st} 应在失败分支里")
+
+    def test_live_states_are_not_deletable(self):
+        """主链上还可能继续的状态必须拒绝（保护真在跑的作业）。"""
+        from tools.p1 import state
+        deletable = set(state.TERMINAL) | set(state.FAIL_BRANCH)
+        for st in ("CREATED", "PROVISIONING", "READY", "SUBMITTED", "RUNNING",
+                   "FETCHING", "VERIFYING", "PERSISTED", "RELEASING", "RESUMING"):
+            self.assertNotIn(st, deletable, f"{st} 不该被视为可删")
+
+    def test_jobctl_rm_consults_fail_branch(self):
+        """源码层面确认 cmd_rm 用了 FAIL_BRANCH，而不只判 TERMINAL。"""
+        import inspect
+        from tools.p1 import jobctl
+        src = inspect.getsource(jobctl.cmd_rm)
+        self.assertIn("FAIL_BRANCH", src,
+                      "cmd_rm 必须把失败分支也视为可删，否则僵尸作业清不掉")

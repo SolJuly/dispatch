@@ -31,6 +31,23 @@ const dur = s => { if (s == null || !isFinite(s)) return '—'; s = Math.max(0, 
 const money = v => (v == null || v === '') ? '—' : '¥' + Number(v).toFixed(4);
 const bytes = n => n == null ? '—' : n > 1048576 ? (n / 1048576).toFixed(2) + ' MB' : Math.round(n / 1024) + ' KB';
 
+/* 全局提示条。
+ * 历史页原本借用创作台的 #submitMsg，那个元素只存在于 view-create，
+ * 在历史页取到 null → 抛 TypeError → 后面的 tick() 和 finally 都被跳过，
+ * 删除明明成功了，界面却毫无反应（用户报「清不了」）。
+ * 独立成一个挂 body 的节点，任何页面都能用。
+ */
+let _toastTimer = null;
+function toast(msg, kind) {
+  const n = $('#toast');
+  if (!n) { console.log('[toast]', msg); return; }
+  n.textContent = msg;
+  n.className = 'toast' + (kind ? ' ' + kind : '');
+  n.hidden = false;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { n.hidden = true; }, kind === 'err' ? 8000 : 4500);
+}
+
 /* token 在路径里（契约约定），如 /files/23e00ec2/ui/ */
 const TOKEN = (location.pathname.split('/').filter(Boolean).find(s => /^[0-9a-f]{8,64}$/i.test(s))) || '23e00ec2';
 const SAME_BASE = (() => {
@@ -671,35 +688,37 @@ async function deleteJobs(ids) {
   try {
     let r = await post('/jobs/delete', {ids, purge: false});
     let out = String(r.output || '');
-    let bad = (out.match(/REFUSED/g) || []).length;
+    let refused = (out.match(/✗ (\S+) REFUSED/g) || [])
+      .map(m => m.replace(/^✗ /, '').replace(/ REFUSED$/, ''));
 
     // 有被拒的：问一次是否强制删（僵尸作业的出路）
-    if (bad) {
-      const refused = (out.match(/✗ (\S+) REFUSED/g) || [])
-        .map(m => m.replace(/^✗ /, '').replace(/ REFUSED$/, ''));
+    if (refused.length) {
       const more = confirm(
-        `${bad} 个作业因为「状态未结束」被拒绝：\n\n` +
+        `${refused.length} 个作业因为「状态未结束」被拒绝：\n\n` +
         refused.map(x => '  · ' + x).join('\n') +
         `\n\n强制删除它们？\n` +
         `（只对从未执行过的残留作业安全；正在跑的可能留下计费实例）`);
       if (more) {
         r = await post('/jobs/delete', {ids: refused, purge: false, force: true});
         out += '\n' + String(r.output || '');
-        bad = (out.match(/REFUSED/g) || []).length;
+        refused = (out.match(/✗ (\S+) REFUSED/g) || [])
+          .map(m => m.replace(/^✗ /, '').replace(/ REFUSED$/, ''));
       }
     }
 
     const notFound = (out.match(/NOT_FOUND/g) || []).length;
-    const done = ids.length - bad - notFound;
+    const done = ids.length - refused.length - notFound;
     const bits = [`已删除 ${done} 个`];
-    if (bad) bits.push(`${bad} 个仍在运行，跳过了`);
+    if (refused.length) bits.push(`${refused.length} 个仍在运行，未删`);
     if (notFound) bits.push(`${notFound} 个不存在`);
-    $('#submitMsg').innerHTML =
-      `<span style="color:${bad || notFound ? 'var(--amber, #d8b46a)' : 'var(--green)'}">${esc(bits.join(' · '))}</span>`;
+    const okAll = !refused.length && !notFound;
+    toast(bits.join(' · ') + (okAll ? '' : `\n\n未删：${refused.join(', ')}`),
+          okAll ? 'ok' : 'warn');
     S.selected.clear();
     await tick();
   } catch (e) {
-    alert('删除失败：' + (e.message || e));
+    // 不吞异常：以前这里只 alert，用户不知道删除是否落地
+    toast('删除失败：' + (e.message || e), 'err');
   } finally {
     $('#del').disabled = S.selected.size === 0;
   }

@@ -339,3 +339,15 @@ td.prompt span{color:#d7dce6;font-size:12.5px;line-height:1.45;
 input[type=checkbox]{accent-color:#2f6fed;width:15px;height:15px}
 .tabs a{position:relative}
 #base{max-width:210px}
+
+/* 全局提示条：任何页面都能用（历史页删除反馈等）。
+   fixed 定位，不占文档流，避免撑动表格布局。 */
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+  max-width:min(680px,calc(100vw - 32px));z-index:60;
+  background:#1b2430;border:1px solid #2d3a4d;border-radius:10px;
+  padding:11px 15px;font-size:13px;line-height:1.55;color:#e6e8ec;
+  box-shadow:0 8px 28px #0009;word-break:break-word;white-space:pre-wrap}
+.toast[hidden]{display:none}
+.toast.ok{border-color:#2f6b46;background:#14241a}
+.toast.warn{border-color:#6b5628;background:#241f12}
+.toast.err{border-color:#6b2f2f;background:#241414}
