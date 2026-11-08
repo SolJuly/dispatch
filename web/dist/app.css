@@ -370,3 +370,10 @@ video.upthumb{height:92px;max-width:200px;border-radius:6px;border:1px solid var
 .up .upinfo{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .up [data-clear]{padding:1px 6px;line-height:1.2;font-size:12px;color:#c7ccd6}
 .up [data-clear]:hover{color:#f87171;border-color:#6b2f2f}
+
+/* 费用卡片：金额要一眼看见（用户跑完一轮最想知道花了多少） */
+.costcard{grid-column:1/-1}
+.costcard .kv{display:grid;grid-template-columns:96px 1fr;gap:6px 12px}
+.costcard .kv dt{color:var(--muted);font-size:12.5px}
+.costcard .kv dd{margin:0;font-size:13px}
+.costcard .big-money{font-size:20px;font-weight:700;color:#e8c46a;font-variant-numeric:tabular-nums}

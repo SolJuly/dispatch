@@ -679,6 +679,37 @@ async function loadDetail(id) {
   renderResult();
 }
 
+/* 费用卡片：本轮花了多少、烧了多久、跑在哪台机器上。
+ * 数据来自 GET /api/p2/jobs/<id> 顶层的 cost（{hourly, minutes, amount}）——
+ * 注意它在顶层，不在 job 里（job.cost 是 None，早期读错过）。
+ * 以前详情页完全不显示费用，用户跑完一轮不知道花了多少。
+ */
+function costCard(cost, job) {
+  const c = cost || {};
+  const inst = job.instance || {};
+  const amount = (c.amount == null) ? null : Number(c.amount);
+  const mins = (c.minutes == null) ? null : Number(c.minutes);
+  const hourly = (c.hourly == null) ? null : Number(c.hourly);
+  // 还没产生费用（CREATED/未建机）时给一句人话，而不是显示 ¥0
+  if (amount == null && mins == null && !inst.uhost_id) return '';
+  const money = v => v == null ? '—' : '¥' + v.toFixed(4);
+  const dur = m => {
+    if (m == null) return '—';
+    const mm = Math.floor(m), ss = Math.round((m - mm) * 60);
+    return mm ? `${mm} 分 ${ss} 秒` : `${ss} 秒`;
+  };
+  return `<div class="card costcard"><h3>本次花费 <span class="r">按 ¥${hourly ?? '—'}/小时 结算</span></h3>
+    <div class="pad"><dl class="kv">
+      <dt>金额</dt><dd class="big-money">${money(amount)}</dd>
+      <dt>计费时长</dt><dd>${dur(mins)}</dd>
+      ${inst.gpu ? `<dt>GPU</dt><dd>${esc(inst.gpu)} · ${esc(inst.zone || '—')}</dd>` : ''}
+      ${inst.uhost_id ? `<dt>实例</dt><dd class="mono">${esc(inst.uhost_id)}</dd>` : ''}
+      ${inst.up_at ? `<dt>开机</dt><dd>${esc(dt(ts(inst.up_at)))}</dd>` : ''}
+      ${job.budget && job.budget.max_cost != null
+        ? `<dt>预算上限</dt><dd>${money(Number(job.budget.max_cost))}</dd>` : ''}
+    </dl></div></div>`;
+}
+
 function renderResult() {
   const root = $('#result');
   if (S.detailErr) {
@@ -713,9 +744,10 @@ function renderResult() {
     </div>
     ${ORDER_FAIL(job.state) ? `<div class="tip bad">作业失败：${esc(job.state)}${job.error ? ' · ' + esc(job.error) : ''}</div>`
       : job.state === 'DONE' ? '<div class="tip">完成 · 产物已发布（URL 与进程无关，可长期访问）</div>' : ''}
-    ${arts.length ? `<div class="media">${arts.map(a => artifactCard(a, job.job_id)).join('')}</div>`
+    ${arts.length ? `<div class="media">${arts.map((a, i) => artifactCard(a, job.job_id, i)).join('')}</div>`
       : `<div class="card"><div class="empty"><span class="big">▢</span>
           ${terminal ? '没有产物' : '还没产物，页面会自动刷新'}</div></div>`}
+    ${costCard(S.detail.cost, job)}
     <div class="meta-grid">
       <div class="card"><h3>参数快照 <span class="r">${esc(wf)}</span></h3>
         <div class="pad"><dl class="kv">
@@ -731,13 +763,38 @@ function renderResult() {
 
   $('#btnCancel') && $('#btnCancel').addEventListener('click', () => cancelJob(job.job_id));
   $('#btnZip') && $('#btnZip').addEventListener('click', () => downloadZip([job.job_id]));
+
+  // 播放失败时给出可操作的提示，而不是留一个黑框让用户猜。
+  // 浏览器拿不到具体原因（MediaError.code 只有几种粗分类），
+  // 所以提示统一的「下载后本地看」，并说明原文件可以下。
+  root.querySelectorAll('video').forEach(v => {
+    v.addEventListener('error', () => {
+      if (v.dataset.errShown) return;
+      v.dataset.errShown = '1';
+      const tip = document.createElement('div');
+      tip.className = 'tip bad';
+      const code = v.error ? v.error.code : '?';
+      tip.textContent = `这个视频在本设备上无法播放（MediaError ${code}）。`
+        + ' 文件本身是完整的，可点「下载」后用本地播放器打开。';
+      v.parentElement.insertBefore(tip, v.nextSibling);
+    }, {once: true});
+  });
 }
 
-function artifactCard(a, jobId) {
+/* 产物卡片。
+ * 多路视频同页时只让第一个预载，其余懒加载 —— 平板/手机的硬件解码器
+ * 同时解多路 h264 会争抢，表现就是「播一两秒卡住/崩」。
+ * index 由调用方传入（第 0 个视为主产物）。
+ */
+function artifactCard(a, jobId, index = 0) {
   const url = esc(artUrl(a.url));
   const isVid = /\.(mp4|webm|mov)$/i.test(a.name || '');
   const isImg = /\.(png|jpe?g|webp|gif)$/i.test(a.name || '');
-  const body = isVid ? `<video controls preload="metadata" playsinline src="${url}"></video>`
+  // 第一个视频 preload=metadata（拿到时长/封面即可播放），其余 none（点播放才加载）
+  const pre = index === 0 ? 'metadata' : 'none';
+  const body = isVid
+    ? `<video controls preload="${pre}" playsinline webkit-playsinline
+         src="${url}" data-idx="${index}"></video>`
     : isImg ? `<img src="${url}" alt="${esc(a.name)}" loading="lazy">`
     : `<div class="pad mono">${esc(a.name)}</div>`;
   return `<div class="m1">${body}

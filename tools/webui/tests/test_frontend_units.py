@@ -351,3 +351,67 @@ class TestFileInputFieldName(unittest.TestCase):
         body = m.group(1)
         self.assertIn("S.uploads[name]", body)
         self.assertIn("spec.type === 'image' || spec.type === 'video'", body)
+
+
+class TestResultCostAndVideo(unittest.TestCase):
+    """详情页必须显示本轮花费；多路视频不能同时预载。
+
+    问题一：跑完一轮不知道花了多少。
+      cost 在 GET /api/p2/jobs/<id> 的**顶层**（{hourly, minutes, amount}），
+      不在 job 里（job.cost 是 None，早期读错过一次）。原详情页完全没有费用区。
+
+    问题二：多个产物视频同页时平板播放卡死。
+      浏览器/移动端硬件解码器同时解多路 h264 会争抢，
+      表现就是「播一两秒卡住」。改为只让第一个 preload=metadata，其余 none。
+    """
+
+    def setUp(self):
+        self.js = (WEB / "dist" / "app.js").read_text(encoding="utf-8")
+        self.css = (WEB / "dist" / "app.css").read_text(encoding="utf-8")
+
+    def test_cost_card_exists(self):
+        self.assertIn("function costCard(", self.js)
+        self.assertIn("costCard(S.detail.cost", self.js)
+
+    def test_cost_read_from_top_level(self):
+        """必须读 S.detail.cost（顶层），不能读 job.cost（那是 None）。
+
+        注：只检查「有没有从这里读」，不检查字符串是否出现过——
+        注释里解释「不在 job 里」会提到 job.cost，那是正常的。
+        """
+        self.assertIn("costCard(S.detail.cost, job)", self.js)
+        # 不能有 actual 读取 job.cost 的表达式（赋值/传参）
+        import re
+        self.assertIsNone(re.search(r"\bjob\.cost\b(?!\s*是)", self.js),
+                          "不应从 job.cost 取费用")
+
+    def test_cost_shows_amount_and_minutes(self):
+        import re
+        m = re.search(r"function costCard\(cost, job\) \{(.*?)\n\}", self.js, re.S)
+        self.assertIsNotNone(m)
+        body = m.group(1)
+        self.assertIn("c.amount", body)
+        self.assertIn("c.minutes", body)
+        self.assertIn("c.hourly", body)
+
+    def test_video_preload_only_first(self):
+        """第一个视频 preload=metadata，其余 none。"""
+        import re
+        m = re.search(r"function artifactCard\(a, jobId, index = 0\) \{(.*?)\n\}", self.js, re.S)
+        self.assertIsNotNone(m, "artifactCard 应接收 index")
+        body = m.group(1)
+        self.assertIn("index === 0", body)
+        self.assertIn("'metadata'", body)
+        self.assertIn("'none'", body)
+
+    def test_artifact_card_passed_index(self):
+        self.assertIn("arts.map((a, i) => artifactCard(a, job.job_id, i))", self.js)
+
+    def test_video_error_shows_hint(self):
+        """播放失败要给可操作提示，不能留黑框。"""
+        self.assertIn("MediaError", self.js)
+        self.assertIn("addEventListener('error'", self.js)
+
+    def test_cost_css_present(self):
+        self.assertIn(".costcard", self.css)
+        self.assertIn(".big-money", self.css)
