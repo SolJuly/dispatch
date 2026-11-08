@@ -234,6 +234,25 @@ pre.log{margin:0;padding:12px 14px;overflow:auto;font:12px/1.6 var(--mono);color
 .mcard .d{color:var(--dim);font-size:11.5px;margin-top:3px;line-height:1.45}
 .mcard .b2{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
 .mcard .why{color:#d8b46a;font-size:11px;margin-top:5px;line-height:1.45}
+
+/* 工作流分组：视频 / 图片分开，未开发的收进折叠区 */
+.wfgroup{margin-bottom:16px}
+.wfgroup:last-child{margin-bottom:0}
+.wfgroup-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  margin:0 0 7px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.wfgroup-t{font-size:13px;font-weight:600;color:#cfd6e2}
+.wfgroup-n{font-size:11.5px;color:var(--dim);flex:0 0 auto}
+.wfold{margin-top:8px}
+.wfold>summary{cursor:pointer;font-size:12px;color:var(--dim);padding:6px 2px;
+  list-style:none;user-select:none}
+.wfold>summary::-webkit-details-marker{display:none}
+.wfold>summary::before{content:'▸ ';display:inline-block;transition:transform .12s}
+.wfold[open]>summary::before{transform:rotate(90deg)}
+.wfold>summary:hover{color:var(--muted)}
+.wfold .models{margin-top:6px}
+/* 未开发：整体压暗，但不降到不可点——用户仍可查看契约后再决定 */
+.mcard.undeveloped{opacity:.62}
+.mcard.undeveloped:hover{opacity:.88}
 .frow{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:start;margin-bottom:9px}
 .frow>label{font-size:12.5px;color:var(--muted);padding-top:7px;text-align:right}
 .frow .ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}

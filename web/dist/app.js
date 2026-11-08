@@ -207,20 +207,59 @@ async function loadRegistry() {
   await selectWorkflow(S.wfKey);
 }
 
-function renderWorkflows() {
-  $('#wfCount').textContent = `${S.workflows.length} 个（来自 registry）`;
-  $('#workflows').innerHTML = S.workflows.map(w => {
-    const st = (w.compat || {}).status || 'unknown';
-    const cls = st === 'verified' ? 'pass' : st === 'experimental' ? 'warn' : st === 'incompatible' ? 'fail' : '';
-    return `<div class="mcard ${w.key === S.wfKey ? 'on' : ''}" data-key="${esc(w.key)}"
-       title="${esc((w.compat || {}).basis || '')}">
+/* 工作流分组与排序
+ * 分组：video / image 分开（kind 字段，各 27 个）
+ * 排序：组内 verified 在前、未开发在后；同状态按名称拼音序，避免顺序漂移
+ * 「未开发」判据用 compat.status !== 'verified'，而不是名字里有没有写「尚未开发」——
+ * 有 2 个 experimental 的名字没标注，靠名字判会漏。
+ */
+const WF_GROUPS = [
+  {kind: 'video', title: '视频工作流', icon: '🎬'},
+  {kind: 'image', title: '图片工作流', icon: '📷'},
+];
+const isDev = w => ((w.compat || {}).status || '') === 'verified';
+
+function groupWorkflows(list) {
+  return WF_GROUPS.map(g => {
+    const items = list.filter(w => (w.kind || '') === g.kind);
+    // done 在前，未开发在后；稳定排序保证刷新后顺序不变
+    const done = items.filter(isDev);
+    const todo = items.filter(w => !isDev(w));
+    const byName = (a, b) => String(a.name || a.key).localeCompare(String(b.name || b.key), 'zh');
+    return {...g, done: done.sort(byName), todo: todo.sort(byName), total: items.length};
+  }).filter(g => g.total);
+}
+
+function wfCard(w) {
+  const st = (w.compat || {}).status || 'unknown';
+  const cls = st === 'verified' ? 'pass' : st === 'experimental' ? 'warn' : st === 'incompatible' ? 'fail' : '';
+  return `<div class="mcard ${w.key === S.wfKey ? 'on' : ''} ${isDev(w) ? '' : 'undeveloped'}"
+       data-key="${esc(w.key)}" title="${esc((w.compat || {}).basis || '')}">
       <div class="t" title="${esc(w.name || w.key)}">${esc(w.name || w.key)}</div>
       <div class="b2"><span class="badge">${esc(w.kind || '')}</span>
         <span class="badge ${cls}">${esc(st)}</span>
         <span class="badge">${esc(w.model_key || w.model || '—')}</span></div>
       <div class="d">${esc(w.key)} · v${esc(w.version || 1)}</div>
     </div>`;
-  }).join('');
+}
+
+function renderWorkflows() {
+  const groups = groupWorkflows(S.workflows);
+  const doneN = S.workflows.filter(isDev).length;
+  $('#wfCount').textContent =
+    `${S.workflows.length} 个 · 可用 ${doneN} · 未开发 ${S.workflows.length - doneN}`;
+  $('#workflows').innerHTML = groups.map(g => `
+    <div class="wfgroup">
+      <div class="wfgroup-h">
+        <span class="wfgroup-t">${g.icon} ${esc(g.title)}</span>
+        <span class="wfgroup-n">${g.done.length} 可用${g.todo.length ? ` · ${g.todo.length} 未开发` : ''}</span>
+      </div>
+      <div class="models">${g.done.map(wfCard).join('')}</div>
+      ${g.todo.length ? `<details class="wfold">
+        <summary>未开发 ${g.todo.length} 个（点开查看，默认拒绝执行）</summary>
+        <div class="models">${g.todo.map(wfCard).join('')}</div>
+      </details>` : ''}
+    </div>`).join('');
   if (!$('#workflows').dataset.bound) {
     $('#workflows').addEventListener('click', e => {
       const c = e.target.closest('.mcard'); if (!c) return;
