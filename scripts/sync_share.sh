@@ -3,10 +3,14 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 mkdir -p share/_incoming
+#   dist/    部署运行时包（271M，脚本生成，不在 share 里没有任何用途）
+#   web/     前端源码（手写原生 JS，见 web/README.md）。/ui/ 由 fileserver
+#            直接读 web/dist，不经过 share/，同步过去纯属复制一份无用副本。
 rsync -a --delete \
   --exclude 'share' --exclude '__pycache__' --exclude '.compshare' \
   --exclude 'credentials.env' --exclude '.share_token' --exclude '*.pyc' \
   --exclude 'dsh.nginx.bak.*' \
+  --exclude '/dist' --exclude '/web' \
   ./ share/
 echo "synced -> $(pwd)/share"
 ls share

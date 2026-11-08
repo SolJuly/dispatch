@@ -59,5 +59,18 @@ reports/p2/p21/bench/
 # P2.1 输入图副本（按内容哈希命名，可由原图重建）
 reports/p2/p21/inputs/
 
-# 部署运行时包（脚本生成，不入库）
-dist/
+# 部署运行时包（脚本生成，不入库）。锚定根目录：不锚定会连带忽略 web/dist，
+# 而 web/dist 是手写前端源码（见 web/README.md），必须入库。
+/dist/
+
+# 前端：/ui/ 是纯原生手写代码，web/dist 里的文件**就是源码**，必须入库。
+# 这里只忽略将来可能引入的 node 依赖与构建缓存。
+web/node_modules/
+web/.vite/
+web/.cache/
+
+# 一次性排障脚本（GPU 实例上的磁盘/存储探测，结论已写进报告，脚本本身无留存价值）
+reports/p2/p21/disk-read.sh
+reports/p2/p21/disk-test.sh
+reports/p2/p21/disk-write.sh
+reports/p2/p21/us3-check.sh
