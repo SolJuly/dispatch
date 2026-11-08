@@ -34,6 +34,7 @@ reports/lab/gallery*.html
 
 # P1 运行态补充：锁文件 + 每 10 分钟被 cron 覆盖的风险报告
 reports/p1/.job.lock
+reports/p1/.submit.lock
 reports/risk/
 
 # P1 派生数据（可重建）
