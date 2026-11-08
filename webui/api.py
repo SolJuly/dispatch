@@ -118,6 +118,82 @@ def _first_artifact_url(job_id: str, jobs_dir: Path | None) -> str:
     return arts[0]["url"] if arts else ""
 
 
+# ---------------- 缩略图
+# 列表页以前直接把原图/原视频塞进 <img>：
+#   · 视频 → <img src="x.mp4"> 永远解不出来，显示黑块
+#   · 图片 → 13MB 级原图，一屏几十张等于几百 MB，慢到像卡死
+# 这里统一生成 480px 宽的 jpg 缓存，命名带源文件内容哈希：
+# 内容没变就复用，改了自动换名，不需要失效逻辑。
+THUMB_W = 480
+THUMB_DIR_NAME = "thumbs"
+
+
+def _thumb_dir(job_dir: Path) -> Path:
+    return job_dir / THUMB_DIR_NAME
+
+
+def _src_stamp(p: Path) -> str:
+    st = p.stat()
+    return f"{st.st_size}-{int(st.st_mtime_ns)}"
+
+
+def thumb_for(src: Path, job_dir: Path, *, width: int = THUMB_W,
+              force: bool = False) -> Path | None:
+    """返回 src 的缩略图路径；生成失败返回 None（调用方降级到原图/占位）。
+
+    视频用第 1 帧做封面（黑帧问题由 -ss 微偏移缓解）；图片直接缩放。
+    失败一律返回 None，绝不抛异常——列表页不能因为一张图挂掉。
+    """
+    if not src.is_file():
+        return None
+    stem = src.stem
+    # 内容戳进文件名：源文件一变，旧缩略图自然失效（无需清理逻辑）
+    dst = _thumb_dir(job_dir) / f"{stem}.{_src_stamp(src)}.jpg"
+    if dst.is_file() and not force and dst.stat().st_size > 0:
+        return dst
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dst.with_suffix(".part.jpg")
+
+    cmd = ["ffmpeg", "-y", "-loglevel", "error"]
+    is_video = src.suffix.lower() in (".mp4", ".mov", ".webm", ".m4v")
+    if is_video:
+        # 取 0.5s 处：第 0 帧常常是全黑（编码器首帧/淡入），这是「预览图是黑的」的另一半原因
+        cmd += ["-ss", "0.5"]
+    cmd += ["-i", str(src), "-frames:v", "1",
+            "-vf", f"scale={width}:-2:force_original_aspect_ratio=decrease",
+            "-q:v", "4", str(tmp)]
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    except (subprocess.TimeoutExpired, OSError):
+        tmp.unlink(missing_ok=True)
+        return None
+    if p.returncode != 0 or not tmp.is_file() or tmp.stat().st_size == 0:
+        tmp.unlink(missing_ok=True)
+        # 视频 0.5s 抽取失败（片子比 0.5s 还短）→ 退回第 0 帧
+        if is_video and not force:
+            return thumb_for(src, job_dir, width=width, force=True)
+        return None
+    tmp.replace(dst)
+    # 同时丢一份到 share/（硬链接，同分区零额外空间）。
+    # 为什么必须现在做：/f/ 路由被 _safe() 限制在 share/ 内，看不到作业目录。
+    # 若等下一次 sync_share，新作业的首屏缩略图会 404（又是黑块）。
+    try:
+        share_job = ROOT / "share" / "reports" / "p1" / "jobs" / job_dir.name
+        _drop_copy(dst, share_job / THUMB_DIR_NAME / dst.name)
+    except OSError:
+        pass          # share 不可写不影响缩略图本身；最坏退化成「下次 sync 后可见」
+    return dst
+
+
+def _thumb_url(job_id: str, art_name: str, job_dir: Path, jobs_dir: Path | None) -> str:
+    """缩略图的访问 URL。生成不了就返回空串，前端据此降级。"""
+    src = (job_dir / "artifacts" / art_name)
+    t = thumb_for(src, job_dir)
+    if not t:
+        return ""
+    return f"/f/reports/p1/jobs/{job_id}/{THUMB_DIR_NAME}/{t.name}"
+
+
 IMAGE_MAGIC = (
     (b"\x89PNG\r\n\x1a\n", ".png"),
     (b"\xff\xd8\xff", ".jpg"),
@@ -251,6 +327,7 @@ def list_jobs(limit: int = 20, *, offset: int = 0, state_prefix: str = "", workf
                 cost = (json.loads(mf.read_text(encoding="utf-8")).get("cost") or {})
             except (OSError, json.JSONDecodeError):
                 cost = {}
+        arts = _artifacts(job.get("job_id"), jobs_dir)
         rows.append({
             "job_id": job.get("job_id"),
             "state": st,
@@ -262,8 +339,14 @@ def list_jobs(limit: int = 20, *, offset: int = 0, state_prefix: str = "", workf
             "created_at": job.get("created_at"),
             "kind": job.get("kind"),
             "prompt": (job.get("params") or {}).get("prompt", ""),
-            "artifacts": len(_artifacts(job.get("job_id"), jobs_dir)),
-            "first_artifact_url": _first_artifact_url(job.get("job_id"), jobs_dir),
+            "artifacts": len(arts),
+            "first_artifact_url": arts[0]["url"] if arts else "",
+            # 列表页缩略图：视频给第 1 帧海报，图片给 480px 缩小版。
+            # 前端拿到空串就渲染占位块，不再把 .mp4 塞进 <img>（那是黑块的主因）。
+            "thumb_url": (_thumb_url(job.get("job_id"), arts[0]["name"],
+                                     d, jobs_dir) if arts else ""),
+            "thumb_kind": ("video" if arts and arts[0]["name"].lower().endswith(
+                (".mp4", ".mov", ".webm", ".m4v")) else "image") if arts else "",
         })
     rows.sort(key=lambda r: r.get("created_at") or "", reverse=True)
     lim = max(1, min(int(limit or 20), 200))

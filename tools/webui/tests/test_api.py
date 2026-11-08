@@ -510,3 +510,86 @@ class TestDeleteJobs(unittest.TestCase):
         cmd = self._run_capture(force=True, purge=True)
         self.assertIn("--force", cmd)
         self.assertIn("--purge", cmd)
+
+
+class TestThumbnails(unittest.TestCase):
+    """列表缩略图：视频要抽帧、图片要缩放，绝不能把 .mp4 塞进 <img>。
+
+    用户报「预览图都是黑的，或者要加载很久」，两个独立原因：
+      1. 视频缩略图用 <img src="x.mp4"> → 永远解不出来 → 黑块
+      2. 图片用 13MB 级原图 → 一屏几十张等于几百 MB → 慢到像卡死
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self._share = api.ROOT
+        # 隔离 share：thumb_for 会往 share/ 写硬链接，测试不该碰真实目录
+        self._saved_root = api.ROOT
+        api.ROOT = self.root
+        (self.root / "share").mkdir()
+
+    def tearDown(self):
+        api.ROOT = self._saved_root
+        self.tmp.cleanup()
+
+    def _job(self, jid: str, name: str, data: bytes):
+        d = self.root / jid
+        (d / "artifacts").mkdir(parents=True)
+        (d / "artifacts" / name).write_bytes(data)
+        return d
+
+    def test_video_thumb_is_jpeg_not_mp4(self):
+        """视频必须有 jpg 缩略图，且 URL 不能是 .mp4。"""
+        jid = "p1-20260101T0000-vid001"
+        d = self._job(jid, "00-primary-x.mp4", b"not-a-real-mp4")
+        t = api.thumb_for(d / "artifacts" / "00-primary-x.mp4", d)
+        # ffmpeg 解不了假数据 → 应返回 None，而不是抛异常
+        self.assertIsNone(t, "损坏的视频应返回 None，不能抛")
+
+    def test_missing_source_returns_none(self):
+        jid = "p1-20260101T0000-nofile"
+        d = self.root / jid
+        d.mkdir()
+        self.assertIsNone(api.thumb_for(d / "artifacts" / "nope.mp4", d))
+
+    def test_thumb_name_carries_source_stamp(self):
+        """缩略图文件名要带源文件戳，源一变旧图自然失效（无需清理逻辑）。"""
+        jid = "p1-20260101T0000-stamp1"
+        d = self._job(jid, "a.png", b"\x89PNG\r\n\x1a\n")
+        src = d / "artifacts" / "a.png"
+        stamp = api._src_stamp(src)
+        self.assertIn(str(src.stat().st_size), stamp)
+
+    def test_list_returns_thumb_fields(self):
+        """列表项必须有 thumb_url / thumb_kind 两个字段（前端据此决定渲染方式）。"""
+        jid = "p1-20260101T0000-fields"
+        self._job(jid, "00-primary-y.png", b"\x89PNG\r\n\x1a\n")
+        import json as _j
+        (self.root / jid / "job.json").write_text(_j.dumps({
+            "job_id": jid, "state": "DONE", "created_at": "2026-01-01T00:00:00+08:00",
+            "kind": "image", "model": {"key": "m"}, "params": {}, "steps": {},
+        }), encoding="utf-8")
+        rows = api.list_jobs(limit=10, jobs_dir=self.root)
+        self.assertEqual(len(rows), 1)
+        self.assertIn("thumb_url", rows[0])
+        self.assertIn("thumb_kind", rows[0])
+
+    def test_video_art_detected_as_video_kind(self):
+        jid = "p1-20260101T0000-vkind"
+        self._job(jid, "00-primary-z.mp4", b"x")
+        import json as _j
+        (self.root / jid / "job.json").write_text(_j.dumps({
+            "job_id": jid, "state": "DONE", "created_at": "2026-01-01T00:00:00+08:00",
+            "kind": "video", "model": {"key": "m"}, "params": {}, "steps": {},
+        }), encoding="utf-8")
+        rows = api.list_jobs(limit=10, jobs_dir=self.root)
+        self.assertEqual(rows[0]["thumb_kind"], "video")
+
+    def test_ffmpeg_failure_never_raises(self):
+        """ffmpeg 不存在/超时都只能返回 None，列表页不能因为一张图挂掉。"""
+        jid = "p1-20260101T0000-boom01"
+        d = self._job(jid, "a.mp4", b"garbage")
+        with mock.patch.object(api.subprocess, "run",
+                               side_effect=OSError("no ffmpeg")):
+            self.assertIsNone(api.thumb_for(d / "artifacts" / "a.mp4", d))

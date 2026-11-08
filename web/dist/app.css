@@ -351,3 +351,11 @@ input[type=checkbox]{accent-color:#2f6fed;width:15px;height:15px}
 .toast.ok{border-color:#2f6b46;background:#14241a}
 .toast.warn{border-color:#6b5628;background:#241f12}
 .toast.err{border-color:#6b2f2f;background:#241414}
+
+/* 历史页缩略图：视频没有海报时的占位符（以前是把 .mp4 塞进 <img>，永远是黑块） */
+td.prompt .mini-vid{display:flex;align-items:center;justify-content:center;
+  background:#1b2028;color:#6b7a90;font-size:13px;line-height:1;
+  border-radius:6px;border:1px solid var(--line);flex:0 0 auto;
+  width:38px;height:38px}
+/* 缩略图加载失败时压暗，避免出现「破图」图标 */
+td.prompt img.mini.err{opacity:.28}

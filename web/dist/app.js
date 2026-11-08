@@ -78,7 +78,14 @@ function originOf() {
 function artUrl(u) {
   if (!u) return '';
   if (/^https?:/.test(u)) return u;
-  return originOf() + (u.startsWith('/') ? u : '/' + u);
+  // 后端给的是站内绝对路径（/f/... 或 /pub/...），但没带 nginx 的挂载前缀
+  // /files/<token>。直接拼 origin 会得到 http://host/f/... → 404。
+  // 必须补 SAME_BASE（= /files/<token>），与 API 请求用的是同一前缀。
+  const base = (S.baseSel || SAME_BASE || '').replace(/\/$/, '');
+  const path = u.startsWith('/') ? u : '/' + u;
+  // 已经带前缀就别重复加（避免 /files/<t>/files/<t>/f/... 这种低级错）
+  if (base && path.startsWith(base + '/')) return originOf() + path;
+  return originOf() + base + path;
 }
 
 async function get(path, params) {
@@ -537,8 +544,19 @@ function renderHistory() {
   tb.innerHTML = S.jobs.map(j => {
     const g = STATE_GROUP(j.state);
     const checked = S.selected.has(j.job_id) ? 'checked' : '';
-    const art = j.first_artifact_url
-      ? `<img class="mini" src="${esc(artUrl(j.first_artifact_url))}" alt="" loading="lazy">` : '';
+    // 缩略图：优先用后端生成的 thumb_url（视频的第 1 帧海报 / 图片的 480px 缩小版）。
+    // 绝不把 .mp4 塞进 <img>——解不出来，只能显示黑块。
+    // 没有 thumb_url 时按 kind 决定：视频给播放图标占位，图片才退回原件。
+    let art = '';
+    if (j.thumb_url) {
+      art = `<img class="mini" src="${esc(artUrl(j.thumb_url))}" alt=""
+        loading="lazy" decoding="async" data-thumb="${esc(j.job_id)}">`;
+    } else if (j.thumb_kind === 'video' || /\.(mp4|mov|webm|m4v)$/i.test(j.first_artifact_url || '')) {
+      art = `<span class="mini mini-vid" title="视频（缩略图生成中）">▶</span>`;
+    } else if (j.first_artifact_url) {
+      art = `<img class="mini" src="${esc(artUrl(j.first_artifact_url))}" alt=""
+        loading="lazy" decoding="async" data-thumb="${esc(j.job_id)}">`;
+    }
     return `<tr class="clickable" data-id="${esc(j.job_id)}">
       <td><input type="checkbox" data-sel="${esc(j.job_id)}" ${checked}></td>
       <td><span class="st ${g}"><i class="dot"></i>${esc(stateCn(j.state))}</span></td>
@@ -551,6 +569,22 @@ function renderHistory() {
   }).join('');
   $('#zip').disabled = S.selected.size === 0;
   $('#del').disabled = S.selected.size === 0;
+
+  // 缩略图加载失败 → 压暗并停用，避免破图图标；视频补占位符。
+  // 用事件委托，因为 innerHTML 每次重建（直接绑 onerror 会在重建后丢）。
+  tb.querySelectorAll('img[data-thumb]').forEach(img => {
+    img.addEventListener('error', () => {
+      img.classList.add('err');
+      const isVid = /\\.(mp4|mov|webm|m4v)$/i.test(img.getAttribute('src') || '');
+      if (isVid) {
+        const sp = document.createElement('span');
+        sp.className = 'mini mini-vid';
+        sp.textContent = '▶';
+        sp.title = '视频（缩略图不可用）';
+        img.replaceWith(sp);
+      }
+    }, {once: true});
+  });
 
   tb.onclick = e => {
     const cb = e.target.closest('[data-sel]');
