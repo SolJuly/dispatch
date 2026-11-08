@@ -163,3 +163,73 @@ class TestToastNotCrossPage(unittest.TestCase):
         body = m.group(1)
         self.assertIn("catch (e)", body)
         self.assertIn("'err'", body, "失败应走 toast(..., 'err')")
+
+
+class TestGitignoreDoesNotSwallowSource(unittest.TestCase):
+    """`web/dist` 是手写源码，不是构建产物，绝不能被 gitignore 掉。
+
+    回归背景：最初按「构建产物不入库」的惯例写了 `web/dist/`，
+    但本项目没有构建链，那三个文件就是源码本体，忽略了前端就永久丢失。
+    更隐蔽的是根规则 `dist/`（不带斜杠）会匹配任意层级的 dist 目录，
+    即使写了 `!web/dist/` 也救不回来 —— 必须把根规则锚定成 `/dist/`。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.gi = (PROJ / ".gitignore").read_text(encoding="utf-8").splitlines()
+
+    def test_root_dist_is_anchored(self):
+        """根 dist/ 必须锚定，否则会连带忽略 web/dist。"""
+        has_anchored = any(l.strip() == "/dist/" for l in self.gi)
+        has_bare = any(l.strip() == "dist/" for l in self.gi
+                       if not l.strip().startswith("#"))
+        self.assertTrue(has_anchored, "缺少锚定的 /dist/")
+        self.assertFalse(has_bare, "存在不带斜杠的 dist/，会吃掉 web/dist")
+
+    def test_web_dist_not_ignored(self):
+        """web/dist 下的源码文件不能被任何规则忽略。"""
+        for f in ("web/dist/index.html", "web/dist/app.js", "web/dist/app.css"):
+            with self.subTest(f=f):
+                p = PROJ / f
+                self.assertTrue(p.is_file(), f"{f} 不存在")
+
+    def test_node_modules_ignored(self):
+        joined = "\n".join(self.gi)
+        self.assertIn("web/node_modules", joined)
+
+
+class TestReadmeHasWorkflow(unittest.TestCase):
+    """开发流程必须写在 README 里，否则下次又要重新纠结「分支还是主线」。"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.md = (WEB / "README.md").read_text(encoding="utf-8")
+
+    def test_documents_both_routes(self):
+        self.assertIn("小改", self.md, "缺少「小改走 main」的说明")
+        self.assertIn("大改", self.md, "缺少「大改开分支」的说明")
+
+    def test_documents_worktree(self):
+        self.assertIn("git worktree add", self.md)
+
+    def test_documents_repo_guard(self):
+        self.assertIn("repo-guard", self.md, "必须说明部署守卫的三道检查")
+
+    def test_documents_test_baseline(self):
+        """基线数会随时间增长，不该硬编码具体数字——校验格式即可。"""
+        import re
+        m = re.search(r"当前基线：\*\*(\d+) 条\*\*（([^）]+)）", self.md)
+        self.assertIsNotNone(m, "文档里应有「当前基线：**N 条**（各套件分布）」")
+        total = int(m.group(1))
+        parts = dict(p.split() for p in m.group(2).split(" / "))
+        self.assertEqual(sum(int(v) for v in parts.values()), total,
+                         f"各套件之和 {sum(int(v) for v in parts.values())} != 总数 {total}")
+        # 四套件都要列出
+        for k in ("p20", "p1", "webui", "p2"):
+            self.assertIn(k, parts, f"基线里缺 {k} 套件")
+
+    def test_documents_pitfalls(self):
+        """几个踩过的坑要留在文档里，避免重复犯。"""
+        for kw in ("/pub/", "compat.status", "toast"):
+            with self.subTest(kw=kw):
+                self.assertIn(kw, self.md)
