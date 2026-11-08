@@ -18,19 +18,19 @@ DEFAULT_BUDGET = 1.0           # 控制台默认上限（元）
 
 # key -> (实测秒数, 参考帧数, 参考宽, 参考高)
 MEASURED = {
-    "pack_video_wan2_2_14b_i2v": (450, 81, 640, 640),
-    "pack_video_wan2_2_14b_flf2v": (460, 81, 640, 640),
+    "pack_video_wan2_2_14b_i2v": (462, 80, 640, 640),
+    "pack_video_wan2_2_14b_flf2v": (443, 80, 640, 640),
     "pack_video_wan2_2_14b_s2v": (142, 154, 832, 480),
-    "h3_t2v_121f": (300, 121, 768, 512),
+    "h3_t2v_121f": (516, 241, 768, 512),
     "h3_i2v_121f": (292, 121, 768, 512),
-    "ltxv_2b_t2v": (41, 73, 768, 512),
-    "wan21_i2v_480p": (299, 49, 832, 480),
+    "ltxv_2b_t2v": (278, 251, 1280, 768),
+    "wan21_i2v_480p": (282, 49, 832, 480),
     "pack_video_fastvideo_fasth3_i2v": (164, 121, 768, 512),   # 2026-11-07 真机 164s
     "pack_video_minimax_h3_r2v": (277, 121, 768, 512),
     "pack_video_minimax_h3_multiframe_reference": (267, 121, 768, 512),
-    "pack_video_wan_animate2": (172, 77, 768, 512),            # 2026-11-07 真机 172s
-    "pack_video_wan_animate2_distilled": (277, 77, 768, 512),
-    "seedvr2_3b_upscale_video": (164, 73, 768, 512),
+    "pack_video_wan_animate2": (172, 64, 768, 512),            # 2026-11-07 真机 172s
+    "pack_video_wan_animate2_distilled": (300, 64, 768, 512),
+    "seedvr2_3b_upscale_video": (484, 243, 768, 512),
 }
 DEFAULT_REF = (300, 81, 640, 640)
 
@@ -96,6 +96,18 @@ def _scale(params: dict, ref_frames: int, ref_w: int, ref_h: int,
         if isinstance(v, str) and v:
             frames = _probe_frames(v)
             if frames:
+                # trim_seconds 是省钱开关：动作迁移按驱动视频帧数分轮跑，
+                # 截到 4 秒（16fps→64 帧）只跑 1 轮，不截 256 帧要跑 4 轮。
+                # 估价必须跟着缩，否则用户截短了却看到按整条报的价，
+                # 会以为这个开关没用（实测过 trim=4 与 trim=0 报同一个价）。
+                try:
+                    _secs = float(params.get("trim_seconds") or 0)
+                except (TypeError, ValueError):
+                    _secs = 0.0
+                if _secs > 0:
+                    _trimmed = int(round(_secs * 16))   # _trim_video 固定重采样 16fps
+                    if _trimmed:
+                        frames = min(frames, _trimmed)
                 break
     if not frames:
         frames = params.get("frames") or params.get("length")
