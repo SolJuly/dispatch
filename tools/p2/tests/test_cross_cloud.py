@@ -143,14 +143,38 @@ class TestProvisionScript(unittest.TestCase):
         # 应该列出 10 个节点
         self.assertEqual(p.stdout.count("·"), 10, "dry-run 应列出 10 个 custom_nodes")
 
-    def test_refuses_without_internet(self):
-        """本机（智云）无外网 —— provision.sh 必须明确拒绝，而不是半途失败。"""
+    def test_refuses_on_deploy_host(self):
+        """部署机（有 .git/.share_token/tools）不是目标机 —— 必须拒绝。
+
+        2026-11-09 事故：在部署机上跑 provision.sh，它把「有外网」当成
+        「可以是目标机」，真的开始 pip install torch，吃了 7GB 盘。
+        """
         p = subprocess.run(["bash", str(PROVISION)],
-                           capture_output=True, text=True, timeout=120, cwd=str(ROOT))
+                           capture_output=True, text=True, timeout=60, cwd=str(ROOT))
         combined = p.stdout + p.stderr
-        if "无外网" in combined:
-            self.assertEqual(p.returncode, 1)
-            self.assertIn("智云", combined, "拒绝信息应说明这是智云的特征")
+        self.assertEqual(p.returncode, 1, combined)
+        self.assertIn("拒绝在部署机上执行", combined)
+        self.assertIn("PROVISION_ALLOW_DEPLOY_HOST", combined,
+                      "应告诉用户怎么绕过（本机就是 GPU 机的场景）")
+
+    def test_allow_deploy_host_override(self):
+        """显式覆盖后应放行身份守卫（但会因为别的原因在 dry-run 里不下结论）。"""
+        import os
+        env = dict(os.environ, PROVISION_ALLOW_DEPLOY_HOST="1")
+        p = subprocess.run(["bash", str(PROVISION), "--dry-run"],
+                           capture_output=True, text=True, timeout=90,
+                           cwd=str(ROOT), env=env)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertNotIn("拒绝在部署机上执行", p.stdout)
+
+    def test_dry_run_bypasses_guard_but_install_does_not(self):
+        """dry-run 不写盘，应放行；真装必须拒绝。"""
+        d = subprocess.run(["bash", str(PROVISION), "--dry-run"],
+                           capture_output=True, text=True, timeout=90, cwd=str(ROOT))
+        self.assertEqual(d.returncode, 0, d.stdout + d.stderr)
+        i = subprocess.run(["bash", str(PROVISION)],
+                           capture_output=True, text=True, timeout=60, cwd=str(ROOT))
+        self.assertEqual(i.returncode, 1)
 
 
 class TestIdleProbe(unittest.TestCase):

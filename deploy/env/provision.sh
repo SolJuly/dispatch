@@ -87,18 +87,44 @@ echo "════════════════════════�
 
 # ---------------------------------------------------------------- 0. 前置检查
 say "检查前置条件"
+
+# 身份守卫：这是「部署机」还是「目标 GPU 机」？
+#
+# 2026-11-09 事故：在部署机（有外网）上跑本脚本，它把「有外网」当成了
+# 「可以是目标机」的判据，于是真的开始往部署机装 torch + ComfyUI，
+# 吃了 7GB 磁盘，被超时杀掉才停下。
+#
+# 判据：部署机是源码树所在地，带 .git + .share_token + 项目自身结构；
+# 目标 GPU 机是干净机器，只有 CUDA + Python。
+DEPLOY_MARKERS=0
+[[ -d "$ROOT/.git" ]] && DEPLOY_MARKERS=$((DEPLOY_MARKERS+1))
+[[ -f "$ROOT/.share_token" ]] && DEPLOY_MARKERS=$((DEPLOY_MARKERS+1))
+[[ -d "$ROOT/tools/p1" && -d "$ROOT/webui" ]] && DEPLOY_MARKERS=$((DEPLOY_MARKERS+1))
+# 还有别的东西在用这个 python（部署机上有 cs-files 等常驻服务）
+# dry-run 和 verify-only 不写任何东西，放行（便于在编排机上做静态检查）
+if [[ $DEPLOY_MARKERS -ge 2 && $DRY -eq 0 && $VERIFY_ONLY -eq 0 \
+      && "${PROVISION_ALLOW_DEPLOY_HOST:-0}" != "1" ]]; then
+  die "拒绝在部署机上执行。这是编排机，不是目标 GPU 机。
+     检测到 $DEPLOY_MARKERS 个部署机标记：.git / .share_token / tools+p webui
+     本脚本会 pip install torch + clone ComfyUI，约 8-15GB，会撑爆部署机的盘。
+
+     在目标 GPU 机上跑：把 deploy/env/ 拷过去，或 git clone 后再执行。
+     如果确实要在部署机上装（例如本机就是 GPU 机），加环境变量：
+       PROVISION_ALLOW_DEPLOY_HOST=1 bash $0"
+fi
+
 have_internet=1
-if ! timeout 8 curl -sI https://pypi.org >/dev/null 2>&1; then
+if ! curl -sI --max-time 5 --connect-timeout 3 https://pypi.org >/dev/null 2>&1; then
   warn "pypi.org 不可达 —— 这台机器装不了东西"
   have_internet=0
 fi
-if ! timeout 8 curl -sI https://github.com >/dev/null 2>&1; then
+if ! curl -sI --max-time 5 --connect-timeout 3 https://github.com >/dev/null 2>&1; then
   warn "github.com 不可达 —— 拉不了 ComfyUI / custom_nodes"
   have_internet=0
 fi
 if [[ $have_internet -eq 0 ]]; then
   if [[ $VERIFY_ONLY -eq 0 && $DRY -eq 0 ]]; then
-    die "实例无外网。这是智云的特征：本脚本在智云上不可用。
+    die "无外网。若是智云实例：这是平台特征（DNS 都解析不了），
      智云上请用：平台镜像 / 自制镜像（compshareImage-*）/ 停机实例。
      本脚本用于阿里云 PAI、RunPod、自建 K8s 等有外网的平台。"
   else
