@@ -32,13 +32,14 @@ RUN_PY = _ROOT / "tools" / "p1" / "run.py"
 API_PY = _ROOT / "webui" / "api.py"
 
 
-def _mk_job(root: Path, jid: str, state: str) -> Path:
+def _mk_job(root: Path, jid: str, state: str, model: str = "m") -> Path:
+    """造一个最小 job.json。`model` 是并发口径的分组键，必须能区分。"""
     d = root / jid
     d.mkdir(parents=True, exist_ok=True)
     (d / "job.json").write_text(json.dumps({
         "schema": "p1.job/v1", "job_id": jid, "state": state,
         "created_at": "2026-01-01T00:00:00+08:00", "kind": "video",
-        "model": {"key": "m", "registry": {"workflow_key": "w"}},
+        "model": {"key": model, "registry": {"workflow_key": "w"}},
         "params": {"prompt": "x"}, "expect": {}, "steps": {}}, ensure_ascii=False),
         encoding="utf-8")
     return d
@@ -93,13 +94,43 @@ class TestConcurrency(unittest.TestCase):
             else:
                 conc.os.environ["P21_MAX_PARALLEL"] = old
 
-    def test_counts_only_non_terminal(self):
-        """终态作业不占槽，非终态才占。"""
-        _mk_job(self.root, "p1-20260101T0000-aaaaaa", "RUNNING")
-        _mk_job(self.root, "p1-20260101T0001-bbbbbb", "DONE")
-        _mk_job(self.root, "p1-20260101T0002-cccccc", "FAILED")
-        _mk_job(self.root, "p1-20260101T0003-dddddd", "CREATED")
-        self.assertEqual(conc.slots_used(self.root), 2)   # RUNNING + CREATED
+    def test_counts_only_non_terminal_models(self):
+        """终态作业不占槽，非终态才占 —— **按模型分组计**。
+
+        2026-11-09 改口径：以前数作业数，现在数不同模型的分组数。
+        理由：5 份同模型作业该共用一台机器排队（规则 B），只占 1 个槽。
+        """
+        _mk_job(self.root, "p1-20260101T0000-aaaaaa", "RUNNING", model="m_a")
+        _mk_job(self.root, "p1-20260101T0001-bbbbbb", "DONE", model="m_a")
+        _mk_job(self.root, "p1-20260101T0002-cccccc", "FAILED", model="m_a")
+        _mk_job(self.root, "p1-20260101T0003-dddddd", "CREATED", model="m_b")
+        self.assertEqual(conc.slots_used(self.root), 2, "两个不同模型 → 2 个槽")
+        # 同模型的非终态两个作业仍然只占 1 个槽
+        _mk_job(self.root, "p1-20260101T0004-eeeeee", "RUNNING", model="m_b")
+        self.assertEqual(conc.slots_used(self.root), 2, "同模型再来一条，槽位不变")
+
+    def test_five_same_workflow_one_slot(self):
+        """5 份同工作流作业 = 1 个槽（这是规则 B 的核心诉求）。
+
+        改之前：5 份会直接撞上限 2，第 3 份被降级 —— 而它们本该共用一台机器。
+        """
+        for i in range(5):
+            _mk_job(self.root, f"p1-20260101T00{i:02d}-same{i:02d}", "CREATED",
+                    model="qwen_image")
+        self.assertEqual(conc.slots_used(self.root), 1)
+        ok, why = conc.check_slot(self.root, limit=2)
+        self.assertTrue(ok, f"5 份同模型只占 1 槽，不该被拒：{why}")
+
+    def test_different_models_take_separate_slots(self):
+        """不同模型各占一个槽，到上限就拒（规则 C）。"""
+        _mk_job(self.root, "p1-20260101T0000-aaaaaa", "RUNNING", model="sdxl_juggernaut")
+        _mk_job(self.root, "p1-20260101T0001-bbbbbb", "RUNNING", model="qwen_image")
+        self.assertEqual(conc.slots_used(self.root), 2)
+        ok, why = conc.check_slot(self.root, limit=2)
+        self.assertFalse(ok, "两个不同模型占满 2 槽")
+        # 但同模型的第三条仍然可以进（不额外占槽）
+        _mk_job(self.root, "p1-20260101T0002-cccccc", "CREATED", model="qwen_image")
+        self.assertEqual(conc.slots_used(self.root), 2, "同模型不新增槽")
 
     def test_orphan_job_still_occupies_slot(self):
         """孤儿作业（进程死了、状态停在 RUNNING）**必须**算占槽。
@@ -107,21 +138,26 @@ class TestConcurrency(unittest.TestCase):
         它对应的实例可能还在云端计费。宁可让人手动清一个假占位，
         也不要因为自动判定"它已经死了"而多开一台机。
         """
-        _mk_job(self.root, "p1-20260101T0000-oooooo", "RUNNING")
+        _mk_job(self.root, "p1-20260101T0000-oooooo", "RUNNING", model="m_a")
         self.assertEqual(conc.slots_used(self.root), 1)
         ok, why = conc.check_slot(self.root, limit=2)
         self.assertTrue(ok)
-        _mk_job(self.root, "p1-20260101T0001-pppppp", "RUNNING")
+        _mk_job(self.root, "p1-20260101T0001-pppppp", "RUNNING", model="m_b")
         ok2, why2 = conc.check_slot(self.root, limit=2)
-        self.assertFalse(ok2, "两个孤儿占满 2 个槽，第三个应该被拒")
+        self.assertFalse(ok2, "两个不同模型的孤儿占满 2 个槽，第三个应该被拒")
         self.assertIn("并发已满", why2)
 
-    def test_check_slot_reports_job_ids(self):
-        """拒绝时要说清是谁在占槽，不能只说"满了"。"""
-        _mk_job(self.root, "p1-20260101T0000-aaaaaa", "RUNNING")
+    def test_check_slot_reports_model_and_count(self):
+        """拒绝时要说清是哪个模型、几条作业在占槽，不能只说"满了"。
+
+        改口径后报的是模型名而不是 job_id —— 用户看的是"哪个模型在跑"，
+        job_id 在任务页能看到，模型名才说明为什么占了一个槽。
+        """
+        _mk_job(self.root, "p1-20260101T0000-aaaaaa", "RUNNING", model="sdxl_juggernaut")
         ok, why = conc.check_slot(self.root, limit=1)
         self.assertFalse(ok)
-        self.assertIn("p1-20260101T0000-aaaaaa", why)
+        self.assertIn("sdxl_juggernaut", why, "要说清是哪个模型")
+        self.assertIn("1 个作业", why, "要说清该模型下有几条")
 
     def test_batch_needs_all_slots(self):
         """批量提交要一次算总账，不能逐个判。

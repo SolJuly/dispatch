@@ -1,0 +1,23 @@
+# 实例清理：把空闲超过阈值的实例关机。
+#
+# 为什么要独立成 service + timer，而不是塞进 cron 或调度器：
+#   · 清理是**安全兜底**，必须在调度器停摆时照样活着
+#     （2026-11-09 实测：调度器 p2-dispatch 停用了一周，期间无人巡检）
+#   · 判据是「作业状态 + 空闲时长」，不看 GPU 利用率 ——
+#     GPU 闲可能是正在装模型（那时 GPU 还是 0%），关掉就白装一次
+#
+# 和 csctl watch 的分工：
+#   watch      按 GPU 利用率 15 分钟 → stop。它是**近似**判据，会误判装模型阶段。
+#   p2-reaper  按作业状态 10 分钟 → stop。它是**准确**判据，装着模型不会被误关。
+#   两个都留着：watch 是粗网，reaper 是细网。reaper 先关掉之后 watch 自然无事可做。
+[Unit]
+Description=P2 实例清理（空闲超阈值且无作业 → 关机）
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/智云视频工作流
+Environment=PYTHONUNBUFFERED=1
+# --idle-min 缺省取 P2_IDLE_REAP_MIN（默认 10）
+ExecStart=/usr/bin/python3 /root/智云视频工作流/tools/p2/reaper_cli.py run

@@ -33,7 +33,9 @@ RETRYABLE = {"FAILED_PROVISION", "FAILED_RUN", "FAILED_FETCH"}
 TERMINAL_JOB_STATES = {"DONE", "FAILED", "ABORTED", "FAILED_PROVISION", "FAILED_RUN",
                        "FAILED_FETCH", "FAILED_VERIFY"}
 WORKER = f"{socket.gethostname()[-10:]}-{os.getpid()}"
-TTL_MIN = 45
+# 空闲多久算可清理。**统一由 reaper 定义**（默认 10 分钟，P2_IDLE_REAP_MIN 可调）。
+# 以前这里是硬编码 45，和 reaper 的默认值会漂移成两个数。
+TTL_MIN = None          # 延迟到调用时取 reaper.idle_minutes()
 SCAN_S = 30          # P0-2：调度器每 30s 扫一次
 TIMEOUT_S = 60       # P0-2：>60s 无心跳判定死锁
 
@@ -107,23 +109,28 @@ def terminate(uid: str) -> None:
         _say(f"⚠ 销毁 {uid} 失败：{e}")
 
 
-def reap_instances(ttl_min: int = TTL_MIN) -> list[str]:
-    """超 TTL 且没有活跃队列项的 p2-* 实例 → terminate。"""
-    active = {i["job_id"] for i in queue.items() if i["state"] in ("claimed", "running")}
-    killed = []
-    now = time.time()
-    for inst in live_instances():
-        name = str(inst.get("Name") or "")
-        uid = inst.get("UHostId")
-        created = inst.get("CreateTime") or 0
-        try:
-            age_min = (now - float(created)) / 60
-        except (TypeError, ValueError):
-            age_min = 0
-        if age_min >= ttl_min and uid:
-            terminate(uid)
-            killed.append(uid)
-    return killed
+def reap_instances(ttl_min: int | None = None, *, dry_run: bool = False) -> list[str]:
+    """清理空闲实例。**已改判据**（2026-11-09）。
+
+    修之前这个方法有三个问题（实测）：
+
+      ① 注释说"且没有活跃队列项"，但 `active` 变量算完从不使用 ——
+         函数体里它只出现 1 次，就是赋值那行。`name` 同样算了不用。
+      ② 判据退化成「CreateTime 超过 ttl_min 就 terminate」：
+         跑 50 分钟的长作业会被腰斩，而没作业的机器可能因为别的原因留着。
+      ③ 只看 `queue.db`，而 queue.db 里 instance_id 实测全是 None
+         → 它看不见任何真实作业。
+
+    现在委托给 `tools/p2/reaper.py`：判据换成「作业状态 + 空闲时长」，
+    数据源三合一（job.json / queue.db / 云端状态），默认 `stop` 而非 `terminate`
+    （关机后算力费归零、保住磁盘环境、下次 start 只要 ~12s）。
+
+    保留这个函数名是因为 `batchctl doctor --reap` 和测试都在调它。
+    """
+    from tools.p2 import reaper
+    done = reaper.reap(idle_min=ttl_min or reaper.idle_minutes(), dry_run=dry_run,
+                       say=lambda m: _say(m) if not dry_run else print(m))
+    return [s.uid for s in done]
 
 
 class Scheduler:
@@ -149,6 +156,19 @@ class Scheduler:
         return d / "run.log"
 
     def _spawn(self, item: dict) -> None:
+        """起一个 `run.py --batch` 子进程跑这条作业。
+
+        **槽位模型（2026-11-09 改）**：`self.slots` 现在限制的是
+        「同时有几个**模型分组**在跑」，不是「同时有几个作业」。
+
+        作业之间的串行复用由 `run.py` 自己的 `_try_borrow_slot()` 决定 ——
+        同一 model_key 的第二条作业会自动挂到第一台机上排队，不再建新机。
+        所以调度器这一层不用管"复用"，只需要控制**分组数**别超上限。
+
+        为什么不在调度器里持有实例：`run.py` 是独立进程，它才知道
+        「这台机器上现在能不能接活」（要问 slot.busy_jobs）。
+        调度器盲管一层只会让状态分裂成两份。
+        """
         jid = item["job_id"]
         log = open(self._log_path(jid), "ab")
         # --no-keep：批量无人值守，失败不得保留实例（否则 15 分钟空转烧钱）
@@ -156,10 +176,13 @@ class Scheduler:
                "--batch", "--no-keep", "--restart", "--gpu", self.gpu, "--hours", str(self.hours)]
         if self.from_pool:
             cmd.append("--from-pool")
+        if getattr(self, "no_borrow", False):
+            cmd.append("--no-borrow")
         p = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, cwd=str(_ROOT))
         self.children[jid] = p
         queue.mark_running(jid)
-        _say(f"▶ {jid}（pid={p.pid}，槽位 {len(self.children)}/{self.slots}）")
+        _say(f"▶ {jid}（pid={p.pid}，模型 {item.get('model_key') or '?'}，"
+             f"在跑 {len(self.children)} 条 / 分组上限 {self.slots}）")
 
     def _reap_children(self) -> None:
         for jid, p in list(self.children.items()):
@@ -249,7 +272,15 @@ class Scheduler:
             _say("⏸ 账户配额已满（无空闲槽）")
             return 0
         claimed, skip = 0, set()
-        while len(self.children) < self.slots:
+        # ---- 分组并发（规则 C）----
+        # `self.slots` 限制的是「同时有几个**模型分组**在跑」，不是几个作业。
+        # 同一条队列里可能有 5 份 qwen_image 的活 —— 它们该排在一台机器上
+        # 串行，所以只占 1 个槽。
+        #
+        # 这里不主动"把同组作业并发起来"：`run.py` 的 `_try_borrow_slot()`
+        # 会让第二条挂到第一台上排队（槽位表里 busy_jobs 非空就另建/等）。
+        # 调度器只要保证「不同分组数」不超上限即可。
+        while len(self._active_groups()) < self.slots:
             item = queue.claim(WORKER)
             if not item:
                 break
@@ -265,9 +296,20 @@ class Scheduler:
                 continue
             self._spawn(item)
             claimed += 1
-            if len(self.children) < self.slots and self.stagger:
+            if len(self._active_groups()) < self.slots and self.stagger:
                 time.sleep(self.stagger)   # 错峰下单，避免 226604 雪崩
         return claimed
+
+    def _active_groups(self) -> set[str]:
+        """当前正在跑的模型分组集合（从 queued/claimed/running 的 item 里拿）。"""
+        groups = set()
+        try:
+            for it in queue.items():
+                if it.get("state") in ("claimed", "running"):
+                    groups.add(str(it.get("model_key") or it.get("job_id") or ""))
+        except Exception:                   # noqa: BLE001
+            return {str(j) for j in self.children}
+        return groups
 
     def _kill_cancelled_children(self) -> None:
         if not self.children:

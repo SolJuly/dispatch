@@ -100,8 +100,42 @@ def active_jobs(jobs_dir: Path | None = None) -> list[dict]:
     return out
 
 
+def slot_key(job: dict) -> str:
+    """槽位键：一个槽 = 一个「可以去同一台实例上排队的工作流组」。
+
+    按 **model_key** 分组，不是按作业数、也不是按 workflow_key：
+
+      · 按作业数（旧口径）→ 提交 5 份同工作流会直接撞上限，
+        而它们本该共用一台机器排队
+      · 按 workflow_key  → 太碎。实测 sdxl_juggernaut 那 5 个工作流
+        （t2i / t2i_lora / img2img / inpaint / detail_polish）**全部共用同一份**
+        juggernautXL_v8Rundiffusion_V8.safetensors，分开建机纯浪费
+
+    按 model_key 分组的前提是"同模型的权重共用"，这一条实测成立。
+
+    节点集差异由 `instance_slots.find_compatible()` 在**排队时**再检查一遍
+    （同模型的不同工作流节点集能差 6-9 类，见该模块注释），
+    这里只管"需要几个槽"，不管"能不能塞进同一台机"。
+    """
+    mk = ((job.get("model") or {}).get("key") or "").strip()
+    return mk or f"job:{job.get('job_id') or '?'}"
+
+
+def groups_used(jobs_dir: Path | None = None) -> dict[str, list[str]]:
+    """{槽位键: [job_id, ...]} —— 在跑的分组明细。"""
+    out: dict[str, list[str]] = {}
+    for j in active_jobs(jobs_dir):
+        out.setdefault(slot_key(j), []).append(str(j.get("job_id") or "?"))
+    return out
+
+
 def slots_used(jobs_dir: Path | None = None) -> int:
-    return len(active_jobs(jobs_dir))
+    """占用的槽位数 = **不同模型的分组数**，不是作业数。
+
+    这样：5 份 qwen_image_t2i = 1 个槽（共用一台机排队）
+          3 份不同模型       = 3 个槽
+    """
+    return len(groups_used(jobs_dir))
 
 
 def check_slot(jobs_dir: Path | None = None, *, limit: int | None = None,
@@ -112,13 +146,14 @@ def check_slot(jobs_dir: Path | None = None, *, limit: int | None = None,
     而不是逐个检查（逐个检查时前 2 个都看到"有空槽"，第 3 个才发现满了）。
     """
     cap = limit if limit is not None else max_parallel()
-    used = slots_used(jobs_dir)
+    groups = groups_used(jobs_dir)
+    used = len(groups)
     need = max(1, int(extra or 1))
     if used + need <= cap:
-        return True, f"并发 {used}/{cap}"
-    names = [str(j.get("job_id") or "?") for j in active_jobs(jobs_dir)][:4]
-    more = "…" if used > 4 else ""
-    return False, (f"并发已满：{used}/{cap} 个作业在跑（{', '.join(names)}{more}）。"
+        return True, f"并发 {used}/{cap} 组"
+    lines = [f"{k}（{len(v)} 个作业）" for k, v in list(groups.items())[:4]]
+    more = "…" if len(groups) > 4 else ""
+    return False, (f"并发已满：{used}/{cap} 组在跑（{', '.join(lines)}{more}）。"
                    f"本次需要 {need} 个槽。等它们结束，或用 P21_MAX_PARALLEL 调大上限。")
 
 

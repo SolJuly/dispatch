@@ -391,10 +391,108 @@ def _pick_gpu(cs, job: dict, opts) -> str:
                    state.FAILED_PROVISION)
 
 
+def _try_borrow_slot(job: dict, opts) -> dict | None:
+    """先看有没有可以复用的同模型实例（规则 B：同工作流串行，不建新机）。
+
+    复用的收益是**装载模型**的时间 —— 实测 SDXL ~21s、Qwen ~53s。
+    同一个工作流连跑 5 条，只付一次。
+
+    判定交给 `instance_slots.find_compatible()`：
+      · 同 model_key（权重共用是主要成本）
+      · 镜像里有需要的节点类（缺节点的换机器也没用）
+      · 这台机器上验证过的资产覆盖参数指到的文件
+
+    **--no-borrow 可强制不用**：调试/对比基准时想要干净机器。
+    池里的实例（from_pool）不走这条路 —— 池有自己的生命周期。
+    """
+    if getattr(opts, "no_borrow", False):
+        return None
+    reg = _registry_meta(job)
+    if not reg:
+        return None                    # legacy 作业不参与槽位复用
+    mk = reg.get("model_key") or ""
+    wk = reg.get("workflow_key") or ""
+    if not (mk and wk):
+        return None
+    try:
+        from tools.p2 import instance_slots as slots
+    except Exception:                  # noqa: BLE001
+        return None
+
+    slot, why = slots.find_compatible(str(mk), str(wk))
+    if not slot:
+        _say(f"  槽位：{why}")
+        return None
+    # 在跑的作业太多就别再往里塞（串行语义：一个实例同时只跑一条）
+    if slot.busy_jobs and not getattr(opts, "slot_parallel", False):
+        _say(f"  槽位 {slot.uid} 正忙（{', '.join(slot.busy_jobs)}），本单另建")
+        return None
+
+    cs = _cs(getattr(opts, "creds", None))
+    try:
+        inst = cs.get(slot.uid)
+    except Exception as e:             # noqa: BLE001
+        _say(f"  槽位 {slot.uid} 查不到（{type(e).__name__}），本单另建")
+        return None
+    state_now = str(inst.get("State") or "").lower()
+    if state_now != "running":
+        # 停机槽位：start 一下（~12s）继续用，比重建省得多
+        _say(f"  槽位 {slot.uid} 当前 {state_now}，尝试启动复用")
+        try:
+            cs.start(slot.uid)
+            cs.wait_state(slot.uid, {"running"}, timeout=300)
+            inst = cs.get(slot.uid)
+        except Exception as e:         # noqa: BLE001
+            _say(f"  槽位 {slot.uid} 启动失败（{type(e).__name__}），本单另建")
+            return None
+
+    host, port = cs.public_ip(inst), "23"
+    pwd = cs.password_of(inst)
+    # sshd 探活：启动后要几秒（复用路径同样需要）
+    for i in range(20):
+        rc, out = _ssh_run(host, port, pwd, "echo ssh-ready", timeout=20)
+        if rc == 0 and "ssh-ready" in out:
+            break
+        time.sleep(3)
+    else:
+        _say(f"  槽位 {slot.uid} sshd 未就绪，本单另建")
+        return None
+
+    price = cs.price(str(inst.get("GpuType") or "4090"), 1, 16, 64, "Postpay", 100, 0,
+                     image_id=str(inst.get("CompShareImageId") or ""))
+    hourly = float(price.get("total") or 0)
+    _say(f"  ✓ 复用实例 {slot.uid}（{slot.model_key}，已验证 {len(slot.workflows_ok)} 个工作流）"
+         f" · {hourly:.2f}/h")
+
+    slots.touch(slot.uid, job_id=job["job_id"], busy=True)
+    return {"uhost_id": slot.uid, "inst": inst, "hourly": hourly,
+            "host": host, "port": port, "password": pwd, "borrowed": True}
+
+
 def step_provision(job: dict, opts) -> dict:
-    """建机并等 Running。"""
+    """建机并等 Running。
+
+    先试复用（规则 B），没有再建。复用的实例在 release 阶段只更新空闲时间，
+    不销毁 —— 见 `step_release` 的 `borrowed` 分支。
+    """
     from compshare.cs import CompShareError
     from compshare.cs import CS  # noqa: F401  (保留给异常路径的 import 语义)
+
+    borrowed = _try_borrow_slot(job, opts)
+    if borrowed:
+        # 登记实例（信号兜底要用），但**不**覆盖 up_at：
+        # 那是计费起点，复用的机器早就开着，按现在记会把成本算少
+        j = state.load_job(job["job_id"])
+        j.setdefault("instance", {}).update({
+            "uhost_id": borrowed["uhost_id"],
+            "gpu": (borrowed["inst"] or {}).get("GpuType"),
+            "zone": (borrowed["inst"] or {}).get("Zone"),
+            "borrowed": True,
+            "up_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+        })
+        store.atomic_write_json(store.job_file(job["job_id"]), j)
+        _note_instance(borrowed["uhost_id"])
+        return borrowed
 
     cs = _cs(getattr(opts, "creds", None))
     hours = opts.hours
@@ -970,6 +1068,19 @@ def step_release(job: dict, opts, ctx: dict) -> None:
         _say("无实例可销毁")
         return
 
+    # ---- 借来的实例（规则 B：同工作流串行）----
+    # 不销毁，只更新槽位的空闲时间。下一单进来会接着用这台机器
+    # （装载的模型还在显存里，省 21~53 秒）。
+    # 真正的回收交给 tools/p2/reaper.py：空闲超阈值才关机。
+    if ctx.get("borrowed"):
+        try:
+            from tools.p2 import instance_slots as slots
+            slots.touch(uid, job_id=job["job_id"], busy=False)
+            _say(f"{uid} 是复用实例，已归还槽位（不销毁，等下一单或空闲回收）")
+        except Exception as e:                      # noqa: BLE001
+            _say(f"  ⚠ 归还槽位失败（{type(e).__name__}: {e}），实例保留")
+        return
+
     # 预热池实例：停机回池（下次 12s 起），不销毁
     try:
         jk = state.load_job(job["job_id"])
@@ -1004,12 +1115,37 @@ def step_release(job: dict, opts, ctx: dict) -> None:
 
 
 def step_done(job: dict, opts, ctx: dict, manifest: dict) -> None:
-    """补 manifest 的 release_at，收尾。"""
+    """补 manifest 的 release_at，收尾。
+
+    顺带把「这台机器上跑成功过这个工作流」记进槽位表 ——
+    这是「已验证集」的来源，规则 B 靠它判断能不能复用。
+    """
     jdir = store.job_dir(job["job_id"])
     m = store.read_json(jdir / "manifest.json") or manifest
     m.setdefault("instance", {})["release_at"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
     m["state_history"] = [e.get("to") for e in state.read_events(job["job_id"]) if e.get("to")]
     store.atomic_write_json(jdir / "manifest.json", m)
+
+    # 登记槽位（只有 registry 作业有 workflow_key）
+    reg = _registry_meta(job)
+    uid = ctx.get("uhost_id")
+    if not (reg and uid and m.get("verdict") == "PASS"):
+        return
+    try:
+        from tools.p2 import instance_slots as slots
+        wk = str(reg.get("workflow_key") or "")
+        mk = str(reg.get("model_key") or "")
+        nodes, assets = slots.workflow_needs(wk, mk)
+        slot = slots.get(str(uid))
+        if not slot:
+            inst = ctx.get("inst") or {}
+            slot = slots.Slot(uid=str(uid), model_key=mk,
+                              gpu_type=str(inst.get("GpuType") or "4090"),
+                              state="running", started_at=time.time())
+            slots.upsert(slot)
+        slots.mark_workflow_ok(str(uid), wk, nodes=nodes, assets=assets)
+    except Exception as e:                      # noqa: BLE001
+        _say(f"  ⚠ 槽位登记失败（{type(e).__name__}: {e}）")
 
 
 # ------------------------------------------------------------ 编排
@@ -1523,6 +1659,10 @@ def main(argv=None) -> int:
                     help="实例丢失后整条重跑：crashed/FAILED_* → PROVISIONING（清断点）")
     ap.add_argument("--batch", action="store_true",
                     help="批量模式：用作业级锁（不同 job 可并行），日志加 job 前缀")
+    ap.add_argument("--no-borrow", action="store_true",
+                    help="不复用现成实例（调试/对比基准时想要干净机器）")
+    ap.add_argument("--slot-parallel", action="store_true",
+                    help="允许把作业塞进正忙的槽位（同实例并行，需显存够 —— 默认关）")
     ap.add_argument("--wait-lock", type=int, default=0,
                     help="排队等单任务锁的最大秒数（0=拿不到立刻退出；控制台提交用 14400）")
     ap.add_argument("--salvage", action="store_true",
