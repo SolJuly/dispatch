@@ -50,6 +50,25 @@ CREATE_RETRY = 4
 RETRY_8903_WAIT = 10
 
 
+# ---------------------------------------------------------------- BYOK 入口
+# 2026-11-09 复核后的商业模型：客户用**自己的**智云账号付算力费，
+# 我们只收调度服务费。代码上唯一的差别是「用谁的凭证建机」。
+#
+# `CS(cfg)` 本来就接受 isolated credentials（compshare/cs.py:79），所以
+# 不需要改 34 个调用点里的任何一个 —— 只需要让它们都经由这一个函数拿实例。
+#
+# 凭证来源（优先级从高到低）：
+#   1. 显式传入的 creds（webui 按用户查出来的，加密存储）
+#   2. 环境变量 CS_PUBLIC_KEY / CS_PRIVATE_KEY（load_config 已支持）
+#   3. compshare/credentials.env（自用时的默认）
+def _cs(creds: dict[str, str] | None = None):
+    """取一个 CS 实例。creds 非空时走 BYOK，不读本地 credentials.env。"""
+    from compshare.cs import CS
+    if creds and creds.get("CS_PUBLIC_KEY") and creds.get("CS_PRIVATE_KEY"):
+        return CS(creds)
+    return CS()
+
+
 class RunError(Exception):
     """执行失败，带目标失败态。"""
 
@@ -285,9 +304,10 @@ def _pick_gpu(cs, job: dict, opts) -> str:
 
 def step_provision(job: dict, opts) -> dict:
     """建机并等 Running。"""
-    from compshare.cs import CS, CompShareError
+    from compshare.cs import CompShareError
+    from compshare.cs import CS  # noqa: F401  (保留给异常路径的 import 语义)
 
-    cs = CS()
+    cs = _cs(getattr(opts, "creds", None))
     hours = opts.hours
     img = _pick_image(cs, opts, job)
     gpu = _pick_gpu(cs, job, opts)          # 按 required_gpu 顺序挑第一个有货的卡
@@ -697,7 +717,40 @@ def step_verify(job: dict, opts, ctx: dict, arts: list[Path]) -> dict:
                for a in (res.get("artifacts") or []) if a["verdict"] != "PASS"]
         raise RunError(f"校验未通过：{'; '.join(bad) or res.get('reason') or '?'}",
                        state.FAILED_VERIFY)
+
+    # ---- 质量评分（L6 补完：七项只证明"文件成功"，这里才回答"质量成功"）----
+    # 默认 mode=report：只记录分数进 render.json，**不改 PASS/FAIL**。
+    # 理由：现存 30 条 verified 都是按七项判的，把质量分设成默认门禁等于
+    # 全部重判一次；那需要人一条条看，不是一次改动能决定的。
+    res["quality"] = _score_quality(job, res, arts)
     return res
+
+
+def _score_quality(job: dict, res: dict, arts: list[Path]) -> dict:
+    """给产物打质量分。失败不影响作业结论 —— 评分器自己不该成为故障源。"""
+    try:
+        from tools.p2 import quality as q
+        cfg = q.from_expect(job.get("expect"))
+        # 主产物排首位（fetch 阶段已保证）；只评主产物 + 至多 2 个附加产物，
+        # 避免一份作业里 8 路输出各跑一遍 ffmpeg
+        targets = list(arts)[:3]
+        kind = "image" if res.get("kind") == "image" else "video"
+        rep = q.assess_job(targets, kind=kind, **cfg)
+        d = rep.as_dict()
+        grade = {"A": "🟢", "B": "🔵", "C": "🟡", "D": "🔴"}.get(d["grade"], "⚪")
+        _say(f"  质量 {grade} {d['overall']:.1f}（{d['grade']}）· 模式 {d['mode']}")
+        for a in d["artifacts"]:
+            for i in a["issues"]:
+                _say(f"    ! {a['file']}: {i}")
+        if d["mode"] == "gate" and d["verdict"] != "PASS":
+            raise RunError(f"质量门禁未通过：{d['overall']:.1f} / {d['grade']}",
+                           state.FAILED_VERIFY)
+        return d
+    except RunError:
+        raise
+    except Exception as e:                      # noqa: BLE001
+        _say(f"  ⚠ 质量评分跳过（{type(e).__name__}: {e}）")
+        return {"error": f"{type(e).__name__}: {e}"}
 
 
 def step_persist(job: dict, opts, ctx: dict, res: dict, arts: list[Path]) -> dict:
@@ -742,6 +795,10 @@ def step_persist(job: dict, opts, ctx: dict, res: dict, arts: list[Path]) -> dic
         "artifacts": mans,
         "checks": checks,
         "verdict": "PASS",
+        # 质量评分（L6）：七项技术判据之上的内容层结论。
+        # 与 checks 并列而不是并入：checks 是 PASS/FAIL，quality 是 0-100 分，
+        # 混在一起会让"PASS 但 32 分"这种关键信号被吞掉。
+        "quality": res.get("quality") or {},
         "cost": {"hourly": round(hourly, 2), "minutes": minutes,
                  "amount": round(hourly * minutes / 60, 4)},
         "state_history": [e.get("to") for e in state.read_events(job["job_id"]) if e.get("to")],
@@ -772,7 +829,7 @@ def step_persist(job: dict, opts, ctx: dict, res: dict, arts: list[Path]) -> dic
 
 def step_release(job: dict, opts, ctx: dict) -> None:
     """销毁实例，8903 过渡期拒绝时重试。"""
-    from compshare.cs import CS, CompShareError
+    from compshare.cs import CompShareError
 
     uid = ctx.get("uhost_id")
     if not uid:
@@ -794,7 +851,7 @@ def step_release(job: dict, opts, ctx: dict) -> None:
         except Exception as e:
             _say(f"⚠ 回池失败（{type(e).__name__}: {e}），改为销毁")
 
-    cs = CS()
+    cs = _cs(getattr(opts, "creds", None))
     last = None
     for attempt in range(1, RETRY_8903 + 1):
         try:
@@ -942,15 +999,13 @@ def _next_step(job: dict) -> str | None:
     return None
 
 
-def _rebuild_ctx(job: dict) -> dict:
+def _rebuild_ctx(job: dict, creds: dict[str, str] | None = None) -> dict:
     """续跑时重建上下文：从 uhost_id 反查 host/密码，从 steps 取 prompt_id。"""
-    from compshare.cs import CS
-
     inst = job.get("instance") or {}
     uid = inst.get("uhost_id")
     if not uid:
         return {}
-    cs = CS()
+    cs = _cs(creds)
     info = cs.get(uid)
     steps = job.get("steps") or {}
     ctx = {
@@ -985,8 +1040,7 @@ def _keep_instance(job_id: str, ctx: dict, opts) -> bool:
     if not uid or getattr(opts, "abort", False) or getattr(opts, "no_keep", False):
         return False
     try:
-        from compshare.cs import CS
-        cs = CS()
+        cs = _cs(getattr(opts, "creds", None))
         ts = int(time.time() + KEEP_MINUTES * 60)
         cs.stop_at(uid, ts)
         # 说明：Describe 不返回 SchedulerStopTime，所以查实例看到的该字段永远是 None，
@@ -1019,7 +1073,7 @@ def _resume(job_id: str, job: dict, opts) -> int:
     _say(f"续跑：{cur} → RESUMING → {target or 'READY'}（断点步骤 {nxt}）")
 
     with _lock(job_id, opts):
-        ctx = _rebuild_ctx(job)
+        ctx = _rebuild_ctx(job, getattr(opts, "creds", None))
         if not ctx.get("uhost_id"):
             _say("✗ job 里没有 uhost_id，无法续跑（请重新 new 一个作业）")
             return 1
@@ -1104,7 +1158,7 @@ def _abort(job_id: str, job: dict, opts) -> int:
     if cur in (state.DONE, state.FAILED, state.ABORTED):
         _say(f"作业已是终态 {cur}，无需 abort")
         return 0
-    ctx = _rebuild_ctx(job)
+    ctx = _rebuild_ctx(job, getattr(opts, "creds", None))
     with _lock(job_id, opts):
         if cur in state.FAIL_BRANCH:
             try:
@@ -1338,7 +1392,14 @@ def main(argv=None) -> int:
                     help="排队等单任务锁的最大秒数（0=拿不到立刻退出；控制台提交用 14400）")
     ap.add_argument("--salvage", action="store_true",
                     help="产物已在 artifacts/：只重跑校验+收尾，不建机、不销毁")
+    # BYOK：让客户用自己的云账号付费。env 变量优先于 credentials.env，
+    # 所以这两个参数只是"把凭证送进环境"的显式入口。
+    ap.add_argument("--public-key", help="BYOK：客户自己的 CS_PUBLIC_KEY")
+    ap.add_argument("--private-key", help="BYOK：客户自己的 CS_PRIVATE_KEY")
     a = ap.parse_args(argv)
+    a.creds = None
+    if a.public_key and a.private_key:
+        a.creds = {"CS_PUBLIC_KEY": a.public_key, "CS_PRIVATE_KEY": a.private_key}
     return run(a.job_id, a)
 
 

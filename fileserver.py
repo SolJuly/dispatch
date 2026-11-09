@@ -559,8 +559,14 @@ class Handler(BaseHTTPRequestHandler):
         # 安全边界：只允许 share/ 内（_safe 已限制）的 .html，且加 CSP 禁止外部脚本，
         # 避免有人往共享目录塞一个带脚本的页面拿到本站 token 上下文。
         if ext in (".html", ".htm") and not force_dl:
-            data = p.read_bytes()
-            return self._send(200, data, "text/html; charset=utf-8", {
+            # {TOKEN} 占位符在**返回时**替换成本次请求的 token。
+            # 这样落盘的 HTML 是干净产物（可入库、可 diff、可同步），
+            # 而用户拿到的页面里链接仍带有效 token。
+            # 以前是生成时把真实 token 拼进去 —— 等于把口令写进每个产物文件。
+            raw = p.read_bytes()
+            if b"{TOKEN}" in raw:
+                raw = raw.replace(b"{TOKEN}", TOKEN.encode())
+            return self._send(200, raw, "text/html; charset=utf-8", {
                 "Content-Security-Policy":
                     "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:",
                 "X-Content-Type-Options": "nosniff",

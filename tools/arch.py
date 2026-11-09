@@ -644,10 +644,16 @@ def main() -> int:
         print("PNG 生成异常:", e)
 
     # 独立 HTML（内联 SVG）
-    try:
-        tok = (ROOT / ".share_token").read_text(encoding="utf-8").strip()
-    except Exception:
-        tok = ""
+    #
+    # 这里以前把**真实 token** 拼进 href，于是每跑一次 arch 就把令牌
+    # 写进 reports/architecture.html。虽然该文件被 .gitignore 排除，
+    # 但它会被 sync_share.sh 同步到 /pub/ 和 /files/ —— 等于把口令
+    # 主动发布出去（2026-11-09 测试 test_no_token_in_repo_files 抓到）。
+    #
+    # 改成占位符 {TOKEN}：nginx 的 /files/ 走路径 token，页面本身由
+    # fileserver 在返回时替换成当次请求的 token（见 fileserver._ui_asset）。
+    # 这样 HTML 落盘永远是干净产物，可以安全地同步、归档、比对 diff。
+    tok = "{TOKEN}"
     inline = OUT_SVG.read_text(encoding="utf-8")
     inline = inline[inline.index("<svg"):]
     OUT_HTML.write_text(
