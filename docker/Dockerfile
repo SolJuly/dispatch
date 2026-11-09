@@ -7,8 +7,8 @@
 # 与实机 v3 的对应关系：
 #   - ComfyUI 3c80da7f（2026-09-18）
 #   - 10 个 active custom_nodes（commit 见 install-nodes.sh）
-#   - torch 2.10.0+cu130 / cudnn 9.15 / Python 3.10
-#   - 不含 xformers（与 torch 2.10 ABI 不匹配，v3 已移除）
+#   - torch 2.8.0+cu128 / Python 3.10（与 v4 实机一致；v3 的 2.10+cu130 已废弃）
+#   - 不含 xformers（与 torch 2.8 ABI 不匹配，已移除）
 #   - 不含任何权重（实机用 /model 只读挂载 + 软链）
 
 ARG BASE=python:3.10-slim-bookworm
@@ -27,23 +27,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY constraints.txt /tmp/constraints.txt
 
-# torch 走 cu130 wheel；其余包由 constraints 锁版本
+# torch 走 cu128 wheel；其余包由 constraints 锁版本
 RUN pip install --upgrade pip \
- && pip install --extra-index-url https://download.pytorch.org/whl/cu130 \
+ && pip install --extra-index-url https://download.pytorch.org/whl/cu128 \
         -c /tmp/constraints.txt \
-        torch==2.10.0+cu130 torchaudio==2.10.0+cu130
+        torch==2.8.0+cu128 torchaudio==2.8.0+cu128
 
 ARG COMFY_COMMIT=3c80da7f87ee359b2d06f107cb3c0797079dfbbb
 RUN git clone https://github.com/comfyanonymous/ComfyUI /root/ComfyUI \
  && cd /root/ComfyUI \
  && git checkout ${COMFY_COMMIT} \
- && pip install --extra-index-url https://download.pytorch.org/whl/cu130 \
+ && pip install --extra-index-url https://download.pytorch.org/whl/cu128 \
         -r requirements.txt -c /tmp/constraints.txt
 
 COPY install-nodes.sh /tmp/install-nodes.sh
 RUN bash /tmp/install-nodes.sh
 
-# v3 的关键修复：xformers 0.0.32 与 torch 2.10 的 ABI 不匹配，会让 SeedVR2/SUPIR import 失败
+# xformers 与 torch 2.8 的 ABI 不匹配，会让 SeedVR2/SUPIR import 失败
 RUN pip uninstall -y xformers || true
 
 COPY start-comfyui.sh /usr/local/bin/start-comfyui.sh
