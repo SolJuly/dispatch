@@ -420,7 +420,7 @@ def run_jobs(ids: list[str], *, jobs_dir: Path | None = None,
         log.parent.mkdir(parents=True, exist_ok=True)
         with log.open("ab") as fh:
             fh.write(f"\n--- 控制台手动执行 {dt.datetime.now().astimezone():%Y-%m-%dT%H:%M:%S} ---\n".encode())
-            spawn([sys.executable, str(RUN_PY), jid, "--no-keep",
+            spawn([sys.executable, str(RUN_PY), jid, "--no-keep", "--batch",
                    "--wait-lock", str(QUEUE_WAIT_S), "--wait-stock", str(STOCK_WAIT_S)],
                   stdout=fh, stderr=subprocess.STDOUT, start_new_session=True, cwd=str(ROOT))
         out.append({"job_id": jid, "state": "QUEUED"})
@@ -522,8 +522,12 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
         log = _jobs_dir(jobs_dir) / job_id / "run.log"
         log.parent.mkdir(parents=True, exist_ok=True)
         with log.open("ab") as fh:
+            # --batch：用作业级锁而不是全局 .job.lock。
+            # 2026-11-09 审计：以前不传这个参数，所有 UI 提交都走全局串行锁，
+            # 第二个人提交会静默排队最多 QUEUE_WAIT_S（4 小时）后超时失败，
+            # 而 UI 显示的是"提交成功"。run.py 里早就有 --batch 分支，只是没接。
             # --wait-lock：前面还有作业在跑时排队等锁，而不是直接退出把作业扔在 CREATED
-            spawn([sys.executable, str(RUN_PY), job_id, "--no-keep",
+            spawn([sys.executable, str(RUN_PY), job_id, "--no-keep", "--batch",
                    "--wait-lock", str(QUEUE_WAIT_S), "--wait-stock", str(STOCK_WAIT_S)],
                   stdout=fh, stderr=subprocess.STDOUT, start_new_session=True, cwd=str(ROOT))
 

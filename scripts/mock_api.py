@@ -5,7 +5,7 @@
 特点：
   · 零依赖（stdlib），CORS 全开；
   · GET 返回 spec 里的示例；POST 走"有状态假服务"：建作业/取消/上传会真的改变内存状态；
-  · 路径与线上一致：`http://127.0.0.1:8099/files/23e00ec2/api/p2/...`
+  · 路径与线上一致：`http://127.0.0.1:8099/files/{TOKEN}/api/p2/...`
 
 用法：
     python3 scripts/mock_api.py [--port 8099]
@@ -29,7 +29,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SPEC = json.loads((ROOT / "docs" / "openapi.json").read_text(encoding="utf-8"))
-TOKEN = SPEC.get("x-mock", {}).get("token", "23e00ec2")
+TOKEN = SPEC.get("x-mock", {}).get("token", "{TOKEN}")
 TZ = timezone(timedelta(hours=8))
 PORT = 8099
 STARTED_AT = ""

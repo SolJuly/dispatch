@@ -48,8 +48,12 @@ function toast(msg, kind) {
   _toastTimer = setTimeout(() => { n.hidden = true; }, kind === 'err' ? 8000 : 4500);
 }
 
-/* token 在路径里（契约约定），如 /files/23e00ec2/ui/ */
-const TOKEN = (location.pathname.split('/').filter(Boolean).find(s => /^[0-9a-f]{8,64}$/i.test(s))) || '23e00ec2';
+/* token 在路径里（契约约定），如 /files/<token>/ui/
+ * 只从当前 URL 提取，不再硬编码 fallback —— 原来写了真实 token 当默认值，
+ * 等于把访问凭证编进前端 bundle（2026-11-09 审计发现）。拿不到就空字符串，
+ * 由调用方报错，而不是悄悄用某个写死的 token。 */
+const TOKEN = location.pathname.split('/').filter(Boolean)
+  .find(s => /^[0-9a-f]{8,64}$/i.test(s)) || '';
 const SAME_BASE = (() => {
   const i = location.pathname.split('/').findIndex(s => s === TOKEN);
   return (i > 0 ? location.pathname.split('/').slice(0, i + 1).join('/') : '') ;

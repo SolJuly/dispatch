@@ -417,7 +417,7 @@ P1 阶段累计花费 ¥4.15（含大量参数试错）。
 
 - 预览：`.md` 按文档排版渲染（表格/代码块可读），`.py`/`.sh` 按代码块显示，图片直接内嵌
 - 下载：`?dl=1` 返回附件（`Content-Disposition: attachment`，中文文件名已 UTF-8 编码）
-- `TOKEN` = `cat .share_token`（当前 `23e00ec2`）；改 token 后所有旧链接失效
+- `TOKEN` = `cat .share_token`（当前 `{TOKEN}`）；改 token 后所有旧链接失效
 - 新写的文件必须先同步再给链接，否则 404
 
 一条命令生成（推荐，省得手拼和漏同步）：

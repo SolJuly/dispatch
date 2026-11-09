@@ -293,14 +293,37 @@ def step_provision(job: dict, opts) -> dict:
     gpu = _pick_gpu(cs, job, opts)          # 按 required_gpu 顺序挑第一个有货的卡
     cpu_n, mem_gb = GPU_SPEC.get(gpu, (16, 64))
     price = cs.price(gpu, 1, cpu_n, mem_gb, "Postpay", 100, 0, image_id=img["CompShareImageId"])
-    est = float(price.get("total") or 0) * hours
-    cap = float((job.get("budget") or {}).get("max_cost") or 0)
+    hourly = float(price.get("total") or 0)
+    est = hourly * hours
+    budget = job.get("budget") or {}
+    cap = float(budget.get("max_cost") or 0)
+    max_min = float(budget.get("max_minutes") or 20)
+    # 真正会花多久：--hours 是定时关机兜底，max_minutes 是推理超时，
+    # 实际成本按较紧的那个估。以前只按 hours 打印，40 分钟能跑完的活
+    # 也会按 1 小时报，而且 cap 从头到尾没参与判断。
+    will_run_h = min(float(hours or 0) or max_min / 60, max_min / 60)
+    est_real = hourly * will_run_h
 
-    _say(f"计划 {gpu} ×1 · 镜像 {img.get('Name')} · ≈¥{float(price.get('total') or 0):.2f}/h")
-    _say(f"预算上限 ¥{cap}（预计 {hours}h 上限 ¥{est:.2f}）")
+    _say(f"计划 {gpu} ×1 · 镜像 {img.get('Name')} · ≈{hourly:.2f}/h")
+    _say(f"预算上限 ¥{cap:.2f}（预计跑 {will_run_h * 60:.0f} 分钟 ≈ ¥{est_real:.2f}）")
+
+    # ---- 预算闸门（2026-11-09 审计：cap 以前只打印不校验）----
+    # 这是唯一能拦住"误提交烧钱"的地方：超过上限直接拒绝建机。
+    if cap > 0 and est_real > cap:
+        raise RunError(
+            f"预估 ¥{est_real:.2f}（{hourly:.2f}/h × {will_run_h * 60:.0f} 分钟）"
+            f"超过作业预算上限 ¥{cap:.2f}。请调小帧数/分辨率，或截短驱动视频，"
+            f"或显式提高 spec.budget.max_cost。",
+            state.FAILED_PROVISION)
+
     bal = float(cs.balance().get("AmountAvailable") or 0)
     if bal < 5:
         raise RunError(f"余额 ¥{bal:.2f} < ¥5，中止建机", state.FAILED_PROVISION)
+    # 余额必须够跑完这一单，否则跑到一半没钱会留下孤儿实例
+    if cap > 0 and bal < est_real:
+        raise RunError(
+            f"余额 ¥{bal:.2f} 不足以覆盖本作业预估 ¥{est_real:.2f}，中止建机",
+            state.FAILED_PROVISION)
 
     # 预热池优先：池里有停机实例就直接 start（~12s），不消耗现货
     if getattr(opts, "from_pool", False):

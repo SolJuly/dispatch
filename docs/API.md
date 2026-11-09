@@ -17,7 +17,7 @@
 https://<host>/files/<TOKEN>/api/p2/...
 ```
 
-`TOKEN` = 仓库根目录 `.share_token` 的值（当前 `23e00ec2`）。token 不对一律 `404`（不区分「无权限」和「不存在」）。
+`TOKEN` = 仓库根目录 `.share_token` 的值（当前 `{TOKEN}`）。token 不对一律 `404`（不区分「无权限」和「不存在」）。
 
 本机直连（调试用）：`http://127.0.0.1:8081/<TOKEN>/api/p2/...`
 

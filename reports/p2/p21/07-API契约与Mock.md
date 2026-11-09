@@ -3,7 +3,7 @@
 > 契约：<https://123.207.74.155/pub/api/openapi.json>（OpenAPI 3.1，可直接导入 Swagger Editor / Postman / Apifox）
 > 清单页：<https://123.207.74.155/pub/api/>
 > 生成脚本：`python3 scripts/build_openapi.py`（改契约改脚本，重新生成）
-> Mock：`python3 scripts/mock_api.py` → `http://127.0.0.1:8099/files/23e00ec2/`
+> Mock：`python3 scripts/mock_api.py` → `http://127.0.0.1:8099/files/{TOKEN}/`
 
 ## 1. 三个约定
 
@@ -16,7 +16,7 @@
 
 ```bash
 python3 scripts/mock_api.py            # 默认 127.0.0.1:8099
-# 前端 baseURL = http://127.0.0.1:8099/files/23e00ec2
+# 前端 baseURL = http://127.0.0.1:8099/files/{TOKEN}
 ```
 
 - GET 一律返回 `openapi.json` 里的示例；

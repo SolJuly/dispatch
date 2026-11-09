@@ -59,7 +59,7 @@ UI_ROOT=/root/wt-ui/web/dist \
 SHARE_PORT=8082 SHARE_BIND=127.0.0.1 \
 SHARE_ROOT=/root/智云视频工作流/share \
 python3 fileserver.py
-# 本机访问 http://127.0.0.1:8082/23e00ec2/ui/
+# 本机访问 http://127.0.0.1:8082/{TOKEN}/ui/
 
 # 4. 满意了才合并发布
 cd /root/智云视频工作流

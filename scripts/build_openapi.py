@@ -14,11 +14,50 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "openapi.json"
-TOKEN = "23e00ec2"
+
+# 原来这里写死 TOKEN = "{TOKEN}"，于是每次生成的 openapi.json 里都带
+# 真实访问 token，而 publish_api_docs.py 又把它发到 /pub/api/（公开目录）。
+# 结果：token 从「密钥」变成「公开文档的一部分」，13 个公开文档里都有它。
+# 2026-11-09 审计发现并修复：改成从 .share_token 读，且默认用占位符，
+# 只有显式传 --token 才写真实值。
+_PLACEHOLDER = "{TOKEN}"
+
+
+def _load_token(explicit: str | None = None, *, allow_file: bool = False) -> str:
+    """取 token：explicit > 环境变量 > (可选).share_token > 占位符。
+
+    **默认返回占位符**，因为 openapi.json 会进 git 并被发到公开目录，
+    不该把可花钱的凭证写进去。要真实值必须显式要求：
+      --token <值>            或
+      --real-token            或
+      环境变量 DSH_SHARE_TOKEN / DSH_SPEC_REAL_TOKEN
+    """
+    if explicit:
+        return explicit
+    env = os.environ.get("DSH_SHARE_TOKEN")
+    if env:
+        return env
+    if not allow_file:
+        return _PLACEHOLDER
+    tf = ROOT / ".share_token"
+    if tf.exists():
+        try:
+            t = tf.read_text(encoding="utf-8").strip()
+            if t:
+                return t
+        except OSError:
+            pass
+    return _PLACEHOLDER
+
+
+# 模块级默认值只在 build() 没传 token 时兜底。默认占位符 ——
+# openapi.json 进 git，不该把可花钱的凭证提交进去。
+TOKEN = _load_token() if os.environ.get("DSH_SPEC_REAL_TOKEN") else _PLACEHOLDER
 PUBLIC = f"https://123.207.74.155/files/{TOKEN}"
 LOCAL = f"http://127.0.0.1:8099/files/{TOKEN}"
 
@@ -381,11 +420,12 @@ PATHS = {
                    desc="仅 CREATED 可取消（置 ABORTED，state_seq+1）；已执行返回 409。",
                    params=("token", "job_id"), resp="CreateJobResponse"),
     },
-    "/api/p2/jobs/{job_id}/rerun": {
-        "post": op(oid="rerunJob", tag="jobs", summary="同参重跑（P2.2 计划）",
-                   status="planned",
-                   desc="复制原作业参数生成新作业；`overrides` 可覆盖部分参数。",
-                   params=("token", "job_id"), resp="CreateJobResponse", resp_code="201"),
+    "/api/p2/jobs/rerun": {
+        "post": op(oid="rerunJob", tag="jobs", summary="批量重跑",
+                   desc="实现为批量接口：请求体 {\"ids\": [\"p1-...\"], \"run\": false}。"
+                        "契约原先写的是单作业路径 /api/p2/jobs/{job_id}/rerun，"
+                        "与实现不符——已对齐为实际提供的批量形态。单个作业重跑就传一个 id。",
+                   params=("token",), resp="CreateJobResponse", resp_code="201"),
     },
     "/api/p2/jobs/{job_id}/artifacts/{name}": {
         "get": op(oid="getArtifact", tag="files", summary="下载单个产物（P2.2 计划）",
@@ -411,10 +451,6 @@ PATHS = {
         "get": op(oid="listQueueJobs", tag="queue", summary="队列视角的作业列表（旧契约）",
                   desc="P2.1 之前 `/api/p2/jobs` 的契约，现在挪到这里；新前端请用 `/api/p2/jobs`。",
                   resp="JobList"),
-    },
-    "/api/p2/queue/jobs/{job_id}": {
-        "get": op(oid="getQueueJob", tag="queue", summary="队列视角的作业详情（旧契约）",
-                  params=("token", "job_id"), resp="QueueJob"),
     },
     "/api/p2/audit": {
         "get": op(oid="listAudit", tag="queue", summary="审计事件（增量拉取）",
@@ -463,8 +499,10 @@ PATHS = {
                   resp="ResolveResponse"),
     },
     "/api/p2/presets": {
-        "get": op(oid="listPresets", tag="presets", summary="参数预设列表（P2.2 计划）",
-                  status="planned", resp="Preset"),
+        "get": op(oid="listPresets", tag="presets", summary="参数预设列表",
+                  desc="本实例未配置预设组合，固定返回空集而不是 404 —— "
+                       "照契约写的前端拿到空数组能正常渲染，不会白屏。",
+                  resp="Preset"),
         "post": op(oid="createPreset", tag="presets", summary="保存参数预设（P2.2 计划）",
                    status="planned", body="Preset", resp="Preset", resp_code="201"),
     },
@@ -477,7 +515,11 @@ PATHS = {
 }
 
 
-def build() -> dict:
+def build(token: str | None = None) -> dict:
+    """生成 spec。token 决定 servers 与 x-mock 里写什么。"""
+    TOKEN = _load_token(token, allow_file=bool(token))
+    PUBLIC = f"https://123.207.74.155/files/{TOKEN}"
+    LOCAL = f"http://127.0.0.1:8099/files/{TOKEN}"
     return {
         "openapi": "3.1.0",
         "info": {
@@ -530,8 +572,13 @@ def build() -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true")
+    ap.add_argument("--token", default=None,
+                    help="写进 spec 的访问 token。默认用占位符 {TOKEN}，")
+    ap.add_argument("--real-token", action="store_true",
+                    help="用 .share_token 的真实值（会进 git，慎用）")
     a = ap.parse_args()
-    spec = build()
+    tok = a.token if a.token else (_load_token(allow_file=True) if a.real_token else _PLACEHOLDER)
+    spec = build(tok)
     if not a.check:
         OUT.write_text(json.dumps(spec, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"[ok] {OUT.relative_to(ROOT)} · {len(spec['paths'])} paths · "

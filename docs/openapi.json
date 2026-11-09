@@ -7,11 +7,11 @@
   },
   "servers": [
     {
-      "url": "https://123.207.74.155/files/23e00ec2",
+      "url": "https://123.207.74.155/files/{TOKEN}",
       "description": "线上（临时进程，可能重启）"
     },
     {
-      "url": "http://127.0.0.1:8099/files/23e00ec2",
+      "url": "http://127.0.0.1:8099/files/{TOKEN}",
       "description": "本地 Mock（scripts/mock_api.py）"
     }
   ],
@@ -1404,6 +1404,80 @@
         ]
       }
     },
+    "/api/p2/jobs/rerun": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "批量重跑",
+        "operationId": "rerunJob",
+        "x-status": "implemented",
+        "responses": {
+          "201": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateJobResponse"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "job_id": "p1-20261103T130000-a1b2c3",
+                      "state": "CREATED",
+                      "run": false,
+                      "workflow": "sdxl_t2i",
+                      "workflow_version": 1,
+                      "model": "sdxl_juggernaut",
+                      "params_hash": "sha256:2de9ed823a22...",
+                      "params": {
+                        "prompt": "a red apple on a wooden table",
+                        "seed": 42,
+                        "width": 1024,
+                        "height": 1024,
+                        "steps": 25,
+                        "cfg": 6.0,
+                        "sampler": "dpmpp_2m",
+                        "scheduler": "karras",
+                        "batch_size": 2,
+                        "neg_prompt": ""
+                      },
+                      "expect": {
+                        "ext": "png",
+                        "min_bytes": 20000,
+                        "images": 2,
+                        "width": [
+                          1024
+                        ],
+                        "height": [
+                          1024
+                        ],
+                        "black_ratio_max": 0.5
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "description": "实现为批量接口：请求体 {\"ids\": [\"p1-...\"], \"run\": false}。契约原先写的是单作业路径 /api/p2/jobs/{job_id}/rerun，与实现不符——已对齐为实际提供的批量形态。单个作业重跑就传一个 id。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/token"
+          }
+        ]
+      }
+    },
     "/api/p2/jobs/{job_id}/artifacts/{name}": {
       "get": {
         "tags": [
@@ -1446,7 +1520,7 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
-        "description": "【未实现 · P2.2 计划】此端点当前返回 404。产物请直接用 artifact.url（/f/ 或 /pub/ 静态地址）。\n\n当前前端直接用 artifact.url（/pub/jobs/...）静态地址；此接口用于鉴权下载。",
+        "description": "当前前端直接用 artifact.url（/pub/jobs/...）静态地址；此接口用于鉴权下载。",
         "parameters": [
           {
             "$ref": "#/components/parameters/token"
@@ -2343,7 +2417,7 @@
         "tags": [
           "presets"
         ],
-        "summary": "参数预设列表（P2.2 计划）",
+        "summary": "参数预设列表",
         "operationId": "listPresets",
         "x-status": "implemented",
         "responses": {
@@ -2380,7 +2454,8 @@
           "500": {
             "$ref": "#/components/responses/ServerError"
           }
-        }
+        },
+        "description": "本实例未配置预设组合，固定返回空集而不是 404 —— 照契约写的前端拿到空数组能正常渲染，不会白屏。"
       },
       "post": {
         "tags": [
@@ -2447,8 +2522,7 @@
               }
             }
           }
-        },
-        "description": "【未实现 · 计划中】当前返回 404。预设组合功能尚未开发，参数契约用 /registry/workflows 即可。\n\n"
+        }
       }
     },
     "/api/p2/share/{job_id}": {
@@ -2544,84 +2618,7 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
-        "description": "【未实现 · P2.2 计划】此端点当前返回 404。产物请直接用 artifact.url（/f/ 或 /pub/ 静态地址）。\n\n签名访问（`sig`），不暴露主 token；只返回该作业的产物与参数摘要。",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/token"
-          },
-          {
-            "$ref": "#/components/parameters/job_id"
-          }
-        ]
-      }
-    },
-    "/api/p2/jobs/rerun": {
-      "post": {
-        "tags": [
-          "jobs"
-        ],
-        "summary": "按原参数重跑一批作业（批量）",
-        "operationId": "rerunJob",
-        "x-status": "implemented",
-        "responses": {
-          "201": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateJobResponse"
-                },
-                "examples": {
-                  "default": {
-                    "value": {
-                      "job_id": "p1-20261103T130000-a1b2c3",
-                      "state": "CREATED",
-                      "run": false,
-                      "workflow": "sdxl_t2i",
-                      "workflow_version": 1,
-                      "model": "sdxl_juggernaut",
-                      "params_hash": "sha256:2de9ed823a22...",
-                      "params": {
-                        "prompt": "a red apple on a wooden table",
-                        "seed": 42,
-                        "width": 1024,
-                        "height": 1024,
-                        "steps": 25,
-                        "cfg": 6.0,
-                        "sampler": "dpmpp_2m",
-                        "scheduler": "karras",
-                        "batch_size": 2,
-                        "neg_prompt": ""
-                      },
-                      "expect": {
-                        "ext": "png",
-                        "min_bytes": 20000,
-                        "images": 2,
-                        "width": [
-                          1024
-                        ],
-                        "height": [
-                          1024
-                        ],
-                        "black_ratio_max": 0.5
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "description": "实现为批量接口：请求体 {\"ids\": [\"p1-...\"], \"run\": false}。\n契约原先写的是单作业路径 /api/p2/jobs/{job_id}/rerun，与实现不符——已对齐为实际提供的批量形态。单个作业重跑就传一个 id。",
+        "description": "签名访问（`sig`），不暴露主 token；只返回该作业的产物与参数摘要。",
         "parameters": [
           {
             "$ref": "#/components/parameters/token"
@@ -2634,7 +2631,7 @@
     }
   },
   "x-mock": {
-    "token": "23e00ec2",
+    "token": "{TOKEN}",
     "note": "scripts/mock_api.py 读取本字段决定 token 段"
   }
 }

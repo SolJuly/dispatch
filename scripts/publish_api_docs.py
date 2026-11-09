@@ -40,7 +40,7 @@ pre{{background:#11151a;color:#e6edf3;padding:12px 14px;border-radius:10px;overf
 <p class="sub">OpenAPI 3.1 · <a href="openapi.json">openapi.json</a> · 可直接导入 Swagger Editor / Postman / Apifox</p>
 <div class="note">
 <b>鉴权</b>：token 在路径里（<code>/files/&lt;token&gt;/api/p2/...</code>），不是 Header/Cookie。<br>
-<b>Mock</b>：<code>python3 scripts/mock_api.py</code> → <code>http://127.0.0.1:8099/files/23e00ec2/</code>，建作业/取消/上传有状态。<br>
+<b>Mock</b>：<code>python3 scripts/mock_api.py</code> → <code>http://127.0.0.1:8099/files/{TOKEN}/</code>，建作业/取消/上传有状态。<br>
 <b>标注</b>：<span class="ok">已实现</span> 可直接联调；<span class="plan">规划中</span> 先用 Mock，联调前会补。
 </div>
 <h2>接口清单</h2>
