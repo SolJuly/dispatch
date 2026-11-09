@@ -3,7 +3,8 @@
  * 契约要点（与 openapi.json 对齐）：
  *   GET  /api/p2/jobs?limit&state&workflow&q        → {items:[JobSummary], count}
  *   POST /api/p2/jobs  {workflow, params, run, note} → 201 {job_id, state, params, expect…}
- *   GET  /api/p2/jobs/<id>                           → {job, artifacts[], workflow, terminal}
+ *   GET  /api/p2/jobs/<id>                           → {job, cost, quality, artifacts[], workflow, terminal}
+ *        cost / quality 都在**顶层**（manifest.json 派生），不在 job 里；未完成作业为 null
  *   POST /api/p2/jobs/<id>/cancel                    → 仅 CREATED 可取消，执行中 409
  *   POST /api/p2/uploads  (multipart `file`)         → {name, bytes, url}
  *   GET  /api/p2/jobs/zip?ids=a,b                    → application/zip
@@ -743,6 +744,65 @@ function costCard(cost, job) {
     </dl></div></div>`;
 }
 
+/* 质量卡片：这一条片子到底值不值这个钱。
+ *
+ * 数据来自 GET /api/p2/jobs/<id> 顶层的 quality（与 cost 并列，都不在 job 里）——
+ * 它是 `tools/p2/quality.py` 的 QualityReport.as_dict()，形状：
+ *   {mode, overall, grade, verdict, artifacts:[{file, score, grade, issues, metrics}]}
+ *
+ * 之前质量分只落在 manifest.json 里，UI 上完全看不到：用户跑完只能在
+ * 「文件成功」和「这一条糊成一片」之间靠肉眼赌。这里只做**展示**。
+ *
+ * 为什么不做门禁入口：现存 30 条 verified 工作流都是按 verify.py 的七项技术判据
+ * 判的。把质量分变成默认门禁等于全部重判一次（必然有几条被打低），那需要人
+ * 一条条看。所以后端 from_expect() 默认 mode="report"，UI 上连"拦截"字样都不出现，
+ * 只在 report 模式时标一句「仅记录，不影响作业结论」。
+ */
+const QGRADE = {
+  A: {cn: '优', tone: 'a', say: '可以直接交付：画面清晰、镜头有运动、曝光正常'},
+  B: {cn: '良', tone: 'b', say: '能用：细节一般，不影响交付'},
+  C: {cn: '中', tone: 'c', say: '勉强能用：有明显质量问题，建议看完再决定要不要重跑'},
+  D: {cn: '差', tone: 'd', say: '不建议交付：有硬伤，建议换参数重跑'},
+};
+
+function qualityCard(q) {
+  // 没有 quality（未完成作业 / 老 manifest / manifest 没写）→ 整张卡不渲染。
+  // 不显示空壳：一张"质量 —"的卡片比没有更让人困惑。
+  if (!q || typeof q !== 'object' || q.overall == null) return '';
+  const score = Number(q.overall);
+  if (!isFinite(score)) return '';
+  const grade = String(q.grade || '?').toUpperCase();
+  const g = QGRADE[grade] || {cn: '未知', tone: 'x', say: '评分器没能给出结论'};
+  const arts = Array.isArray(q.artifacts) ? q.artifacts : [];
+  const primary = arts[0] || {};
+  const issues = (primary.issues || []).slice();
+  // 多产物时把问题按文件归属标出来，否则用户不知道是主片还是预览糊了
+  if (arts.length > 1) {
+    arts.slice(1).forEach(a => (a.issues || []).forEach(i => issues.push(`${a.file}：${i}`)));
+  }
+  const mode = q.mode || 'report';
+  const verdict = q.verdict || '';
+  // 一句人话：有具体问题就点名第一个，比"良/中"这种等级词有用得多
+  const say = issues.length ? `${g.say}（${issues[0]}）` : g.say;
+  return `<div class="card qcard">
+    <h3>产物质量
+      <span class="r">${mode === 'gate' ? '门禁模式' : '仅记录，不影响作业结论'}</span></h3>
+    <div class="pad qbody">
+      <div class="qhead">
+        <span class="qbadge ${g.tone}"><b>${esc(grade)}</b>${g.cn}</span>
+        <span class="qscore ${g.tone}">${score.toFixed(1)}<i>/100</i></span>
+        ${verdict && verdict !== 'PASS'
+          ? `<span class="qverdict ${verdict === 'FAIL' ? 'bad' : 'warn'}">${esc(verdict)}</span>` : ''}
+      </div>
+      <p class="qsay">${esc(say)}</p>
+      ${issues.length ? `<ul class="qissues">${issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`
+        : '<div class="qnone">四维指标（清晰度 / 运动 / 曝光 / 稳定）全部达标，没有 content 层问题。</div>'}
+      ${arts.length > 1 ? `<div class="qmore">${arts.map(a =>
+        `<span class="qchip"><b>${esc((a.grade || '?'))}</b>${a.score == null ? '—' : Number(a.score).toFixed(1)}
+         <em>${esc(a.file || '')}</em></span>`).join('')}</div>` : ''}
+    </div></div>`;
+}
+
 function renderResult() {
   const root = $('#result');
   if (S.detailErr) {
@@ -781,6 +841,7 @@ function renderResult() {
       : `<div class="card"><div class="empty"><span class="big">▢</span>
           ${terminal ? '没有产物' : '还没产物，页面会自动刷新'}</div></div>`}
     ${costCard(S.detail.cost, job)}
+    ${qualityCard(S.detail.quality)}
     <div class="meta-grid">
       <div class="card"><h3>参数快照 <span class="r">${esc(wf)}</span></h3>
         <div class="pad"><dl class="kv">

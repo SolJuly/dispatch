@@ -378,6 +378,38 @@ video.upthumb{height:92px;max-width:200px;border-radius:6px;border:1px solid var
 .costcard .kv dd{margin:0;font-size:13px}
 .costcard .big-money{font-size:20px;font-weight:700;color:#e8c46a;font-variant-numeric:tabular-nums}
 
+/* 质量卡片：等级徽章 + 分数 + 人话结论 + issues。
+   与 .costcard 同排版（整行铺开、kv 预算），但颜色按 A/B/C/D 分档：
+   A 绿 / B 蓝 / C 琥珀 / D 红。颜色只表达等级，不表达"通过/不通过" ——
+   质量分默认 mode=report，不过滤任何作业。 */
+.qcard{grid-column:1/-1;margin-top:12px}
+.qbody{display:flex;flex-direction:column;gap:10px}
+.qhead{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.qbadge{display:inline-flex;gap:6px;align-items:center;padding:4px 11px;border-radius:8px;
+  font-size:13px;font-weight:600;border:1px solid transparent;white-space:nowrap}
+.qbadge b{font-size:17px;line-height:1;font-family:var(--mono)}
+.qscore{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.qscore i{font-size:12px;font-weight:400;font-style:normal;color:var(--dim);margin-left:2px}
+.qbadge.a,.qscore.a{color:#4ade80} .qbadge.a{border-color:#2f6b46;background:#12241a}
+.qbadge.b,.qscore.b{color:#6cb6ff} .qbadge.b{border-color:#2c4a6b;background:#121d2a}
+.qbadge.c,.qscore.c{color:#e8c46a} .qbadge.c{border-color:#6b5628;background:#241f12}
+.qbadge.d,.qscore.d{color:#f87171} .qbadge.d{border-color:#6b2f2f;background:#241414}
+.qbadge.x,.qscore.x{color:var(--dim)} .qbadge.x{border-color:var(--line);background:#151b24}
+.qverdict{font-family:var(--mono);font-size:11.5px;padding:2px 8px;border-radius:6px;
+  border:1px solid var(--line);color:var(--muted)}
+.qverdict.warn{color:#e8c46a;border-color:#6b5628;background:#241f12}
+.qverdict.bad{color:#f87171;border-color:#6b2f2f;background:#241414}
+.qsay{margin:0;font-size:13px;color:#c9d1de;line-height:1.6}
+.qissues{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.qissues li{font-size:12.5px;color:#e1b48a;line-height:1.55}
+.qnone{font-size:12.5px;color:var(--muted)}
+.qmore{display:flex;gap:8px;flex-wrap:wrap}
+.qchip{display:inline-flex;gap:6px;align-items:center;font-size:11.5px;font-family:var(--mono);
+  color:var(--muted);background:#12161d;border:1px solid var(--line);border-radius:7px;
+  padding:3px 9px;max-width:100%;overflow:hidden}
+.qchip b{color:var(--fg)}
+.qchip em{font-style:normal;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* 参数用途说明：常驻显示，不随输入消失。
    以前它藏在 textarea 的 placeholder 里 —— 一填内容就看不见，
    而「驱动视频（MP4/MOV/WebM）」这种信息恰恰在填的时候最需要。 */

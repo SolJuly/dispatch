@@ -442,19 +442,43 @@ def maybe_publish(job_id: str, job: dict) -> None:
         pass
 
 
+def read_manifest(job_id: str, jobs_dir: Path | None = None) -> dict:
+    """读作业目录的 manifest.json；没有/读不出来一律返回 {}。
+
+    为什么吞异常：manifest 是**派生文件**，只有跑到 PERSISTED 之后才存在
+    （`tools/p1/run.py:step_persist`）。未完成作业没有它，磁盘上那一份也可能
+    写了一半。详情接口的主体是 job.json，cost/quality 都只是附加信息 ——
+    为了一份附加文件让整页 500，就是拿附属品当命门。
+
+    调用方约定：`{}` 表示"没有"，不是"有但为空"。
+    """
+    mf = _jobs_dir(jobs_dir) / job_id / "manifest.json"
+    if not mf.exists():
+        return {}
+    try:
+        data = json.loads(mf.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
 def get_job(job_id: str, jobs_dir: Path | None = None) -> dict:
     job = _load_job(job_id, jobs_dir)
     maybe_publish(job_id, job)
-    cost = None
-    mf = _jobs_dir(jobs_dir) / job_id / "manifest.json"
-    if mf.exists():
-        try:
-            cost = (json.loads(mf.read_text(encoding="utf-8")).get("cost") or {})
-        except (OSError, json.JSONDecodeError):
-            cost = None
+    man = read_manifest(job_id, jobs_dir)
+    # cost 与 quality 都在 manifest 里，都放在**顶层**与 job 并列。
+    # 早期把 cost 挂在 job 下面读，拿到的是 None（job.json 里没有这个字段），
+    # 详情页费用区因此一直是空的 —— quality 沿同一条口径，别再塞进 job。
+    cost = man.get("cost") or None
+    quality = man.get("quality")
+    if not isinstance(quality, dict) or not quality:
+        # 老 manifest 里 quality 是 `res.get("quality") or {}` 写下的空对象，
+        # 那份"空"和"没有"对 UI 是同一件事：不渲染质量卡。
+        quality = None
     return {
         "job": job,
         "cost": cost,
+        "quality": quality,
         "artifacts": _artifacts(job_id, jobs_dir),
         "workflow": _workflow_key(job),
         "terminal": job.get("state") in jobstate.TERMINAL,

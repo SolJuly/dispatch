@@ -239,6 +239,68 @@
           "job": {
             "$ref": "#/components/schemas/Job"
           },
+          "cost": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "费用（来自 manifest.json 顶层 cost:{hourly,minutes,amount}）。未运行到 PERSISTED 的作业为 null。注意它与 job 并列，不在 job 里。",
+            "properties": {
+              "hourly": {
+                "type": "number"
+              },
+              "minutes": {
+                "type": "number"
+              },
+              "amount": {
+                "type": "number"
+              }
+            }
+          },
+          "quality": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "产物质量分（tools/p2/quality.py 的 QualityReport.as_dict()）。来自 manifest.json 顶层 quality。未完成作业 / 老 manifest 为 null —— UI 拿到 null 不渲染质量卡。默认 mode=report，只展示不门禁。",
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "report",
+                  "gate"
+                ]
+              },
+              "overall": {
+                "type": "number",
+                "description": "0-100（主产物的分）"
+              },
+              "grade": {
+                "type": "string",
+                "enum": [
+                  "A",
+                  "B",
+                  "C",
+                  "D",
+                  "?"
+                ]
+              },
+              "verdict": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "WARN",
+                  "FAIL"
+                ]
+              },
+              "artifacts": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            }
+          },
           "artifacts": {
             "type": "array",
             "items": {
@@ -299,6 +361,34 @@
                 }
               },
               "state_seq": 11
+            },
+            "cost": {
+              "hourly": 2.15,
+              "minutes": 6.2,
+              "amount": 0.2222
+            },
+            "quality": {
+              "mode": "report",
+              "overall": 87.3,
+              "grade": "A",
+              "verdict": "PASS",
+              "artifacts": [
+                {
+                  "file": "01-p1-20261103T1219-b2df1a_00001_.png",
+                  "kind": "image",
+                  "score": 87.3,
+                  "grade": "A",
+                  "metrics": {
+                    "sharpness": 3.12,
+                    "luma_mean": 121.4,
+                    "luma_range": 236.0,
+                    "samples": 1
+                  },
+                  "issues": [],
+                  "gated": false,
+                  "passed": true
+                }
+              ]
             },
             "artifacts": [
               {
@@ -1287,6 +1377,25 @@
                           }
                         },
                         "state_seq": 11
+                      },
+                      "cost": {
+                        "hourly": 2.15,
+                        "minutes": 6.2,
+                        "amount": 0.2222
+                      },
+                      "quality": {
+                        "mode": "report",
+                        "overall": 87.3,
+                        "grade": "A",
+                        "verdict": "PASS",
+                        "artifacts": [
+                          {
+                            "file": "01-p1-20261103T1219-b2df1a_00001_.png",
+                            "score": 87.3,
+                            "grade": "A",
+                            "issues": []
+                          }
+                        ]
                       },
                       "artifacts": [
                         {
