@@ -77,20 +77,14 @@ def _fail_reason(jid: str, final_state: str) -> str:
 
 
 def today_cost() -> float:
-    d = time.strftime("%Y-%m-%d")
-    total = 0.0
-    try:
-        with open(LEDGER, encoding="utf-8") as f:
-            for line in f:
-                try:
-                    r = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if str(r.get("at", "")).startswith(d) and r.get("cost"):
-                    total += float(r["cost"])
-    except FileNotFoundError:
-        pass
-    return round(total, 3)
+    """今天花了多少（熔断器用）。口径统一在 tools/p2/spend.py。
+
+    修之前这里只累加 `r.get("cost")`，而平台的真实扣费记在 `settle` 事件的
+    `amount` 字段里 —— 于是熔断器看到 ¥0.00，永远不熔断。2026-11-09 实测：
+    账本今日 settle 合计 ¥0.86，这个函数返回 0.0。
+    """
+    from tools.p2 import spend
+    return spend.today_cost()
 
 
 def live_instances() -> list[dict]:

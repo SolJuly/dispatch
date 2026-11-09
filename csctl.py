@@ -48,18 +48,16 @@ def ledger(event: str, **kw) -> None:
 
 
 def ledger_today_cost() -> float:
-    if not LEDGER.exists():
+    """今天花了多少。口径统一在 tools/p2/spend.py（要算 settle 的真实扣费）。
+
+    修之前只认 `event == "cost"`，而账本里根本没有这个 event ——
+    真实扣费记在 `settle` 的 `amount` 上，作业自报记在 `job` 的 `cost` 上。
+    """
+    try:
+        from tools.p2 import spend
+        return spend.today_cost(LEDGER)
+    except Exception:
         return 0.0
-    today = dt.date.today().isoformat()
-    total = 0.0
-    for line in LEDGER.read_text(encoding="utf-8").splitlines():
-        try:
-            r = json.loads(line)
-        except Exception:
-            continue
-        if r.get("event") == "cost" and str(r.get("at", ""))[:10] == today:
-            total += float(r.get("cost") or 0)
-    return total
 
 
 def ledger_recent(n: int = 20) -> list[dict]:

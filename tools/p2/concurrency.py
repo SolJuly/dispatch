@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""并发闸门：同时在跑的作业超过上限就**在花钱之前**拒绝，而不是排队等着烧钱。
+
+## 为什么需要（审计 §1 L4 的「并发：全局串行」的另一半）
+
+上一轮修掉了「全局串行」（`93ae85f`：UI 提交加 `--batch`，改成作业级锁，
+不同 job 可以并行）。那把锁一撤，问题就翻了个面：
+
+    以前：第 2 个人提交 → 静默排队 4 小时 → 超时失败（难受但不花钱）
+    现在：第 2 个人提交 → 立刻建第 2 台机 → ¥2.15/h 起跳
+
+账户只有 **5 台配额**（Level1）。UI 上点五次「提交并执行」，五台机器同时开，
+单这一下就是 ¥10.75/h。余额 ¥8.15 —— 两小时就打穿。
+
+所以「能不能并行」和「最多并行几个」是两件事。前者已经解决，这里做后者。
+
+## 两道闸，位置不同，理由不同
+
+    ① 提交闸（webui/api.py，create_job / run_jobs）
+       花**逻辑秒**：数 job.json 里的非终态作业。快、无网络、能在 HTTP 层回 429。
+       为什么先在这里拦：让用户看到「已有 2 个作业在跑，排队还是稍后再来」，
+       而不是提交成功、10 秒后 run.log 里冒出 FAILED_PROVISION。
+
+    ② 建机闸（tools/p1/run.py，step_provision）
+       花**真实秒**：问平台要 running 实例数。慢、要网络，但它是唯一的事实来源。
+       为什么还要这一道：job.json 会撒谎 —— 有孤儿实例（run.py 被 kill -9、
+       作业卡在 RUNNING）时，本地看只有 1 个非终态作业，云端却真实有 3 台机在跑。
+       只信本地就会持续超建。
+
+## 上限定多少
+
+`MAX_PARALLEL` 默认 2，不是 5。理由：
+
+  · 账户配额 5 台，但**配额不是预算**。5 台 × ¥2.15/h = ¥10.75/h，
+    而余额长期在 ¥8 上下。留 3 个槽给预热池和手动排障。
+  · 单任务锁时代实测：两条视频作业并行时，4090 上的 ComfyUI 会抢显存，
+    第二条 OOM 失败（`FAILED_RUN`），钱照扣。并行度「能开」不等于「该开」。
+
+要放宽就显式设 `P21_MAX_PARALLEL=3`，别改这里的默认值 ——
+默认值应当是「不会因为一个误操作烧掉余额」的那个数。
+"""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+JOBS_DIR = ROOT / "reports" / "p1" / "jobs"
+
+# 与 tools/p1/state.py 的 TERMINAL 保持一致。这里不 import 它，是为了让本模块
+# 能被 webui / run.py / 测试三方引用而不引入 state 的副作用（它启动时会建目录）。
+TERMINAL_STATES = frozenset({"DONE", "FAILED", "ABORTED"})
+
+DEFAULT_MAX_PARALLEL = 2
+
+
+def max_parallel() -> int:
+    """并发上限。环境变量可覆盖，非法值回落到默认（不改成 0 —— 0 会锁死整个系统）。"""
+    raw = os.environ.get("P21_MAX_PARALLEL")
+    if raw:
+        try:
+            v = int(raw)
+            if v >= 1:
+                return v
+        except ValueError:
+            pass
+    return DEFAULT_MAX_PARALLEL
+
+
+def _load(path: Path) -> dict:
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def active_jobs(jobs_dir: Path | None = None) -> list[dict]:
+    """非终态作业（还占着槽位的那些）。
+
+    判据只看 job.json 的 state，不看有没有 run.log、不看进程在不在 ——
+    孤儿作业（进程死了但状态停在 RUNNING）**必须**算占槽：它对应的实例可能还在跑。
+    宁可让人手动清理一个假占位，也不要因为自动判定"它已经死了"而多开一台机。
+    """
+    root = Path(jobs_dir) if jobs_dir else JOBS_DIR
+    if not root.is_dir():
+        return []
+    out = []
+    for d in root.iterdir():
+        if not d.is_dir():
+            continue
+        j = _load(d / "job.json")
+        if not j:
+            continue
+        st = j.get("state") or ""
+        if st and st not in TERMINAL_STATES:
+            out.append(j)
+    return out
+
+
+def slots_used(jobs_dir: Path | None = None) -> int:
+    return len(active_jobs(jobs_dir))
+
+
+def check_slot(jobs_dir: Path | None = None, *, limit: int | None = None,
+               extra: int = 0) -> tuple[bool, str]:
+    """提交闸：还有没有空槽。返回 (ok, 人话原因)。
+
+    `extra` 用于批量提交：一次要建 3 个，就得确认空槽 ≥ 3，
+    而不是逐个检查（逐个检查时前 2 个都看到"有空槽"，第 3 个才发现满了）。
+    """
+    cap = limit if limit is not None else max_parallel()
+    used = slots_used(jobs_dir)
+    need = max(1, int(extra or 1))
+    if used + need <= cap:
+        return True, f"并发 {used}/{cap}"
+    names = [str(j.get("job_id") or "?") for j in active_jobs(jobs_dir)][:4]
+    more = "…" if used > 4 else ""
+    return False, (f"并发已满：{used}/{cap} 个作业在跑（{', '.join(names)}{more}）。"
+                   f"本次需要 {need} 个槽。等它们结束，或用 P21_MAX_PARALLEL 调大上限。")
+
+
+def running_instances() -> int | None:
+    """平台侧真实在跑的 p1-/p2- 实例数。读不到返回 None（不是 0 —— 0 会被当成"没占槽"）。"""
+    try:
+        from compshare.cs import CS
+        cs = CS()
+        return sum(1 for i in cs.instances()
+                   if (i.get("State") or "").lower() == "running"
+                   and str(i.get("Name") or "").startswith(("p1-", "p2-")))
+    except Exception:                      # noqa: BLE001  无凭证/断网都属于"读不到"
+        return None
+
+
+def check_provision(*, limit: int | None = None) -> tuple[bool, str]:
+    """建机闸：以云端 running 实例数为准（本地 job.json 会撒谎）。
+
+    读不到平台时**放行**并说明原因 —— 这一闸是最后兜底，不是主闸；
+    主闸在提交处已经拦过一遍。网络抖动就把所有作业堵死，代价比超建一台机更大。
+    """
+    cap = limit if limit is not None else max_parallel()
+    n = running_instances()
+    if n is None:
+        return True, f"读不到平台实例数，按放行处理（上限 {cap}）"
+    if n < cap:
+        return True, f"云端在跑 {n}/{cap}"
+    return False, (f"云端已有 {n} 台 p1-/p2- 实例在跑（上限 {cap}）。"
+                   f"超建会按 ¥2.15/h/台 计费，且可能 OOM。等已有作业结束，"
+                   f"或用 P21_MAX_PARALLEL 调大上限。")

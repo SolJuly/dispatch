@@ -79,6 +79,27 @@ LUMA_HIGH = 232         # 亮度均值 > 232 → 过曝
 RANGE_MIN = 28          # YMAX-YMIN < 28 → 发灰/低对比
 FLICKER_CV = 0.85       # 边缘能量变异系数 > 0.85 → 闪烁/抖帧（实测最高 0.42）
 
+# ---- 噪点判别（2026-11-09 新增）----
+# 为什么加：**纯噪声视频在原来的评分里拿 100 分 A 级。**
+# `noise=alls=120` 生成的片子边缘能量 95.16（正常片 0.9–6.3），清晰度项直接满分；
+# 运动项满分（每帧都在变）；曝光项满分（灰度填满 0–255）。
+# 但这片子是纯雪花。**「清晰度」这个指标分不清「细节」和「噪点」** ——
+# 两者在高频能量上是同一件事，区别在于**结构**：噪点没有结构，细节有。
+#
+# 判别方法：先 gblur 再算边缘能量，看保留多少。
+#   有结构的边缘 → 模糊后塌得慢（实测真实素材保留 28–55%）
+#   噪点          → 模糊后几乎全塌（实测 10–15%）
+# 实测数据（2026-11-09，13 条真实素材 + 8 条合成噪声）：
+#
+#   syn-noise/n40/n80/grain     10.7–15.0%   ← 合成噪点，全在这里
+#   v4-wan-i2v                  28.3%        ← 最低的真实素材（高细节、强运动）
+#   video-10s / 00-primary      34–39%
+#   h3 / wan / seedvr2 系列     44–55%
+#
+# 线定在 20%：离噪点最高值（15.0%）留 5 个点，离真实最低值（28.3%）留 8 个点，
+# 两边都不贴边。不能定 25% —— 会把 v4-wan-i2v（28.3%，最好的样本）判成噪点。
+NOISE_KEEP = 20.0       # 模糊后边缘能量保留率 < 20% → 判为噪点/无结构
+
 _R_YAVG = re.compile(r"lavfi\.signalstats\.YAVG=([\d.]+)")
 _R_YMIN = re.compile(r"lavfi\.signalstats\.YMIN=([\d.]+)")
 _R_YMAX = re.compile(r"lavfi\.signalstats\.YMAX=([\d.]+)")
@@ -149,10 +170,14 @@ def _series(path: Path, vf: str, *, limit: int = 240, timeout: int = 240) -> dic
 
 
 def _stats_series(path: Path, *, limit: int = 240, every: int = 3) -> dict:
-    """两趟解码：①边缘能量（卷积后）②亮度与帧差（原始）。
+    """三趟解码：①边缘能量 ②亮度与帧差 ③模糊后的边缘能量（判噪点）。
 
     每趟都先抽帧降采样（every 帧取 1）并限帧数 —— 质量分是附加信息，
-    不该把主链路拖慢。5 秒 1080p 实测两趟合计 ~0.5s。
+    不该把主链路拖慢。5 秒 1080p 实测三趟合计 ~0.8s。
+
+    第三趟只为了回答一个问题：这些边缘是**结构**还是**噪点**？
+    所以它拿不到时不算致命 —— 少一个噪点判别不该让整条评分失效，
+    `noise_keep` 会缺席，评分逻辑按"未判定"处理（不扣分也不报警）。
     """
     sel = f"select='not(mod(n\\,{every}))',"
     edge = _series(path, sel + "convolution=0 1 0 1 -4 1 0 1 0,signalstats,"
@@ -166,12 +191,18 @@ def _stats_series(path: Path, *, limit: int = 240, every: int = 3) -> dict:
     if raw is None or not raw["yavg"]:
         return {"error": "拿不到亮度序列（解码失败？）"}
 
+    # 先 gblur 再卷积：有结构的边缘塌得慢，噪点几乎全塌
+    blurred = _series(path, sel + "gblur=sigma=1.5,convolution=0 1 0 1 -4 1 0 1 0,"
+                                "signalstats,metadata=print:file=-", limit=limit)
+
     return {
         "edge": edge["yavg"],                    # 卷积后的 YAVG = 边缘能量
         "yavg": raw["yavg"],                     # 原始 YAVG = 画面亮度
         "ymin": raw["ymin"],
         "ymax": raw["ymax"],
         "ydif": raw["ydif"],
+        # 模糊后的边缘序列；拿不到就是 []，上层按"未判定"处理
+        "edge_blur": (blurred or {}).get("yavg") or [],
         "samples": len(raw["yavg"]),
     }
 
@@ -215,6 +246,10 @@ def score_video(path: Path) -> QualityScore:
     rng = hi - lo
     stability = _cv(edge)                  # 用边缘序列算闪动，不用亮度（曝光会变）
 
+    # 噪点判别：模糊后边缘能量保留率。拿不到就保持 None（未判定）。
+    keep = _noise_keep(st.get("edge_blur") or [], edge)
+    is_noise = keep is not None and keep < NOISE_KEEP
+
     s.metrics = {
         "sharpness": round(sharp, 3),
         "motion": round(motion, 3),
@@ -223,11 +258,20 @@ def score_video(path: Path) -> QualityScore:
         "sharpness_cv": round(stability, 3),
         "samples": st["samples"],
     }
+    if keep is not None:
+        s.metrics["noise_keep"] = round(keep, 1)
 
     # 清晰度（40）：BLUR 以下线性到 0，GOOD 以上满分
     q_sharp = _clip01((sharp - SHARP_BLUR) / (SHARP_GOOD - SHARP_BLUR))
     if sharp < SHARP_BLUR:
         s.issues.append(f"边缘能量 {sharp:.2f} < {SHARP_BLUR}：画面糊/抽象/缺细节")
+    if is_noise:
+        # 噪点和糊是**相反**的失败：糊是没有高频，噪点是高频全是垃圾。
+        # 两者都该落到低分，但清晰度项对噪点是满分（边缘能量极高），
+        # 所以必须在这里单独否决 —— 否则纯噪声视频拿 100 分 A 级。
+        q_sharp = 0.0
+        s.issues.append(
+            f"模糊后边缘能量只剩 {keep:.0f}% < {NOISE_KEEP}%：画面是噪点/无结构，不是细节")
 
     # 运动（25）：STATIC 以下 0 分，GOOD 以上满分
     q_motion = _clip01((motion - MOTION_STATIC) / (MOTION_GOOD - MOTION_STATIC))
@@ -257,7 +301,8 @@ def score_video(path: Path) -> QualityScore:
     # LTXV 失败样本（抽象噪点，sharp=0.56）靠高运动/好曝光拿了 58.4 分，
     # 反而高于合法的 wan_i2v（60.2 只差 1.8）。糊就是糊，不会因为动得好而变好，
     # 所以任一致命项触发就把总分压到该维度能接受的上限之下。
-    cap, cap_why = _bucket_cap(sharp, motion, luma, rng, stability)
+    cap, cap_why = _bucket_cap(sharp, motion, luma, rng, stability,
+                               noise_keep=keep)
     if cap is not None and s.score > cap:
         s.score = float(cap)
         s.metrics["capped_by"] = cap_why
@@ -286,12 +331,22 @@ def score_image(path: Path) -> QualityScore:
               max(st["ymax"]) if st["ymax"] else luma)
     rng = hi - lo
 
+    keep = _noise_keep(st.get("edge_blur") or [], st["edge"])
+    is_noise = keep is not None and keep < NOISE_KEEP
+
     s.metrics = {"sharpness": round(sharp, 3), "luma_mean": round(luma, 1),
                  "luma_range": round(rng, 1), "samples": st["samples"]}
+    if keep is not None:
+        s.metrics["noise_keep"] = round(keep, 1)
 
     q_sharp = _clip01((sharp - SHARP_BLUR) / (SHARP_GOOD - SHARP_BLUR))
     if sharp < SHARP_BLUR:
         s.issues.append(f"边缘能量 {sharp:.2f} < {SHARP_BLUR}：图片糊/抽象")
+    if is_noise:
+        # 图片同样的问题：噪点图的边缘能量极高，清晰度项会满分
+        q_sharp = 0.0
+        s.issues.append(
+            f"模糊后边缘能量只剩 {keep:.0f}% < {NOISE_KEEP}%：图片是噪点/无结构，不是细节")
 
     q_luma = 1.0
     if luma < LUMA_LOW:
@@ -307,7 +362,11 @@ def score_image(path: Path) -> QualityScore:
 
     s.score = 50 * q_sharp + 30 * q_luma + 20 * q_range
     # 木桶封顶（与视频同一套理由：一项硬伤不该被其他项拉回中等分）
-    if sharp < SHARP_BLUR:
+    if is_noise:
+        # 噪点最先判、封得最狠：它是"清晰度满分但完全没内容"的唯一情形
+        s.score = min(s.score, 20)
+        s.metrics["capped_by"] = f"noise_keep {keep:.0f}% < {NOISE_KEEP}%"
+    elif sharp < SHARP_BLUR:
         s.score = min(s.score, 32)
         s.metrics["capped_by"] = f"sharpness {sharp:.2f} < {SHARP_BLUR}"
     elif luma < LUMA_LOW or luma > LUMA_HIGH:
@@ -330,8 +389,21 @@ def _grade(score: float) -> str:
     return "D"
 
 
+def _noise_keep(edge_blur: list[float], edge: list[float]) -> float | None:
+    """模糊后边缘能量的保留率（%）。拿不到数据返回 None（未判定，不当成 0）。
+
+    为什么不能拿不到就当 0：0% 意味着"肯定是噪点"，会把一次 ffmpeg 抖动
+    变成"这条片子是垃圾"的结论。评分器自己出错时应当**不表态**，不是乱表态。
+    """
+    a = _mean(edge)
+    if not edge_blur or a < 1e-6:
+        return None
+    return _mean(edge_blur) / a * 100.0
+
+
 def _bucket_cap(sharp: float, motion: float, luma: float, rng: float,
-                stability: float) -> tuple[int | None, str]:
+                stability: float, *, noise_keep: float | None = None
+                ) -> tuple[int | None, str]:
     """木桶封顶：任一致命项存在时，总分不得高于该维度能接受的上限。
 
     为什么需要：加权模型在「一项彻底坏 + 三项很好」时给出中等分。
@@ -345,7 +417,13 @@ def _bucket_cap(sharp: float, motion: float, luma: float, rng: float,
     所以用封顶表达「这一条有一个硬伤」。
 
     封顶值不是随便定的：都取在 B 的下沿（55）以下，让致命项一定落到 C/D。
+
+    噪点（2026-11-09 新增）放在**最前面**检查，而且封得最狠（20 分）：
+    它是唯一一种「清晰度指标满分但画面完全没内容」的失败 —— 纯噪声视频
+    加权分能到 100，靠其他项永远拉不回来，只能在这里一刀切死。
     """
+    if noise_keep is not None and noise_keep < NOISE_KEEP:
+        return 20, f"noise_keep {noise_keep:.0f}% < {NOISE_KEEP}%（噪点/无结构）"
     if sharp < SHARP_BLUR:
         return 32, f"sharpness {sharp:.2f} < {SHARP_BLUR}"
     if luma < LUMA_LOW or luma > LUMA_HIGH:

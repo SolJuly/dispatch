@@ -77,8 +77,97 @@ class RunError(Exception):
         self.fail_state = fail_state
 
 
+# ---------------------------------------------------------------- 孤儿实例兜底
+# 为什么需要（审计 §1 L4 没列，但它是「并发」失控的真正来源）：
+#
+#   run.py 以前没有任何信号处理。worker 被 systemd 重启、Ctrl-C、kill -9、
+#   调度器超时强杀 —— 无论哪种，进程消失后**实例还在 Running**，按 ¥2.15/h 继续计费。
+#   本地 job.json 冻在 RUNNING，于是：
+#     · 并发闸看本地 → 只有 1 个作业 → 放行 → 又建一台
+#     · 用户看面板 → 显示"1 个作业在跑" → 实际 3 台机在烧钱
+#
+#   2026-10-28 的实例 uhost-1xe255rs9xyp 就是这么留下的（v4-sweep 跑完 terminate
+#   走的是正常路径，但 trial.py 中途被打断那次没有）。
+#
+# 兜底策略分两层，因为「优雅」和「暴力」能做的事不同：
+#
+#   ① SIGTERM / SIGINT：还能执行代码。设定时关机（stop_at，N 分钟后自动停），
+#      而不是立刻销毁 —— 立刻销毁会把「正在跑的推理」和「已产出但没取回的文件」
+#      一起干掉。定时关机是「先记账后停机」，代价可控且可续跑。
+#   ② 进程直接消失（kill -9 / OOM / 断电）：Python 收不到任何信号。
+#      这种只能靠**下次启动时对账**：并发闸查云端 running 数（见 concurrency.py），
+#      以及 tools/p2/status2.py 的实例巡检把它们停掉。
+#
+# 注意：兜底只在「本进程建了机」时注册。--dry-run / salvage 不建机，不该触发。
+
+_ORPHAN_UID: str | None = None
+_ORPHAN_HANDLED = False
+
+
+def _orphan_guard_minutes() -> int:
+    """信号中断后实例再活多久。默认 10 分钟 —— 够续跑，不够烧钱。"""
+    try:
+        return max(1, int(os.environ.get("P1_ORPHAN_KEEP_MINUTES", "10")))
+    except ValueError:
+        return 10
+
+
+def _on_signal(signum: int, frame) -> None:
+    """收到终止信号：把实例定在「N 分钟后关机」，然后退出。
+
+    不销毁的理由同上：销毁是不可逆的，而停机是可续跑的（--resume 还能接着跑）。
+    钱的事交给定时关机（停机后算力费归零，系统盘 ≤100G 免费）。
+    """
+    global _ORPHAN_HANDLED
+    name = {2: "SIGINT", 15: "SIGTERM"}.get(signum, str(signum))
+    if _ORPHAN_HANDLED or not _ORPHAN_UID:
+        _say(f"⏹ 收到 {name}，无实例需要处理，退出")
+        raise SystemExit(130)
+    _ORPHAN_HANDLED = True
+    mins = _orphan_guard_minutes()
+    try:
+        cs = _cs(getattr(_OPTS, "creds", None))
+        cs.stop_at(_ORPHAN_UID, int(time.time() + mins * 60))
+        _say(f"⏹ 收到 {name}：实例 {_ORPHAN_UID} 已设定 {mins} 分钟后自动关机（可 --resume 续跑）")
+    except Exception as e:                 # noqa: BLE001
+        # 设不上定时关机时退化为直接销毁 —— 宁可丢一次续跑机会，不留计时炸弹
+        _say(f"⏹ 收到 {name}：定时关机失败（{type(e).__name__}: {e}），尝试直接销毁")
+        try:
+            _cs(getattr(_OPTS, "creds", None)).terminate(_ORPHAN_UID)
+            _say(f"   已销毁 {_ORPHAN_UID}")
+        except Exception as e2:            # noqa: BLE001
+            _say(f"   ⚠ 销毁也失败（{e2}）—— 实例 {_ORPHAN_UID} 可能仍在计费，请手动处理")
+    raise SystemExit(130)
+
+
+_OPTS = None                               # 信号处理器里拿 creds 用
+
+
+def _install_orphan_guard(job_id: str, opts) -> None:
+    """注册信号处理器。幂等：重复调用不会挂多个。"""
+    global _OPTS, _ORPHAN_HANDLED
+    _OPTS = opts
+    if _ORPHAN_HANDLED:
+        return
+    try:
+        import signal as _sig
+        for s in (_sig.SIGTERM, _sig.SIGINT, _sig.SIGHUP):
+            try:
+                _sig.signal(s, _on_signal)
+            except (ValueError, OSError):
+                # ValueError：非主线程（测试里常见）；OSError：平台不支持 SIGHUP
+                pass
+    except Exception:                      # noqa: BLE001
+        pass
+
+
+def _note_instance(uid: str | None) -> None:
+    """记住本进程当前占用的实例，供信号兜底使用。"""
+    global _ORPHAN_UID
+    _ORPHAN_UID = uid
+
+
 def _ledger(job_id: str, cost: float, **kw) -> None:
-    """把作业成本写进统一账本（csctl 的 ledger.jsonl），供 cost/status 归集。"""
     rec = {"ts": int(time.time()),
            "at": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "event": "job", "job": job_id, "cost": round(cost, 4), **kw}
@@ -345,6 +434,18 @@ def step_provision(job: dict, opts) -> dict:
             f"余额 ¥{bal:.2f} 不足以覆盖本作业预估 ¥{est_real:.2f}，中止建机",
             state.FAILED_PROVISION)
 
+    # ---- 并发闸门（§1 L4「并发」的另一半）----
+    # 上一轮把全局串行锁改成了作业级锁，并行度一下从 1 变成"想开几台开几台"。
+    # 账户只有 5 台配额，5 × ¥2.15/h = ¥10.75/h，而余额长期 ¥8 上下 ——
+    # 这不是理论风险，是点五次"提交并执行"就能触发的事。
+    # 判据用**云端 running 实例数**，不用本地 job.json：孤儿作业（进程被 kill、
+    # 状态卡在 RUNNING）在本地看是一个作业，在云端是一台正在计费的机器。
+    from tools.p2 import concurrency as conc
+    slot_ok, slot_why = conc.check_provision()
+    if not slot_ok:
+        raise RunError(f"{slot_why}", state.FAILED_PROVISION)
+    _say(f"并发检查通过：{slot_why}")
+
     # 预热池优先：池里有停机实例就直接 start（~12s），不消耗现货
     if getattr(opts, "from_pool", False):
         got = None
@@ -361,6 +462,7 @@ def step_provision(job: dict, opts) -> dict:
                 "uhost_id": uid, "gpu": gpu, "zone": cs.zone, "from_pool": True,
                 "up_at": dt.datetime.now().astimezone().isoformat(timespec="seconds")})
             store.atomic_write_json(store.job_file(job["job_id"]), j)
+            _note_instance(uid)          # 信号兜底：进程被打断时把实例停掉
             _say(f"复用预热池实例 {uid}（start {got.get('t_start')}s · 就绪 {got.get('t_ready')}s）")
             return {"uhost_id": uid, "inst": got["inst"], "hourly": float(price.get("total") or 0),
                     "host": got["host"], "port": got["port"], "password": got["password"],
@@ -407,6 +509,7 @@ def step_provision(job: dict, opts) -> dict:
     j["instance"].update({"uhost_id": uid, "gpu": gpu, "zone": cs.zone,
                           "up_at": dt.datetime.now().astimezone().isoformat(timespec="seconds")})
     store.atomic_write_json(store.job_file(job["job_id"]), j)
+    _note_instance(uid)              # 信号兜底：进程被打断时把实例停掉
     return {"uhost_id": uid, "inst": inst, "hourly": float(price.get("total") or 0),
             **opts_ctx}
 
@@ -572,11 +675,34 @@ def step_submit(job: dict, opts, ctx: dict) -> None:
 
 
 def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
-    """轮询 history 直到完成，返回远端文件列表。"""
+    """轮询 history 直到完成，返回远端文件列表。
+
+    两条上限同时在跑，取先到的那个：
+
+      · `max_minutes` —— 推理超时。**已经有效**（本函数下面那个 while）。
+      · `max_cost`    —— 钱的上限。**以前不生效**：建机前查过一次预估，
+        建机之后就不再管了。于是「预估 20 分钟 ¥0.72，实际卡了 40 分钟 ¥1.43」
+        这种情况会静默超支 —— 建机前的闸门只看"能不能开始"，管不到"跑多久"。
+
+    为什么按时间折算而不去查余额：查余额要一次 HTTP 往返，而这里是 5 秒一轮的
+    轮询；而且余额被多条作业共享，查出来的差额不一定是"本作业"花的。
+    按 `hourly × 已跑分钟` 折算只依赖自己知道的信息，可复算、可解释。
+    """
     host, port, pwd = ctx["host"], ctx["port"], ctx["password"]
     pid = ctx["prompt_id"]
-    limit = int((job.get("budget") or {}).get("max_minutes") or 20) * 60
+    budget = job.get("budget") or {}
+    limit = int(budget.get("max_minutes") or 20) * 60
+    cap = float(budget.get("max_cost") or 0)
+    hourly = float(ctx.get("hourly") or 0)
+    # 钱能买多少秒：cap / 每小时价 × 3600。cap<=0（不限）或 hourly<=0（未知）时不管。
+    cost_limit = int(cap / hourly * 3600) if (cap > 0 and hourly > 0) else 0
+    if cost_limit:
+        _say(f"预算 {cap:.2f} / {hourly:.2f} 每小时 → 最多跑 {cost_limit // 60} 分钟")
+        # 钱的上限比时间上限更紧时，超时口径跟着钱走
+        if cost_limit < limit:
+            limit = cost_limit
     t0 = time.time()
+
     cmd = ("source /root/miniconda3/bin/activate && python3 -c \""
            "import json,sys,urllib.request;"
            f"h=json.load(urllib.request.urlopen('http://127.0.0.1:8188/history/'+sys.argv[1],timeout=60));"
@@ -620,9 +746,17 @@ def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
                         state.FAILED_RUN)
         elapsed = int(time.time() - t0)
         if elapsed - last_note >= 120:
-            _say(f"  推理中… 已等 {elapsed}s（每 2 分钟一次心跳）")
+            spent = hourly * elapsed / 3600 if hourly > 0 else None
+            money = f" · 已花 ≈¥{spent:.2f}/{cap:.2f}" if (spent is not None and cap > 0) else ""
+            _say(f"  推理中… 已等 {elapsed}s{money}（每 2 分钟一次心跳）")
             last_note = elapsed
         time.sleep(5)
+    # 分两种超时：钱先到 vs 时间先到。混成一句会让用户不知道调哪个参数。
+    if cost_limit and cost_limit <= int(budget.get("max_minutes") or 20) * 60:
+        raise RunError(
+            f"预算超时：按 ¥{hourly:.2f}/h 折算，¥{cap:.2f} 只够跑 {cost_limit // 60} 分钟，"
+            f"已用尽（推理仍未完成）。请调小帧数/分辨率，或提高 budget.max_cost。",
+            state.FAILED_RUN)
     raise RunError(f"推理超时（{limit}s）", state.FAILED_RUN)
 
 
@@ -1272,6 +1406,7 @@ def run(job_id: str, opts) -> int:
     job = state.load_job(job_id)
     _say(f"作业 {job_id} · 模型 {job['model']['key']} · 预算 ¥{job['budget'].get('max_cost')}")
     _start_heartbeat(job_id, opts)
+    _install_orphan_guard(job_id, opts)
 
     if opts.dry_run:
         _say("--dry-run：只走状态机，不建机、不花钱")

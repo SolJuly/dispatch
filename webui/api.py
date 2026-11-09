@@ -404,9 +404,20 @@ def run_jobs(ids: list[str], *, jobs_dir: Path | None = None,
     """把还停在 CREATED 的作业真正执行起来（控制台「执行」按钮用）。
 
     以前提交时若没勾「立即执行」，作业只会躺在 CREATED，没有任何入口能启动它。
+
+    **并发闸**：先确认还剩几个槽，再挑前 N 个能跑的启动，其余原样报"并发已满"。
+    为什么不是逐个判：批量执行 3 个时，前两个都看到"还有空槽"（因为它们还没写
+    RUNNING），第三个才发现满了 —— 然后两台机已经在下单路上。必须先算总账。
     """
+    from tools.p2 import concurrency as conc
+
+    todo = [str(x) for x in ids if x][:10]
+    ok_now, why = conc.check_slot(jobs_dir)
+    cap = conc.max_parallel()
+    room = max(0, cap - conc.slots_used(jobs_dir)) if ok_now else 0
+
     out = []
-    for jid in [str(x) for x in ids if x][:10]:
+    for i, jid in enumerate(todo):
         try:
             job = _load_job(jid, jobs_dir)
         except ApiError as e:
@@ -415,6 +426,11 @@ def run_jobs(ids: list[str], *, jobs_dir: Path | None = None,
         st = job.get("state")
         if st != jobstate.CREATED:
             out.append({"job_id": jid, "error": f"状态 {st}，只有 CREATED 能执行"})
+            continue
+        if i >= room:
+            # 槽位用完了：明确说"没启动"，不要让前端以为它跑了
+            out.append({"job_id": jid, "error": f"并发已满（{why}），未启动。"
+                                                f"等前面的作业结束再执行。"})
             continue
         log = _jobs_dir(jobs_dir) / jid / "run.log"
         log.parent.mkdir(parents=True, exist_ok=True)
@@ -515,6 +531,22 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
     except budget_mod.BudgetError as e:
         raise ApiError(str(e), 402) from e
 
+    # 并发闸门：只对「勾了立即执行」的提交生效。
+    # 不勾执行的作业停在 CREATED，不建机、不花钱，没有理由拦它 ——
+    # 拦了反而挡住"先排好队、等有空再点执行"这种正常用法。
+    #
+    # 满了怎么办：**降级成"建作业但不执行"**，而不是 429 拒绝。
+    # 直接拒绝会丢掉用户填好的整套参数（prompt / 输入图 / seed…），
+    # 那比"作业躺在 CREATED 等人点执行"难受得多 —— 后者零风险、可随时启动。
+    # 代价是要明确告诉前端它没跑，否则用户以为在跑、其实在等。
+    defer_reason = ""
+    if run:
+        from tools.p2 import concurrency as conc
+        ok, why = conc.check_slot(jobs_dir)
+        if not ok:
+            run = False
+            defer_reason = why
+
     spec = p20cli._make_spec(res, job_key=workflow, task_ref="P2.1")
     if budget is not None and budget > 0:
         spec.setdefault("budget", {})
@@ -566,6 +598,10 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
 
     return {"job_id": job_id, "state": state, "run": bool(run and not reused),
             "reused": reused,
+            # 并发满而降级时的原因。前端据此提示"已创建但未执行"，
+            # 而不是显示"已提交执行"然后让作业静静躺在 CREATED。
+            "deferred": bool(defer_reason),
+            "deferred_reason": defer_reason,
             "workflow": res["workflow"]["key"], "workflow_version": res["workflow"]["version"],
             "model": res["model"]["key"], "params_hash": phash,
             "params": res["params"], "expect": spec.get("expect")}

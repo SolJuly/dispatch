@@ -33,7 +33,7 @@ HAVE_FFMPEG = subprocess.run(["sh", "-c", "command -v ffmpeg"],
 
 
 def _make_video(path: Path, *, source: str = "testsrc2", seconds: float = 2.0,
-                size: str = "128x128", fps: int = 8) -> bool:
+                size: str = "128x128", fps: int = 8, vf: str = "") -> bool:
     """现场生成一个测试视频。
 
     `source` 是完整的 lavfi 滤镜串（不含 size/rate/duration）。
@@ -47,19 +47,24 @@ def _make_video(path: Path, *, source: str = "testsrc2", seconds: float = 2.0,
         filt = f"{source}:size={size}:rate={fps}:duration={seconds}"
     else:
         filt = f"{source}=size={size}:rate={fps}:duration={seconds}"
-    cmd = ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", filt,
-           "-pix_fmt", "yuv420p", "-c:v", "libx264", str(path)]
+    cmd = ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", filt]
+    if vf:
+        cmd += ["-vf", vf]
+    cmd += ["-pix_fmt", "yuv420p", "-c:v", "libx264", str(path)]
     r = subprocess.run(cmd, capture_output=True, timeout=120)
     return r.returncode == 0 and path.is_file() and path.stat().st_size > 0
 
 
-def _make_image(path: Path, *, source: str = "testsrc2", size: str = "128x128") -> bool:
+def _make_image(path: Path, *, source: str = "testsrc2", size: str = "128x128",
+                vf: str = "") -> bool:
     if not HAVE_FFMPEG:
         return False
     filt = (f"{source}:size={size}" if source.startswith("color=")
             else f"{source}=size={size}")
-    cmd = ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", filt,
-           "-frames:v", "1", str(path)]
+    cmd = ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", filt]
+    if vf:
+        cmd += ["-vf", vf]
+    cmd += ["-frames:v", "1", str(path)]
     r = subprocess.run(cmd, capture_output=True, timeout=120)
     return r.returncode == 0 and path.is_file()
 
@@ -133,6 +138,144 @@ class TestBucketCap(unittest.TestCase):
         cap, why = Q._bucket_cap(2.0, 3.0, 120, 10, 0.1)
         self.assertIsNotNone(cap)
         self.assertIn("range", why)
+
+
+class TestNoiseDiscriminator(unittest.TestCase):
+    """噪点判别：这一类失败在原评分里拿满分。
+
+    **实测漏洞（2026-11-09）**：`noise=alls=120` 生成的纯雪花视频拿 100 分 A 级 ——
+    清晰度项满分（边缘能量 95.16，正常片 0.9–6.3）、运动项满分（每帧都在变）、
+    曝光项满分（灰度填满 0–255）。三项都"对"，结论完全错。
+
+    根因：「清晰度」这个指标分不清「细节」和「噪点」。两者在高频能量上是同一件事，
+    区别在**结构** —— 噪点没有结构，细节有。所以先 gblur 再量边缘能量，看保留多少：
+
+        有结构的边缘 → 模糊后塌得慢（13 条真实素材实测保留 28–55%）
+        噪点          → 模糊后几乎全塌（8 条合成噪点实测 10–15%）
+
+    线定 20%：离噪点最高 15.0% 留 5 个点，离真实最低 28.3% 留 8 个点，两边不贴边。
+    """
+
+    def test_noise_keep_threshold_sits_between_measured_clusters(self):
+        """阈值必须落在两个实测簇之间，且两边都有余量。"""
+        self.assertLess(Q.NOISE_KEEP, 28.3, "不能高到误杀真实素材（最低 28.3%）")
+        self.assertGreater(Q.NOISE_KEEP, 15.0, "不能低到放过噪点（最高 15.0%）")
+
+    def test_pure_noise_capped_hard(self):
+        """纯噪声必须被判为噪点，且封顶最狠（20 分，D 级）。
+
+        它封得比"糊"（32）还狠：糊至少还有内容，噪点是彻底没有内容。
+        """
+        cap, why = Q._bucket_cap(95.0, 70.0, 127.0, 255.0, 0.002, noise_keep=15.0)
+        self.assertEqual(cap, 20, "噪点封顶应当是 20")
+        self.assertIn("noise_keep", why)
+        self.assertIn("噪点", why)
+
+    def test_noise_cap_beats_sharpness_cap(self):
+        """噪点的边缘能量很高（>SHARP_BLUR），所以不会触发"糊"的封顶。
+
+        这条钉住检查顺序：噪点必须排在 sharpness 之前，否则永远轮不到它。
+        """
+        # sharpness=95 远高于 SHARP_BLUR，单看 sharpness 不会封顶
+        cap_no_noise, _ = Q._bucket_cap(95.0, 70.0, 127.0, 255.0, 0.002)
+        self.assertIsNone(cap_no_noise)
+        cap_with, _ = Q._bucket_cap(95.0, 70.0, 127.0, 255.0, 0.002, noise_keep=12.0)
+        self.assertEqual(cap_with, 20)
+
+    def test_good_noise_keep_not_capped(self):
+        """保留率正常（真实素材量级）就不该封顶。"""
+        for keep in (28.3, 34.0, 45.0, 55.0):
+            with self.subTest(keep=keep):
+                cap, _ = Q._bucket_cap(2.0, 18.0, 120.0, 240.0, 0.05, noise_keep=keep)
+                self.assertIsNone(cap, f"keep={keep}% 是真实素材量级，不该判噪点")
+
+    def test_unknown_noise_keep_does_not_cap(self):
+        """拿不到模糊序列（None）时必须"不表态"。
+
+        把 None 当成 0 会把一次 ffmpeg 抖动变成"这条片子是垃圾"的结论。
+        评分器自己出错时应当不表态，不是乱表态。
+        """
+        cap, _ = Q._bucket_cap(2.0, 18.0, 120.0, 240.0, 0.05, noise_keep=None)
+        self.assertIsNone(cap)
+
+    def test_noise_keep_helper(self):
+        """_noise_keep：正常算百分比，分母为 0 或序列为空时返回 None。"""
+        self.assertAlmostEqual(Q._noise_keep([0.5, 0.5], [1.0, 1.0]), 50.0)
+        self.assertIsNone(Q._noise_keep([], [1.0]))
+        self.assertIsNone(Q._noise_keep([0.5], []))
+        self.assertIsNone(Q._noise_keep([0.5], [0.0]), "分母为 0 不能炸")
+
+
+@unittest.skipUnless(HAVE_FFMPEG, "没有 ffmpeg")
+class TestNoiseRealDecode(unittest.TestCase):
+    """真解码验证：合成噪点必须落到 D，同期真实结构不能误杀。"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.td = tempfile.TemporaryDirectory()
+        cls.dir = Path(cls.td.name)
+        cls.noise = cls.dir / "noise.mp4"
+        cls.clean = cls.dir / "clean.mp4"
+        cls.noise_ok = _make_video(cls.noise, source="nullsrc",
+                                   vf="geq=random(1)*255:128:128")
+        cls.clean_ok = _make_video(cls.clean, source="testsrc2")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.td.cleanup()
+
+    def test_noise_video_is_not_grade_a(self):
+        """回归：纯噪声视频曾经拿 100 分 A 级。
+
+        这条用例存在的唯一目的就是**永远不要再回到那个状态**。
+        """
+        if not self.noise_ok:
+            self.fail("未能生成噪声测试视频（ffmpeg 不可用或参数变了）")
+        s = Q.score_video(self.noise)
+        self.assertEqual(s.grade, "D", f"纯噪声必须 D 级，实得 {s.grade} {s.score} "
+                                      f"metrics={s.metrics}")
+        self.assertLessEqual(s.score, 32, f"分数不该超过 32，实得 {s.score}")
+        self.assertTrue(any("噪点" in i for i in s.issues),
+                        f"应报噪点问题：{s.issues}")
+        self.assertIn("noise_keep", s.metrics)
+
+    def test_clean_video_still_scores_well(self):
+        """反向：真实结构不能被噪点检测误杀。"""
+        if not self.clean_ok:
+            self.fail("未能生成正常测试视频")
+        s = Q.score_video(self.clean)
+        self.assertGreaterEqual(s.score, 55, f"正常片被误杀：{s.score} {s.issues}")
+        self.assertFalse(any("噪点" in i for i in s.issues), s.issues)
+
+
+@unittest.skipUnless(HAVE_FFMPEG, "没有 ffmpeg")
+class TestNoiseRealImage(unittest.TestCase):
+    """图片同一套判别（噪点图的边缘能量同样极高）。"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.td = tempfile.TemporaryDirectory()
+        cls.dir = Path(cls.td.name)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.td.cleanup()
+
+    def test_noise_image_is_d(self):
+        p = self.dir / "noise.png"
+        if not _make_image(p, source="nullsrc", vf="geq=random(1)*255:128:128"):
+            self.fail("未能生成噪声图")
+        s = Q.score_image(p)
+        self.assertEqual(s.grade, "D", f"噪声图必须 D，实得 {s.grade} {s.score}")
+        self.assertTrue(any("噪点" in i for i in s.issues), s.issues)
+
+    def test_clean_image_not_misjudged(self):
+        p = self.dir / "clean.png"
+        if not _make_image(p, source="testsrc2"):
+            self.fail("未能生成正常图")
+        s = Q.score_image(p)
+        self.assertFalse(any("噪点" in i for i in s.issues), s.issues)
+        self.assertGreaterEqual(s.score, 55, f"正常图被误杀：{s.score} {s.issues}")
 
 
 # ------------------------------------------------------------------ 真实解码

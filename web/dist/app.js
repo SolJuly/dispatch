@@ -550,7 +550,15 @@ async function submitJob() {
   $('#submit').disabled = true;
   try {
     const res = await post('/jobs', {workflow: S.wfKey, params, run: $('#runNow').checked});
-    $('#submitMsg').innerHTML = `<span style="color:var(--green)">${esc(res.job_id)} · ${esc(res.state)}</span>`;
+    // 并发满时后端会**降级成"建作业但不执行"**（deferred=true），而不是拒绝 ——
+    // 拒绝会丢掉用户刚填好的一整套参数。但也不能显示成"已提交执行"：
+    // 那会让人以为在跑，其实在等。这里明确区分三种结果。
+    const note = res.deferred
+      ? `<span style="color:var(--amber)">${esc(res.job_id)} · 已创建，未执行</span>
+         <div class="fdesc" style="margin-top:6px">${esc(res.deferred_reason || '并发已满')}
+         作业已保存，等前面的跑完到任务页点「执行」即可，不会重复建机。</div>`
+      : `<span style="color:var(--green)">${esc(res.job_id)} · ${esc(res.state)}</span>`;
+    $('#submitMsg').innerHTML = note;
     location.hash = '#/result/' + encodeURIComponent(res.job_id);
   } catch (e) {
     const d = e.data || {};

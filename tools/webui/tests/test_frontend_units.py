@@ -433,6 +433,20 @@ class TestResultQualityCard(unittest.TestCase):
         self.js = (WEB / "dist" / "app.js").read_text(encoding="utf-8")
         self.css = (WEB / "dist" / "app.css").read_text(encoding="utf-8")
 
+    def test_submit_deferred_js(self):
+        """跑 web/tests/submit_deferred.test.js（9 条）。
+
+        并发满时后端降级成"建作业但不执行"，前端必须显示"已创建，未执行"。
+        显示成"已提交执行"会让用户以为在跑、实际在等，而他不去点执行，
+        作业就永远躺在 CREATED。
+        """
+        script = TESTS / "submit_deferred.test.js"
+        self.assertTrue(script.is_file(), f"缺测试脚本：{script}")
+        r = subprocess.run([NODE, str(script)], cwd=str(WEB),
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, f"提交结果渲染单测失败：\n{r.stdout}\n{r.stderr}")
+        self.assertIn("0 failed", r.stdout)
+
     def test_quality_card_js(self):
         """跑 web/tests/quality_card.test.js（21 条，含负向断言）。"""
         script = TESTS / "quality_card.test.js"
