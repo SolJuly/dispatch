@@ -1,113 +1,113 @@
 {
-  "description": "单图生成带音频的视频。输入：首帧图 + 提示词；输出：MP4。缺 LoRA 权重。（🚧 尚未开发）",
-  "engine": "comfyui",
-  "expect_defaults": {
-    "duration_s": [
-      1.0,
-      120.0
-    ],
-    "ext": "mp4",
-    "min_bytes": 50000
-  },
-  "fps": 25,
-  "graph": "workflows/pack/video_ltx2_3_i2v.api.json",
-  "key": "pack_video_ltx2_3_i2v",
-  "kind": "video",
-  "limits": {
-    "max_cost": 1.6,
-    "max_minutes": 40
-  },
-  "model": {
-    "key": "ltx_2_3_22b_dev_fp8",
-    "slots": {
-      "ckpt": {
-        "input": "ckpt_name",
-        "node": "1370"
-      },
-      "lora": {
-        "input": "lora_name",
-        "node": "1340"
-      },
-      "lora_2": {
-        "input": "lora_name",
-        "node": "1375"
-      },
-      "upscale": {
-        "input": "model_name",
-        "node": "1365"
-      }
-    }
-  },
-  "name": "图生视频 · LTX 2.3（带原生音频，尚未开发）",
-  "notes": "vid.i2v.fast · 图生视频 · 快速基线（带原生音频） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
-  "output": {
-    "ext": "mp4",
-    "input": "filename_prefix",
-    "kind": "video",
-    "node": "75",
-    "pick": [
-      "videos",
-      "gifs"
-    ]
-  },
-  "params": {
-    "image": {
-      "bindings": [
-        {
-          "input": "image",
-          "node": "269"
-        }
-      ],
-      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
-      "required": true,
-      "type": "image"
-    },
-    "neg_prompt": {
-      "bindings": [
-        {
-          "input": "prompt",
-          "node": "1376"
-        }
-      ],
-      "default": "Egyptian royal in blue-and-gold headdress and high collar, white dress with golden embroidery and ar…",
-      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
-      "required": false,
-      "type": "string"
-    },
-    "prompt": {
-      "bindings": [
-        {
-          "input": "text",
-          "node": "1367"
-        }
-      ],
-      "default": "pc game, console game, video game, cartoon, childish, ugly",
-      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
-      "required": true,
-      "type": "string"
-    },
-    "seed": {
-      "bindings": [
-        {
-          "input": "noise_seed",
-          "node": "1331"
-        },
-        {
-          "input": "noise_seed",
-          "node": "1332"
-        }
-      ],
-      "default": 0,
-      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
-      "max": 2147483647,
-      "min": 0,
-      "type": "int"
-    }
-  },
-  "required_gpu": [
-    "4090",
-    "4090_48G"
+ "description": "单图生成带音频的视频。输入：首帧图 + 提示词；输出：MP4。缺 LoRA 权重。（🚧 尚未开发）",
+ "engine": "comfyui",
+ "expect_defaults": {
+  "duration_s": [
+   1.0,
+   120.0
   ],
-  "schema": "p20.workflow/v1",
-  "version": 1
+  "ext": "mp4",
+  "min_bytes": 50000
+ },
+ "fps": 25,
+ "graph": "workflows/pack/video_ltx2_3_i2v.api.json",
+ "key": "pack_video_ltx2_3_i2v",
+ "kind": "video",
+ "limits": {
+  "max_cost": 1.6,
+  "max_minutes": 40
+ },
+ "model": {
+  "key": "ltx_2_3_22b_dev_fp8",
+  "slots": {
+   "ckpt": {
+    "input": "ckpt_name",
+    "node": "1370"
+   },
+   "lora": {
+    "input": "lora_name",
+    "node": "1340"
+   },
+   "lora_2": {
+    "input": "lora_name",
+    "node": "1375"
+   },
+   "upscale": {
+    "input": "model_name",
+    "node": "1365"
+   }
+  }
+ },
+ "name": "图生视频 · LTX 2.3（带原生音频，尚未开发）",
+ "notes": "vid.i2v.fast · 图生视频 · 快速基线（带原生音频） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+ "output": {
+  "ext": "mp4",
+  "input": "filename_prefix",
+  "kind": "video",
+  "node": "75",
+  "pick": [
+   "videos",
+   "gifs"
+  ]
+ },
+ "params": {
+  "image": {
+   "bindings": [
+    {
+     "input": "image",
+     "node": "269"
+    }
+   ],
+   "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+   "required": true,
+   "type": "image"
+  },
+  "neg_prompt": {
+   "bindings": [
+    {
+     "input": "prompt",
+     "node": "1376"
+    }
+   ],
+   "default": "静态，静止画面，画面模糊，细节不清，低质量，最差质量，JPEG 压缩残留，字幕，水印，文字，logo，过曝，整体发灰，形变，畸形的肢体，多余的手指",
+   "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+   "required": false,
+   "type": "string"
+  },
+  "prompt": {
+   "bindings": [
+    {
+     "input": "text",
+     "node": "1367"
+    }
+   ],
+   "default": "pc game, console game, video game, cartoon, childish, ugly",
+   "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+   "required": true,
+   "type": "string"
+  },
+  "seed": {
+   "bindings": [
+    {
+     "input": "noise_seed",
+     "node": "1331"
+    },
+    {
+     "input": "noise_seed",
+     "node": "1332"
+    }
+   ],
+   "default": 0,
+   "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+   "max": 2147483647,
+   "min": 0,
+   "type": "int"
+  }
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "schema": "p20.workflow/v1",
+ "version": 1
 }

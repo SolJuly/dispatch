@@ -577,5 +577,101 @@ class TestPreflightRealRegistry(unittest.TestCase):
         self.assertTrue(all("qwen" in r.workflow for r in rows))
 
 
+class TestPreflightCompatLinks(unittest.TestCase):
+    """compat_links 是「ComfyUI 名字 → 真实文件」的已确认映射，属强证据。
+
+    2026-11-09 实测：不读它的后果是 qwen_image_t2i 等 **verified（真机跑通过）**
+    被预检报成 no_weight —— 判据漏一条证据来源，就会把已验证说成不可用。
+    """
+
+    def _wf_model(self, name="a.safetensors", rule=None):
+        wf = {"key": "w", "graph": "workflows/none.api.json",
+              "model": {"key": "m"}, "params": {}}
+        f = {"name": name, "loader": "CheckpointLoaderSimple"}
+        if rule:
+            f["match"] = rule
+        return wf, {"key": "m", "files": {"ckpt": f}}
+
+    def test_compat_link_satisfies_weight(self):
+        wf, model = self._wf_model("qwen_std_vae.safetensors")
+        probe = PF.Probe(weight_files={"other.bin"}, weights_known=True,
+                         weights_complete=True,
+                         compat_links={"qwen_std_vae.safetensors": "/model/x.safetensors"})
+        r = PF.check_workflow(wf, model, probe)
+        self.assertEqual(r.missing_weights, [],
+                         "compat_links 里有就该放过，真实文件叫别的名字无所谓")
+
+    def test_without_compat_link_still_missing(self):
+        wf, model = self._wf_model("qwen_std_vae.safetensors")
+        probe = PF.Probe(weight_files={"other.bin"}, weights_known=True,
+                         weights_complete=True)
+        r = PF.check_workflow(wf, model, probe)
+        self.assertEqual(r.missing_weights, ["qwen_std_vae.safetensors"])
+
+    def test_load_compat_links_parses_tabs(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
+            f.write("# 注释行\n")
+            f.write("vae\tqwen_std_vae.safetensors\t/model/a/b.safetensors\n")
+            f.write("loras\tsub/dir/x.safetensors\t/model/c/x.safetensors\n")
+            f.write("坏行没有制表符\n")
+            path = f.name
+        try:
+            links = PF.load_compat_links(path)
+            self.assertEqual(links["qwen_std_vae.safetensors"], "/model/a/b.safetensors")
+            # 带子目录的名字按 basename 建索引（与模型卡匹配口径一致）
+            self.assertEqual(links["x.safetensors"], "/model/c/x.safetensors")
+            self.assertEqual(len(links), 2)
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_real_compat_links_has_no_bad_paths(self):
+        links = PF.load_compat_links()
+        if not links:
+            self.skipTest("没有 compat_links.txt")
+        for name, target in links.items():
+            self.assertTrue(target.startswith("/model"),
+                            f"{name} 的映射不是 /model 下的绝对路径：{target}")
+
+
+class TestMatchNormalization(unittest.TestCase):
+    """同名文件在不同地方写法不同（大小写 / 连字符），不能判成缺失。
+
+    实测：模型卡 `ltx_2.3_22b_...` vs 库里 `ltx-2.3-22b-...`；
+    模型卡 `ltx-2.3-id-lora-talkvid-3k` vs 库里 `LTX-2.3-ID-LoRA-TalkVid-3K`。
+    按原名比会误判成缺权重，白排一轮真机验证。
+    """
+
+    def test_hyphen_underscore_equivalent(self):
+        self.assertTrue(PF._match("ltx-2.3-22b-distilled.safetensors",
+                                  {"contains": "ltx_2.3_22b_distilled"}))
+        self.assertTrue(PF._match("ltx_2.3_22b_distilled.safetensors",
+                                  {"contains": "ltx-2.3-22b-distilled"}))
+
+    def test_case_insensitive(self):
+        self.assertTrue(PF._match("LTX-2.3-ID-LoRA-TalkVid-3K.safetensors",
+                                  {"contains": "ltx-2.3-id-lora-talkvid-3k"}))
+
+    def test_equals_normalized(self):
+        self.assertTrue(PF._match("Qwen_Std_VAE.safetensors",
+                                  {"equals": "qwen_std_vae.safetensors"}))
+
+    def test_version_numbers_still_distinguished(self):
+        """归一**只**处理大小写和连字符。版本/精度/规模必须保持可区分。
+
+        rank_105 匹配到 rank_111、fp8 匹配到 int8，会让作业静默用错权重 ——
+        那种错误在成片里根本看不出来。
+        """
+        self.assertFalse(PF._match("ltx-lora-rank_105.safetensors",
+                                   {"contains": "lora_rank_111"}))
+        self.assertFalse(PF._match("seedvr2_7b_fp8.safetensors",
+                                   {"contains": "seedvr2_7b_int8"}))
+        self.assertFalse(PF._match("seedvr2_ema_3b.safetensors",
+                                   {"contains": "seedvr2_ema_7b"}))
+
+    def test_empty_rule_does_not_match_everything(self):
+        self.assertFalse(PF._match("anything.safetensors", {}))
+
+
 if __name__ == "__main__":
     unittest.main()

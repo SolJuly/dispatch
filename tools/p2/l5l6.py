@@ -259,9 +259,13 @@ def cmd_preflight(a) -> int:
         print("⚠ 没有给 --object-info / --weights：只能做图结构检查，"
               "节点与权重两类问题查不出来。\n")
 
-    rows = P.check_all(probe=probe, only=a.filter or "")
+    # compat_links 是「名字 → 真实路径」的已确认映射，必须一起喂给预检，
+    # 否则 qwen_image_t2i 这类 verified 会被误报成缺权重（见 load_compat_links 注释）
+    links = P.load_compat_links()
+    rows = P.check_all(probe=probe, only=a.filter or "", compat_links=links)
     s = P.summarize(rows)
-    print(f"工作流 {s['total']} 条 · 可执行 {s['ready']} · 阻塞 {s['blocked']}")
+    print(f"工作流 {s['total']} 条 · 可执行 {s['ready']} · 阻塞 {s['blocked']}"
+          f"（已加载 {len(links)} 条 compat_links 映射）")
     for k, v in s["by_cause"].items():
         if v:
             print(f"  {k}: {v}")

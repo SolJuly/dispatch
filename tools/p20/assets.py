@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import shlex
 from pathlib import Path
 
@@ -138,8 +139,17 @@ def setup_profile(model: dict) -> str:
 
 # ---------------------------------------------------------------- 自动软链
 # Loader → ComfyUI models 子目录（v4 镜像的口径）
+# loader 类 → ComfyUI/models 下的子目录。
+#
+# **这份表必须和 tools/p2/preflight.py 的同名表一致**，否则会出现
+# 「预检说有权重、真机说没有」——2026-11-10 实测踩到：
+# `LatentUpscaleModelLoader` 在这里没登记，落到默认的 diffusion_models，
+# 而它其实归 upscale_models。软链建到了错目录，ComfyUI 当然看不见。
+#
+# 缺项一律回落 diffusion_models（不是错，但会让资产检查报"没有包含 X 的文件"）。
 LOADER_DIRS = {
     "UNETLoader": "diffusion_models",
+    "UnetLoaderGGUF": "diffusion_models",
     "CLIPLoader": "text_encoders",
     "DualCLIPLoader": "text_encoders",
     "VAELoader": "vae",
@@ -147,7 +157,9 @@ LOADER_DIRS = {
     "LoraLoader": "loras",
     "CheckpointLoaderSimple": "checkpoints",
     "CLIPVisionLoader": "clip_vision",
+    "ControlNetLoader": "controlnet",
     "UpscaleModelLoader": "upscale_models",
+    "LatentUpscaleModelLoader": "upscale_models",
     "ModelPatchLoader": "model_patches",
 }
 
@@ -165,17 +177,46 @@ def model_filenames(model: dict) -> list[tuple[str, str, str]]:
 
 
 def build_find_command(model: dict, maxdepth: int = 7) -> str:
-    """一次 find 把所有需要的权重名找齐（按 basename 匹配）。"""
-    names = sorted({Path(n).name for _d, n, _l in model_filenames(model)})
-    if not names:
+    """一次 find 把 /model 下的所有权重捞回来，**归一化比对在本地做**。
+
+    走过的三次弯路（2026-11-10，每次都是真机开完机才发现）：
+
+      ① `-name` 精确匹配 → `ltx_2.3_...` 找不到 `ltx-2.3-...`（连接符不同）
+      ② `-iname` 大小写不敏感了，但连接符仍是逐一比对，对不上
+      ③ 枚举所有连接符组合 → 真名是**混合**写法
+         `ltx-2.3-22b-distilled-1.1_lora-dynamic_fro09_avg_rank_111_bf16`
+         前半 `-` 后半 `_`；而 12 段 = 2048 种组合，为不炸命令行必须截断，
+         截断恰好漏掉最长的那些名字
+
+    结论：**不要试图在 shell 里表达等价关系。** 直接把候选捞回来，
+    在 Python 里归一后比对。`/model` 有 5211 个权重，一轮 find ~4 秒、
+    8000 行输出，比拼 2048 个 `-iname` 便宜，而且彻底消除这一类问题。
+    """
+    if not model_filenames(model):
         return "true"
-    expr = " -o ".join(f"-name {shlex.quote(n)}" for n in names)
-    return (f"find /model -maxdepth {maxdepth} -type f \\( {expr} \\) "
-            f"-printf '%f\\t%p\\n' 2>/dev/null | head -400")
+    return (f"find /model -maxdepth {maxdepth} -type f \\( "
+            f"-iname '*.safetensors' -o -iname '*.ckpt' -o -iname '*.pt' -o "
+            f"-iname '*.pth' -o -iname '*.bin' -o -iname '*.gguf' \\) "
+            f"-printf '%f\\t%p\\n' 2>/dev/null | head -8000")
+
+
+def _norm_name(s: str) -> str:
+    """文件名归一：小写 + 把 `-` 和 `.` 都折算成 `_`。
+
+    **只**做这两件事。版本号（rank_111 vs 105）、精度（fp8 vs int8）、
+    规模（3b vs 7b）必须保持可区分 —— 归一过头会让作业静默用错权重，
+    那种错误在成片里根本看不出来。
+    """
+    return str(s or "").strip().lower().replace("-", "_").replace(".", "_")
+
 
 
 def parse_find_output(out: str) -> dict[str, str]:
-    """'名字\\t路径' → {名字: 路径}（同名取第一个）。"""
+    """'名字\\t路径' → {名字: 路径}（同名取第一个）。
+
+    只收 `/model` 下的绝对路径 —— find 输出里可能混进 ssh 的告警行
+    （"Permanently added ... to the list of known hosts"），那些要丢掉。
+    """
     found: dict[str, str] = {}
     for line in (out or "").splitlines():
         if "\t" not in line:
@@ -189,12 +230,20 @@ def parse_find_output(out: str) -> dict[str, str]:
 
 def build_link_script(model: dict, found: dict[str, str],
                       comfy: str = "/root/ComfyUI/models") -> tuple[str, list[str]]:
-    """按已找到的路径生成软链脚本；返回 (script, 缺失文件名列表)。"""
+    """按已找到的路径生成软链脚本；返回 (script, 缺失文件名列表)。
+
+    查找顺序：精确同名 → 归一后同名。归一能对上 `ltx_2.3_` vs `ltx-2.3-`
+    这类纯排版差异（见 build_find_command 的注释）。
+    """
     lines = ["set -u"]
     missing = []
+    # 归一索引：归一名 → 真实路径（同名取第一个）
+    by_norm: dict[str, str] = {}
+    for k, v in found.items():
+        by_norm.setdefault(_norm_name(k), v)
     for subdir, name, _loader in model_filenames(model):
         base = Path(name).name
-        target = found.get(base)
+        target = found.get(base) or by_norm.get(_norm_name(base))
         if not target:
             missing.append(name)
             continue

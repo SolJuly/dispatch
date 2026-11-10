@@ -155,6 +155,8 @@ class Probe:
     node_classes_complete: bool = True
     weights_known: bool = False         # False = 没给权重清单，跳过权重检查
     weights_complete: bool = True
+    # 已确认的名字映射（name → 真实路径）；命中的权重不查 weights 也不报缺
+    compat_links: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def from_object_info(cls, oi: dict) -> "Probe":
@@ -250,9 +252,14 @@ def check_workflow(wf: dict, model: dict | None, probe: Probe) -> Readiness:
             if not name:
                 continue
             base = Path(name).name
+            # ① 已确认的名字映射（compat_links）：最强证据，直接放过。
+            #    它证明「这个 ComfyUI 名字在实例上能用」，真实文件叫别的名字无所谓。
+            if base in probe.compat_links:
+                continue
+            # ② 在权重清单里同名
             if base in probe.weight_files:
                 continue
-            # 按模型卡的 match 规则再给一次机会（平台库文件名常带额外后缀）
+            # ③ 按模型卡的 match 规则再给一次机会（平台库文件名常带额外后缀）
             rule = f.get("match") or {}
             if rule and any(_match(x, rule) for x in probe.weight_files):
                 continue
@@ -287,17 +294,49 @@ def check_workflow(wf: dict, model: dict | None, probe: Probe) -> Readiness:
     return r
 
 
+def _norm(s: str) -> str:
+    """文件名归一：小写 + 连字符折算成下划线。
+
+    为什么需要（2026-11-09 实测）：同一个文件在两处写法不同，纯属排版差异：
+
+        模型卡写的   ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_...
+        库里真实叫   ltx-2.3-22b-distilled-1.1_lora-dynamic_fro09_...
+        模型卡写的   ltx-2.3-id-lora-talkvid-3k
+        库里真实叫   LTX-2.3-ID-LoRA-TalkVid-3K
+
+    按原名比会判成"缺失"，于是 2 条工作流白排一轮真机验证，
+    而它们要的东西明明就在库里。
+
+    **只归一大小写和 `-`/`_`，不做别的模糊。** 版本号（111 vs 105）、
+    精度（fp8 vs int8）、模型规模（7b vs 3b）都必须保持可区分 ——
+    把 `rank_105` 匹配到 `rank_111` 会让作业静默用错权重，
+    那种错误在成片里根本看不出来。
+    """
+    return str(s or "").strip().lower().replace("-", "_")
+
+
 def _match(name: str, rule: dict) -> bool:
+    """按模型卡的 match 规则判断候选文件名是否等价。
+
+    规整后再比（见 _norm），避免大小写/连字符差异造成假缺失。
+    """
     import re
+    if not rule:
+        return False
+    cand, nc = name, _norm(name)
     if "equals" in rule:
-        return name == rule["equals"]
+        want = str(rule["equals"])
+        return cand == want or nc == _norm(want)
     if "contains" in rule:
-        return str(rule["contains"]) in name
+        want = str(rule["contains"])
+        return want in cand or _norm(want) in nc
     if "regex" in rule:
-        try:
-            return bool(re.search(str(rule["regex"]), name))
-        except re.error:
-            return False
+        for t in (cand, nc):
+            try:
+                if re.search(str(rule["regex"]), t):
+                    return True
+            except re.error:
+                return False
     return False
 
 
@@ -317,10 +356,64 @@ def _graph_errors(wf: dict, graph: dict) -> list[str]:
         return [f"配置校验异常：{type(e).__name__}: {e}"]
 
 
-def check_all(*, probe: Probe | None = None, only: str = "") -> list[Readiness]:
-    """全量预检。probe=None 时只做图结构检查（不需要机器数据）。"""
+def load_compat_links(path: Path | str | None = None) -> dict[str, str]:
+    """读 `tools/p1/compat_links.txt`：`dir<TAB>卡里写的名字<TAB>真实路径`。
+
+    为什么必须读这个文件（2026-11-09 实测）：预检只看 `weights-full.txt`
+    里 **/model 下的真实文件名**，而 `compat_links.txt` 记录的是
+    「ComfyUI 里该用什么名字 → 实际指向哪个文件」的**已确认映射**。
+
+    两者的名字经常不同，而且是**故意不同**的：
+
+        qwen25vl7b_std.safetensors  →  qwen2.5vl-7b-bf16.safetensors
+        qwen_std_vae.safetensors    →  qwen_image_vae.safetensors
+
+    原因见缺口清单 §3：「平台镜像里的文件名五花八门」。模型卡写的是
+    **ComfyUI 侧的名字**（工作流图里引用的就是它），真实文件叫别的名字
+    完全正常 —— 有软链就能跑。
+
+    不读这个文件的后果：`qwen_image_t2i` 等 4 条 **verified（真机跑通过）**
+    被预检报成 `no_weight`。判据漏了一条证据来源，就会把已验证说成不可用。
+    """
+    p = Path(path) if path else ROOT / "tools" / "p1" / "compat_links.txt"
+    out: dict[str, str] = {}
+    if not p.is_file():
+        return out
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) < 3:
+            continue
+        name, target = parts[1].strip(), parts[2].strip()
+        if name:
+            out[Path(name).name] = target
+    return out
+
+
+def check_all(*, probe: Probe | None = None, only: str = "",
+              compat_links: dict[str, str] | None = None) -> list[Readiness]:
+    """全量预检。probe=None 时只做图结构检查（不需要机器数据）。
+
+    compat_links 非空时，它的键会被当成「已确认存在」的名字。
+    """
     probe = probe or Probe()
     out: list[Readiness] = []
+
+    # compat_links 是「名字 → 真实路径」的已确认映射，属于**强证据**：
+    # 这些名字在实例上确实能用（instance_setup.sh 就是照它建软链的）。
+    # 直接并进 weight_files，让权重检查认它们。
+    if compat_links and probe.weights_known:
+        probe = Probe(
+            node_classes=probe.node_classes,
+            node_classes_known=probe.node_classes_known,
+            node_classes_complete=probe.node_classes_complete,
+            weight_files=probe.weight_files | set(compat_links),
+            weights_known=True,
+            weights_complete=probe.weights_complete,
+            compat_links=dict(compat_links),
+        )
 
     from tools.p20 import registry as p20registry
     try:
