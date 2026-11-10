@@ -1,554 +1,561 @@
 {
-  "1172": {
-    "class_type": "CLIPLoader",
-    "inputs": {
-      "clip_name": "t5xxl_fp16.safetensors",
-      "type": "cogvideox",
-      "device": "default"
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
+ "1172": {
+  "class_type": "CLIPLoader",
+  "inputs": {
+   "clip_name": "t5xxl_fp16.safetensors",
+   "type": "cogvideox",
+   "device": "default"
   },
-  "1173": {
-    "class_type": "VAELoader",
-    "inputs": {
-      "vae_name": "cogvideox_vae.safetensors"
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1174": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "",
-      "clip": [
-        "1172",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Negative Prompt"
-    }
-  },
-  "1175": {
-    "class_type": "CFGGuider",
-    "inputs": {
-      "cfg": 6,
-      "model": [
-        "1187",
-        0
-      ],
-      "positive": [
-        "1183",
-        0
-      ],
-      "negative": [
-        "1183",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "CFGGuider (Pass 2 cfg=6)"
-    }
-  },
-  "1176": {
-    "class_type": "BasicScheduler",
-    "inputs": {
-      "scheduler": "simple",
-      "steps": 30,
-      "denoise": 1,
-      "model": [
-        "1188",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1177": {
-    "class_type": "CFGGuider",
-    "inputs": {
-      "cfg": 6,
-      "model": [
-        "1188",
-        0
-      ],
-      "positive": [
-        "1183",
-        0
-      ],
-      "negative": [
-        "1183",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1178": {
-    "class_type": "RandomNoise",
-    "inputs": {
-      "noise_seed": 43
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1179": {
-    "class_type": "VOIDWarpedNoise",
-    "inputs": {
-      "optical_flow": [
-        "1182",
-        0
-      ],
-      "video": [
-        "1192",
-        0
-      ],
-      "width": 672,
-      "height": 384,
-      "length": [
-        "1196",
-        2
-      ]
-    },
-    "_meta": {
-      "title": "Warped Noise (from Pass 1 output)"
-    }
-  },
-  "1180": {
-    "class_type": "SamplerCustomAdvanced",
-    "inputs": {
-      "noise": [
-        "1184",
-        0
-      ],
-      "guider": [
-        "1175",
-        0
-      ],
-      "sampler": [
-        "1186",
-        0
-      ],
-      "sigmas": [
-        "1185",
-        0
-      ],
-      "latent_image": [
-        "1183",
-        2
-      ]
-    },
-    "_meta": {
-      "title": "Pass 2 Sample"
-    }
-  },
-  "1182": {
-    "class_type": "OpticalFlowLoader",
-    "inputs": {},
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1183": {
-    "class_type": "VOIDInpaintConditioning",
-    "inputs": {
-      "positive": [
-        "1193",
-        0
-      ],
-      "negative": [
-        "1174",
-        0
-      ],
-      "vae": [
-        "1173",
-        0
-      ],
-      "video": [
-        "1194",
-        0
-      ],
-      "quadmask": [
-        "1194",
-        0
-      ],
-      "width": 672,
-      "height": 384,
-      "length": [
-        "1196",
-        2
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1184": {
-    "class_type": "VOIDWarpedNoiseSource",
-    "inputs": {
-      "warped_noise": [
-        "1179",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Warped Noise → NOISE"
-    }
-  },
-  "1185": {
-    "class_type": "BasicScheduler",
-    "inputs": {
-      "scheduler": "simple",
-      "steps": 30,
-      "denoise": 1,
-      "model": [
-        "1187",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1186": {
-    "class_type": "VOIDSampler",
-    "inputs": {},
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1187": {
-    "class_type": "UNETLoader",
-    "inputs": {
-      "unet_name": "void_pass2.safetensors",
-      "weight_dtype": "default"
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1188": {
-    "class_type": "UNETLoader",
-    "inputs": {
-      "unet_name": "void_pass1.safetensors",
-      "weight_dtype": "default"
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1189": {
-    "class_type": "CreateVideo",
-    "inputs": {
-      "fps": [
-        "1204",
-        2
-      ],
-      "images": [
-        "1192",
-        0
-      ],
-      "audio": [
-        "1200",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1190": {
-    "class_type": "VOIDSampler",
-    "inputs": {},
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1191": {
-    "class_type": "SamplerCustomAdvanced",
-    "inputs": {
-      "noise": [
-        "1178",
-        0
-      ],
-      "guider": [
-        "1177",
-        0
-      ],
-      "sampler": [
-        "1190",
-        0
-      ],
-      "sigmas": [
-        "1176",
-        0
-      ],
-      "latent_image": [
-        "1183",
-        2
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1192": {
-    "class_type": "VAEDecode",
-    "inputs": {
-      "samples": [
-        "1191",
-        0
-      ],
-      "vae": [
-        "1173",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1193": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "Skateboard sliding down the snowy mountain view",
-      "clip": [
-        "1172",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Positive Prompt"
-    }
-  },
-  "1194": {
-    "class_type": "ImageFromBatch",
-    "inputs": {
-      "image": [
-        "1204",
-        0
-      ],
-      "batch_index": [
-        "1206",
-        1
-      ],
-      "length": [
-        "1202",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1196": {
-    "class_type": "GetImageSize",
-    "inputs": {
-      "image": [
-        "1194",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1200": {
-    "class_type": "TrimAudioDuration",
-    "inputs": {
-      "audio": [
-        "1204",
-        1
-      ],
-      "start_index": [
-        "1206",
-        0
-      ],
-      "duration": [
-        "1202",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1202": {
-    "class_type": "ComfyMathExpression",
-    "inputs": {
-      "values.a": 5,
-      "values.b": [
-        "1204",
-        2
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1203": {
-    "class_type": "CreateVideo",
-    "inputs": {
-      "fps": [
-        "1204",
-        2
-      ],
-      "images": [
-        "1207",
-        0
-      ],
-      "audio": [
-        "1200",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1204": {
-    "class_type": "GetVideoComponents",
-    "inputs": {
-      "video": [
-        "4",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1206": {
-    "class_type": "ComfyMathExpression",
-    "inputs": {
-      "values.a": 0,
-      "values.b": [
-        "1204",
-        2
-      ]
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1207": {
-    "class_type": "ComfySwitchNode",
-    "inputs": {
-      "on_false": [
-        "1208",
-        0
-      ],
-      "on_true": [
-        "1192",
-        0
-      ],
-      "switch": false
-    },
-    "_meta": {
-      "title": "Video Inpaint (VOID)"
-    }
-  },
-  "1208": {
-    "class_type": "VAEDecode",
-    "inputs": {
-      "samples": [
-        "1180",
-        0
-      ],
-      "vae": [
-        "1173",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Pass 2 VAE Decode"
-    }
-  },
-  "1209": {
-    "class_type": "SAM3_Detect",
-    "inputs": {
-      "model": [
-        "1210",
-        0
-      ],
-      "image": [
-        "1194",
-        0
-      ],
-      "conditioning": [
-        "1211",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Segmentation (SAM3)"
-    }
-  },
-  "1210": {
-    "class_type": "CheckpointLoaderSimple",
-    "inputs": {
-      "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
-    },
-    "_meta": {
-      "title": "Image Segmentation (SAM3)"
-    }
-  },
-  "1211": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "human",
-      "clip": [
-        "1210",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Image Segmentation (SAM3)"
-    }
-  },
-  "38": {
-    "class_type": "SaveVideo",
-    "inputs": {
-      "filename_prefix": "video/VOID_pass2",
-      "format": "mp4",
-      "codec": "auto",
-      "video": [
-        "1203",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Save Video (Pass 12"
-    }
-  },
-  "4": {
-    "class_type": "LoadVideo",
-    "inputs": {
-      "file": "snowboarder.mp4"
-    },
-    "_meta": {
-      "title": "Source video (ComfyUI/input/)"
-    }
-  },
-  "48": {
-    "class_type": "SaveVideo",
-    "inputs": {
-      "filename_prefix": "video/VOID_pass1",
-      "format": "auto",
-      "codec": "auto",
-      "video": [
-        "1189",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Save Video (Pass 1)"
-    }
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
   }
+ },
+ "1173": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "cogvideox_vae.safetensors"
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1174": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "",
+   "clip": [
+    "1172",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Negative Prompt"
+  }
+ },
+ "1175": {
+  "class_type": "CFGGuider",
+  "inputs": {
+   "cfg": 6,
+   "model": [
+    "1187",
+    0
+   ],
+   "positive": [
+    "1183",
+    0
+   ],
+   "negative": [
+    "1183",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "CFGGuider (Pass 2 cfg=6)"
+  }
+ },
+ "1176": {
+  "class_type": "BasicScheduler",
+  "inputs": {
+   "scheduler": "simple",
+   "steps": 30,
+   "denoise": 1,
+   "model": [
+    "1188",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1177": {
+  "class_type": "CFGGuider",
+  "inputs": {
+   "cfg": 6,
+   "model": [
+    "1188",
+    0
+   ],
+   "positive": [
+    "1183",
+    0
+   ],
+   "negative": [
+    "1183",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1178": {
+  "class_type": "RandomNoise",
+  "inputs": {
+   "noise_seed": 43
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1179": {
+  "class_type": "VOIDWarpedNoise",
+  "inputs": {
+   "optical_flow": [
+    "1182",
+    0
+   ],
+   "video": [
+    "1192",
+    0
+   ],
+   "width": 672,
+   "height": 384,
+   "length": [
+    "1196",
+    2
+   ],
+   "batch_size": 1
+  },
+  "_meta": {
+   "title": "Warped Noise (from Pass 1 output)"
+  }
+ },
+ "1180": {
+  "class_type": "SamplerCustomAdvanced",
+  "inputs": {
+   "noise": [
+    "1184",
+    0
+   ],
+   "guider": [
+    "1175",
+    0
+   ],
+   "sampler": [
+    "1186",
+    0
+   ],
+   "sigmas": [
+    "1185",
+    0
+   ],
+   "latent_image": [
+    "1183",
+    2
+   ]
+  },
+  "_meta": {
+   "title": "Pass 2 Sample"
+  }
+ },
+ "1182": {
+  "class_type": "OpticalFlowLoader",
+  "inputs": {},
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1183": {
+  "class_type": "VOIDInpaintConditioning",
+  "inputs": {
+   "positive": [
+    "1193",
+    0
+   ],
+   "negative": [
+    "1174",
+    0
+   ],
+   "vae": [
+    "1173",
+    0
+   ],
+   "video": [
+    "1194",
+    0
+   ],
+   "quadmask": [
+    "1194",
+    0
+   ],
+   "width": 672,
+   "height": 384,
+   "length": [
+    "1196",
+    2
+   ],
+   "batch_size": 1
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1184": {
+  "class_type": "VOIDWarpedNoiseSource",
+  "inputs": {
+   "warped_noise": [
+    "1179",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Warped Noise → NOISE"
+  }
+ },
+ "1185": {
+  "class_type": "BasicScheduler",
+  "inputs": {
+   "scheduler": "simple",
+   "steps": 30,
+   "denoise": 1,
+   "model": [
+    "1187",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1186": {
+  "class_type": "VOIDSampler",
+  "inputs": {},
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1187": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "void_pass2.safetensors",
+   "weight_dtype": "default"
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1188": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "void_pass1.safetensors",
+   "weight_dtype": "default"
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1189": {
+  "class_type": "CreateVideo",
+  "inputs": {
+   "fps": [
+    "1204",
+    2
+   ],
+   "images": [
+    "1192",
+    0
+   ],
+   "audio": [
+    "1200",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1190": {
+  "class_type": "VOIDSampler",
+  "inputs": {},
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1191": {
+  "class_type": "SamplerCustomAdvanced",
+  "inputs": {
+   "noise": [
+    "1178",
+    0
+   ],
+   "guider": [
+    "1177",
+    0
+   ],
+   "sampler": [
+    "1190",
+    0
+   ],
+   "sigmas": [
+    "1176",
+    0
+   ],
+   "latent_image": [
+    "1183",
+    2
+   ]
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1192": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "1191",
+    0
+   ],
+   "vae": [
+    "1173",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1193": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "Skateboard sliding down the snowy mountain view",
+   "clip": [
+    "1172",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Positive Prompt"
+  }
+ },
+ "1194": {
+  "class_type": "ImageFromBatch",
+  "inputs": {
+   "image": [
+    "1204",
+    0
+   ],
+   "batch_index": [
+    "1206",
+    1
+   ],
+   "length": [
+    "1202",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1196": {
+  "class_type": "GetImageSize",
+  "inputs": {
+   "image": [
+    "1194",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1200": {
+  "class_type": "TrimAudioDuration",
+  "inputs": {
+   "audio": [
+    "1204",
+    1
+   ],
+   "start_index": [
+    "1206",
+    0
+   ],
+   "duration": [
+    "1202",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1202": {
+  "class_type": "ComfyMathExpression",
+  "inputs": {
+   "values.a": 5,
+   "values.b": [
+    "1204",
+    2
+   ],
+   "expression": "a + b"
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1203": {
+  "class_type": "CreateVideo",
+  "inputs": {
+   "fps": [
+    "1204",
+    2
+   ],
+   "images": [
+    "1207",
+    0
+   ],
+   "audio": [
+    "1200",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1204": {
+  "class_type": "GetVideoComponents",
+  "inputs": {
+   "video": [
+    "4",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1206": {
+  "class_type": "ComfyMathExpression",
+  "inputs": {
+   "values.a": 0,
+   "values.b": [
+    "1204",
+    2
+   ],
+   "expression": "a + b"
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1207": {
+  "class_type": "ComfySwitchNode",
+  "inputs": {
+   "on_false": [
+    "1208",
+    0
+   ],
+   "on_true": [
+    "1192",
+    0
+   ],
+   "switch": false
+  },
+  "_meta": {
+   "title": "Video Inpaint (VOID)"
+  }
+ },
+ "1208": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "1180",
+    0
+   ],
+   "vae": [
+    "1173",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Pass 2 VAE Decode"
+  }
+ },
+ "1209": {
+  "class_type": "SAM3_Detect",
+  "inputs": {
+   "model": [
+    "1210",
+    0
+   ],
+   "image": [
+    "1194",
+    0
+   ],
+   "conditioning": [
+    "1211",
+    0
+   ],
+   "threshold": 0.5,
+   "refine_iterations": 2,
+   "individual_masks": false
+  },
+  "_meta": {
+   "title": "Image Segmentation (SAM3)"
+  }
+ },
+ "1210": {
+  "class_type": "CheckpointLoaderSimple",
+  "inputs": {
+   "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+  },
+  "_meta": {
+   "title": "Image Segmentation (SAM3)"
+  }
+ },
+ "1211": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "human",
+   "clip": [
+    "1210",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Image Segmentation (SAM3)"
+  }
+ },
+ "38": {
+  "class_type": "SaveVideo",
+  "inputs": {
+   "filename_prefix": "video/VOID_pass2",
+   "format": "mp4",
+   "codec": "auto",
+   "video": [
+    "1203",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Save Video (Pass 12"
+  }
+ },
+ "4": {
+  "class_type": "LoadVideo",
+  "inputs": {
+   "file": "snowboarder.mp4"
+  },
+  "_meta": {
+   "title": "Source video (ComfyUI/input/)"
+  }
+ },
+ "48": {
+  "class_type": "SaveVideo",
+  "inputs": {
+   "filename_prefix": "video/VOID_pass1",
+   "format": "auto",
+   "codec": "auto",
+   "video": [
+    "1189",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Save Video (Pass 1)"
+  }
+ }
 }

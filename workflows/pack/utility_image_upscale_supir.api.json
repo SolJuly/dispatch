@@ -1,291 +1,329 @@
 {
-  "1098": {
-    "class_type": "SUPIRApply",
-    "inputs": {
-      "model": [
-        "1101",
-        0
-      ],
-      "model_patch": [
-        "1108",
-        0
-      ],
-      "vae": [
-        "1101",
-        2
-      ],
-      "image": [
-        "1118",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
+ "1098": {
+  "class_type": "SUPIRApply",
+  "inputs": {
+   "model": [
+    "1101",
+    0
+   ],
+   "model_patch": [
+    "1108",
+    0
+   ],
+   "vae": [
+    "1101",
+    2
+   ],
+   "image": [
+    "1118",
+    0
+   ],
+   "strength_start": 1.0,
+   "strength_end": 1.0,
+   "restore_cfg": 4.0,
+   "restore_cfg_s_tmin": 0.05
   },
-  "1099": {
-    "class_type": "SamplerCustom",
-    "inputs": {
-      "model": [
-        "1098",
-        0
-      ],
-      "positive": [
-        "1102",
-        0
-      ],
-      "negative": [
-        "1103",
-        0
-      ],
-      "sampler": [
-        "1110",
-        0
-      ],
-      "sigmas": [
-        "1111",
-        0
-      ],
-      "latent_image": [
-        "1104",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1100": {
-    "class_type": "VAEDecode",
-    "inputs": {
-      "samples": [
-        "1099",
-        0
-      ],
-      "vae": [
-        "1101",
-        2
-      ]
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1101": {
-    "class_type": "CheckpointLoaderSimple",
-    "inputs": {
-      "ckpt_name": "juggernautXL_v9Rdphoto2Lightning.safetensors"
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1102": {
-    "class_type": "CLIPTextEncodeSDXL",
-    "inputs": {
-      "clip": [
-        "1101",
-        1
-      ],
-      "text_g": [
-        "1114",
-        0
-      ],
-      "text_l": [
-        "1114",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1103": {
-    "class_type": "CLIPTextEncodeSDXL",
-    "inputs": {
-      "clip": [
-        "1101",
-        1
-      ],
-      "text_g": "painting, oil painting, illustration, drawing, art, sketch, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth bad quality, blurry, messy",
-      "text_l": "painting, oil painting, illustration, drawing, art, sketch, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth bad quality, blurry, messy"
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1104": {
-    "class_type": "EmptyLatentImage",
-    "inputs": {
-      "width": [
-        "1109",
-        0
-      ],
-      "height": [
-        "1109",
-        1
-      ],
-      "batch_size": 1
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1106": {
-    "class_type": "ColorTransfer",
-    "inputs": {
-      "image_target": [
-        "1100",
-        0
-      ],
-      "image_ref": [
-        "1118",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1108": {
-    "class_type": "ModelPatchLoader",
-    "inputs": {},
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1109": {
-    "class_type": "GetImageSize",
-    "inputs": {
-      "image": [
-        "1118",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1110": {
-    "class_type": "KSamplerSelect",
-    "inputs": {
-      "sampler_name": "dpmpp_2m_sde"
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1111": {
-    "class_type": "BasicScheduler",
-    "inputs": {
-      "scheduler": "sgm_uniform",
-      "steps": 10,
-      "denoise": 1,
-      "model": [
-        "1098",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1112": {
-    "class_type": "CLIPLoader",
-    "inputs": {
-      "clip_name": "qwen3.5_4b_bf16.safetensors",
-      "type": "stable_diffusion",
-      "device": "default"
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1113": {
-    "class_type": "TextGenerate",
-    "inputs": {
-      "clip": [
-        "1112",
-        0
-      ],
-      "image": [
-        "92",
-        0
-      ],
-      "prompt": [
-        "1117",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1114": {
-    "class_type": "ComfySwitchNode",
-    "inputs": {
-      "on_false": "`A herd of wild horses gallops at night through a neon-lit city street, motion blur conveying raw energy against the urban glow.`",
-      "on_true": [
-        "1113",
-        0
-      ],
-      "switch": [
-        "1116",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1116": {
-    "class_type": "BOOLConstant",
-    "inputs": {},
-    "_meta": {
-      "title": "enable_image_captioning"
-    }
-  },
-  "1117": {
-    "class_type": "StringConcatenate",
-    "inputs": {
-      "string_b": "`A herd of wild horses gallops at night through a neon-lit city street, motion blur conveying raw energy against the urban glow.`"
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "1118": {
-    "class_type": "ResizeImageMaskNode",
-    "inputs": {
-      "input": [
-        "92",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Upscale (SUPIR)"
-    }
-  },
-  "92": {
-    "class_type": "LoadImage",
-    "inputs": {
-      "image": "blurry_city_horses.png"
-    },
-    "_meta": {
-      "title": "LoadImage"
-    }
-  },
-  "97": {
-    "class_type": "SaveImage",
-    "inputs": {
-      "filename_prefix": "upscaled_by_supir",
-      "images": [
-        "1106",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "SaveImage"
-    }
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
   }
+ },
+ "1099": {
+  "class_type": "SamplerCustom",
+  "inputs": {
+   "model": [
+    "1098",
+    0
+   ],
+   "positive": [
+    "1102",
+    0
+   ],
+   "negative": [
+    "1103",
+    0
+   ],
+   "sampler": [
+    "1110",
+    0
+   ],
+   "sigmas": [
+    "1111",
+    0
+   ],
+   "latent_image": [
+    "1104",
+    0
+   ],
+   "add_noise": true,
+   "noise_seed": 0,
+   "cfg": 8.0
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1100": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "1099",
+    0
+   ],
+   "vae": [
+    "1101",
+    2
+   ]
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1101": {
+  "class_type": "CheckpointLoaderSimple",
+  "inputs": {
+   "ckpt_name": "juggernautXL_v9Rdphoto2Lightning.safetensors"
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1102": {
+  "class_type": "CLIPTextEncodeSDXL",
+  "inputs": {
+   "clip": [
+    "1101",
+    1
+   ],
+   "text_g": [
+    "1114",
+    0
+   ],
+   "text_l": [
+    "1114",
+    0
+   ],
+   "width": 1024,
+   "height": 1024,
+   "crop_w": 0,
+   "crop_h": 0,
+   "target_width": 1024,
+   "target_height": 1024
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1103": {
+  "class_type": "CLIPTextEncodeSDXL",
+  "inputs": {
+   "clip": [
+    "1101",
+    1
+   ],
+   "text_g": "painting, oil painting, illustration, drawing, art, sketch, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth bad quality, blurry, messy",
+   "text_l": "painting, oil painting, illustration, drawing, art, sketch, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth bad quality, blurry, messy",
+   "width": 1024,
+   "height": 1024,
+   "crop_w": 0,
+   "crop_h": 0,
+   "target_width": 1024,
+   "target_height": 1024
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1104": {
+  "class_type": "EmptyLatentImage",
+  "inputs": {
+   "width": [
+    "1109",
+    0
+   ],
+   "height": [
+    "1109",
+    1
+   ],
+   "batch_size": 1
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1106": {
+  "class_type": "ColorTransfer",
+  "inputs": {
+   "image_target": [
+    "1100",
+    0
+   ],
+   "image_ref": [
+    "1118",
+    0
+   ],
+   "method": "reinhard_lab",
+   "source_stats": "per_frame",
+   "strength": 1.0
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1108": {
+  "class_type": "ModelPatchLoader",
+  "inputs": {},
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1109": {
+  "class_type": "GetImageSize",
+  "inputs": {
+   "image": [
+    "1118",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1110": {
+  "class_type": "KSamplerSelect",
+  "inputs": {
+   "sampler_name": "dpmpp_2m_sde"
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1111": {
+  "class_type": "BasicScheduler",
+  "inputs": {
+   "scheduler": "sgm_uniform",
+   "steps": 10,
+   "denoise": 1,
+   "model": [
+    "1098",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1112": {
+  "class_type": "CLIPLoader",
+  "inputs": {
+   "clip_name": "qwen3.5_4b_bf16.safetensors",
+   "type": "stable_diffusion",
+   "device": "default"
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1113": {
+  "class_type": "TextGenerate",
+  "inputs": {
+   "clip": [
+    "1112",
+    0
+   ],
+   "image": [
+    "92",
+    0
+   ],
+   "prompt": [
+    "1117",
+    0
+   ],
+   "max_length": 512,
+   "sampling_mode": "on",
+   "temperature": 0.7,
+   "top_k": 64,
+   "top_p": 0.95,
+   "min_p": 0.05,
+   "repetition_penalty": 1.05,
+   "seed": 0
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1114": {
+  "class_type": "ComfySwitchNode",
+  "inputs": {
+   "on_false": "`A herd of wild horses gallops at night through a neon-lit city street, motion blur conveying raw energy against the urban glow.`",
+   "on_true": [
+    "1113",
+    0
+   ],
+   "switch": [
+    "1116",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1116": {
+  "class_type": "BOOLConstant",
+  "inputs": {
+   "value": true
+  },
+  "_meta": {
+   "title": "enable_image_captioning"
+  }
+ },
+ "1117": {
+  "class_type": "StringConcatenate",
+  "inputs": {
+   "string_b": "`A herd of wild horses gallops at night through a neon-lit city street, motion blur conveying raw energy against the urban glow.`",
+   "delimiter": ""
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "1118": {
+  "class_type": "ResizeImageMaskNode",
+  "inputs": {
+   "input": [
+    "92",
+    0
+   ],
+   "resize_type": "scale dimensions",
+   "width": 512,
+   "height": 512,
+   "crop": "center",
+   "scale_method": "area"
+  },
+  "_meta": {
+   "title": "Image Upscale (SUPIR)"
+  }
+ },
+ "92": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "blurry_city_horses.png"
+  },
+  "_meta": {
+   "title": "LoadImage"
+  }
+ },
+ "97": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "upscaled_by_supir",
+   "images": [
+    "1106",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "SaveImage"
+  }
+ }
 }

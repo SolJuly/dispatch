@@ -280,6 +280,11 @@ def _check_graph(graph: dict, oi: dict, workflow_key: str, model: str,
             for fname, val in ins.items():
                 if fname not in req or isinstance(val, list):
                     continue
+                # 占位符（`{{UPSCALE_MODEL}}` 等）是渲染时替换的，不是最终值。
+                # 拿它比候选列表必然不中 —— 2026-11-11 因此把 verified 的
+                # `detail_polish` 误判成"必失败"。
+                if isinstance(val, str) and "{{" in val:
+                    continue
                 fspec = req[fname]
                 tname = fspec[0] if isinstance(fspec, list) and fspec else ""
                 if not isinstance(tname, str) or tname in DYNAMIC_TYPES:

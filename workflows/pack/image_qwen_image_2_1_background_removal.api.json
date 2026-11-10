@@ -1,166 +1,168 @@
 {
-  "1477": {
-    "class_type": "UNETLoader",
-    "inputs": {
-      "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
-      "weight_dtype": "default"
-    },
-    "_meta": {
-      "title": "Image Edit (Qwen Image 2.1)"
-    }
+ "1477": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+   "weight_dtype": "default"
   },
-  "1478": {
-    "class_type": "CLIPLoader",
-    "inputs": {
-      "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
-      "type": "qwen_image",
-      "device": "default"
-    },
-    "_meta": {
-      "title": "Image Edit (Qwen Image 2.1)"
-    }
-  },
-  "1479": {
-    "class_type": "VAELoader",
-    "inputs": {
-      "vae_name": "qwen_image_2.1_vae_bf16.safetensors"
-    },
-    "_meta": {
-      "title": "Image Edit (Qwen Image 2.1)"
-    }
-  },
-  "1480": {
-    "class_type": "EmptyLatentImage",
-    "inputs": {
-      "width": 1024,
-      "height": 1024,
-      "batch_size": 1
-    },
-    "_meta": {
-      "title": "Image Edit (Qwen Image 2.1)"
-    }
-  },
-  "1481": {
-    "class_type": "VAEDecode",
-    "inputs": {
-      "samples": [
-        "1482",
-        0
-      ],
-      "vae": [
-        "1479",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Edit (Qwen Image 2.1)"
-    }
-  },
-  "1482": {
-    "class_type": "KSampler",
-    "inputs": {
-      "seed": 733114857276099,
-      "steps": 25,
-      "cfg": 1,
-      "sampler_name": "euler",
-      "scheduler": "simple",
-      "denoise": 1,
-      "model": [
-        "1484",
-        0
-      ],
-      "positive": [
-        "1485",
-        0
-      ],
-      "negative": [
-        "1485",
-        1
-      ],
-      "latent_image": [
-        "1483",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Edit (Qwen Image 2.1)"
-    }
-  },
-  "1483": {
-    "class_type": "ComfySwitchNode",
-    "inputs": {
-      "switch": false,
-      "on_false": [
-        "1485",
-        2
-      ],
-      "on_true": [
-        "1480",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Edit (Qwen Image 2.1)"
-    }
-  },
-  "1484": {
-    "class_type": "QwenImage21Cache",
-    "inputs": {
-      "device": "auto",
-      "dtype": "default",
-      "model": [
-        "1477",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Edit (Qwen Image 2.1)"
-    }
-  },
-  "1485": {
-    "class_type": "TextEncodeQwenImage21",
-    "inputs": {
-      "prompt": "Remove the background, and output a PNG image",
-      "negative_prompt": "",
-      "resolution": 0,
-      "clip": [
-        "1478",
-        0
-      ],
-      "images.image_1": [
-        "470",
-        0
-      ],
-      "vae": [
-        "1479",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Edit (Qwen Image 2.1)"
-    }
-  },
-  "461": {
-    "class_type": "SaveImageAdvanced",
-    "inputs": {
-      "filename_prefix": "Qwen_image_2.1",
-      "format": "png",
-      "images": [
-        "1481",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "SaveImageAdvanced"
-    }
-  },
-  "470": {
-    "class_type": "LoadImage",
-    "inputs": {
-      "image": "angry_broccoli.png"
-    },
-    "_meta": {
-      "title": "LoadImage"
-    }
+  "_meta": {
+   "title": "Image Edit (Qwen Image 2.1)"
   }
+ },
+ "1478": {
+  "class_type": "CLIPLoader",
+  "inputs": {
+   "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
+   "type": "qwen_image",
+   "device": "default"
+  },
+  "_meta": {
+   "title": "Image Edit (Qwen Image 2.1)"
+  }
+ },
+ "1479": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "qwen_image_2.1_vae_bf16.safetensors"
+  },
+  "_meta": {
+   "title": "Image Edit (Qwen Image 2.1)"
+  }
+ },
+ "1480": {
+  "class_type": "EmptyLatentImage",
+  "inputs": {
+   "width": 1024,
+   "height": 1024,
+   "batch_size": 1
+  },
+  "_meta": {
+   "title": "Image Edit (Qwen Image 2.1)"
+  }
+ },
+ "1481": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "1482",
+    0
+   ],
+   "vae": [
+    "1479",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Image Edit (Qwen Image 2.1)"
+  }
+ },
+ "1482": {
+  "class_type": "KSampler",
+  "inputs": {
+   "seed": 733114857276099,
+   "steps": 25,
+   "cfg": 1,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "1484",
+    0
+   ],
+   "positive": [
+    "1485",
+    0
+   ],
+   "negative": [
+    "1485",
+    1
+   ],
+   "latent_image": [
+    "1483",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Image Edit (Qwen Image 2.1)"
+  }
+ },
+ "1483": {
+  "class_type": "ComfySwitchNode",
+  "inputs": {
+   "switch": false,
+   "on_false": [
+    "1485",
+    2
+   ],
+   "on_true": [
+    "1480",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Image Edit (Qwen Image 2.1)"
+  }
+ },
+ "1484": {
+  "class_type": "QwenImage21Cache",
+  "inputs": {
+   "device": "auto",
+   "dtype": "default",
+   "model": [
+    "1477",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Image Edit (Qwen Image 2.1)"
+  }
+ },
+ "1485": {
+  "class_type": "TextEncodeQwenImage21",
+  "inputs": {
+   "prompt": "Remove the background, and output a PNG image",
+   "negative_prompt": "",
+   "resolution": 0,
+   "clip": [
+    "1478",
+    0
+   ],
+   "images.image_1": [
+    "470",
+    0
+   ],
+   "vae": [
+    "1479",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Image Edit (Qwen Image 2.1)"
+  }
+ },
+ "461": {
+  "class_type": "SaveImageAdvanced",
+  "inputs": {
+   "filename_prefix": "Qwen_image_2.1",
+   "format": "png",
+   "images": [
+    "1481",
+    0
+   ],
+   "bit_depth": "8-bit",
+   "input_color_space": "sRGB"
+  },
+  "_meta": {
+   "title": "SaveImageAdvanced"
+  }
+ },
+ "470": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "angry_broccoli.png"
+  },
+  "_meta": {
+   "title": "LoadImage"
+  }
+ }
 }

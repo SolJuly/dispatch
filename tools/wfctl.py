@@ -428,7 +428,31 @@ def cmd_check(a) -> int:
     else:
         _say(f"  ✓ 配置合法（{len(warns)} 条 experimental）")
 
-    _say("\n③ 环境预检（节点 + 权重）")
+    _say("\n③ 开机前资产预演（¥0，不建机）")
+    try:
+        from tools.p2 import asset_preflight as AP
+        oi_p = Path(a.object_info) if getattr(a, "object_info", None) else None
+        rows = AP.forecast_all(oi=AP.load_object_info(oi_p),
+                               weights=AP.load_weights(), only=a.key or "")
+        s = AP.summarize(rows)
+        _say(f"  {s['total']} 条 · 能过 {s['ok']} · 会失败 {s['would_fail']}"
+             f" · 证据不足 {s['unknown']}")
+        bad = [r for r in rows if r.status == AP.STATUS_FAIL]
+        if bad:
+            _say("")
+            _say(AP.format_report(bad))
+            # 默认不改 ok：多数失败是**已知的**（真缺权重/缺节点，已在
+            # 第 ④ 步单独统计）。但查单条时，失败就是失败 —— 那正是
+            # "我这条能不能跑"的直接答案，不能含糊。
+            if a.key:
+                ok = False
+            else:
+                _say("  （以上是已知阻塞，不影响整体判定；"
+                     "查单条时它们会让 check 失败）")
+    except Exception as e:                       # noqa: BLE001
+        _say(f"  ! 资产预演跳过（{type(e).__name__}: {e}）")
+
+    _say("\n④ 环境预检（节点 + 权重，粗筛）")
     try:
         from tools.p2 import preflight as P
         oi = ROOT / "reports" / "p2" / "p21" / "evidence" / "objectinfo-v4.json"
@@ -492,6 +516,8 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("check", help="全量体检（¥0）")
     p.add_argument("--key", help="只看一条")
+    p.add_argument("--object-info", dest="object_info", metavar="FILE",
+                   help="真机 object_info 快照（默认用 evidence 里的）")
     p.set_defaults(func=cmd_check)
 
     a = ap.parse_args(argv)

@@ -338,7 +338,13 @@
    "image": [
     "200",
     0
-   ]
+   ],
+   "temperature": 0.7,
+   "top_k": 64,
+   "top_p": 0.95,
+   "min_p": 0.05,
+   "repetition_penalty": 1.05,
+   "seed": 0
   },
   "_meta": {
    "title": "First-Last-Frame to Video (LTX-2.3)"
@@ -410,7 +416,8 @@
    "image": [
     "1743",
     0
-   ]
+   ],
+   "refine_steps": 3
   },
   "_meta": {
    "title": "Video Depth Estimation (MoGe)"
