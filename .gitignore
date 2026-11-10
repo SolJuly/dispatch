@@ -48,6 +48,9 @@ reports/p1/jobs/*/thumbs/
 reports/p2/*.db
 reports/p2/*.db-wal
 reports/p2/*.db-shm
+# 实例槽位表 / 停机计时器：本地运行态，可由 job.json 重建（instance_slots.rebuild_from_jobs）
+reports/p2/instance_slots.json
+reports/p2/stopped_at.json
 
 # P2.0 Registry 派生索引（事实在 registry/*.json，可 p20ctl import 重建）
 registry/registry.db

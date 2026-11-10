@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import re
 import subprocess
 import unittest
 from pathlib import Path
@@ -455,6 +456,29 @@ class TestResultQualityCard(unittest.TestCase):
                            capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, f"前端质量卡单测失败：\n{r.stdout}\n{r.stderr}")
         self.assertIn("0 failed", r.stdout)
+
+    def test_lifecycle_ui_js(self):
+        """跑 web/tests/lifecycle_ui.test.js（20 条）。
+
+        三档的经济含义不一样（60s 打平 / 90s 亏 ¥0.017 / 120s 亏 ¥0.035），
+        而短任务给窗口等于任务成本的 53%~84%。最容易坏的地方是**前端复制了
+        一份档位数字** —— 后端改了三档，UI 还显示旧档位，用户选了 90 实际留了别的值。
+        所以那条测试同时校验 HTML 档位与 lifecycle.py 的 IDLE_TIERS 一致。
+        """
+        script = TESTS / "lifecycle_ui.test.js"
+        self.assertTrue(script.is_file(), f"缺测试脚本：{script}")
+        r = subprocess.run([NODE, str(script)], cwd=str(WEB),
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, f"生命周期 UI 单测失败：\n{r.stdout}\n{r.stderr}")
+        self.assertIn("0 failed", r.stdout)
+
+    def test_lifecycle_tiers_match_backend(self):
+        """HTML 里的档位必须和 lifecycle.py 的 IDLE_TIERS 一模一样。"""
+        html = (WEB / "dist" / "index.html").read_text(encoding="utf-8")
+        found = sorted(int(x) for x in re.findall(r'name="idleTier" value="(\d+)"', html))
+        from tools.p2 import lifecycle
+        self.assertEqual(found, sorted(lifecycle.IDLE_TIERS),
+                         "前端档位与后端不一致（数字只有后端一份）")
 
     def test_quality_card_function_exists(self):
         self.assertIn("function qualityCard(", self.js)

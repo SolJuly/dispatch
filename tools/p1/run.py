@@ -442,6 +442,14 @@ def _try_borrow_slot(job: dict, opts) -> dict | None:
             cs.start(slot.uid)
             cs.wait_state(slot.uid, {"running"}, timeout=300)
             inst = cs.get(slot.uid)
+            # 唤醒成功 = 停机期结束，清掉停机计时器。
+            # 不清的话 reaper 会看到"这台停了 3 小时"，虽然它此刻 Running 不会被销毁，
+            # 但下次真停机时会拿着陈旧的起点算出"已过期"，一停就被销毁。
+            try:
+                from tools.p2 import lifecycle
+                lifecycle.clear_stopped(slot.uid)
+            except Exception:          # noqa: BLE001
+                pass
         except Exception as e:         # noqa: BLE001
             _say(f"  槽位 {slot.uid} 启动失败（{type(e).__name__}），本单另建")
             return None
@@ -1060,12 +1068,40 @@ def step_persist(job: dict, opts, ctx: dict, res: dict, arts: list[Path]) -> dic
 
 
 def step_release(job: dict, opts, ctx: dict) -> None:
-    """销毁实例，8903 过渡期拒绝时重试。"""
+    """释放实例。**短任务销毁、长任务留空转窗口**（2026-11-10 生命周期定版）。
+
+    三档规则见 `tools/p2/lifecycle.py`：
+
+        短任务（默认）  立即销毁，空转 0 秒
+        长任务（UI 勾）  不销毁，留 60/90/120 秒等下一单，由 reaper 到点停机
+
+    为什么长任务不在这里自己 sleep 等待：run.py 是**作业进程**，它 sleep 就占着
+    作业锁、占着并发槽位、日志还在滚 —— 而"等下一单"本质是**实例**的状态，
+    不是作业的状态。所以这里只把"该等多久"的事实留给 job.json（`idle_after_done_s`），
+    由 `tools/p2/reaper.py` 每 5 分钟巡检时执行停机。两者职责分开。
+
+    代价：停机精度是 5 分钟（巡检间隔），不是 90 秒。可以接受 ——
+    90 秒窗口的意义是"下一单能复用"，复用由 `_try_borrow_slot` 在提交瞬间就完成，
+    不依赖 reaper；reaper 只负责"没人来的时候别一直烧钱"。
+    """
     from compshare.cs import CompShareError
 
     uid = ctx.get("uhost_id")
     if not uid:
         _say("无实例可销毁")
+        return
+
+    # ---- 长任务：留空转窗口，不销毁 ----
+    idle_s = _idle_after_done(job)
+    if idle_s > 0:
+        _say(f"长任务：实例 {uid} 保留 {idle_s}s 空转窗口等下一单"
+             f"（{lifecycle_tier_label(idle_s)}）")
+        try:
+            from tools.p2 import instance_slots as slots_m
+            slots_m.touch(uid, job_id=job["job_id"], busy=False)
+        except Exception:                          # noqa: BLE001
+            pass
+        _say(f"  到点由 tools/p2/reaper.py 停机（停机 ¥0，可唤醒）")
         return
 
     # ---- 借来的实例（规则 B：同工作流串行）----
@@ -1299,6 +1335,29 @@ def _rebuild_ctx(job: dict, creds: dict[str, str] | None = None) -> dict:
 
 
 KEEP_MINUTES = 15          # 失败后实例保留时长（到点自动关机）
+
+
+def _idle_after_done(job: dict) -> int:
+    """这条作业跑完该留多少秒空转窗口。短任务恒 0，长任务 60/90/120。
+
+    策略在 `tools/p2/lifecycle.py`（webui / reaper / run 三方共用一份），
+    这里只做容错包装：策略模块坏了不能把整条作业拖失败 —— 释放阶段抛异常
+    会让实例留在那儿继续计费，那比"空转窗口算错"严重得多。
+    """
+    try:
+        from tools.p2 import lifecycle
+        return lifecycle.idle_for_job(job)
+    except Exception as e:                     # noqa: BLE001
+        _say(f"  ⚠ 生命周期策略不可用（{type(e).__name__}: {e}），按短任务处理")
+        return 0
+
+
+def lifecycle_tier_label(seconds: int) -> str:
+    try:
+        from tools.p2 import lifecycle
+        return lifecycle.tier_label(seconds)
+    except Exception:                          # noqa: BLE001
+        return f"{seconds} 秒"
 
 
 def _keep_instance(job_id: str, ctx: dict, opts) -> bool:

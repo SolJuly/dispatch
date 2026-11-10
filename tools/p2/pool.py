@@ -222,6 +222,12 @@ def release(uid: str, keep: bool = True) -> None:
             if it:
                 it.update({"state": "idle", "job_id": None, "last_used": _now(),
                            "cloud_state": "stopped"})
+            # 停机计时器：停机保留 2 小时 → 销毁，reaper 只认这一份记录
+            try:
+                from tools.p2 import lifecycle
+                lifecycle.record_stopped(uid)
+            except Exception:              # noqa: BLE001
+                pass
             _say(f"↩ {uid} 已停机回池")
         else:
             cs.terminate(uid)

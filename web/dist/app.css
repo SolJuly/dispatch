@@ -427,3 +427,35 @@ video.upthumb{height:92px;max-width:200px;border-radius:6px;border:1px solid var
 /* 媒体字段容器：上传控件一行，说明另起一行 */
 .upwrap{display:block}
 .upwrap .up{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* ==================================================================== 生命周期
+   短任务不空转 / 长任务三档（60 / 90 / 120 秒）。
+   三档的经济含义不一样，不是"随便选一个"：
+     60s  空转 ¥0.036  vs  复用净省 ¥0.036  → 恰好打平
+     90s  空转 ¥0.054  vs  ¥0.036          → 亏 ¥0.018（默认）
+     120s 空转 ¥0.072  vs  ¥0.036          → 亏 ¥0.035（体验优先）
+   所以每档都要写清"你在为什么付费"，而不是只给一个数字。 */
+.lifecycle{display:block;margin-top:16px;padding:12px 14px;border:1px solid var(--line);
+  border-radius:11px;background:#12161d}
+.lc-long{font-size:13.5px;color:#c6cede}
+.lc-long input:checked~b{color:var(--blue2)}
+/* 三个档位常驻展开（勾了长任务才显示）—— 收起会让"为什么贵"这个信息消失 */
+.lc-tiers{margin-top:11px;display:grid;gap:8px}
+.lc-tier{display:grid;grid-template-columns:auto 1fr;gap:2px 9px;align-items:baseline;
+  padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#0f141b;
+  cursor:pointer;transition:border-color .15s,background .15s}
+.lc-tier:hover{border-color:#2b3550}
+.lc-tier:has(input:checked){border-color:#3b6bd6;background:#141c28}
+.lc-tier input{grid-row:1/3;align-self:center;accent-color:#2f6fed}
+.lc-name{font-size:13px;font-weight:600;color:#dbe3ef}
+.lc-tier:has(input:checked) .lc-name{color:var(--blue2)}
+.lc-note{grid-column:2;font-size:12px;line-height:1.65;color:#93a2b6}
+/* 底部那行"实算结果"：由后端 lifecycle.describe() 回填，不在前端算数字 */
+.lc-foot{margin-top:4px;font-size:12px;color:var(--dim);font-family:var(--mono)}
+.lc-foot b{color:#f2c76a}
+/* 短任务说明：常驻灰色，不随勾选消失 —— 用户要能对比"我不勾会怎样" */
+.lc-short{margin-top:10px;padding-top:10px;border-top:1px dashed #232a36;
+  font-size:12px;line-height:1.65;color:#8b96a6}
+.lc-short b{color:#c6cede}
+.lc-short .lc-why{color:#6f7a8a}
+.lifecycle:has(.lc-tiers:not([hidden])) .lc-short{border-top-color:#2b3550}

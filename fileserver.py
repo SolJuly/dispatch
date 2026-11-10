@@ -801,10 +801,15 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(body, dict):
                 return _json({"error": "请求体应为 JSON 对象"}, 400)
             budget = body.get("budget")
+            # 生命周期：短任务不空转 / 长任务三档（60/90/120，默认 90）。
+            # 非法值不在这里拦 —— 交给 create_job 静默回落，
+            # 理由：这个字段只影响"实例多留多久"，为一个选项丢掉整套参数不值得。
             data = webapi.create_job(str(body.get("workflow") or ""),
                                      body.get("params") or {},
                                      run=bool(body.get("run")),
-                                     budget=float(budget) if budget not in (None, "") else None)
+                                     budget=float(budget) if budget not in (None, "") else None,
+                                     task_class=body.get("task_class"),
+                                     idle_tier=body.get("idle_tier"))
             return _json(data, 201)
         except webapi.ApiError as e:
             return _json({"error": e.msg}, e.code)

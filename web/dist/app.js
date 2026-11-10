@@ -523,6 +523,49 @@ async function doResolve() {
   }
 }
 
+/* ==================================================================== 生命周期
+ * 短任务（默认，不空转）/ 长任务（三档：60 / 90 / 120 秒）。
+ *
+ * 为什么不能让用户"随便填个数"：300 秒空转 = ¥0.179，占一条 600 秒长任务成本的
+ * 42%，而填的人不会知道。三档每一档都有明确经济含义，用户能理解"我在为什么付费"。
+ *
+ * 为什么短任务不给选项：短任务本身只花 ¥0.08–0.14，给 120 秒窗口等于任务成本的
+ * 53%~84%。这不是"多一点"，是翻倍。
+ *
+ * 默认值从哪来：**后端算**（tools/p2/lifecycle.py），前端只渲染。
+ * 前端再写一遍"90"这种数字，改后端时就会漂移成两个真相。
+ */
+const TIER_NOTE = {
+  60: '空转约 ¥0.036，刚好等于「停机再唤醒」能省下的钱（数学打平）',
+  90: '空转约 ¥0.054，比省下的 ¥0.036 多花 ¥0.018 —— 换更从容的调整时间',
+  120: '空转约 ¥0.072，比省下的 ¥0.036 多花 ¥0.035 —— 换「不用重新等 113 秒建机」',
+};
+
+function readLifecycle() {
+  const isLong = !!($('#isLong') && $('#isLong').checked);
+  if (!isLong) return {task_class: 'short', idle_tier: null};
+  const picked = document.querySelector('input[name=idleTier]:checked');
+  // 单选组默认 checked 在 90；万一 DOM 被改坏了，回落到 null 让后端取默认档
+  const tier = picked ? parseInt(picked.value, 10) : null;
+  return {task_class: 'long', idle_tier: Number.isFinite(tier) ? tier : null};
+}
+
+function renderLifecycle() {
+  const isLong = !!($('#isLong') && $('#isLong').checked);
+  const tiers = $('#lcTiers');
+  if (tiers) tiers.hidden = !isLong;
+  const maybe = $('#lcShort');
+  if (maybe) maybe.hidden = isLong;
+  const foot = $('#lcFoot');
+  if (foot) {
+    const picked = document.querySelector('input[name=idleTier]:checked');
+    const v = picked ? parseInt(picked.value, 10) : 90;
+    foot.innerHTML = `跑完后保留 <b>${v} 秒</b>；没等到下一单就停机（¥0），` +
+      `停机保留 <b>2 小时</b>，超时才销毁。` +
+      `<div style="margin-top:4px;color:#8b96a6">${esc(TIER_NOTE[v] || '')}</div>`;
+  }
+}
+
 async function submitJob() {
   if (!S.wfKey) return;
   const w = S.wfDetail || {};
@@ -549,15 +592,28 @@ async function submitJob() {
   $('#submitMsg').textContent = '提交中…';
   $('#submit').disabled = true;
   try {
-    const res = await post('/jobs', {workflow: S.wfKey, params, run: $('#runNow').checked});
+    const lc = readLifecycle();
+    const res = await post('/jobs', {
+      workflow: S.wfKey, params, run: $('#runNow').checked,
+      task_class: lc.task_class, idle_tier: lc.idle_tier,
+    });
     // 并发满时后端会**降级成"建作业但不执行"**（deferred=true），而不是拒绝 ——
     // 拒绝会丢掉用户刚填好的一整套参数。但也不能显示成"已提交执行"：
     // 那会让人以为在跑，其实在等。这里明确区分三种结果。
+    // 生命周期提示：让用户看到"这条作业跑完后实例会发生什么"。
+    // 短任务也要显示 —— 否则用户不知道自己刚勾的框意味着什么。
+    const plan = res.lifecycle || {};
+    const lcLine = plan.idle_after_done_s > 0
+      ? `跑完保留 ${plan.idle_after_done_s}s 等下一单（${esc(plan.tier_label || '')}），`
+        + ` 然后${esc(plan.stopped_ttl_label || '停机 2 小时')}，超时销毁。`
+      : '跑完立即回收实例，不空转。';
     const note = res.deferred
       ? `<span style="color:var(--amber)">${esc(res.job_id)} · 已创建，未执行</span>
          <div class="fdesc" style="margin-top:6px">${esc(res.deferred_reason || '并发已满')}
-         作业已保存，等前面的跑完到任务页点「执行」即可，不会重复建机。</div>`
-      : `<span style="color:var(--green)">${esc(res.job_id)} · ${esc(res.state)}</span>`;
+         作业已保存，等前面的跑完到任务页点「执行」即可，不会重复建机。</div>
+         <div class="fdesc" style="margin-top:6px;border-left-color:#2f6b46">${lcLine}</div>`
+      : `<span style="color:var(--green)">${esc(res.job_id)} · ${esc(res.state)}</span>
+         <div class="fdesc" style="margin-top:6px;border-left-color:#2f6b46">${lcLine}</div>`;
     $('#submitMsg').innerHTML = note;
     location.hash = '#/result/' + encodeURIComponent(res.job_id);
   } catch (e) {
@@ -1081,6 +1137,13 @@ function bind() {
   $('#retry').addEventListener('click', () => { failN = 0; schedule(0); });
   $('#resolve').addEventListener('click', () => doResolve().catch(() => {}));
   $('#submit').addEventListener('click', submitJob);
+  if ($('#isLong')) {
+    $('#isLong').addEventListener('change', renderLifecycle);
+    document.querySelectorAll('input[name=idleTier]').forEach(el => {
+      el.addEventListener('change', renderLifecycle);
+    });
+    renderLifecycle();
+  }
   $('#reset').addEventListener('click', () => {
     S.filter = {state: 'all', q: '', wf: 'all'}; S.selected.clear();
     $('#q').value = ''; $('#wfFilter').value = 'all'; syncChips(); renderHistory();

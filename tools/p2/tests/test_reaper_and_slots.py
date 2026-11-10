@@ -172,11 +172,18 @@ class TestReaperJudgement(unittest.TestCase):
         self.assertIn("规则 B 让路", rows[0].reason)
 
     def test_stopped_instance_ignored(self):
-        """云端已 Stopped 的不动（watch 已经关过了）。"""
+        """云端已 Stopped 的不动（watch 已经关过了 / 我们刚停的）。
+
+        2026-11-10 三态改造后这条断言变了口径：停机实例**不再算 busy**
+        （busy 现在专指"有活儿在跑"），而是走独立的停机分支。
+        没有停机记录的停机实例一律保留 —— 停机 ¥0，销毁不可逆，
+        拿不准的时候留着。理由见 reaper._decide 第 ② 步。
+        """
         rows = R.assess([_mk_inst("u-off", state="Stopped", age_min=999)],
                         jobs_dir=self.root)
-        self.assertTrue(rows[0].busy)
-        self.assertIn("无需处理", rows[0].reason)
+        self.assertFalse(rows[0].busy, "停机不等于忙，busy 只表示有活儿")
+        self.assertEqual(rows[0].action, "keep")
+        self.assertIn("停机", rows[0].action_reason)
 
     def test_default_action_is_stop_not_terminate(self):
         """默认关机而不是销毁 —— 销毁不可逆，关机可 start 复用（~12s）。"""

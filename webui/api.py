@@ -23,6 +23,7 @@ from tools.p1 import store
 from tools.p20 import config_schema as cs
 from tools.p20 import p20ctl as p20cli
 from tools.p20 import registry
+from tools.p2 import lifecycle
 
 ROOT = Path(__file__).resolve().parent.parent
 PUB_DIR = Path(os.environ.get("P21_PUB_DIR", "/srv/dsh-pub/jobs"))
@@ -504,7 +505,8 @@ def get_job(job_id: str, jobs_dir: Path | None = None) -> dict:
 def create_job(workflow: str, params: dict, *, run: bool = False, budget: float | None = None,
                jobs_dir: Path | None = None, spec_dir: Path | None = None,
                jobctl: Path | None = None, spawn=subprocess.Popen,
-               force: bool = False) -> dict:
+               force: bool = False, task_class: str | None = None,
+               idle_tier: int | None = None) -> dict:
     """校验参数 → 生成 spec → jobctl new →（可选）后台执行。
 
     同一任务的重复提交由 jobctl 的提交锁兜住：进行中的作业幂等复用（返回已有
@@ -548,6 +550,18 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
             defer_reason = why
 
     spec = p20cli._make_spec(res, job_key=workflow, task_ref="P2.1")
+
+    # ---- 生命周期（2026-11-10 定版）----
+    # 短任务不空转；长任务三档（60/90/120，默认 90）。
+    # 非法值**静默回落**而不是 400：这个字段只影响"实例多留多久"，
+    # 为一个展示性选项丢掉用户刚填好的一整套参数不值得。
+    # 但要写清楚回落到了哪一档（`lifecycle` 字段回给前端，UI 如实显示）。
+    tc, tsrc = lifecycle.normalize_task_class(task_class)
+    tier = lifecycle.normalize_tier(idle_tier, task_class=tc)
+    spec["task_class"] = tc
+    spec["task_class_source"] = tsrc
+    if tier is not None:
+        spec["idle_tier"] = tier
     if budget is not None and budget > 0:
         spec.setdefault("budget", {})
         spec["budget"]["max_cost"] = min(float(budget), float(spec["budget"].get("max_cost") or budget))
@@ -602,6 +616,10 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
             # 而不是显示"已提交执行"然后让作业静静躺在 CREATED。
             "deferred": bool(defer_reason),
             "deferred_reason": defer_reason,
+            # 生命周期实算结果：UI 直接渲染，别在前端再算一遍（数字会漂移）
+            "lifecycle": lifecycle.describe({"task_class": tc,
+                                             "task_class_source": tsrc,
+                                             "idle_tier": tier}),
             "workflow": res["workflow"]["key"], "workflow_version": res["workflow"]["version"],
             "model": res["model"]["key"], "params_hash": phash,
             "params": res["params"], "expect": spec.get("expect")}
