@@ -1,483 +1,484 @@
 {
-  "1131": {
-    "class_type": "LTXVPreprocess",
-    "inputs": {
-      "image": [
-        "1150",
-        0
-      ],
-      "img_compression": 25
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
+ "1131": {
+  "class_type": "LTXVPreprocess",
+  "inputs": {
+   "image": [
+    "1150",
+    0
+   ],
+   "img_compression": 25
   },
-  "1132": {
-    "class_type": "RandomNoise",
-    "inputs": {
-      "noise_seed": 315253765879496
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1133": {
-    "class_type": "LTXVEmptyLatentAudio",
-    "inputs": {
-      "audio_vae": [
-        "1160",
-        0
-      ],
-      "frames_number": [
-        "1162",
-        1
-      ],
-      "frame_rate": 25,
-      "batch_size": 1
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1135": {
-    "class_type": "LTXVPreprocess",
-    "inputs": {
-      "image": [
-        "1149",
-        0
-      ],
-      "img_compression": 25
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1136": {
-    "class_type": "LTXVCropGuides",
-    "inputs": {
-      "positive": [
-        "1140",
-        0
-      ],
-      "negative": [
-        "1140",
-        1
-      ],
-      "latent": [
-        "1157",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1137": {
-    "class_type": "EmptyLTXVLatentVideo",
-    "inputs": {
-      "width": [
-        "1139",
-        0
-      ],
-      "height": [
-        "1139",
-        1
-      ],
-      "length": [
-        "1162",
-        1
-      ],
-      "batch_size": 1
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1138": {
-    "class_type": "LTXVConditioning",
-    "inputs": {
-      "positive": [
-        "1158",
-        0
-      ],
-      "negative": [
-        "1153",
-        0
-      ],
-      "frame_rate": [
-        "1148",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1139": {
-    "class_type": "GetImageSize",
-    "inputs": {
-      "image": [
-        "1149",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1140": {
-    "class_type": "LTXVAddGuide",
-    "inputs": {
-      "positive": [
-        "1142",
-        0
-      ],
-      "negative": [
-        "1142",
-        1
-      ],
-      "vae": [
-        "1159",
-        2
-      ],
-      "latent": [
-        "1142",
-        2
-      ],
-      "image": [
-        "1131",
-        0
-      ],
-      "frame_idx": 0,
-      "strength": 0.7
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1142": {
-    "class_type": "LTXVAddGuide",
-    "inputs": {
-      "positive": [
-        "1138",
-        0
-      ],
-      "negative": [
-        "1138",
-        1
-      ],
-      "vae": [
-        "1159",
-        2
-      ],
-      "latent": [
-        "1137",
-        0
-      ],
-      "image": [
-        "1135",
-        0
-      ],
-      "frame_idx": -1,
-      "strength": 0.7
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1143": {
-    "class_type": "CFGGuider",
-    "inputs": {
-      "cfg": 1,
-      "model": [
-        "1159",
-        0
-      ],
-      "positive": [
-        "1140",
-        0
-      ],
-      "negative": [
-        "1140",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1144": {
-    "class_type": "SamplerEulerAncestral",
-    "inputs": {
-      "eta": 0.0,
-      "s_noise": 1.0
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1145": {
-    "class_type": "ManualSigmas",
-    "inputs": {
-      "sigmas": "1., 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0"
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1146": {
-    "class_type": "LTXVConcatAVLatent",
-    "inputs": {
-      "video_latent": [
-        "1140",
-        2
-      ],
-      "audio_latent": [
-        "1133",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1147": {
-    "class_type": "SamplerCustomAdvanced",
-    "inputs": {
-      "noise": [
-        "1132",
-        0
-      ],
-      "guider": [
-        "1143",
-        0
-      ],
-      "sampler": [
-        "1144",
-        0
-      ],
-      "sigmas": [
-        "1145",
-        0
-      ],
-      "latent_image": [
-        "1146",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1148": {
-    "class_type": "ComfyMathExpression",
-    "inputs": {
-      "values.a": 25,
-      "expression": "a + b"
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1149": {
-    "class_type": "ResizeImageMaskNode",
-    "inputs": {
-      "input": [
-        "31",
-        0
-      ],
-      "resize_type.width": 1280,
-      "resize_type.height": 720,
-      "scale_method": "area",
-      "resize_type": "scale dimensions",
-      "resize_type.crop": "center"
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1150": {
-    "class_type": "ResizeImageMaskNode",
-    "inputs": {
-      "input": [
-        "39",
-        0
-      ],
-      "resize_type.width": 1280,
-      "resize_type.height": 720,
-      "scale_method": "area",
-      "resize_type": "scale dimensions",
-      "resize_type.crop": "center"
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1153": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, unreadable text on shirt or hat, incorrect lettering on cap (“PNTR”), incorrect t-shirt slogan (“JUST DO IT”), missing microphone, misplaced microphone, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, smiling, laughing, exaggerated sadness, wrong gaze direction, eyes looking at camera, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio, missing sniff sounds, incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, missing door or shelves, missing shallow depth of field, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.",
-      "clip": [
-        "1161",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1154": {
-    "class_type": "CreateVideo",
-    "inputs": {
-      "fps": [
-        "1148",
-        0
-      ],
-      "images": [
-        "1155",
-        0
-      ],
-      "audio": [
-        "1156",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1155": {
-    "class_type": "VAEDecodeTiled",
-    "inputs": {
-      "samples": [
-        "1136",
-        2
-      ],
-      "vae": [
-        "1159",
-        2
-      ],
-      "tile_size": 768,
-      "overlap": 64,
-      "temporal_size": 4096,
-      "temporal_overlap": 64
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1156": {
-    "class_type": "LTXVAudioVAEDecode",
-    "inputs": {
-      "samples": [
-        "1157",
-        1
-      ],
-      "audio_vae": [
-        "1160",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1157": {
-    "class_type": "LTXVSeparateAVLatent",
-    "inputs": {
-      "av_latent": [
-        "1147",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1158": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "The camera move from a high position to a low position, keeping the character in the frame centered.\nMusic: Synthwave cyberpunk music with calm ambient synths and driving 80s beats.",
-      "clip": [
-        "1161",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1159": {
-    "class_type": "CheckpointLoaderSimple",
-    "inputs": {
-      "ckpt_name": "ltx-2.3-22b-distilled-fp8.safetensors"
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1160": {
-    "class_type": "LTXVAudioVAELoader",
-    "inputs": {
-      "ckpt_name": "ltx-2.3-22b-distilled-fp8.safetensors"
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1161": {
-    "class_type": "LTXAVTextEncoderLoader",
-    "inputs": {
-      "text_encoder": "gemma_3_12B_it_fp4_mixed.safetensors",
-      "ckpt_name": "ltx-2.3-22b-distilled-fp8.safetensors",
-      "device": "default"
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "1162": {
-    "class_type": "ComfyMathExpression",
-    "inputs": {
-      "values.a": 5,
-      "values.b": 25,
-      "expression": "a + b"
-    },
-    "_meta": {
-      "title": "First-Last-Frame to Video (LTX-2.3)"
-    }
-  },
-  "31": {
-    "class_type": "LoadImage",
-    "inputs": {
-      "image": "high_view_classic_car.png"
-    },
-    "_meta": {
-      "title": "Load First Frame"
-    }
-  },
-  "39": {
-    "class_type": "LoadImage",
-    "inputs": {
-      "image": "low_view_classic_car.png"
-    },
-    "_meta": {
-      "title": "Load Last Frame"
-    }
-  },
-  "68": {
-    "class_type": "SaveVideo",
-    "inputs": {
-      "filename_prefix": "video/ltx2.3_flf2v",
-      "format": "auto",
-      "codec": "auto",
-      "video": [
-        "1154",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "SaveVideo"
-    }
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
   }
+ },
+ "1132": {
+  "class_type": "RandomNoise",
+  "inputs": {
+   "noise_seed": 315253765879496
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1133": {
+  "class_type": "LTXVEmptyLatentAudio",
+  "inputs": {
+   "audio_vae": [
+    "1160",
+    0
+   ],
+   "frames_number": [
+    "1162",
+    1
+   ],
+   "frame_rate": 25,
+   "batch_size": 1
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1135": {
+  "class_type": "LTXVPreprocess",
+  "inputs": {
+   "image": [
+    "1149",
+    0
+   ],
+   "img_compression": 25
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1136": {
+  "class_type": "LTXVCropGuides",
+  "inputs": {
+   "positive": [
+    "1140",
+    0
+   ],
+   "negative": [
+    "1140",
+    1
+   ],
+   "latent": [
+    "1157",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1137": {
+  "class_type": "EmptyLTXVLatentVideo",
+  "inputs": {
+   "width": [
+    "1139",
+    0
+   ],
+   "height": [
+    "1139",
+    1
+   ],
+   "length": [
+    "1162",
+    1
+   ],
+   "batch_size": 1
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1138": {
+  "class_type": "LTXVConditioning",
+  "inputs": {
+   "positive": [
+    "1158",
+    0
+   ],
+   "negative": [
+    "1153",
+    0
+   ],
+   "frame_rate": [
+    "1148",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1139": {
+  "class_type": "GetImageSize",
+  "inputs": {
+   "image": [
+    "1149",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1140": {
+  "class_type": "LTXVAddGuide",
+  "inputs": {
+   "positive": [
+    "1142",
+    0
+   ],
+   "negative": [
+    "1142",
+    1
+   ],
+   "vae": [
+    "1159",
+    2
+   ],
+   "latent": [
+    "1142",
+    2
+   ],
+   "image": [
+    "1131",
+    0
+   ],
+   "frame_idx": 0,
+   "strength": 0.7
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1142": {
+  "class_type": "LTXVAddGuide",
+  "inputs": {
+   "positive": [
+    "1138",
+    0
+   ],
+   "negative": [
+    "1138",
+    1
+   ],
+   "vae": [
+    "1159",
+    2
+   ],
+   "latent": [
+    "1137",
+    0
+   ],
+   "image": [
+    "1135",
+    0
+   ],
+   "frame_idx": -1,
+   "strength": 0.7
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1143": {
+  "class_type": "CFGGuider",
+  "inputs": {
+   "cfg": 1,
+   "model": [
+    "1159",
+    0
+   ],
+   "positive": [
+    "1140",
+    0
+   ],
+   "negative": [
+    "1140",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1144": {
+  "class_type": "SamplerEulerAncestral",
+  "inputs": {
+   "eta": 0.0,
+   "s_noise": 1.0
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1145": {
+  "class_type": "ManualSigmas",
+  "inputs": {
+   "sigmas": "1., 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0"
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1146": {
+  "class_type": "LTXVConcatAVLatent",
+  "inputs": {
+   "video_latent": [
+    "1140",
+    2
+   ],
+   "audio_latent": [
+    "1133",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1147": {
+  "class_type": "SamplerCustomAdvanced",
+  "inputs": {
+   "noise": [
+    "1132",
+    0
+   ],
+   "guider": [
+    "1143",
+    0
+   ],
+   "sampler": [
+    "1144",
+    0
+   ],
+   "sigmas": [
+    "1145",
+    0
+   ],
+   "latent_image": [
+    "1146",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1148": {
+  "class_type": "ComfyMathExpression",
+  "inputs": {
+   "values.a": 25,
+   "expression": "a + b",
+   "values.b": 5
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1149": {
+  "class_type": "ResizeImageMaskNode",
+  "inputs": {
+   "input": [
+    "31",
+    0
+   ],
+   "resize_type.width": 1280,
+   "resize_type.height": 720,
+   "scale_method": "area",
+   "resize_type": "scale dimensions",
+   "resize_type.crop": "center"
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1150": {
+  "class_type": "ResizeImageMaskNode",
+  "inputs": {
+   "input": [
+    "39",
+    0
+   ],
+   "resize_type.width": 1280,
+   "resize_type.height": 720,
+   "scale_method": "area",
+   "resize_type": "scale dimensions",
+   "resize_type.crop": "center"
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1153": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, unreadable text on shirt or hat, incorrect lettering on cap (“PNTR”), incorrect t-shirt slogan (“JUST DO IT”), missing microphone, misplaced microphone, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, smiling, laughing, exaggerated sadness, wrong gaze direction, eyes looking at camera, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio, missing sniff sounds, incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, missing door or shelves, missing shallow depth of field, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.",
+   "clip": [
+    "1161",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1154": {
+  "class_type": "CreateVideo",
+  "inputs": {
+   "fps": [
+    "1148",
+    0
+   ],
+   "images": [
+    "1155",
+    0
+   ],
+   "audio": [
+    "1156",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1155": {
+  "class_type": "VAEDecodeTiled",
+  "inputs": {
+   "samples": [
+    "1136",
+    2
+   ],
+   "vae": [
+    "1159",
+    2
+   ],
+   "tile_size": 768,
+   "overlap": 64,
+   "temporal_size": 4096,
+   "temporal_overlap": 64
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1156": {
+  "class_type": "LTXVAudioVAEDecode",
+  "inputs": {
+   "samples": [
+    "1157",
+    1
+   ],
+   "audio_vae": [
+    "1160",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1157": {
+  "class_type": "LTXVSeparateAVLatent",
+  "inputs": {
+   "av_latent": [
+    "1147",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1158": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "The camera move from a high position to a low position, keeping the character in the frame centered.\nMusic: Synthwave cyberpunk music with calm ambient synths and driving 80s beats.",
+   "clip": [
+    "1161",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1159": {
+  "class_type": "CheckpointLoaderSimple",
+  "inputs": {
+   "ckpt_name": "ltx-2.3-22b-distilled-fp8.safetensors"
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1160": {
+  "class_type": "LTXVAudioVAELoader",
+  "inputs": {
+   "ckpt_name": "ltx-2.3-22b-distilled-fp8.safetensors"
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1161": {
+  "class_type": "LTXAVTextEncoderLoader",
+  "inputs": {
+   "text_encoder": "gemma_3_12B_it-int8tensormixed.safetensors",
+   "ckpt_name": "ltx-2.3-22b-distilled-fp8.safetensors",
+   "device": "default"
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "1162": {
+  "class_type": "ComfyMathExpression",
+  "inputs": {
+   "values.a": 76,
+   "values.b": 5,
+   "expression": "a + b"
+  },
+  "_meta": {
+   "title": "First-Last-Frame to Video (LTX-2.3)"
+  }
+ },
+ "31": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "high_view_classic_car.png"
+  },
+  "_meta": {
+   "title": "Load First Frame"
+  }
+ },
+ "39": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "low_view_classic_car.png"
+  },
+  "_meta": {
+   "title": "Load Last Frame"
+  }
+ },
+ "68": {
+  "class_type": "SaveVideo",
+  "inputs": {
+   "filename_prefix": "video/ltx2.3_flf2v",
+   "format": "auto",
+   "codec": "auto",
+   "video": [
+    "1154",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "SaveVideo"
+  }
+ }
 }

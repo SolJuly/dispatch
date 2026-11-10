@@ -1,0 +1,51 @@
+{
+  "kind": "video",
+  "task_ref": "P2.0-pack_video_wan21_scail2_character_replacement_int8",
+  "model": {
+    "key": "wan2_1_14b_scail_2_int8_convrot",
+    "workflow": "workflows/pack/video_wan21_scail2_character_replacement_int8.api.json",
+    "checkpoint": "wan2.1_14B_SCAIL_2_int8_convrot.safetensors",
+    "workflow_sha256": "3b9b8a2b9cc5cb23930745029d3e3f93260b0cbfd8b4f7cde5fc4acb2846f71e",
+    "registry": {
+      "workflow_key": "pack_video_wan21_scail2_character_replacement_int8",
+      "workflow_version": 1,
+      "model_key": "wan2_1_14b_scail_2_int8_convrot",
+      "model_version": 1,
+      "compat": "experimental",
+      "compat_basis": "unverified",
+      "setup_need": "all",
+      "graph_sha256": "3b9b8a2b9cc5cb23930745029d3e3f93260b0cbfd8b4f7cde5fc4acb2846f71e"
+    }
+  },
+  "params": {
+    "image": "in-22a23224.mp4",
+    "image_2": "in-0b3689fa.png",
+    "neg_prompt": "静态, 模糊, 低质量, 水印, 形变",
+    "prompt": "A person walking in a park, natural lighting",
+    "prompt_2": "Smooth motion, consistent identity",
+    "prompt_3": "Natural colors, cinematic"
+  },
+  "expect": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "freeze": {
+      "mode": "full_freeze_only",
+      "ratio_max": 0.2,
+      "longest_max_s": 1.0
+    }
+  },
+  "budget": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

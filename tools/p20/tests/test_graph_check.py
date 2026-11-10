@@ -203,6 +203,70 @@ class TestTargetWorkflows(unittest.TestCase):
         for key in self.NINE:
             self.assertIn(key, have)
 
+    def test_dynamiccombo_flat_subkeys_required(self):
+        """主键写了、选中的 key 要子参数，但一个都没给 → 必须报缺。
+
+        踩过（2026-11-11 真机）：`TextGenerateLTX2Prompt` 写
+        `sampling_mode="on"` 却没给 temperature/top_k/top_p/min_p/
+        repetition_penalty/seed，提交时 ComfyUI 报 6 个 required_input_missing。
+
+        当时 `graph_check` 判"通过"——因为它只检查"有没有以 `sampling_mode.`
+        开头的键"，而这个节点用的是**平铺**写法（`top_k` 直接放在 inputs 里）。
+        两套写法都要认。
+        """
+        spec = ["COMFY_DYNAMICCOMBO_V3", {"options": [
+            {"key": "on", "inputs": {"required": {
+                "temperature": ["FLOAT", {"default": 0.7}],
+                "top_k": ["INT", {"default": 64}],
+            }}},
+            {"key": "off", "inputs": {"required": {}}},
+        ]}]
+        oi = {"N": {"input": {"required": {"sampling_mode": spec}}}}
+        node = {"class_type": "N", "inputs": {"sampling_mode": "on"}}
+        r = G._check_graph({"1": node}, oi, "t", "m")
+        self.assertEqual(len(r.missing), 2)
+        self.assertTrue(all("需要" in m.field_name for m in r.missing))
+
+    def test_dynamiccombo_flat_subkeys_satisfied(self):
+        """子参数按平铺写法给全 → 不报缺。"""
+        spec = ["COMFY_DYNAMICCOMBO_V3", {"options": [
+            {"key": "on", "inputs": {"required": {
+                "temperature": ["FLOAT", {"default": 0.7}],
+                "top_k": ["INT", {"default": 64}],
+            }}},
+        ]}]
+        oi = {"N": {"input": {"required": {"sampling_mode": spec}}}}
+        node = {"class_type": "N", "inputs": {
+            "sampling_mode": "on", "temperature": 0.8, "top_k": 32}}
+        r = G._check_graph({"1": node}, oi, "t", "m")
+        self.assertEqual(r.missing, [])
+
+    def test_dynamiccombo_dotted_subkeys_satisfied(self):
+        """子参数按点号写法给全 → 不报缺（ResizeImageMaskNode 的写法）。"""
+        spec = ["COMFY_DYNAMICCOMBO_V3", {"options": [
+            {"key": "scale dimensions", "inputs": {"required": {
+                "width": ["INT", {"default": 512}],
+                "height": ["INT", {"default": 512}],
+            }}},
+        ]}]
+        oi = {"N": {"input": {"required": {"resize_type": spec}}}}
+        node = {"class_type": "N", "inputs": {
+            "resize_type": "scale dimensions",
+            "resize_type.width": 1280, "resize_type.height": 720}}
+        r = G._check_graph({"1": node}, oi, "t", "m")
+        self.assertEqual(r.missing, [])
+
+    def test_dynamiccombo_off_needs_nothing(self):
+        """选了不需要子参数的 key（off）→ 不报缺。"""
+        spec = ["COMFY_DYNAMICCOMBO_V3", {"options": [
+            {"key": "on", "inputs": {"required": {"top_k": ["INT", {}]}}},
+            {"key": "off", "inputs": {"required": {}}},
+        ]}]
+        oi = {"N": {"input": {"required": {"sampling_mode": spec}}}}
+        node = {"class_type": "N", "inputs": {"sampling_mode": "off"}}
+        r = G._check_graph({"1": node}, oi, "t", "m")
+        self.assertEqual(r.missing, [])
+
 
 class TestGroups(unittest.TestCase):
     """同源工作流归并：修一条顶多条，这是降低工作量的关键。"""

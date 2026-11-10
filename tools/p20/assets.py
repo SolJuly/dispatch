@@ -20,6 +20,8 @@ import re
 import shlex
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[2]
+
 REMOTE_PY = r'''
 import base64, json, sys, urllib.request
 spec = json.loads(base64.b64decode(sys.argv[1]).decode())
@@ -159,7 +161,10 @@ LOADER_DIRS = {
     "CLIPVisionLoader": "clip_vision",
     "ControlNetLoader": "controlnet",
     "UpscaleModelLoader": "upscale_models",
-    "LatentUpscaleModelLoader": "upscale_models",
+    # 注意：这个 loader 读的是 `latent_upscale_models`，不是 `upscale_models`。
+    # 2026-11-11 实测：链到 upscale_models 后节点候选列表仍是 0 项，
+    # 因为 folder_paths.py:43 把 latent_upscale_models 单独注册成一个目录。
+    "LatentUpscaleModelLoader": "latent_upscale_models",
     "ModelPatchLoader": "model_patches",
 }
 
@@ -254,17 +259,56 @@ def build_link_script(model: dict, found: dict[str, str],
     return "\n".join(lines), missing
 
 
+def load_compat_links(path: Path | None = None) -> dict[str, str]:
+    """读 `tools/p1/compat_links.txt`：`ComfyUI 侧名字 → 真实文件路径`。
+
+    这张表是**人工确认过的改名映射**。典型例子：
+
+        qwen_std_vae.safetensors        → qwen_image_vae.safetensors
+        gemma-3-12b-it-abliterated_...  → ..._heretic_lora_rank64_bf16.safetensors
+
+    两边的名字**故意不同**，因为模型卡写的是 ComfyUI 侧的名字（工作流图里引用的
+    就是它），而库里真实文件叫别的名字。有软链就能跑。
+
+    2026-11-11 踩到的坑：自动补链**不读这张表**，只靠 `find` 按名字找，
+    所以表里登记过的改名全部失效 —— gemma 那条明明写进了 compat_links，
+    实例上依然报"模型资产不可见"。两套机制各干一半，谁也不认谁。
+    """
+    p = path or (ROOT / "tools" / "p1" / "compat_links.txt")
+    out: dict[str, str] = {}
+    if not p.is_file():
+        return out
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) < 3:
+            continue
+        name, target = parts[1].strip(), parts[2].strip()
+        if name and target.startswith("/model"):
+            out[Path(name).name] = target
+    return out
+
+
 def link_model_files(model: dict, ssh_run, *, timeout: int = 240) -> list[str]:
     """把模型卡里的权重要么链好、要么明确报缺。返回缺失文件名列表。
 
-    为什么不用 compat_links.txt：那是 30 行静态表，新导入的 pack_* 模型根本不在里面，
-    结果 setup 说"资产可见"、ready 说"资产不可见"（2026-11-07 的 fasth3 作业）。
+    两条来源合并：
+      ① `find /model` 扫出来的真实文件（覆盖新导入的 pack_* 模型）
+      ② `compat_links.txt` 里人工确认的改名映射（覆盖"名字故意不同"的那批）
+
+    只用 ① 会漏掉所有改名映射；只用 ② 会漏掉新模型
+    （2026-11-07 的 fasth3 作业就是这么挂的）。两者都要。
     """
     rc, out = ssh_run(build_find_command(model), timeout=timeout)
     found = parse_find_output(out)
     if not found:
         # find 挂了（超时/路径不通）不算"缺失"，交给后面的资产检查报错
         return []
+    # ② 合并人工映射：键是 ComfyUI 侧名字，值是真实路径
+    for name, target in load_compat_links().items():
+        found.setdefault(name, target)
     script, missing = build_link_script(model, found)
     ssh_run(script, timeout=timeout)
     return missing

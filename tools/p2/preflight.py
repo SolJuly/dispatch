@@ -60,7 +60,10 @@ LOADER_DIRS = {
     "LoraLoader": "loras",
     "LoraLoaderModelOnly": "loras",
     "ControlNetLoader": "controlnet",
-    "LatentUpscaleModelLoader": "upscale_models",
+    # 注意：这个 loader 读的是 `latent_upscale_models`，不是 `upscale_models`。
+    # 2026-11-11 实测：链到 upscale_models 后节点候选列表仍是 0 项，
+    # 因为 folder_paths.py:43 把 latent_upscale_models 单独注册成一个目录。
+    "LatentUpscaleModelLoader": "latent_upscale_models",
     "UpscaleModelLoader": "upscale_models",
     "ModelPatchLoader": "model_patches",
 }

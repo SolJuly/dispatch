@@ -1426,9 +1426,20 @@ def _keep_instance(job_id: str, ctx: dict, opts) -> bool:
     """失败后保留实例：设定时关机兜底，提示可续跑/可 abort。
 
     返回 True 表示实例被保留（调用方不要再销毁）。
+
+    **--batch 模式下默认不保留**（2026-11-11 改）。
+    原因：保留实例是为「人工看日志、接着续跑」设计的，一次只跑一条时很划算。
+    但批量跑的时候，每失败一条就留一台，很快就撞上并发上限
+    （`云端已有 2 台 p1-/p2- 实例在跑（上限 2）`），后面的作业全部建不了机 ——
+    而这时人根本不在旁边，保留下来的机器只是在烧钱等 15 分钟自动关机。
+
+    要保留就显式加 `--keep-on-fail`。
     """
     uid = (ctx or {}).get("uhost_id")
     if not uid or getattr(opts, "abort", False) or getattr(opts, "no_keep", False):
+        return False
+    if getattr(opts, "batch", False) and not getattr(opts, "keep_on_fail", False):
+        _say("  批量模式：失败即释放实例（要保留加 --keep-on-fail）")
         return False
     try:
         cs = _cs(getattr(opts, "creds", None))
@@ -1774,6 +1785,8 @@ def main(argv=None) -> int:
                     help="从 FAILED_* 续跑：按 job.json 的 steps 从断点继续")
     ap.add_argument("--abort", action="store_true", help="放弃续跑，销毁保留的实例")
     ap.add_argument("--no-keep", action="store_true", help="失败时不保留实例（旧行为）")
+    ap.add_argument("--keep-on-fail", action="store_true", dest="keep_on_fail",
+                    help="批量模式下失败也保留实例（默认批量模式会释放，避免撞并发上限）")
     ap.add_argument("--from-pool", action="store_true",
                     help="优先复用预热池停机实例（start ~12s），池空回落新建")
     ap.add_argument("--restart", action="store_true",

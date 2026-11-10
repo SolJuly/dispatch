@@ -72,6 +72,31 @@ def _meta(spec) -> dict:
     return spec[1] if isinstance(spec, list) and len(spec) > 1 and isinstance(spec[1], dict) else {}
 
 
+def dynamic_combo_required(spec, chosen: str) -> list[str]:
+    """DYNAMICCOMBO 选中某个 key 后，**必须**出现的子参数名。
+
+    为什么需要（2026-11-11 实测）：`TextGenerateLTX2Prompt.sampling_mode`
+    是 DYNAMICCOMBO，图里写了 `"sampling_mode": "on"` 却没写它需要的
+    `top_k/top_p/temperature/repetition_penalty/seed/min_p`。
+    提交时 ComfyUI 报 6 个 `required_input_missing`，
+    而 `graph_check` 当时判"通过"——因为它只检查"有没有以 `sampling_mode.`
+    开头的键"，而这个节点根本不用点号写法，是**平铺**的。
+
+    更关键的是：同一个字段 `on` 要 6 个、`off` 一个都不要。
+    所以必须**按图里实际选的那个 key** 去展开，不能笼统判断。
+    """
+    meta = _meta(spec)
+    options = meta.get("options")
+    if not isinstance(options, list):
+        return []
+    for opt in options:
+        if not isinstance(opt, dict) or str(opt.get("key")) != str(chosen):
+            continue
+        req = (opt.get("inputs") or {}).get("required") or {}
+        return [str(k) for k in req]
+    return []
+
+
 def combo_options(spec) -> list | None:
     """取 COMBO 的候选值。三种写法都见过：meta.options / meta 本身是 list / spec[0] 是 list。"""
     if not isinstance(spec, list) or not spec:
@@ -92,7 +117,7 @@ class Missing:
     node: str
     class_type: str
     field_name: str
-    kind: str              # missing | dynamic
+    kind: str              # missing | dynamic | bad_value
     type_name: str = ""
     options: list = field(default_factory=list)
 
@@ -118,19 +143,26 @@ class Result:
         return out
 
 
-def check(workflow_key: str, oi: dict, *, strict: bool = False) -> Result:
+def check(workflow_key: str, oi: dict, *, strict: bool = False,
+          check_values: bool = False) -> Result:
     """从 registry 读工作流，只检查 graph 本身。"""
     from tools.p20 import registry
 
     wf = registry.get_workflow(workflow_key)
     graph = json.loads((ROOT / wf["graph"]).read_text(encoding="utf-8"))
     model = (wf.get("model") or {}).get("key") or wf.get("model_key") or ""
-    return _check_graph(graph, oi, workflow_key, str(model), strict=strict)
+    return _check_graph(graph, oi, workflow_key, str(model), strict=strict,
+                        check_values=check_values)
 
 
 def _check_graph(graph: dict, oi: dict, workflow_key: str, model: str,
-                 *, strict: bool = False) -> Result:
-    """核心判据。单独抽出是为了单测能直接灌假 graph + 假 objectinfo。"""
+                 *, strict: bool = False, check_values: bool = False) -> Result:
+    """核心判据。单独抽出是为了单测能直接灌假 graph + 假 objectinfo。
+
+    check_values：是否校验「字段值在候选列表里」。
+    默认关 —— 静态快照 object_info 不含运行时软链，开了会全线误报。
+    用真机采的 object_info（`--live`）时打开。
+    """
     r = Result(workflow=workflow_key, model=model, nodes=len(graph))
 
     for nid, node in graph.items():
@@ -144,6 +176,44 @@ def _check_graph(graph: dict, oi: dict, workflow_key: str, model: str,
             continue
         req = (spec.get("input") or {}).get("required") or {}
         for fname, fspec in req.items():
+            tname0 = fspec[0] if isinstance(fspec, list) and fspec else ""
+            # DYNAMICCOMBO 的特殊之处：**主键写了不代表完事**。
+            # 主键的值（如 sampling_mode="on"）会带来一组必填子参数，
+            # 所以不能像普通字段那样"在 ins 里就跳过"，要往下查子参数。
+            # 2026-11-11 踩到：TextGenerateLTX2Prompt 写了 sampling_mode="on"
+            # 却没给 top_k/temperature 等 6 个，提交时被 ComfyUI 拒，
+            # 而这里因为 `fname in ins` 直接 continue，判了"通过"。
+            if tname0 == "COMFY_DYNAMICCOMBO_V3":
+                # 三条独立规则，缺一不可：
+                #
+                # ① 有子键但缺主键 → 缺主键。
+                #    ComfyUI 先按主键分派实现，没有主键会报
+                #    "missing 1 required positional argument: 'resize_type'"。
+                #    踩过：7 处 ResizeImageMaskNode 只写 resize_type.width/height。
+                #
+                # ② 主键写了、但选中的 key 要求的子参数没给 → 缺子参数。
+                #    踩过（2026-11-11）：TextGenerateLTX2Prompt 写 sampling_mode="on"
+                #    却一个子参数都没给，提交时被 ComfyUI 拒。
+                #
+                # ③ 主键和子键都没有 → dynamic（运行时才定，不算硬缺失）。
+                #
+                # 子参数有两种写法，都要认：点号 `resize_type.width`、平铺 `top_k`。
+                has_sub = any(k.startswith(f"{fname}.") for k in ins)
+                if has_sub and fname not in ins:
+                    r.missing.append(Missing(nid, ct, f"{fname}（有子键缺主键）",
+                                             "missing", tname0))
+                    continue
+                need = dynamic_combo_required(fspec, str(ins.get(fname) or ""))
+                lacked = [n for n in need
+                          if n not in ins and f"{fname}.{n}" not in ins]
+                if lacked:
+                    for n in lacked:
+                        r.missing.append(Missing(
+                            nid, ct, f"{fname}={ins.get(fname)} 需要 {n}",
+                            "missing", tname0, need))
+                elif fname not in ins:
+                    r.dynamic.append(Missing(nid, ct, fname, "dynamic", tname0))
+                continue
             if fname in ins:
                 continue
             m = _meta(fspec)
@@ -182,6 +252,7 @@ def _check_graph(graph: dict, oi: dict, workflow_key: str, model: str,
                 # 所以不能只看 `fname in ins`，要看有没有 `fname.` 开头的键。
                 # 踩过：第一版漏了这一步，把已经写好的 values.a 报成"缺"。
                 has_sub = any(k.startswith(f"{fname}.") for k in ins)
+                # DYNAMICCOMBO 已在循环开头统一处理（要按选中的 key 展开子参数）。
                 if not has_sub:
                     r.dynamic.append(Missing(nid, ct, fname, "dynamic", tname))
                 continue
@@ -191,6 +262,36 @@ def _check_graph(graph: dict, oi: dict, workflow_key: str, model: str,
                 continue
             opts = combo_options(fspec) or []
             r.missing.append(Missing(nid, ct, fname, "missing", tname, opts))
+
+        # 值校验：字段有值、是**纯枚举**型、候选列表非空，但值不在列表里。
+        #
+        # 为什么要加（2026-11-11 实测）：`LTXAVTextEncoderLoader.text_encoder`
+        # 图里写 `gemma_3_12B_it_fp4_mixed.safetensors`，镜像里只有
+        # int4_convrot / int8tensormixed / bf16。前面所有检查都通过，
+        # 提交那一刻才被拒（`value_not_in_list`）。这类占「跑到一半才发现」的大头。
+        #
+        # 三个必须避开的误报源：
+        #   ① DYNAMICCOMBO 的 options 是**对象数组**（{key, inputs}），
+        #      拿它当字符串列表比必然全不中 → 直接跳过，它由上面单独处理
+        #   ② 静态快照的 object_info 里没有我们运行时建的软链，
+        #      拿它查会全线误报 → 只在 `--live`（真机快照）模式下启用
+        #   ③ 连线（["12", 0]）不是值，跳过
+        if check_values:
+            for fname, val in ins.items():
+                if fname not in req or isinstance(val, list):
+                    continue
+                fspec = req[fname]
+                tname = fspec[0] if isinstance(fspec, list) and fspec else ""
+                if not isinstance(tname, str) or tname in DYNAMIC_TYPES:
+                    continue
+                opts = combo_options(fspec)
+                if not opts or not all(isinstance(o, str) for o in opts):
+                    continue
+                if str(val) in opts:
+                    continue
+                r.missing.append(Missing(
+                    nid, ct, f"{fname}={val!r} 不在候选里", "bad_value", tname,
+                    opts[:12]))
     return r
 
 
@@ -213,12 +314,17 @@ def main(argv=None) -> int:
     ap.add_argument("--group", action="store_true", help="按同源组归并展示")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--all", action="store_true", help="查全部 54 条（默认只看 experimental）")
+    ap.add_argument("--object-info", metavar="FILE", dest="object_info",
+                    help="用指定的 object_info 快照（默认 reports/p2/p21/evidence/objectinfo-v4.json）")
+    ap.add_argument("--live", action="store_true",
+                    help="同时校验字段值是否在候选列表里。**必须配真机快照**，"
+                         "静态快照不含运行时软链会误报")
     ap.add_argument("--strict", action="store_true",
                     help="把带 default 的 required 字段也算缺（上机前彻底体检）")
     a = ap.parse_args(argv)
 
     from tools.p20 import registry
-    oi = load_object_info()
+    oi = load_object_info(Path(a.object_info)) if a.object_info else load_object_info()
 
     if a.workflow:
         keys = [a.workflow]
@@ -230,7 +336,7 @@ def main(argv=None) -> int:
             if a.all or st == "experimental":
                 keys.append(w["key"])
 
-    results = [check(k, oi, strict=a.strict) for k in keys]
+    results = [check(k, oi, strict=a.strict, check_values=a.live) for k in keys]
 
     if a.json:
         print(json.dumps([{

@@ -25,6 +25,17 @@
       "notes": "p20ctl compat verify（p1-20261105T1227-611afe）"
     },
     {
+      "workflow": "h3_i2v_121f",
+      "model": "h3",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "307.2s，121 帧视频，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
       "workflow": "h3_t2v_121f",
       "model": "h3",
       "status": "verified",
@@ -49,6 +60,138 @@
       "notes": "P2 M4 批量 LTXV 多次 DONE，manifest PASS"
     },
     {
+      "workflow": "pack_image_flux2_klein_image_edit_4b_distilled",
+      "model": "flux_2_klein_4b_fp8",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261110T1331-61fb87"
+      ],
+      "verified_at": "2026-11-10",
+      "notes": "双参考图编辑。导出时丢了 upscale_method×3 / megapixels×3 / batch_size×2 共 8 个必填字段，补齐后 27s 跑通（64.5/B）。"
+    },
+    {
+      "workflow": "pack_image_qwen_image_edit_2511_int8",
+      "model": "qwen_image_edit_2511_int8_convrot",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261110T1319-6aba43"
+      ],
+      "verified_at": "2026-11-10",
+      "notes": "图生图编辑。原图混入 2 个 Flux 节点（FluxKontextMultiReferenceLatentMethod）把 Qwen conditioning 按 Flux 处理，且 3 个 switch 全 false 走了 40 步慢速路径 —— 修掉后 285s→72s，质量 32/D→96.1/A。"
+    },
+    {
+      "workflow": "pack_image_qwen_image_layered",
+      "model": "qwen_image_layered_bf16",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261110T1342-9d0017"
+      ],
+      "verified_at": "2026-11-10",
+      "notes": "分层输出。补 LatentCut.dim / layers / batch_size / largest_size 后 243s 跑通（59.8/B）。**只产出 1 张图**（预期 3 层），LatentCut.dim 的切分语义仍需对照官方示例修正。"
+    },
+    {
+      "workflow": "pack_utility_z_image_turbo_2k_upscaler_app",
+      "model": "z_image_turbo_bf16_utility_z_image_turbo_2k",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-07",
+      "notes": "51.7s，2K 高清精绘 app，v4 API 直跑；首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_fastvideo_fasth3_i2v",
+      "model": "fastvideo_fasth3_8step_v2_pruned_int",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "151.9s，FastH3 8 步 I2V，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_ltx2_3_flf2v",
+      "model": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_flf2v",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261111T0107-cea86d"
+      ],
+      "verified_at": "2026-11-11",
+      "notes": "p20ctl compat verify（p1-20261111T0107-cea86d）"
+    },
+    {
+      "workflow": "pack_video_ltx2_3_i2v",
+      "model": "ltx_2_3_22b_dev_fp8",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261111T0010-bcfa39"
+      ],
+      "verified_at": "2026-11-11",
+      "notes": "p20ctl compat verify（p1-20261111T0010-bcfa39）"
+    },
+    {
+      "workflow": "pack_video_ltx2_5_flf2v",
+      "model": "ltx_2_5_audio_vae_bf16",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261110T2244-de3779"
+      ],
+      "verified_at": "2026-11-10",
+      "notes": "首尾帧生视频 + 音频。按官方 workflow JSON 对齐后跑通：226s / 60.7/B，1280x704 121帧 5.04s，带 AAC 立体声。修了三处：模型卡 files 槽位错位（unet 填了 audio-vae、vae 填了 CLIP）、ComfyMathExpression 表达式填错（a+b 应为 a / a*b+1）、ResizeImageMaskNode 缺 resize_type 主键。"
+    },
+    {
+      "workflow": "pack_video_minimax_h3_multiframe_reference",
+      "model": "minimax_h3_ref2va_pruned_int8_convro",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "266.7s，4 帧参考，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_minimax_h3_r2v",
+      "model": "minimax_h3_ref2va_pruned_int8_convro_video_minimax_h3_r2v",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261110T1901-32e7da"
+      ],
+      "verified_at": "2026-11-10",
+      "notes": "两图参考生视频。经 P1 完整闭环（建机→setup→提交→取回→校验→销毁）：305s / 66.5/B，864x480 24fps 5.17s，画质清晰。替换掉 11-06 的 trial 证据。"
+    },
+    {
+      "workflow": "pack_video_wan21_scail2_character_replacement",
+      "model": "wan2_1_14b_scail_2_fp16",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261111T0048-a4775f"
+      ],
+      "verified_at": "2026-11-11",
+      "notes": "p20ctl compat verify（p1-20261111T0048-a4775f）"
+    },
+    {
+      "workflow": "pack_video_wan21_scail2_character_replacement_int8",
+      "model": "wan2_1_14b_scail_2_int8_convrot",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "p1-20261111T0116-746725"
+      ],
+      "verified_at": "2026-11-11",
+      "notes": "p20ctl compat verify（p1-20261111T0116-746725）"
+    },
+    {
       "workflow": "pack_video_wan2_2_14b_flf2v",
       "model": "wan2_2_i2v_high_noise_14b_fp8_scaled",
       "status": "verified",
@@ -71,6 +214,39 @@
       "notes": "p20ctl compat verify（p1-20261105T1311-483d2d）"
     },
     {
+      "workflow": "pack_video_wan2_2_14b_s2v",
+      "model": "wan2_2_s2v_14b_fp8_scaled",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "141.6s，两段式 S2V（音频+参考图→视频）；原 8 段长视频模板图缺失，已重建为 base+1 段 extend，v4 API 直跑；首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_wan_animate2",
+      "model": "wan_animate_2_int8_convrot",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "196.8s，动作迁移，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_video_wan_animate2_distilled",
+      "model": "wan_animate_2_distill_int8_convrot",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "257.1s，蒸馏加速版动作迁移，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
       "workflow": "qwen_image_edit_2509",
       "model": "qwen_image_edit_2509",
       "status": "verified",
@@ -91,6 +267,28 @@
       ],
       "verified_at": "2026-11-01",
       "notes": "Qwen-Image 1024×1024 实跑 PASS，成本 ¥0.0681"
+    },
+    {
+      "workflow": "qwen_image_t2i_landscape",
+      "model": "qwen_image",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "81.5s，1024×768 横版，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "qwen_image_t2i_portrait",
+      "model": "qwen_image",
+      "status": "verified",
+      "basis": "manual",
+      "evidence": [
+        "trial-20261106"
+      ],
+      "verified_at": "2026-11-06",
+      "notes": "21.4s，768×1024 竖版，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
     },
     {
       "workflow": "sdxl_img2img",
@@ -235,160 +433,6 @@
       ],
       "verified_at": "2026-11-05",
       "notes": "真机 4090：1024 基础 + 2x 细化到 2048，59s，PASS；成本 ¥0.1827（含两次提交失败重试）"
-    },
-    {
-      "workflow": "qwen_image_t2i_landscape",
-      "model": "qwen_image",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "trial-20261106"
-      ],
-      "verified_at": "2026-11-06",
-      "notes": "81.5s，1024×768 横版，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
-    },
-    {
-      "workflow": "qwen_image_t2i_portrait",
-      "model": "qwen_image",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "trial-20261106"
-      ],
-      "verified_at": "2026-11-06",
-      "notes": "21.4s，768×1024 竖版，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
-    },
-    {
-      "workflow": "h3_i2v_121f",
-      "model": "h3",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "trial-20261106"
-      ],
-      "verified_at": "2026-11-06",
-      "notes": "307.2s，121 帧视频，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
-    },
-    {
-      "workflow": "pack_video_fastvideo_fasth3_i2v",
-      "model": "fastvideo_fasth3_8step_v2_pruned_int",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "trial-20261106"
-      ],
-      "verified_at": "2026-11-06",
-      "notes": "151.9s，FastH3 8 步 I2V，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
-    },
-    {
-      "workflow": "pack_video_minimax_h3_r2v",
-      "model": "minimax_h3_ref2va_pruned_int8_convro_video_minimax_h3_r2v",
-      "status": "verified",
-      "basis": "real-run",
-      "evidence": [
-        "p1-20261110T1901-32e7da"
-      ],
-      "verified_at": "2026-11-10",
-      "notes": "两图参考生视频。经 P1 完整闭环（建机→setup→提交→取回→校验→销毁）：305s / 66.5/B，864x480 24fps 5.17s，画质清晰。替换掉 11-06 的 trial 证据。"
-    },
-    {
-      "workflow": "pack_video_minimax_h3_multiframe_reference",
-      "model": "minimax_h3_ref2va_pruned_int8_convro",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "trial-20261106"
-      ],
-      "verified_at": "2026-11-06",
-      "notes": "266.7s，4 帧参考，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
-    },
-    {
-      "workflow": "pack_video_wan_animate2",
-      "model": "wan_animate_2_int8_convrot",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "trial-20261106"
-      ],
-      "verified_at": "2026-11-06",
-      "notes": "196.8s，动作迁移，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
-    },
-    {
-      "workflow": "pack_video_wan_animate2_distilled",
-      "model": "wan_animate_2_distill_int8_convrot",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "trial-20261106"
-      ],
-      "verified_at": "2026-11-06",
-      "notes": "257.1s，蒸馏加速版动作迁移，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
-    },
-    {
-      "workflow": "pack_video_wan2_2_14b_s2v",
-      "model": "wan2_2_s2v_14b_fp8_scaled",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "trial-20261106"
-      ],
-      "verified_at": "2026-11-06",
-      "notes": "141.6s，两段式 S2V（音频+参考图→视频）；原 8 段长视频模板图缺失，已重建为 base+1 段 extend，v4 API 直跑；首次正式作业后应替换为 job id"
-    },
-    {
-      "workflow": "pack_utility_z_image_turbo_2k_upscaler_app",
-      "model": "z_image_turbo_bf16_utility_z_image_turbo_2k",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "trial-20261106"
-      ],
-      "verified_at": "2026-11-07",
-      "notes": "51.7s，2K 高清精绘 app，v4 API 直跑；首次正式作业后应替换为 job id"
-    },
-    {
-      "workflow": "pack_image_qwen_image_edit_2511_int8",
-      "model": "qwen_image_edit_2511_int8_convrot",
-      "status": "verified",
-      "basis": "real-run",
-      "evidence": [
-        "p1-20261110T1319-6aba43"
-      ],
-      "verified_at": "2026-11-10",
-      "notes": "图生图编辑。原图混入 2 个 Flux 节点（FluxKontextMultiReferenceLatentMethod）把 Qwen conditioning 按 Flux 处理，且 3 个 switch 全 false 走了 40 步慢速路径 —— 修掉后 285s→72s，质量 32/D→96.1/A。"
-    },
-    {
-      "workflow": "pack_image_flux2_klein_image_edit_4b_distilled",
-      "model": "flux_2_klein_4b_fp8",
-      "status": "verified",
-      "basis": "real-run",
-      "evidence": [
-        "p1-20261110T1331-61fb87"
-      ],
-      "verified_at": "2026-11-10",
-      "notes": "双参考图编辑。导出时丢了 upscale_method×3 / megapixels×3 / batch_size×2 共 8 个必填字段，补齐后 27s 跑通（64.5/B）。"
-    },
-    {
-      "workflow": "pack_image_qwen_image_layered",
-      "model": "qwen_image_layered_bf16",
-      "status": "verified",
-      "basis": "real-run",
-      "evidence": [
-        "p1-20261110T1342-9d0017"
-      ],
-      "verified_at": "2026-11-10",
-      "notes": "分层输出。补 LatentCut.dim / layers / batch_size / largest_size 后 243s 跑通（59.8/B）。**只产出 1 张图**（预期 3 层），LatentCut.dim 的切分语义仍需对照官方示例修正。"
-    },
-    {
-      "workflow": "pack_video_ltx2_5_flf2v",
-      "model": "ltx_2_5_audio_vae_bf16",
-      "status": "verified",
-      "basis": "real-run",
-      "evidence": [
-        "p1-20261110T2244-de3779"
-      ],
-      "verified_at": "2026-11-10",
-      "notes": "首尾帧生视频 + 音频。按官方 workflow JSON 对齐后跑通：226s / 60.7/B，1280x704 121帧 5.04s，带 AAC 立体声。修了三处：模型卡 files 槽位错位（unet 填了 audio-vae、vae 填了 CLIP）、ComfyMathExpression 表达式填错（a+b 应为 a / a*b+1）、ResizeImageMaskNode 缺 resize_type 主键。"
     }
   ]
 }

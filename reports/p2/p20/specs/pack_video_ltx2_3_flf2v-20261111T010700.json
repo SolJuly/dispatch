@@ -1,0 +1,49 @@
+{
+  "kind": "video",
+  "task_ref": "P2.0-pack_video_ltx2_3_flf2v",
+  "model": {
+    "key": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_flf2v",
+    "workflow": "workflows/pack/video_ltx2_3_flf2v.api.json",
+    "checkpoint": "ltx-2.3-22b-distilled-fp8.safetensors",
+    "workflow_sha256": "06b87980dbc13cc6ec761572fa2d7899543f152b376af8373e731121e546171a",
+    "registry": {
+      "workflow_key": "pack_video_ltx2_3_flf2v",
+      "workflow_version": 1,
+      "model_key": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_flf2v",
+      "model_version": 1,
+      "compat": "experimental",
+      "compat_basis": "unverified",
+      "setup_need": "all",
+      "graph_sha256": "06b87980dbc13cc6ec761572fa2d7899543f152b376af8373e731121e546171a"
+    }
+  },
+  "params": {
+    "image": "in-0b3689fa.png",
+    "image_2": "in-137c6e45.jpg",
+    "neg_prompt": "静态, 模糊, 低质量, 水印, 形变",
+    "prompt": "Smooth transition, cinematic camera movement, soft lighting",
+    "seed": 1120957465
+  },
+  "expect": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "freeze": {
+      "ratio_max": 0.2,
+      "longest_max_s": 1.0
+    }
+  },
+  "budget": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}
