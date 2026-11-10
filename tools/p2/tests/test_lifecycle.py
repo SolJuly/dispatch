@@ -529,6 +529,56 @@ class TestLegacyStoppedInstances(_StoppedIsolated):
         self.assertIn("无停机记录", rows[0].action_reason)
 
 
+# ================================================================ 豁免
+class TestLabPrefixExempt(unittest.TestCase):
+    """`lab-*` 的机器由 lab_runner 自己管，生命周期不归 reaper 判。
+
+    `csctl watch` 一直有这个跳过逻辑。撤掉 watch、让 reaper 接手清理职责时，
+    必须把豁免一起搬过来，否则**行为倒退**：原来不动的机器现在会被停机。
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self._orig = L.STOPPED_JSON
+        L.STOPPED_JSON = self.root / "stopped_at.json"
+
+    def tearDown(self):
+        L.STOPPED_JSON = self._orig
+        self.tmp.cleanup()
+
+    def test_lab_instance_not_assessed(self):
+        now = time.time()
+        inst = {"UHostId": "u-lab", "Name": "lab-bench-1", "State": "Running",
+                "StartTime": now - 9999 * 60}
+        rows = R.assess([inst], jobs_dir=self.root, now=now)
+        self.assertEqual(rows, [], "lab-* 不该产出 InstanceState")
+
+    def test_normal_instance_still_assessed(self):
+        """豁免只针对 lab-*，别把正常实例一起放过了（负向对照）。"""
+        now = time.time()
+        for name in ("p1-abc", "p2-def", "exp-offline-24h", ""):
+            with self.subTest(name=name):
+                inst = {"UHostId": "u-x", "Name": name, "State": "Running",
+                        "StartTime": now - 9999 * 60}
+                rows = R.assess([inst], jobs_dir=self.root, now=now)
+                self.assertEqual(len(rows), 1, f"{name!r} 应被评估")
+                self.assertEqual(rows[0].action, "stop")
+
+    def test_prefix_must_match_from_start(self):
+        """前缀匹配是 startswith，不是"包含"—— `my-lab-test` 不该被豁免。"""
+        now = time.time()
+        inst = {"UHostId": "u-x", "Name": "my-lab-test", "State": "Running",
+                "StartTime": now - 9999 * 60}
+        rows = R.assess([inst], jobs_dir=self.root, now=now)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].action, "stop")
+
+    def test_skip_list_is_centralized(self):
+        """豁免前缀集中在一个常量里，不要在 assess 里散写字符串。"""
+        self.assertIn("lab-", R.SKIP_NAME_PREFIXES)
+
+
 # ================================================================ run.py 接入
 class TestRunWiring(unittest.TestCase):
     """run.py 的释放分支（静态断言 —— 真跑要建机）。"""

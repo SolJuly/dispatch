@@ -1,17 +1,30 @@
-# 实例清理：把空闲超过阈值的实例关机。
+# 实例生命周期：三态判定（保活 / 停机 / 销毁），每 5 分钟巡一次。
 #
 # 为什么要独立成 service + timer，而不是塞进 cron 或调度器：
-#   · 清理是**安全兜底**，必须在调度器停摆时照样活着
+#   · 生命周期是**成本兜底**，必须在调度器停摆时照样活着
 #     （2026-11-09 实测：调度器 p2-dispatch 停用了一周，期间无人巡检）
-#   · 判据是「作业状态 + 空闲时长」，不看 GPU 利用率 ——
+#   · 判据是「作业状态 + 生命周期窗口」，不看 GPU 利用率 ——
 #     GPU 闲可能是正在装模型（那时 GPU 还是 0%），关掉就白装一次
 #
-# 和 csctl watch 的分工：
-#   watch      按 GPU 利用率 15 分钟 → stop。它是**近似**判据，会误判装模型阶段。
-#   p2-reaper  按作业状态 10 分钟 → stop。它是**准确**判据，装着模型不会被误关。
-#   两个都留着：watch 是粗网，reaper 是细网。reaper 先关掉之后 watch 自然无事可做。
+# 三态规则（tools/p2/lifecycle.py）：
+#
+#     短任务（默认）   跑完立即回收              空转 0 秒
+#     长任务（UI 勾）   跑完空转 60/90/120s 等下一单  默认 90
+#     空转超时         stop → 停机（¥0，可 start 唤醒 ~62s）
+#     停机超 2 小时     terminate → 销毁（腾配额）
+#
+# 为什么不是纯 stop：停机虽免费，但**占配额**（账户 5 台上限）。
+# 光停不销毁，几台僵尸停机实例就能把配额吃满，新任务报 8903。
+# 所以默认 action=auto：该停的停、该销毁的销毁。
+#
+# 和 csctl watch 的分工（如果它还在 cron 里）：
+#   watch      按 GPU 利用率 15 分钟 → stop。**近似**判据，会误判装模型阶段。
+#   p2-reaper  按作业状态 + 生命周期窗口 → stop/terminate。**准确**判据。
+#   reaper 上线后 watch 应当撤掉或把 --idle-minutes 调到 60 只当粗网 ——
+#   两套判据同时开着，watch 会抢先关掉 reaper 判定"还在长任务空转窗口内"的机器，
+#   于是窗口形同虚设，用户勾了长任务却照样被提前停机。
 [Unit]
-Description=P2 实例清理（空闲超阈值且无作业 → 关机）
+Description=P2 实例生命周期（保活 / 停机 / 停机超 2h 销毁）
 After=network-online.target
 Wants=network-online.target
 
@@ -19,5 +32,10 @@ Wants=network-online.target
 Type=oneshot
 WorkingDirectory=/root/智云视频工作流
 Environment=PYTHONUNBUFFERED=1
-# --idle-min 缺省取 P2_IDLE_REAP_MIN（默认 10）
+# 输出也落一份文件：`journalctl -u p2-reaper` 能查，但运维习惯看 logs/。
+# 追加模式（不是 oneshot 的默认覆盖），否则每 5 分钟只剩最后一次巡检记录。
+StandardOutput=append:/root/智云视频工作流/logs/reaper.log
+StandardError=append:/root/智云视频工作流/logs/reaper.log
+# 不给 --idle-min：让 reaper 自己按 job.json 的 task_class 取窗口。
+# 显式给 --idle-min 会**覆盖**三档设计（见 reaper.reapable 的注释）。
 ExecStart=/usr/bin/python3 /root/智云视频工作流/tools/p2/reaper_cli.py run

@@ -115,6 +115,12 @@ FAIL_BRANCH_STATES = frozenset({
 
 DEFAULT_IDLE_MIN = 10
 
+# 基准实验室的机器（`lab-*`）由 lab_runner 自己管，生命周期不归我们判。
+# lab_runner 虽已退役（见 tools/arch.py 的架构图标注），但 csctl watch 一直保留
+# 这个跳过逻辑，riskmon 也还在按这个前缀分类。撤掉 watch 接手清理职责时，
+# 必须把同样的豁免搬过来 —— 否则行为倒退：原来不动的机器现在会被停机。
+SKIP_NAME_PREFIXES = ("lab-",)
+
 
 def idle_minutes() -> int:
     """兜底空闲阈值（分钟）。**只在拿不到作业生命周期信息时用。**
@@ -304,9 +310,16 @@ def assess(instances: list[dict] | None = None, *,
         uid = str(i.get("UHostId") or "")
         if not uid:
             continue
+        name = str(i.get("Name") or "")
+        if any(name.startswith(pfx) for pfx in SKIP_NAME_PREFIXES):
+            # 不由我们管的机器：直接跳过，连 InstanceState 都不产出。
+            # 产出的话会在 reaper_cli 的表格里显示成"保活"，容易让人以为
+            # 系统"看过并决定留着"，实际是"根本不归它管"。
+            continue
+
         st = InstanceState(
             uid=uid,
-            name=str(i.get("Name") or ""),
+            name=name,
             cloud_state=str(i.get("State") or ""),
             start_time=float(i.get("StartTime") or 0),
         )
