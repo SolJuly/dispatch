@@ -55,12 +55,12 @@ fi
 echo "[4/4] 健康检查"
 code_root=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8081/$TOKEN/")
 code_ver=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8081/$TOKEN/api/p2/version")
-code_app=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8081/$TOKEN/app/create")
+code_ui=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8081/$TOKEN/ui/")
 echo "  /                  -> $code_root"
 echo "  /api/p2/version    -> $code_ver"
-echo "  /app/create        -> $code_app"
+echo "  /ui/               -> $code_ui"
 curl -s "http://127.0.0.1:8081/$TOKEN/api/p2/version" | head -c 400; echo
-if [ "$code_root" != 200 ] || [ "$code_ver" != 200 ] || [ "$code_app" != 200 ]; then
+if [ "$code_root" != 200 ] || [ "$code_ver" != 200 ] || [ "$code_ui" != 200 ]; then
   echo "✗ 健康检查失败，看看：journalctl -u cs-files -n 50"
   exit 1
 fi

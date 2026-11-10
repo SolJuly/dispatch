@@ -8,6 +8,7 @@ import sys
 import zipfile
 import tempfile
 import shutil
+import re
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -499,12 +500,30 @@ class TestVideoParamBinding(unittest.TestCase):
         self.assertEqual(bad, [])
 
     def test_animate2_exposes_video_picker(self):
+        """驱动视频字段必须用视频选择器（accept 含 video/*，不是图片类型）。
+
+        2026-11-10 前端统一到 web/dist 后，这条改测 B 套的 mediaCtl()。
+        原来测的是 `webui/components.py`（A 套服务端渲染），那套已删除。
+
+        为什么这条必须留着：`image_2` 这个**参数名**看起来是图片，
+        实际语义是"驱动视频"。只按名字推断就会给成 `accept="image/*"`，
+        用户选了 mp4 也被拒 —— 历史上这正是动作迁移跑不起来的第一个坑。
+        """
         from tools.p20 import registry
-        from webui import components
         wf = registry.get_workflow("pack_video_wan_animate2_distilled")
-        html = components.field("image_2", wf["params"]["image_2"])
-        self.assertIn('accept="video/*"', html)
-        self.assertIn("驱动视频", html)
+        spec = wf["params"]["image_2"]
+        self.assertEqual(spec.get("type"), "video",
+                         "image_2 在 animate2 里语义是驱动视频，类型必须声明为 video")
+
+        # 源码层面确认 mediaCtl 按 spec.type 分派 accept，且视频分支含 mp4
+        src = (Path(__file__).resolve().parents[3] / "web" / "dist" / "app.js").read_text(
+            encoding="utf-8")
+        m = re.search(r"function mediaCtl\(name, spec\) \{(.+?)\n\}", src, re.S)
+        self.assertIsNotNone(m, "web/dist/app.js 里找不到 mediaCtl()")
+        body = m.group(1)
+        self.assertIn("spec.type === 'video'", body,
+                      "必须按字段声明的类型分派，不能按参数名猜")
+        self.assertIn("video/mp4", body, "视频分支的 accept 必须含 video/mp4")
 
 
 class TestArtifactUrl(unittest.TestCase):

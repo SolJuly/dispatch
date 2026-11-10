@@ -386,12 +386,15 @@ class Handler(BaseHTTPRequestHandler):
         if not rest:
             return self._index()
         kind = rest[0]
-        if kind == "app":
-            return self._app_page(rest[1:], q)
-        if kind == "static":
-            return self._static_asset(rest[1:])
+        # 前端只有一套：/ui/（web/dist SPA）。
+        # 旧的 /app/（服务端渲染）与 /static/（它的内嵌资源）已于 2026-11-10 删除，
+        # 原因见 tools/console_guard.py 顶部：两套都活着时，改哪套都"看起来对"，
+        # 结果是连续两次把功能加到了用户看不见的那一套上。
         if kind == "ui":
             return self._ui_asset(rest[1:])
+        if kind in ("app", "static"):
+            # 老书签/老链接给个明确去处，不要 404 让人以为站点挂了
+            return self._send(302, b"", headers={"Location": f"{BASE}/{TOKEN}/ui/"})
         if kind == "zip":
             return self._zip()
         if kind == "monitor" and not rest[1:]:
@@ -614,45 +617,6 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------------- P2.0 Registry 只读接口
     # ---------------- 图片控制台（M1 骨架）
-    def _app_page(self, rest: list[str], q: dict):
-        from webui import api as webapi, pages as webpages
-
-        base = BASE
-        page = rest[0] if rest else "create"
-        try:
-            if page in ("", "create"):
-                body = webpages.create_page(base, TOKEN, (q.get("workflow") or [""])[0])
-            elif page == "video" and len(rest) == 1:
-                body = webpages.video_page(base, TOKEN, (q.get("workflow") or [""])[0])
-            elif page == "jobs" and len(rest) == 1:
-                body = webpages.jobs_page(base, TOKEN, (q.get("state") or [""])[0],
-                                          (q.get("q") or [""])[0])
-            elif page == "jobs" and len(rest) == 2:
-                body = webpages.detail_page(base, TOKEN, rest[1])
-            elif page == "gallery" and len(rest) == 1:
-                body = webpages.gallery_page(base, TOKEN, (q.get("workflow") or [""])[0],
-                                             int((q.get("page") or ["1"])[0] or 1))
-            elif page == "registry" and len(rest) == 1:
-                body = webpages.registry_page(base, TOKEN)
-            else:
-                return self._err(404, "页面不存在")
-        except webapi.ApiError as e:
-            return self._err(e.code, e.msg)
-        return self._send(200, body.encode("utf-8"), "text/html; charset=utf-8")
-
-    def _static_asset(self, rest: list[str]):
-        from webui import assets as webassets
-
-        name = rest[0] if rest else ""
-        if name == "app.css":
-            body, ct = webassets.CSS.encode("utf-8"), "text/css; charset=utf-8"
-        elif name == "app.js":
-            body, ct = webassets.JS.encode("utf-8"), "application/javascript; charset=utf-8"
-        else:
-            return self._err(404, "资源不存在")
-        return self._send(200, body, ct, {"Cache-Control": "public, max-age=60"})
-
-    # ---------------- 前端 SPA（Vite 构建产物）
     def _ui_asset(self, rest: list[str]):
         """托管 web/dist 里的 SPA 产物。
 
