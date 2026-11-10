@@ -29,7 +29,7 @@
       }
     }
   },
-  "name": "图层分离 · Qwen-Image Layered（尚未开发）",
+  "name": "图层分离 · Qwen-Image Layered",
   "notes": "img.layered · 图层分离（可分别改背景/主体） · 许可：需自行核对模型卡 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
   "output": {
     "ext": "png",

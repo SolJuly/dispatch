@@ -33,7 +33,7 @@
       }
     }
   },
-  "name": "指令改图 · Qwen-Image-Edit 2511（int8，尚未开发）",
+  "name": "指令改图 · Qwen-Image-Edit 2511",
   "notes": "官方模板导入，未本地真机验证（compat=experimental）",
   "output": {
     "ext": "png",

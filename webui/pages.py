@@ -46,16 +46,29 @@ def shell(base: str, token: str, active: str, title: str, body: str,
 
 
 def _wf_picker(base: str, token: str, workflows: list[dict], current: str, *, page: str) -> str:
+    """工作流下拉。`NEW` 标在名字前面，并排在最上。
+
+    `<option>` 里没法放 HTML 标签，所以 NEW 只能用文字前缀 —— 用 `★` 而不是
+    `[NEW]` 是因为 Unicode 在等宽/非等宽字体下都不会错位，而方括号在窄屏会换行。
+    另外加一行说明，否则用户不知道这个星号是什么意思。
+    """
     opts = []
-    for w in workflows:
+    # 新的排最前（_console_workflows 已按 is_new 排序，这里再稳一次）
+    ordered = sorted(workflows, key=lambda w: 0 if w.get("is_new") else 1)
+    new_n = sum(1 for w in workflows if w.get("is_new"))
+    for w in ordered:
         sel = " selected" if w["key"] == current else ""
         label = w["name"]
+        if w.get("is_new"):
+            label = "★ NEW · " + label
         if (w.get("compat") or "") not in ("verified", "equivalent") and "尚未开发" not in label:
             label += "（尚未开发）"
         opts.append(f'<option value="{C.esc(w["key"])}"{sel}>{C.esc(label)}</option>')
+    note = (f'<div class="hint" style="margin-top:4px">★ NEW = 今天刚通过真机验证的 '
+            f'{new_n} 个，排在最上面</div>') if new_n else ""
     return (f'<div class="field"><label for="wf">工作流</label>'
             f'<select id="wf" onchange="location.href=\'{base}/{token}{page}?workflow=\'+this.value">'
-            f'{"".join(opts)}</select></div>')
+            f'{"".join(opts)}</select>{note}</div>')
 
 
 def _grouped_fields(params: dict) -> str:

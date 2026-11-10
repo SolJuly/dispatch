@@ -666,22 +666,54 @@ def zip_artifacts(job_ids: list[str], jobs_dir: Path | None = None,
     return buf.getvalue()
 
 
+def is_recent_verified(compat: dict | None, days: int = 1) -> bool:
+    """最近 N 天内**通过真机验证**的工作流 = 「新上线」。
+
+    判据是 `compat.checked_at`，三个坑都踩过：
+
+    ① 不能用 workflow 的 `imported_at` —— 那是派生索引的重建时间，
+       每跑一次 `p20ctl import` 就变，拿它做"新"会让全部 54 条都变新。
+    ② `checked_at` 只对 verified 有意义。experimental 记录在 import 时
+       会被补一条、时间戳写的是"导入那一刻"，所以必须先判 status。
+    ③ 窗口不能给 7 天 —— 仓库里 11-03~11-07 验证过 26 条老工作流，
+       按 7 天算全算"新"，标签就没有意义。
+    """
+    import datetime as _dt
+    import os
+    c = compat or {}
+    if c.get("status") != "verified":
+        return False
+    at = str(c.get("checked_at") or c.get("verified_at") or "")
+    try:
+        d = _dt.date.fromisoformat(at[:10])
+    except ValueError:
+        return False
+    try:
+        days = int(os.environ.get("P21_NEW_BADGE_DAYS") or days)
+    except ValueError:
+        pass
+    return (_dt.date.today() - d).days <= days
+
+
 def _console_workflows(kind: str) -> list[dict]:
-    """控制台下拉数据源：按类型取未废弃工作流，可用的排前面。"""
+    """控制台下拉数据源：按类型取未废弃工作流，**新上线的排最前**，其余可用的在前。"""
     out = []
     for w in registry.list_workflows():
         if w.get("kind") != kind or w.get("deprecated"):
             continue
-        status = (w.get("compat") or {}).get("status")
+        compat = w.get("compat") or {}
+        status = compat.get("status")
+        new = is_recent_verified(compat)
         out.append({
             "key": w["key"], "name": w["name"], "description": w.get("description") or "",
             "version": w["version"],
             "model": w.get("model_key") or (w.get("model") or {}).get("key"),
             "compat": status,
+            "is_new": new,
             "params": w.get("params") or {},
-            "_rank": 0 if status in ("verified", "equivalent") else 1,
+            "_rank": (0 if new else 1) if status in ("verified", "equivalent") else 2,
         })
-    out.sort(key=lambda x: x["_rank"])  # 稳定排序：可用的在前，组内保持 registry 顺序
+    out.sort(key=lambda x: x["_rank"])  # 稳定排序：新的最前，然后可用的，再未开发
     for x in out:
         x.pop("_rank", None)
     return out
