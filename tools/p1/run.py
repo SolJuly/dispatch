@@ -764,20 +764,82 @@ def step_submit(job: dict, opts, ctx: dict) -> None:
         _say(f"输入已上传：{key}={remote_name}")
 
     payload = json.dumps({"prompt": graph, "client_id": "p1"}, ensure_ascii=False)
+    # 内联脚本必须**捕获 HTTPError 并打印响应体**。
+    #
+    # 踩过（2026-11-10）：ComfyUI 对坏 graph 返回 400，响应体里带
+    # `{"error": {...}, "node_errors": {"1216": {"errors": ["KSampler ..."]}}}`
+    # —— 这才是排障要看的东西。但 urllib 在 4xx 时抛 HTTPError，
+    # 内联脚本没接，于是远程 traceback 顶掉了响应体，`out[-400:]` 只截到
+    # "HTTP Error 400: Bad Request"，真正原因一个字都看不到。
+    # 结果：建机 + setup 花掉 ¥0.10，只换来一句"400"。
     cmd = ("source /root/miniconda3/bin/activate && python3 -c \""
-           "import json,sys,urllib.request;"
-           f"p=json.loads(sys.argv[1]);"
+           "import json,sys,urllib.request,urllib.error;"
+           "p=json.loads(sys.argv[1]);"
            "r=urllib.request.Request('http://127.0.0.1:8188/prompt',data=json.dumps(p).encode(),"
            "headers={'Content-Type':'application/json'});"
-           "print(urllib.request.urlopen(r,timeout=120).read().decode())\" "
+           "\ntry:\n"
+           " print('PROMPT_OK ' + urllib.request.urlopen(r,timeout=120).read().decode())\n"
+           "except urllib.error.HTTPError as e:\n"
+           " body = e.read().decode('utf-8','replace')\n"
+           " print('PROMPT_ERR ' + body)\n"
+           "except Exception as e:\n"
+           " print('PROMPT_ERR ' + type(e).__name__ + ': ' + str(e))\" "
            + "'" + payload.replace("'", "'\"'\"'") + "'")
     rc, out = _ssh_run(host, port, pwd, cmd, timeout=180)
     from tools.p20 import comfy as p20comfy
     pid = p20comfy.parse_prompt_id(out)
     if not pid:
-        raise RunError(f"提交失败：{out[-400:]}", state.FAILED_RUN)
+        # 优先展示 ComfyUI 给的 node_errors（它指明哪个节点、哪个字段坏了）
+        detail = _comfy_error_detail(out)
+        raise RunError(f"提交失败：{detail}", state.FAILED_RUN)
     ctx["prompt_id"] = pid
     _say(f"已提交 prompt_id={pid}")
+
+
+def _comfy_error_detail(out: str, limit: int = 900) -> str:
+    """从 ComfyUI 的响应里抽出**可读**的错误，而不是 traceback。
+
+    `/prompt` 拒绝坏 graph 时返回 400 + 这样一段 JSON（实测格式）：
+
+        {"error": {"type": "prompt_outputs_failed_validation",
+                   "message": "Prompt outputs failed validation", ...},
+         "node_errors": {"1216": {"errors": [{"message": "Value not in list", ...}]}}}
+
+    排查要的第一信息是「哪个节点、哪个字段、为什么」。这里按节点逐条展开，
+    都没有就回落原始响应尾部。
+    """
+    import re
+    m = re.search(r"PROMPT_ERR\s*(\{.*)", out, re.S)
+    raw = m.group(1) if m else out
+    try:
+        d = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return raw.strip()[-limit:] or "(无输出)"
+    if isinstance(d, str):
+        return d[:limit]
+    if not isinstance(d, dict):
+        return json.dumps(d, ensure_ascii=False)[:limit]
+
+    lines: list[str] = []
+    err = d.get("error")
+    if isinstance(err, dict):
+        lines.append(f"{err.get('type') or 'error'}: {err.get('message') or ''}".strip())
+    elif err:
+        lines.append(str(err))
+
+    for nid, ne in (d.get("node_errors") or {}).items():
+        if not isinstance(ne, dict):
+            continue
+        cls = ne.get("class_type") or "?"
+        for e in (ne.get("errors") or []):
+            if isinstance(e, dict):
+                msg = e.get("message") or e.get("type") or "?"
+                det = e.get("details") or ""
+                lines.append(f"  节点 {nid}（{cls}）：{msg}" + (f" —— {det}" if det else ""))
+            else:
+                lines.append(f"  节点 {nid}（{cls}）：{e}")
+    text = "\n".join(lines) if lines else json.dumps(d, ensure_ascii=False)
+    return text[:limit]
 
 
 def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:

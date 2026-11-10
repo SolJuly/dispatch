@@ -44,6 +44,9 @@ reports/p1/jobs/*/thumbs/
 *.patch
 *.diff
 
+# P2.0 实验作业的 spec（run_experimental.py 每跑一次生成一份，可由参数重建）
+reports/p20/specs/
+
 # P2 运行态（队列库是可删的，job 事实在 job.json）
 reports/p2/*.db
 reports/p2/*.db-wal

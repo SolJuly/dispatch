@@ -148,7 +148,10 @@
       "image": [
         "76",
         0
-      ]
+      ],
+      "upscale_method": "lanczos",
+      "megapixels": 1.0,
+      "resolution_steps": 1
     },
     "_meta": {
       "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
@@ -160,7 +163,10 @@
       "image": [
         "81",
         0
-      ]
+      ],
+      "upscale_method": "lanczos",
+      "megapixels": 1.0,
+      "resolution_steps": 1
     },
     "_meta": {
       "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
@@ -188,7 +194,8 @@
       "height": [
         "1140",
         1
-      ]
+      ],
+      "batch_size": 1
     },
     "_meta": {
       "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
@@ -351,7 +358,8 @@
       "height": [
         "1157",
         1
-      ]
+      ],
+      "batch_size": 1
     },
     "_meta": {
       "title": "Image Edit (FLUX.2 Klein 4B Distilled)"
@@ -363,7 +371,10 @@
       "image": [
         "76",
         0
-      ]
+      ],
+      "upscale_method": "lanczos",
+      "megapixels": 1.0,
+      "resolution_steps": 1
     },
     "_meta": {
       "title": "Image Edit (FLUX.2 Klein 4B Distilled)"

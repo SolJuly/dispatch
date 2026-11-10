@@ -25,7 +25,11 @@
       "vae": [
         "1286",
         0
-      ]
+      ],
+      "tile_size": 512,
+      "overlap": 64,
+      "temporal_size": 64,
+      "temporal_overlap": 8
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
@@ -81,7 +85,9 @@
       "image": [
         "1280",
         0
-      ]
+      ],
+      "frame_idx": 0,
+      "strength": 1.0
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
@@ -89,7 +95,9 @@
   },
   "1264": {
     "class_type": "ManualSigmas",
-    "inputs": {},
+    "inputs": {
+      "sigmas": "1, 0.5"
+    },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
     }
@@ -116,7 +124,9 @@
       "image": [
         "1279",
         0
-      ]
+      ],
+      "frame_idx": 0,
+      "strength": 1.0
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
@@ -133,7 +143,8 @@
         "1295",
         1
       ],
-      "frame_rate": 24
+      "frame_rate": 24,
+      "batch_size": 1
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
@@ -173,7 +184,8 @@
       "length": [
         "1295",
         1
-      ]
+      ],
+      "batch_size": 1
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
@@ -229,7 +241,10 @@
   },
   "1271": {
     "class_type": "SamplerEulerAncestral",
-    "inputs": {},
+    "inputs": {
+      "eta": 1.0,
+      "s_noise": 1.0
+    },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
     }
@@ -269,7 +284,9 @@
       "negative": [
         "1265",
         1
-      ]
+      ],
+      "video_cfg": 3.0,
+      "audio_cfg": 7.0
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
@@ -345,7 +362,8 @@
       "image": [
         "1283",
         0
-      ]
+      ],
+      "img_compression": 35
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
@@ -357,7 +375,8 @@
       "image": [
         "1282",
         0
-      ]
+      ],
+      "img_compression": 35
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
@@ -374,7 +393,9 @@
         "1280",
         0
       ],
-      "prompt": ""
+      "prompt": "",
+      "sampling_mode": "off",
+      "max_length": 512
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
@@ -388,7 +409,8 @@
         0
       ],
       "resize_type.width": 1280,
-      "resize_type.height": 720
+      "resize_type.height": 720,
+      "scale_method": "area"
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
@@ -402,7 +424,8 @@
         0
       ],
       "resize_type.width": 1280,
-      "resize_type.height": 720
+      "resize_type.height": 720,
+      "scale_method": "area"
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
@@ -461,7 +484,8 @@
   "1293": {
     "class_type": "ComfyMathExpression",
     "inputs": {
-      "values.a": 24
+      "values.a": 24,
+      "expression": "a + b"
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
@@ -471,7 +495,8 @@
     "class_type": "ComfyMathExpression",
     "inputs": {
       "values.a": 5,
-      "values.b": 24
+      "values.b": 24,
+      "expression": "a + b"
     },
     "_meta": {
       "title": "First & Last Frame to Video (LTX-2.5)"
