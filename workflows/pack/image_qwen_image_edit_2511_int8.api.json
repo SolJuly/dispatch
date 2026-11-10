@@ -21,30 +21,6 @@
       "title": "Image Edit (Qwen-Image 2511 Int8)"
     }
   },
-  "1198": {
-    "class_type": "FluxKontextMultiReferenceLatentMethod",
-    "inputs": {
-      "conditioning": [
-        "1200",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Edit (Qwen-Image 2511 Int8)"
-    }
-  },
-  "1199": {
-    "class_type": "FluxKontextMultiReferenceLatentMethod",
-    "inputs": {
-      "conditioning": [
-        "1202",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Image Edit (Qwen-Image 2511 Int8)"
-    }
-  },
   "1200": {
     "class_type": "TextEncodeQwenImageEditPlus",
     "inputs": {
@@ -59,7 +35,8 @@
       "image1": [
         "1218",
         0
-      ]
+      ],
+      "prompt": "{{PROMPT}}"
     },
     "_meta": {
       "title": "Image Edit (Qwen-Image 2511 Int8)"
@@ -79,7 +56,8 @@
       "image1": [
         "1218",
         0
-      ]
+      ],
+      "prompt": " {{NEG_PROMPT}}"
     },
     "_meta": {
       "title": "TextEncodeQwenImageEditPlus (Positive)"
@@ -91,7 +69,8 @@
       "model": [
         "1196",
         0
-      ]
+      ],
+      "strength": 1.0
     },
     "_meta": {
       "title": "Image Edit (Qwen-Image 2511 Int8)"
@@ -159,7 +138,7 @@
         "1204",
         0
       ],
-      "switch": false
+      "switch": true
     },
     "_meta": {
       "title": "Switch (Model)"
@@ -170,7 +149,7 @@
     "inputs": {
       "on_false": 4,
       "on_true": 1,
-      "switch": false
+      "switch": true
     },
     "_meta": {
       "title": "Switch (CFG)"
@@ -181,7 +160,7 @@
     "inputs": {
       "on_false": 40,
       "on_true": 4,
-      "switch": false
+      "switch": true
     },
     "_meta": {
       "title": "Switch (Steps)"
@@ -207,11 +186,11 @@
         0
       ],
       "positive": [
-        "1199",
+        "1200",
         0
       ],
       "negative": [
-        "1198",
+        "1202",
         0
       ],
       "latent_image": [
@@ -252,17 +231,13 @@
     }
   },
   "195": {
-    "class_type": "SaveImageAdvanced",
+    "class_type": "SaveImage",
     "inputs": {
-      "filename_prefix": "Qwen_Edit_2511",
-      "format": "png",
       "images": [
         "1217",
         0
-      ]
-    },
-    "_meta": {
-      "title": "SaveImageAdvanced"
+      ],
+      "filename_prefix": "Qwen_Edit_2511"
     }
   },
   "41": {

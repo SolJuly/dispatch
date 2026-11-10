@@ -23,6 +23,7 @@ from tools.p1 import store
 from tools.p20 import config_schema as cs
 from tools.p20 import p20ctl as p20cli
 from tools.p20 import registry
+from tools.p2 import lifecycle
 
 ROOT = Path(__file__).resolve().parent.parent
 PUB_DIR = Path(os.environ.get("P21_PUB_DIR", "/srv/dsh-pub/jobs"))
@@ -404,9 +405,20 @@ def run_jobs(ids: list[str], *, jobs_dir: Path | None = None,
     """把还停在 CREATED 的作业真正执行起来（控制台「执行」按钮用）。
 
     以前提交时若没勾「立即执行」，作业只会躺在 CREATED，没有任何入口能启动它。
+
+    **并发闸**：先确认还剩几个槽，再挑前 N 个能跑的启动，其余原样报"并发已满"。
+    为什么不是逐个判：批量执行 3 个时，前两个都看到"还有空槽"（因为它们还没写
+    RUNNING），第三个才发现满了 —— 然后两台机已经在下单路上。必须先算总账。
     """
+    from tools.p2 import concurrency as conc
+
+    todo = [str(x) for x in ids if x][:10]
+    ok_now, why = conc.check_slot(jobs_dir)
+    cap = conc.max_parallel()
+    room = max(0, cap - conc.slots_used(jobs_dir)) if ok_now else 0
+
     out = []
-    for jid in [str(x) for x in ids if x][:10]:
+    for i, jid in enumerate(todo):
         try:
             job = _load_job(jid, jobs_dir)
         except ApiError as e:
@@ -415,6 +427,11 @@ def run_jobs(ids: list[str], *, jobs_dir: Path | None = None,
         st = job.get("state")
         if st != jobstate.CREATED:
             out.append({"job_id": jid, "error": f"状态 {st}，只有 CREATED 能执行"})
+            continue
+        if i >= room:
+            # 槽位用完了：明确说"没启动"，不要让前端以为它跑了
+            out.append({"job_id": jid, "error": f"并发已满（{why}），未启动。"
+                                                f"等前面的作业结束再执行。"})
             continue
         log = _jobs_dir(jobs_dir) / jid / "run.log"
         log.parent.mkdir(parents=True, exist_ok=True)
@@ -442,19 +459,43 @@ def maybe_publish(job_id: str, job: dict) -> None:
         pass
 
 
+def read_manifest(job_id: str, jobs_dir: Path | None = None) -> dict:
+    """读作业目录的 manifest.json；没有/读不出来一律返回 {}。
+
+    为什么吞异常：manifest 是**派生文件**，只有跑到 PERSISTED 之后才存在
+    （`tools/p1/run.py:step_persist`）。未完成作业没有它，磁盘上那一份也可能
+    写了一半。详情接口的主体是 job.json，cost/quality 都只是附加信息 ——
+    为了一份附加文件让整页 500，就是拿附属品当命门。
+
+    调用方约定：`{}` 表示"没有"，不是"有但为空"。
+    """
+    mf = _jobs_dir(jobs_dir) / job_id / "manifest.json"
+    if not mf.exists():
+        return {}
+    try:
+        data = json.loads(mf.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
 def get_job(job_id: str, jobs_dir: Path | None = None) -> dict:
     job = _load_job(job_id, jobs_dir)
     maybe_publish(job_id, job)
-    cost = None
-    mf = _jobs_dir(jobs_dir) / job_id / "manifest.json"
-    if mf.exists():
-        try:
-            cost = (json.loads(mf.read_text(encoding="utf-8")).get("cost") or {})
-        except (OSError, json.JSONDecodeError):
-            cost = None
+    man = read_manifest(job_id, jobs_dir)
+    # cost 与 quality 都在 manifest 里，都放在**顶层**与 job 并列。
+    # 早期把 cost 挂在 job 下面读，拿到的是 None（job.json 里没有这个字段），
+    # 详情页费用区因此一直是空的 —— quality 沿同一条口径，别再塞进 job。
+    cost = man.get("cost") or None
+    quality = man.get("quality")
+    if not isinstance(quality, dict) or not quality:
+        # 老 manifest 里 quality 是 `res.get("quality") or {}` 写下的空对象，
+        # 那份"空"和"没有"对 UI 是同一件事：不渲染质量卡。
+        quality = None
     return {
         "job": job,
         "cost": cost,
+        "quality": quality,
         "artifacts": _artifacts(job_id, jobs_dir),
         "workflow": _workflow_key(job),
         "terminal": job.get("state") in jobstate.TERMINAL,
@@ -464,7 +505,8 @@ def get_job(job_id: str, jobs_dir: Path | None = None) -> dict:
 def create_job(workflow: str, params: dict, *, run: bool = False, budget: float | None = None,
                jobs_dir: Path | None = None, spec_dir: Path | None = None,
                jobctl: Path | None = None, spawn=subprocess.Popen,
-               force: bool = False) -> dict:
+               force: bool = False, task_class: str | None = None,
+               idle_tier: int | None = None) -> dict:
     """校验参数 → 生成 spec → jobctl new →（可选）后台执行。
 
     同一任务的重复提交由 jobctl 的提交锁兜住：进行中的作业幂等复用（返回已有
@@ -491,7 +533,35 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
     except budget_mod.BudgetError as e:
         raise ApiError(str(e), 402) from e
 
+    # 并发闸门：只对「勾了立即执行」的提交生效。
+    # 不勾执行的作业停在 CREATED，不建机、不花钱，没有理由拦它 ——
+    # 拦了反而挡住"先排好队、等有空再点执行"这种正常用法。
+    #
+    # 满了怎么办：**降级成"建作业但不执行"**，而不是 429 拒绝。
+    # 直接拒绝会丢掉用户填好的整套参数（prompt / 输入图 / seed…），
+    # 那比"作业躺在 CREATED 等人点执行"难受得多 —— 后者零风险、可随时启动。
+    # 代价是要明确告诉前端它没跑，否则用户以为在跑、其实在等。
+    defer_reason = ""
+    if run:
+        from tools.p2 import concurrency as conc
+        ok, why = conc.check_slot(jobs_dir)
+        if not ok:
+            run = False
+            defer_reason = why
+
     spec = p20cli._make_spec(res, job_key=workflow, task_ref="P2.1")
+
+    # ---- 生命周期（2026-11-10 定版）----
+    # 短任务不空转；长任务三档（60/90/120，默认 90）。
+    # 非法值**静默回落**而不是 400：这个字段只影响"实例多留多久"，
+    # 为一个展示性选项丢掉用户刚填好的一整套参数不值得。
+    # 但要写清楚回落到了哪一档（`lifecycle` 字段回给前端，UI 如实显示）。
+    tc, tsrc = lifecycle.normalize_task_class(task_class)
+    tier = lifecycle.normalize_tier(idle_tier, task_class=tc)
+    spec["task_class"] = tc
+    spec["task_class_source"] = tsrc
+    if tier is not None:
+        spec["idle_tier"] = tier
     if budget is not None and budget > 0:
         spec.setdefault("budget", {})
         spec["budget"]["max_cost"] = min(float(budget), float(spec["budget"].get("max_cost") or budget))
@@ -542,6 +612,14 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
 
     return {"job_id": job_id, "state": state, "run": bool(run and not reused),
             "reused": reused,
+            # 并发满而降级时的原因。前端据此提示"已创建但未执行"，
+            # 而不是显示"已提交执行"然后让作业静静躺在 CREATED。
+            "deferred": bool(defer_reason),
+            "deferred_reason": defer_reason,
+            # 生命周期实算结果：UI 直接渲染，别在前端再算一遍（数字会漂移）
+            "lifecycle": lifecycle.describe({"task_class": tc,
+                                             "task_class_source": tsrc,
+                                             "idle_tier": tier}),
             "workflow": res["workflow"]["key"], "workflow_version": res["workflow"]["version"],
             "model": res["model"]["key"], "params_hash": phash,
             "params": res["params"], "expect": spec.get("expect")}
@@ -588,22 +666,54 @@ def zip_artifacts(job_ids: list[str], jobs_dir: Path | None = None,
     return buf.getvalue()
 
 
+def is_recent_verified(compat: dict | None, days: int = 1) -> bool:
+    """最近 N 天内**通过真机验证**的工作流 = 「新上线」。
+
+    判据是 `compat.checked_at`，三个坑都踩过：
+
+    ① 不能用 workflow 的 `imported_at` —— 那是派生索引的重建时间，
+       每跑一次 `p20ctl import` 就变，拿它做"新"会让全部 54 条都变新。
+    ② `checked_at` 只对 verified 有意义。experimental 记录在 import 时
+       会被补一条、时间戳写的是"导入那一刻"，所以必须先判 status。
+    ③ 窗口不能给 7 天 —— 仓库里 11-03~11-07 验证过 26 条老工作流，
+       按 7 天算全算"新"，标签就没有意义。
+    """
+    import datetime as _dt
+    import os
+    c = compat or {}
+    if c.get("status") != "verified":
+        return False
+    at = str(c.get("checked_at") or c.get("verified_at") or "")
+    try:
+        d = _dt.date.fromisoformat(at[:10])
+    except ValueError:
+        return False
+    try:
+        days = int(os.environ.get("P21_NEW_BADGE_DAYS") or days)
+    except ValueError:
+        pass
+    return (_dt.date.today() - d).days <= days
+
+
 def _console_workflows(kind: str) -> list[dict]:
-    """控制台下拉数据源：按类型取未废弃工作流，可用的排前面。"""
+    """控制台下拉数据源：按类型取未废弃工作流，**新上线的排最前**，其余可用的在前。"""
     out = []
     for w in registry.list_workflows():
         if w.get("kind") != kind or w.get("deprecated"):
             continue
-        status = (w.get("compat") or {}).get("status")
+        compat = w.get("compat") or {}
+        status = compat.get("status")
+        new = is_recent_verified(compat)
         out.append({
             "key": w["key"], "name": w["name"], "description": w.get("description") or "",
             "version": w["version"],
             "model": w.get("model_key") or (w.get("model") or {}).get("key"),
             "compat": status,
+            "is_new": new,
             "params": w.get("params") or {},
-            "_rank": 0 if status in ("verified", "equivalent") else 1,
+            "_rank": (0 if new else 1) if status in ("verified", "equivalent") else 2,
         })
-    out.sort(key=lambda x: x["_rank"])  # 稳定排序：可用的在前，组内保持 registry 顺序
+    out.sort(key=lambda x: x["_rank"])  # 稳定排序：新的最前，然后可用的，再未开发
     for x in out:
         x.pop("_rank", None)
     return out

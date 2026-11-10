@@ -386,12 +386,15 @@ class Handler(BaseHTTPRequestHandler):
         if not rest:
             return self._index()
         kind = rest[0]
-        if kind == "app":
-            return self._app_page(rest[1:], q)
-        if kind == "static":
-            return self._static_asset(rest[1:])
+        # 前端只有一套：/ui/（web/dist SPA）。
+        # 旧的 /app/（服务端渲染）与 /static/（它的内嵌资源）已于 2026-11-10 删除，
+        # 原因见 tools/console_guard.py 顶部：两套都活着时，改哪套都"看起来对"，
+        # 结果是连续两次把功能加到了用户看不见的那一套上。
         if kind == "ui":
             return self._ui_asset(rest[1:])
+        if kind in ("app", "static"):
+            # 老书签/老链接给个明确去处，不要 404 让人以为站点挂了
+            return self._send(302, b"", headers={"Location": f"{BASE}/{TOKEN}/ui/"})
         if kind == "zip":
             return self._zip()
         if kind == "monitor" and not rest[1:]:
@@ -559,8 +562,14 @@ class Handler(BaseHTTPRequestHandler):
         # 安全边界：只允许 share/ 内（_safe 已限制）的 .html，且加 CSP 禁止外部脚本，
         # 避免有人往共享目录塞一个带脚本的页面拿到本站 token 上下文。
         if ext in (".html", ".htm") and not force_dl:
-            data = p.read_bytes()
-            return self._send(200, data, "text/html; charset=utf-8", {
+            # {TOKEN} 占位符在**返回时**替换成本次请求的 token。
+            # 这样落盘的 HTML 是干净产物（可入库、可 diff、可同步），
+            # 而用户拿到的页面里链接仍带有效 token。
+            # 以前是生成时把真实 token 拼进去 —— 等于把口令写进每个产物文件。
+            raw = p.read_bytes()
+            if b"{TOKEN}" in raw:
+                raw = raw.replace(b"{TOKEN}", TOKEN.encode())
+            return self._send(200, raw, "text/html; charset=utf-8", {
                 "Content-Security-Policy":
                     "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:",
                 "X-Content-Type-Options": "nosniff",
@@ -608,45 +617,6 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------------- P2.0 Registry 只读接口
     # ---------------- 图片控制台（M1 骨架）
-    def _app_page(self, rest: list[str], q: dict):
-        from webui import api as webapi, pages as webpages
-
-        base = BASE
-        page = rest[0] if rest else "create"
-        try:
-            if page in ("", "create"):
-                body = webpages.create_page(base, TOKEN, (q.get("workflow") or [""])[0])
-            elif page == "video" and len(rest) == 1:
-                body = webpages.video_page(base, TOKEN, (q.get("workflow") or [""])[0])
-            elif page == "jobs" and len(rest) == 1:
-                body = webpages.jobs_page(base, TOKEN, (q.get("state") or [""])[0],
-                                          (q.get("q") or [""])[0])
-            elif page == "jobs" and len(rest) == 2:
-                body = webpages.detail_page(base, TOKEN, rest[1])
-            elif page == "gallery" and len(rest) == 1:
-                body = webpages.gallery_page(base, TOKEN, (q.get("workflow") or [""])[0],
-                                             int((q.get("page") or ["1"])[0] or 1))
-            elif page == "registry" and len(rest) == 1:
-                body = webpages.registry_page(base, TOKEN)
-            else:
-                return self._err(404, "页面不存在")
-        except webapi.ApiError as e:
-            return self._err(e.code, e.msg)
-        return self._send(200, body.encode("utf-8"), "text/html; charset=utf-8")
-
-    def _static_asset(self, rest: list[str]):
-        from webui import assets as webassets
-
-        name = rest[0] if rest else ""
-        if name == "app.css":
-            body, ct = webassets.CSS.encode("utf-8"), "text/css; charset=utf-8"
-        elif name == "app.js":
-            body, ct = webassets.JS.encode("utf-8"), "application/javascript; charset=utf-8"
-        else:
-            return self._err(404, "资源不存在")
-        return self._send(200, body, ct, {"Cache-Control": "public, max-age=60"})
-
-    # ---------------- 前端 SPA（Vite 构建产物）
     def _ui_asset(self, rest: list[str]):
         """托管 web/dist 里的 SPA 产物。
 
@@ -795,10 +765,15 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(body, dict):
                 return _json({"error": "请求体应为 JSON 对象"}, 400)
             budget = body.get("budget")
+            # 生命周期：短任务不空转 / 长任务三档（60/90/120，默认 90）。
+            # 非法值不在这里拦 —— 交给 create_job 静默回落，
+            # 理由：这个字段只影响"实例多留多久"，为一个选项丢掉整套参数不值得。
             data = webapi.create_job(str(body.get("workflow") or ""),
                                      body.get("params") or {},
                                      run=bool(body.get("run")),
-                                     budget=float(budget) if budget not in (None, "") else None)
+                                     budget=float(budget) if budget not in (None, "") else None,
+                                     task_class=body.get("task_class"),
+                                     idle_tier=body.get("idle_tier"))
             return _json(data, 201)
         except webapi.ApiError as e:
             return _json({"error": e.msg}, e.code)
@@ -919,10 +894,42 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             return _json({"error": f"P20 模块不可用: {e}"}, 500)
 
+        def _is_new(compat: dict | None, days: int = 1) -> bool:
+            """最近 N 天内**通过真机验证**的，算「新上线」。
+
+            两个坑都踩过：
+
+            ① 不能用 `imported_at` —— 那是派生索引的重建时间，每跑一次
+               `p20ctl import` 就变，拿它做"新"会让全部 54 条都变新。
+
+            ② `checked_at` 只对 verified 有意义。`experimental` 记录在 import
+               时会被补一条、时间戳写的是"导入那一刻"（registry.py 第 323 行），
+               所以必须先判 status，否则 20 多条 experimental 全被标成"新"。
+
+            ③ 窗口不能给 7 天 —— 仓库里 11-03~11-07 验证过 26 条老工作流，
+               按 7 天算全算"新"，标签就没有意义了。默认 1 天 = 今天验证的。
+            """
+            import datetime as _dt
+            import os
+            c = compat or {}
+            if c.get("status") != "verified":
+                return False
+            at = str(c.get("checked_at") or c.get("verified_at") or "")
+            try:
+                d = _dt.date.fromisoformat(at[:10])
+            except ValueError:
+                return False
+            try:
+                days = int(os.environ.get("P21_NEW_BADGE_DAYS") or days)
+            except ValueError:
+                pass
+            return (_dt.date.today() - d).days <= days
+
         def _wf_summary(w: dict) -> dict:
             return {"key": w.get("key"), "name": w.get("name"), "version": w.get("version"),
                     "kind": w.get("kind"), "model_key": w.get("model_key"),
                     "graph_sha256": w.get("graph_sha256"), "compat": w.get("compat"),
+                    "is_new": _is_new(w.get("compat")),
                     "params": sorted((w.get("params") or {}).keys()),
                     "nodes": len(w.get("graph_obj") or {})}
 

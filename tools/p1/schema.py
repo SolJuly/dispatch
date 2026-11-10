@@ -23,6 +23,11 @@ TASKS_SCHEMA = "p1.tasks/v1"
 
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 KINDS = ("video", "image")
+# 生命周期枚举。与 tools/p2/lifecycle.py 的 IDLE_TIERS 必须一致 ——
+# 但这里**不 import** 它：schema 是纯标准库校验器，不该依赖 P2 模块。
+TASK_CLASSES = ("short", "long")
+TASK_CLASS_SOURCES = ("user", "estimated", "default")
+IDLE_TIERS = (60, 90, 120)
 VERDICTS = ("PASS", "FAIL")
 TASK_STATUS = ("todo", "doing", "blocked", "done", "dropped")
 
@@ -137,6 +142,30 @@ def validate_job(d, *, job_id_expected: str | None = None) -> list[str]:
         e.append(f"state 不在枚举内：{d.get('state')!r}")
     if not _is_int(d.get("state_seq")) or d.get("state_seq", 0) < 1:
         e.append("state_seq 应为 ≥1 的整数")
+
+    # ---- 生命周期字段（2026-11-10 定版）----
+    # 这三个字段决定"实例跑完留多久"，写错了直接反映在账单上，所以必须校验。
+    # 但它们**可以缺省**：定版之前的作业没有这些字段，那些作业按短任务处理
+    # （`lifecycle.idle_for_job` 的兜底路径），不该判成非法。
+    tc = d.get("task_class")
+    if tc is not None and tc not in TASK_CLASSES:
+        e.append(f"task_class 应为 {TASK_CLASSES} 之一，实际 {tc!r}")
+    src = d.get("task_class_source")
+    if src is not None and src not in TASK_CLASS_SOURCES:
+        e.append(f"task_class_source 应为 {TASK_CLASS_SOURCES} 之一，实际 {src!r}")
+    tier = d.get("idle_tier")
+    if tier is not None and tier not in IDLE_TIERS:
+        e.append(f"idle_tier 应为 {IDLE_TIERS} 之一，实际 {tier!r}")
+    iad = d.get("idle_after_done_s")
+    if iad is not None:
+        if not _is_int(iad) or iad < 0:
+            e.append(f"idle_after_done_s 应为非负整数，实际 {iad!r}")
+        elif tc == "short" and iad != 0:
+            # 短任务恒 0 —— 这是硬规则，不是"建议值"。短任务给 120s 空转
+            # 等于任务成本的 53%~84%，写错了钱就白烧。
+            e.append(f"短任务 idle_after_done_s 必须为 0，实际 {iad}")
+        elif tc == "long" and iad not in IDLE_TIERS:
+            e.append(f"长任务 idle_after_done_s 应为 {IDLE_TIERS} 之一，实际 {iad}")
 
     return e
 

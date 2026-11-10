@@ -1,0 +1,11 @@
+[Unit]
+Description=每 5 分钟清理一次空闲实例
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Unit=p2-reaper.service
+
+[Install]
+WantedBy=timers.target

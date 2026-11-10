@@ -30,3 +30,14 @@ vae	qwen_std_vae.safetensors	/model/ModelScope/FireRedTeam/FireRed-Image-Edit-1.
 vae	ziamge_ae.safetensors	/model/ModelScope/Comfy-Org/z_image_turbo/split_files/vae/ae.safetensors
 diffusion_models	wan_animate_2_distill_int8_convrot.safetensors	/model/comfyui/models/diffusion_models/wan-animate2/wan_animate_2_distill_int8_convrot.safetensors
 diffusion_models	wan_animate_2_int8_convrot.safetensors	/model/HuggingFace/Comfy-Org/Wan-Animate-2/diffusion_models/wan_animate_2_int8_convrot.safetensors
+# ---- 2026-11-09 P4：4 条"名字对不上"的补链 ----------------------------------
+# 判定依据：reports/p2/p21/evidence/weights-full.txt（GPU 机 /model 全量盘点，5211 个文件）
+# 原则：只加**能确认真实文件存在**的映射。真缺的不在这里硬凑 —— 那会让作业跑到一半才报错。
+# gemma-3-12b-it-abliterated：库内**只有 _heretic_ 变体**，没有原始版。
+# 两者同为 rank64、同基座（gemma-3-12b-it-abliterated），差异只在"去对齐程度"，
+# 作为文本编码器的 LoRA 可加载性一致。**但效果可能不同** —— 这条属于
+# "能用但不等价"，必须真机出图确认风格没跑偏，不能只看 PASS 就标 verified。
+loras	gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors	/model/HuggingFace/Comfy-Org/ltx-2/split_files/loras/gemma-3-12b-it-abliterated_heretic_lora_rank64_bf16.safetensors
+loras	ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors	/model/ModelScope/Kijai/LTX2.3_comfy/loras/ltx-2.3-22b-distilled-1.1_lora-dynamic_fro09_avg_rank_111_bf16.safetensors
+loras	ltx-2.3-id-lora-talkvid-3k.safetensors	/model/comfyui/models/loras/Ltx/LTX-2.3-ID-LoRA-TalkVid-3K.safetensors
+vae	seedvr2_ema_vae_fp16.safetensors	/model/ModelScope/VerStella/numz_SeedVR2_comfyUI/ema_vae_fp16.safetensors

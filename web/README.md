@@ -98,7 +98,7 @@ for d in tools/p20/tests tools/p1/tests tools/webui/tests tools/p2/tests; do
 done
 ```
 
-当前基线：**310 条**（p20 104 / p1 54 / webui 105 / p2 47）。
+当前基线：**588 条**（p20 105 / p1 84 / webui 162 / p2 237）。
 
 ---
 

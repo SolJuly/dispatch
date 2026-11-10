@@ -50,6 +50,25 @@ CREATE_RETRY = 4
 RETRY_8903_WAIT = 10
 
 
+# ---------------------------------------------------------------- BYOK 入口
+# 2026-11-09 复核后的商业模型：客户用**自己的**智云账号付算力费，
+# 我们只收调度服务费。代码上唯一的差别是「用谁的凭证建机」。
+#
+# `CS(cfg)` 本来就接受 isolated credentials（compshare/cs.py:79），所以
+# 不需要改 34 个调用点里的任何一个 —— 只需要让它们都经由这一个函数拿实例。
+#
+# 凭证来源（优先级从高到低）：
+#   1. 显式传入的 creds（webui 按用户查出来的，加密存储）
+#   2. 环境变量 CS_PUBLIC_KEY / CS_PRIVATE_KEY（load_config 已支持）
+#   3. compshare/credentials.env（自用时的默认）
+def _cs(creds: dict[str, str] | None = None):
+    """取一个 CS 实例。creds 非空时走 BYOK，不读本地 credentials.env。"""
+    from compshare.cs import CS
+    if creds and creds.get("CS_PUBLIC_KEY") and creds.get("CS_PRIVATE_KEY"):
+        return CS(creds)
+    return CS()
+
+
 class RunError(Exception):
     """执行失败，带目标失败态。"""
 
@@ -58,8 +77,97 @@ class RunError(Exception):
         self.fail_state = fail_state
 
 
+# ---------------------------------------------------------------- 孤儿实例兜底
+# 为什么需要（审计 §1 L4 没列，但它是「并发」失控的真正来源）：
+#
+#   run.py 以前没有任何信号处理。worker 被 systemd 重启、Ctrl-C、kill -9、
+#   调度器超时强杀 —— 无论哪种，进程消失后**实例还在 Running**，按 ¥2.15/h 继续计费。
+#   本地 job.json 冻在 RUNNING，于是：
+#     · 并发闸看本地 → 只有 1 个作业 → 放行 → 又建一台
+#     · 用户看面板 → 显示"1 个作业在跑" → 实际 3 台机在烧钱
+#
+#   2026-10-28 的实例 uhost-1xe255rs9xyp 就是这么留下的（v4-sweep 跑完 terminate
+#   走的是正常路径，但 trial.py 中途被打断那次没有）。
+#
+# 兜底策略分两层，因为「优雅」和「暴力」能做的事不同：
+#
+#   ① SIGTERM / SIGINT：还能执行代码。设定时关机（stop_at，N 分钟后自动停），
+#      而不是立刻销毁 —— 立刻销毁会把「正在跑的推理」和「已产出但没取回的文件」
+#      一起干掉。定时关机是「先记账后停机」，代价可控且可续跑。
+#   ② 进程直接消失（kill -9 / OOM / 断电）：Python 收不到任何信号。
+#      这种只能靠**下次启动时对账**：并发闸查云端 running 数（见 concurrency.py），
+#      以及 tools/p2/status2.py 的实例巡检把它们停掉。
+#
+# 注意：兜底只在「本进程建了机」时注册。--dry-run / salvage 不建机，不该触发。
+
+_ORPHAN_UID: str | None = None
+_ORPHAN_HANDLED = False
+
+
+def _orphan_guard_minutes() -> int:
+    """信号中断后实例再活多久。默认 10 分钟 —— 够续跑，不够烧钱。"""
+    try:
+        return max(1, int(os.environ.get("P1_ORPHAN_KEEP_MINUTES", "10")))
+    except ValueError:
+        return 10
+
+
+def _on_signal(signum: int, frame) -> None:
+    """收到终止信号：把实例定在「N 分钟后关机」，然后退出。
+
+    不销毁的理由同上：销毁是不可逆的，而停机是可续跑的（--resume 还能接着跑）。
+    钱的事交给定时关机（停机后算力费归零，系统盘 ≤100G 免费）。
+    """
+    global _ORPHAN_HANDLED
+    name = {2: "SIGINT", 15: "SIGTERM"}.get(signum, str(signum))
+    if _ORPHAN_HANDLED or not _ORPHAN_UID:
+        _say(f"⏹ 收到 {name}，无实例需要处理，退出")
+        raise SystemExit(130)
+    _ORPHAN_HANDLED = True
+    mins = _orphan_guard_minutes()
+    try:
+        cs = _cs(getattr(_OPTS, "creds", None))
+        cs.stop_at(_ORPHAN_UID, int(time.time() + mins * 60))
+        _say(f"⏹ 收到 {name}：实例 {_ORPHAN_UID} 已设定 {mins} 分钟后自动关机（可 --resume 续跑）")
+    except Exception as e:                 # noqa: BLE001
+        # 设不上定时关机时退化为直接销毁 —— 宁可丢一次续跑机会，不留计时炸弹
+        _say(f"⏹ 收到 {name}：定时关机失败（{type(e).__name__}: {e}），尝试直接销毁")
+        try:
+            _cs(getattr(_OPTS, "creds", None)).terminate(_ORPHAN_UID)
+            _say(f"   已销毁 {_ORPHAN_UID}")
+        except Exception as e2:            # noqa: BLE001
+            _say(f"   ⚠ 销毁也失败（{e2}）—— 实例 {_ORPHAN_UID} 可能仍在计费，请手动处理")
+    raise SystemExit(130)
+
+
+_OPTS = None                               # 信号处理器里拿 creds 用
+
+
+def _install_orphan_guard(job_id: str, opts) -> None:
+    """注册信号处理器。幂等：重复调用不会挂多个。"""
+    global _OPTS, _ORPHAN_HANDLED
+    _OPTS = opts
+    if _ORPHAN_HANDLED:
+        return
+    try:
+        import signal as _sig
+        for s in (_sig.SIGTERM, _sig.SIGINT, _sig.SIGHUP):
+            try:
+                _sig.signal(s, _on_signal)
+            except (ValueError, OSError):
+                # ValueError：非主线程（测试里常见）；OSError：平台不支持 SIGHUP
+                pass
+    except Exception:                      # noqa: BLE001
+        pass
+
+
+def _note_instance(uid: str | None) -> None:
+    """记住本进程当前占用的实例，供信号兜底使用。"""
+    global _ORPHAN_UID
+    _ORPHAN_UID = uid
+
+
 def _ledger(job_id: str, cost: float, **kw) -> None:
-    """把作业成本写进统一账本（csctl 的 ledger.jsonl），供 cost/status 归集。"""
     rec = {"ts": int(time.time()),
            "at": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "event": "job", "job": job_id, "cost": round(cost, 4), **kw}
@@ -283,11 +391,118 @@ def _pick_gpu(cs, job: dict, opts) -> str:
                    state.FAILED_PROVISION)
 
 
-def step_provision(job: dict, opts) -> dict:
-    """建机并等 Running。"""
-    from compshare.cs import CS, CompShareError
+def _try_borrow_slot(job: dict, opts) -> dict | None:
+    """先看有没有可以复用的同模型实例（规则 B：同工作流串行，不建新机）。
 
-    cs = CS()
+    复用的收益是**装载模型**的时间 —— 实测 SDXL ~21s、Qwen ~53s。
+    同一个工作流连跑 5 条，只付一次。
+
+    判定交给 `instance_slots.find_compatible()`：
+      · 同 model_key（权重共用是主要成本）
+      · 镜像里有需要的节点类（缺节点的换机器也没用）
+      · 这台机器上验证过的资产覆盖参数指到的文件
+
+    **--no-borrow 可强制不用**：调试/对比基准时想要干净机器。
+    池里的实例（from_pool）不走这条路 —— 池有自己的生命周期。
+    """
+    if getattr(opts, "no_borrow", False):
+        return None
+    reg = _registry_meta(job)
+    if not reg:
+        return None                    # legacy 作业不参与槽位复用
+    mk = reg.get("model_key") or ""
+    wk = reg.get("workflow_key") or ""
+    if not (mk and wk):
+        return None
+    try:
+        from tools.p2 import instance_slots as slots
+    except Exception:                  # noqa: BLE001
+        return None
+
+    slot, why = slots.find_compatible(str(mk), str(wk))
+    if not slot:
+        _say(f"  槽位：{why}")
+        return None
+    # 在跑的作业太多就别再往里塞（串行语义：一个实例同时只跑一条）
+    if slot.busy_jobs and not getattr(opts, "slot_parallel", False):
+        _say(f"  槽位 {slot.uid} 正忙（{', '.join(slot.busy_jobs)}），本单另建")
+        return None
+
+    cs = _cs(getattr(opts, "creds", None))
+    try:
+        inst = cs.get(slot.uid)
+    except Exception as e:             # noqa: BLE001
+        _say(f"  槽位 {slot.uid} 查不到（{type(e).__name__}），本单另建")
+        return None
+    state_now = str(inst.get("State") or "").lower()
+    if state_now != "running":
+        # 停机槽位：start 一下（~12s）继续用，比重建省得多
+        _say(f"  槽位 {slot.uid} 当前 {state_now}，尝试启动复用")
+        try:
+            cs.start(slot.uid)
+            cs.wait_state(slot.uid, {"running"}, timeout=300)
+            inst = cs.get(slot.uid)
+            # 唤醒成功 = 停机期结束，清掉停机计时器。
+            # 不清的话 reaper 会看到"这台停了 3 小时"，虽然它此刻 Running 不会被销毁，
+            # 但下次真停机时会拿着陈旧的起点算出"已过期"，一停就被销毁。
+            try:
+                from tools.p2 import lifecycle
+                lifecycle.clear_stopped(slot.uid)
+            except Exception:          # noqa: BLE001
+                pass
+        except Exception as e:         # noqa: BLE001
+            _say(f"  槽位 {slot.uid} 启动失败（{type(e).__name__}），本单另建")
+            return None
+
+    host, port = cs.public_ip(inst), "23"
+    pwd = cs.password_of(inst)
+    # sshd 探活：启动后要几秒（复用路径同样需要）
+    for i in range(20):
+        rc, out = _ssh_run(host, port, pwd, "echo ssh-ready", timeout=20)
+        if rc == 0 and "ssh-ready" in out:
+            break
+        time.sleep(3)
+    else:
+        _say(f"  槽位 {slot.uid} sshd 未就绪，本单另建")
+        return None
+
+    price = cs.price(str(inst.get("GpuType") or "4090"), 1, 16, 64, "Postpay", 100, 0,
+                     image_id=str(inst.get("CompShareImageId") or ""))
+    hourly = float(price.get("total") or 0)
+    _say(f"  ✓ 复用实例 {slot.uid}（{slot.model_key}，已验证 {len(slot.workflows_ok)} 个工作流）"
+         f" · {hourly:.2f}/h")
+
+    slots.touch(slot.uid, job_id=job["job_id"], busy=True)
+    return {"uhost_id": slot.uid, "inst": inst, "hourly": hourly,
+            "host": host, "port": port, "password": pwd, "borrowed": True}
+
+
+def step_provision(job: dict, opts) -> dict:
+    """建机并等 Running。
+
+    先试复用（规则 B），没有再建。复用的实例在 release 阶段只更新空闲时间，
+    不销毁 —— 见 `step_release` 的 `borrowed` 分支。
+    """
+    from compshare.cs import CompShareError
+    from compshare.cs import CS  # noqa: F401  (保留给异常路径的 import 语义)
+
+    borrowed = _try_borrow_slot(job, opts)
+    if borrowed:
+        # 登记实例（信号兜底要用），但**不**覆盖 up_at：
+        # 那是计费起点，复用的机器早就开着，按现在记会把成本算少
+        j = state.load_job(job["job_id"])
+        j.setdefault("instance", {}).update({
+            "uhost_id": borrowed["uhost_id"],
+            "gpu": (borrowed["inst"] or {}).get("GpuType"),
+            "zone": (borrowed["inst"] or {}).get("Zone"),
+            "borrowed": True,
+            "up_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+        })
+        store.atomic_write_json(store.job_file(job["job_id"]), j)
+        _note_instance(borrowed["uhost_id"])
+        return borrowed
+
+    cs = _cs(getattr(opts, "creds", None))
     hours = opts.hours
     img = _pick_image(cs, opts, job)
     gpu = _pick_gpu(cs, job, opts)          # 按 required_gpu 顺序挑第一个有货的卡
@@ -325,6 +540,18 @@ def step_provision(job: dict, opts) -> dict:
             f"余额 ¥{bal:.2f} 不足以覆盖本作业预估 ¥{est_real:.2f}，中止建机",
             state.FAILED_PROVISION)
 
+    # ---- 并发闸门（§1 L4「并发」的另一半）----
+    # 上一轮把全局串行锁改成了作业级锁，并行度一下从 1 变成"想开几台开几台"。
+    # 账户只有 5 台配额，5 × ¥2.15/h = ¥10.75/h，而余额长期 ¥8 上下 ——
+    # 这不是理论风险，是点五次"提交并执行"就能触发的事。
+    # 判据用**云端 running 实例数**，不用本地 job.json：孤儿作业（进程被 kill、
+    # 状态卡在 RUNNING）在本地看是一个作业，在云端是一台正在计费的机器。
+    from tools.p2 import concurrency as conc
+    slot_ok, slot_why = conc.check_provision()
+    if not slot_ok:
+        raise RunError(f"{slot_why}", state.FAILED_PROVISION)
+    _say(f"并发检查通过：{slot_why}")
+
     # 预热池优先：池里有停机实例就直接 start（~12s），不消耗现货
     if getattr(opts, "from_pool", False):
         got = None
@@ -341,6 +568,7 @@ def step_provision(job: dict, opts) -> dict:
                 "uhost_id": uid, "gpu": gpu, "zone": cs.zone, "from_pool": True,
                 "up_at": dt.datetime.now().astimezone().isoformat(timespec="seconds")})
             store.atomic_write_json(store.job_file(job["job_id"]), j)
+            _note_instance(uid)          # 信号兜底：进程被打断时把实例停掉
             _say(f"复用预热池实例 {uid}（start {got.get('t_start')}s · 就绪 {got.get('t_ready')}s）")
             return {"uhost_id": uid, "inst": got["inst"], "hourly": float(price.get("total") or 0),
                     "host": got["host"], "port": got["port"], "password": got["password"],
@@ -387,6 +615,7 @@ def step_provision(job: dict, opts) -> dict:
     j["instance"].update({"uhost_id": uid, "gpu": gpu, "zone": cs.zone,
                           "up_at": dt.datetime.now().astimezone().isoformat(timespec="seconds")})
     store.atomic_write_json(store.job_file(job["job_id"]), j)
+    _note_instance(uid)              # 信号兜底：进程被打断时把实例停掉
     return {"uhost_id": uid, "inst": inst, "hourly": float(price.get("total") or 0),
             **opts_ctx}
 
@@ -535,28 +764,113 @@ def step_submit(job: dict, opts, ctx: dict) -> None:
         _say(f"输入已上传：{key}={remote_name}")
 
     payload = json.dumps({"prompt": graph, "client_id": "p1"}, ensure_ascii=False)
+    # 内联脚本必须**捕获 HTTPError 并打印响应体**。
+    #
+    # 踩过（2026-11-10）：ComfyUI 对坏 graph 返回 400，响应体里带
+    # `{"error": {...}, "node_errors": {"1216": {"errors": ["KSampler ..."]}}}`
+    # —— 这才是排障要看的东西。但 urllib 在 4xx 时抛 HTTPError，
+    # 内联脚本没接，于是远程 traceback 顶掉了响应体，`out[-400:]` 只截到
+    # "HTTP Error 400: Bad Request"，真正原因一个字都看不到。
+    # 结果：建机 + setup 花掉 ¥0.10，只换来一句"400"。
     cmd = ("source /root/miniconda3/bin/activate && python3 -c \""
-           "import json,sys,urllib.request;"
-           f"p=json.loads(sys.argv[1]);"
+           "import json,sys,urllib.request,urllib.error;"
+           "p=json.loads(sys.argv[1]);"
            "r=urllib.request.Request('http://127.0.0.1:8188/prompt',data=json.dumps(p).encode(),"
            "headers={'Content-Type':'application/json'});"
-           "print(urllib.request.urlopen(r,timeout=120).read().decode())\" "
+           "\ntry:\n"
+           " print('PROMPT_OK ' + urllib.request.urlopen(r,timeout=120).read().decode())\n"
+           "except urllib.error.HTTPError as e:\n"
+           " body = e.read().decode('utf-8','replace')\n"
+           " print('PROMPT_ERR ' + body)\n"
+           "except Exception as e:\n"
+           " print('PROMPT_ERR ' + type(e).__name__ + ': ' + str(e))\" "
            + "'" + payload.replace("'", "'\"'\"'") + "'")
     rc, out = _ssh_run(host, port, pwd, cmd, timeout=180)
     from tools.p20 import comfy as p20comfy
     pid = p20comfy.parse_prompt_id(out)
     if not pid:
-        raise RunError(f"提交失败：{out[-400:]}", state.FAILED_RUN)
+        # 优先展示 ComfyUI 给的 node_errors（它指明哪个节点、哪个字段坏了）
+        detail = _comfy_error_detail(out)
+        raise RunError(f"提交失败：{detail}", state.FAILED_RUN)
     ctx["prompt_id"] = pid
     _say(f"已提交 prompt_id={pid}")
 
 
+def _comfy_error_detail(out: str, limit: int = 900) -> str:
+    """从 ComfyUI 的响应里抽出**可读**的错误，而不是 traceback。
+
+    `/prompt` 拒绝坏 graph 时返回 400 + 这样一段 JSON（实测格式）：
+
+        {"error": {"type": "prompt_outputs_failed_validation",
+                   "message": "Prompt outputs failed validation", ...},
+         "node_errors": {"1216": {"errors": [{"message": "Value not in list", ...}]}}}
+
+    排查要的第一信息是「哪个节点、哪个字段、为什么」。这里按节点逐条展开，
+    都没有就回落原始响应尾部。
+    """
+    import re
+    m = re.search(r"PROMPT_ERR\s*(\{.*)", out, re.S)
+    raw = m.group(1) if m else out
+    try:
+        d = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return raw.strip()[-limit:] or "(无输出)"
+    if isinstance(d, str):
+        return d[:limit]
+    if not isinstance(d, dict):
+        return json.dumps(d, ensure_ascii=False)[:limit]
+
+    lines: list[str] = []
+    err = d.get("error")
+    if isinstance(err, dict):
+        lines.append(f"{err.get('type') or 'error'}: {err.get('message') or ''}".strip())
+    elif err:
+        lines.append(str(err))
+
+    for nid, ne in (d.get("node_errors") or {}).items():
+        if not isinstance(ne, dict):
+            continue
+        cls = ne.get("class_type") or "?"
+        for e in (ne.get("errors") or []):
+            if isinstance(e, dict):
+                msg = e.get("message") or e.get("type") or "?"
+                det = e.get("details") or ""
+                lines.append(f"  节点 {nid}（{cls}）：{msg}" + (f" —— {det}" if det else ""))
+            else:
+                lines.append(f"  节点 {nid}（{cls}）：{e}")
+    text = "\n".join(lines) if lines else json.dumps(d, ensure_ascii=False)
+    return text[:limit]
+
+
 def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
-    """轮询 history 直到完成，返回远端文件列表。"""
+    """轮询 history 直到完成，返回远端文件列表。
+
+    两条上限同时在跑，取先到的那个：
+
+      · `max_minutes` —— 推理超时。**已经有效**（本函数下面那个 while）。
+      · `max_cost`    —— 钱的上限。**以前不生效**：建机前查过一次预估，
+        建机之后就不再管了。于是「预估 20 分钟 ¥0.72，实际卡了 40 分钟 ¥1.43」
+        这种情况会静默超支 —— 建机前的闸门只看"能不能开始"，管不到"跑多久"。
+
+    为什么按时间折算而不去查余额：查余额要一次 HTTP 往返，而这里是 5 秒一轮的
+    轮询；而且余额被多条作业共享，查出来的差额不一定是"本作业"花的。
+    按 `hourly × 已跑分钟` 折算只依赖自己知道的信息，可复算、可解释。
+    """
     host, port, pwd = ctx["host"], ctx["port"], ctx["password"]
     pid = ctx["prompt_id"]
-    limit = int((job.get("budget") or {}).get("max_minutes") or 20) * 60
+    budget = job.get("budget") or {}
+    limit = int(budget.get("max_minutes") or 20) * 60
+    cap = float(budget.get("max_cost") or 0)
+    hourly = float(ctx.get("hourly") or 0)
+    # 钱能买多少秒：cap / 每小时价 × 3600。cap<=0（不限）或 hourly<=0（未知）时不管。
+    cost_limit = int(cap / hourly * 3600) if (cap > 0 and hourly > 0) else 0
+    if cost_limit:
+        _say(f"预算 {cap:.2f} / {hourly:.2f} 每小时 → 最多跑 {cost_limit // 60} 分钟")
+        # 钱的上限比时间上限更紧时，超时口径跟着钱走
+        if cost_limit < limit:
+            limit = cost_limit
     t0 = time.time()
+
     cmd = ("source /root/miniconda3/bin/activate && python3 -c \""
            "import json,sys,urllib.request;"
            f"h=json.load(urllib.request.urlopen('http://127.0.0.1:8188/history/'+sys.argv[1],timeout=60));"
@@ -600,9 +914,17 @@ def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
                         state.FAILED_RUN)
         elapsed = int(time.time() - t0)
         if elapsed - last_note >= 120:
-            _say(f"  推理中… 已等 {elapsed}s（每 2 分钟一次心跳）")
+            spent = hourly * elapsed / 3600 if hourly > 0 else None
+            money = f" · 已花 ≈¥{spent:.2f}/{cap:.2f}" if (spent is not None and cap > 0) else ""
+            _say(f"  推理中… 已等 {elapsed}s{money}（每 2 分钟一次心跳）")
             last_note = elapsed
         time.sleep(5)
+    # 分两种超时：钱先到 vs 时间先到。混成一句会让用户不知道调哪个参数。
+    if cost_limit and cost_limit <= int(budget.get("max_minutes") or 20) * 60:
+        raise RunError(
+            f"预算超时：按 ¥{hourly:.2f}/h 折算，¥{cap:.2f} 只够跑 {cost_limit // 60} 分钟，"
+            f"已用尽（推理仍未完成）。请调小帧数/分辨率，或提高 budget.max_cost。",
+            state.FAILED_RUN)
     raise RunError(f"推理超时（{limit}s）", state.FAILED_RUN)
 
 
@@ -697,7 +1019,40 @@ def step_verify(job: dict, opts, ctx: dict, arts: list[Path]) -> dict:
                for a in (res.get("artifacts") or []) if a["verdict"] != "PASS"]
         raise RunError(f"校验未通过：{'; '.join(bad) or res.get('reason') or '?'}",
                        state.FAILED_VERIFY)
+
+    # ---- 质量评分（L6 补完：七项只证明"文件成功"，这里才回答"质量成功"）----
+    # 默认 mode=report：只记录分数进 render.json，**不改 PASS/FAIL**。
+    # 理由：现存 30 条 verified 都是按七项判的，把质量分设成默认门禁等于
+    # 全部重判一次；那需要人一条条看，不是一次改动能决定的。
+    res["quality"] = _score_quality(job, res, arts)
     return res
+
+
+def _score_quality(job: dict, res: dict, arts: list[Path]) -> dict:
+    """给产物打质量分。失败不影响作业结论 —— 评分器自己不该成为故障源。"""
+    try:
+        from tools.p2 import quality as q
+        cfg = q.from_expect(job.get("expect"))
+        # 主产物排首位（fetch 阶段已保证）；只评主产物 + 至多 2 个附加产物，
+        # 避免一份作业里 8 路输出各跑一遍 ffmpeg
+        targets = list(arts)[:3]
+        kind = "image" if res.get("kind") == "image" else "video"
+        rep = q.assess_job(targets, kind=kind, **cfg)
+        d = rep.as_dict()
+        grade = {"A": "🟢", "B": "🔵", "C": "🟡", "D": "🔴"}.get(d["grade"], "⚪")
+        _say(f"  质量 {grade} {d['overall']:.1f}（{d['grade']}）· 模式 {d['mode']}")
+        for a in d["artifacts"]:
+            for i in a["issues"]:
+                _say(f"    ! {a['file']}: {i}")
+        if d["mode"] == "gate" and d["verdict"] != "PASS":
+            raise RunError(f"质量门禁未通过：{d['overall']:.1f} / {d['grade']}",
+                           state.FAILED_VERIFY)
+        return d
+    except RunError:
+        raise
+    except Exception as e:                      # noqa: BLE001
+        _say(f"  ⚠ 质量评分跳过（{type(e).__name__}: {e}）")
+        return {"error": f"{type(e).__name__}: {e}"}
 
 
 def step_persist(job: dict, opts, ctx: dict, res: dict, arts: list[Path]) -> dict:
@@ -742,6 +1097,10 @@ def step_persist(job: dict, opts, ctx: dict, res: dict, arts: list[Path]) -> dic
         "artifacts": mans,
         "checks": checks,
         "verdict": "PASS",
+        # 质量评分（L6）：七项技术判据之上的内容层结论。
+        # 与 checks 并列而不是并入：checks 是 PASS/FAIL，quality 是 0-100 分，
+        # 混在一起会让"PASS 但 32 分"这种关键信号被吞掉。
+        "quality": res.get("quality") or {},
         "cost": {"hourly": round(hourly, 2), "minutes": minutes,
                  "amount": round(hourly * minutes / 60, 4)},
         "state_history": [e.get("to") for e in state.read_events(job["job_id"]) if e.get("to")],
@@ -771,12 +1130,53 @@ def step_persist(job: dict, opts, ctx: dict, res: dict, arts: list[Path]) -> dic
 
 
 def step_release(job: dict, opts, ctx: dict) -> None:
-    """销毁实例，8903 过渡期拒绝时重试。"""
-    from compshare.cs import CS, CompShareError
+    """释放实例。**短任务销毁、长任务留空转窗口**（2026-11-10 生命周期定版）。
+
+    三档规则见 `tools/p2/lifecycle.py`：
+
+        短任务（默认）  立即销毁，空转 0 秒
+        长任务（UI 勾）  不销毁，留 60/90/120 秒等下一单，由 reaper 到点停机
+
+    为什么长任务不在这里自己 sleep 等待：run.py 是**作业进程**，它 sleep 就占着
+    作业锁、占着并发槽位、日志还在滚 —— 而"等下一单"本质是**实例**的状态，
+    不是作业的状态。所以这里只把"该等多久"的事实留给 job.json（`idle_after_done_s`），
+    由 `tools/p2/reaper.py` 每 5 分钟巡检时执行停机。两者职责分开。
+
+    代价：停机精度是 5 分钟（巡检间隔），不是 90 秒。可以接受 ——
+    90 秒窗口的意义是"下一单能复用"，复用由 `_try_borrow_slot` 在提交瞬间就完成，
+    不依赖 reaper；reaper 只负责"没人来的时候别一直烧钱"。
+    """
+    from compshare.cs import CompShareError
 
     uid = ctx.get("uhost_id")
     if not uid:
         _say("无实例可销毁")
+        return
+
+    # ---- 长任务：留空转窗口，不销毁 ----
+    idle_s = _idle_after_done(job)
+    if idle_s > 0:
+        _say(f"长任务：实例 {uid} 保留 {idle_s}s 空转窗口等下一单"
+             f"（{lifecycle_tier_label(idle_s)}）")
+        try:
+            from tools.p2 import instance_slots as slots_m
+            slots_m.touch(uid, job_id=job["job_id"], busy=False)
+        except Exception:                          # noqa: BLE001
+            pass
+        _say(f"  到点由 tools/p2/reaper.py 停机（停机 ¥0，可唤醒）")
+        return
+
+    # ---- 借来的实例（规则 B：同工作流串行）----
+    # 不销毁，只更新槽位的空闲时间。下一单进来会接着用这台机器
+    # （装载的模型还在显存里，省 21~53 秒）。
+    # 真正的回收交给 tools/p2/reaper.py：空闲超阈值才关机。
+    if ctx.get("borrowed"):
+        try:
+            from tools.p2 import instance_slots as slots
+            slots.touch(uid, job_id=job["job_id"], busy=False)
+            _say(f"{uid} 是复用实例，已归还槽位（不销毁，等下一单或空闲回收）")
+        except Exception as e:                      # noqa: BLE001
+            _say(f"  ⚠ 归还槽位失败（{type(e).__name__}: {e}），实例保留")
         return
 
     # 预热池实例：停机回池（下次 12s 起），不销毁
@@ -794,7 +1194,7 @@ def step_release(job: dict, opts, ctx: dict) -> None:
         except Exception as e:
             _say(f"⚠ 回池失败（{type(e).__name__}: {e}），改为销毁")
 
-    cs = CS()
+    cs = _cs(getattr(opts, "creds", None))
     last = None
     for attempt in range(1, RETRY_8903 + 1):
         try:
@@ -813,12 +1213,37 @@ def step_release(job: dict, opts, ctx: dict) -> None:
 
 
 def step_done(job: dict, opts, ctx: dict, manifest: dict) -> None:
-    """补 manifest 的 release_at，收尾。"""
+    """补 manifest 的 release_at，收尾。
+
+    顺带把「这台机器上跑成功过这个工作流」记进槽位表 ——
+    这是「已验证集」的来源，规则 B 靠它判断能不能复用。
+    """
     jdir = store.job_dir(job["job_id"])
     m = store.read_json(jdir / "manifest.json") or manifest
     m.setdefault("instance", {})["release_at"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
     m["state_history"] = [e.get("to") for e in state.read_events(job["job_id"]) if e.get("to")]
     store.atomic_write_json(jdir / "manifest.json", m)
+
+    # 登记槽位（只有 registry 作业有 workflow_key）
+    reg = _registry_meta(job)
+    uid = ctx.get("uhost_id")
+    if not (reg and uid and m.get("verdict") == "PASS"):
+        return
+    try:
+        from tools.p2 import instance_slots as slots
+        wk = str(reg.get("workflow_key") or "")
+        mk = str(reg.get("model_key") or "")
+        nodes, assets = slots.workflow_needs(wk, mk)
+        slot = slots.get(str(uid))
+        if not slot:
+            inst = ctx.get("inst") or {}
+            slot = slots.Slot(uid=str(uid), model_key=mk,
+                              gpu_type=str(inst.get("GpuType") or "4090"),
+                              state="running", started_at=time.time())
+            slots.upsert(slot)
+        slots.mark_workflow_ok(str(uid), wk, nodes=nodes, assets=assets)
+    except Exception as e:                      # noqa: BLE001
+        _say(f"  ⚠ 槽位登记失败（{type(e).__name__}: {e}）")
 
 
 # ------------------------------------------------------------ 编排
@@ -942,15 +1367,13 @@ def _next_step(job: dict) -> str | None:
     return None
 
 
-def _rebuild_ctx(job: dict) -> dict:
+def _rebuild_ctx(job: dict, creds: dict[str, str] | None = None) -> dict:
     """续跑时重建上下文：从 uhost_id 反查 host/密码，从 steps 取 prompt_id。"""
-    from compshare.cs import CS
-
     inst = job.get("instance") or {}
     uid = inst.get("uhost_id")
     if not uid:
         return {}
-    cs = CS()
+    cs = _cs(creds)
     info = cs.get(uid)
     steps = job.get("steps") or {}
     ctx = {
@@ -976,17 +1399,50 @@ def _rebuild_ctx(job: dict) -> dict:
 KEEP_MINUTES = 15          # 失败后实例保留时长（到点自动关机）
 
 
+def _idle_after_done(job: dict) -> int:
+    """这条作业跑完该留多少秒空转窗口。短任务恒 0，长任务 60/90/120。
+
+    策略在 `tools/p2/lifecycle.py`（webui / reaper / run 三方共用一份），
+    这里只做容错包装：策略模块坏了不能把整条作业拖失败 —— 释放阶段抛异常
+    会让实例留在那儿继续计费，那比"空转窗口算错"严重得多。
+    """
+    try:
+        from tools.p2 import lifecycle
+        return lifecycle.idle_for_job(job)
+    except Exception as e:                     # noqa: BLE001
+        _say(f"  ⚠ 生命周期策略不可用（{type(e).__name__}: {e}），按短任务处理")
+        return 0
+
+
+def lifecycle_tier_label(seconds: int) -> str:
+    try:
+        from tools.p2 import lifecycle
+        return lifecycle.tier_label(seconds)
+    except Exception:                          # noqa: BLE001
+        return f"{seconds} 秒"
+
+
 def _keep_instance(job_id: str, ctx: dict, opts) -> bool:
     """失败后保留实例：设定时关机兜底，提示可续跑/可 abort。
 
     返回 True 表示实例被保留（调用方不要再销毁）。
+
+    **--batch 模式下默认不保留**（2026-11-11 改）。
+    原因：保留实例是为「人工看日志、接着续跑」设计的，一次只跑一条时很划算。
+    但批量跑的时候，每失败一条就留一台，很快就撞上并发上限
+    （`云端已有 2 台 p1-/p2- 实例在跑（上限 2）`），后面的作业全部建不了机 ——
+    而这时人根本不在旁边，保留下来的机器只是在烧钱等 15 分钟自动关机。
+
+    要保留就显式加 `--keep-on-fail`。
     """
     uid = (ctx or {}).get("uhost_id")
     if not uid or getattr(opts, "abort", False) or getattr(opts, "no_keep", False):
         return False
+    if getattr(opts, "batch", False) and not getattr(opts, "keep_on_fail", False):
+        _say("  批量模式：失败即释放实例（要保留加 --keep-on-fail）")
+        return False
     try:
-        from compshare.cs import CS
-        cs = CS()
+        cs = _cs(getattr(opts, "creds", None))
         ts = int(time.time() + KEEP_MINUTES * 60)
         cs.stop_at(uid, ts)
         # 说明：Describe 不返回 SchedulerStopTime，所以查实例看到的该字段永远是 None，
@@ -1019,7 +1475,7 @@ def _resume(job_id: str, job: dict, opts) -> int:
     _say(f"续跑：{cur} → RESUMING → {target or 'READY'}（断点步骤 {nxt}）")
 
     with _lock(job_id, opts):
-        ctx = _rebuild_ctx(job)
+        ctx = _rebuild_ctx(job, getattr(opts, "creds", None))
         if not ctx.get("uhost_id"):
             _say("✗ job 里没有 uhost_id，无法续跑（请重新 new 一个作业）")
             return 1
@@ -1104,7 +1560,7 @@ def _abort(job_id: str, job: dict, opts) -> int:
     if cur in (state.DONE, state.FAILED, state.ABORTED):
         _say(f"作业已是终态 {cur}，无需 abort")
         return 0
-    ctx = _rebuild_ctx(job)
+    ctx = _rebuild_ctx(job, getattr(opts, "creds", None))
     with _lock(job_id, opts):
         if cur in state.FAIL_BRANCH:
             try:
@@ -1218,6 +1674,7 @@ def run(job_id: str, opts) -> int:
     job = state.load_job(job_id)
     _say(f"作业 {job_id} · 模型 {job['model']['key']} · 预算 ¥{job['budget'].get('max_cost')}")
     _start_heartbeat(job_id, opts)
+    _install_orphan_guard(job_id, opts)
 
     if opts.dry_run:
         _say("--dry-run：只走状态机，不建机、不花钱")
@@ -1328,17 +1785,30 @@ def main(argv=None) -> int:
                     help="从 FAILED_* 续跑：按 job.json 的 steps 从断点继续")
     ap.add_argument("--abort", action="store_true", help="放弃续跑，销毁保留的实例")
     ap.add_argument("--no-keep", action="store_true", help="失败时不保留实例（旧行为）")
+    ap.add_argument("--keep-on-fail", action="store_true", dest="keep_on_fail",
+                    help="批量模式下失败也保留实例（默认批量模式会释放，避免撞并发上限）")
     ap.add_argument("--from-pool", action="store_true",
                     help="优先复用预热池停机实例（start ~12s），池空回落新建")
     ap.add_argument("--restart", action="store_true",
                     help="实例丢失后整条重跑：crashed/FAILED_* → PROVISIONING（清断点）")
     ap.add_argument("--batch", action="store_true",
                     help="批量模式：用作业级锁（不同 job 可并行），日志加 job 前缀")
+    ap.add_argument("--no-borrow", action="store_true",
+                    help="不复用现成实例（调试/对比基准时想要干净机器）")
+    ap.add_argument("--slot-parallel", action="store_true",
+                    help="允许把作业塞进正忙的槽位（同实例并行，需显存够 —— 默认关）")
     ap.add_argument("--wait-lock", type=int, default=0,
                     help="排队等单任务锁的最大秒数（0=拿不到立刻退出；控制台提交用 14400）")
     ap.add_argument("--salvage", action="store_true",
                     help="产物已在 artifacts/：只重跑校验+收尾，不建机、不销毁")
+    # BYOK：让客户用自己的云账号付费。env 变量优先于 credentials.env，
+    # 所以这两个参数只是"把凭证送进环境"的显式入口。
+    ap.add_argument("--public-key", help="BYOK：客户自己的 CS_PUBLIC_KEY")
+    ap.add_argument("--private-key", help="BYOK：客户自己的 CS_PRIVATE_KEY")
     a = ap.parse_args(argv)
+    a.creds = None
+    if a.public_key and a.private_key:
+        a.creds = {"CS_PUBLIC_KEY": a.public_key, "CS_PRIVATE_KEY": a.private_key}
     return run(a.job_id, a)
 
 

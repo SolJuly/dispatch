@@ -33,7 +33,7 @@
       }
     }
   },
-  "name": "指令改图 · Qwen-Image-Edit 2511（int8，尚未开发）",
+  "name": "指令改图 · Qwen-Image-Edit 2511",
   "notes": "官方模板导入，未本地真机验证（compat=experimental）",
   "output": {
     "ext": "png",
@@ -68,6 +68,30 @@
       "max": 2147483647,
       "min": 0,
       "type": "int"
+    },
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "default": "a photo of a young woman in a cream kimono standing in a bamboo forest",
+      "description": "编辑指令。描述你想让画面变成什么样；输入图提供身份/构图，这个提示词决定改动方向。",
+      "bindings": [
+        {
+          "node": "1200",
+          "input": "prompt"
+        }
+      ]
+    },
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "blurry, low quality, distorted",
+      "description": "反向提示词。描述你**不希望**出现的东西；留空也能跑。",
+      "bindings": [
+        {
+          "node": "1202",
+          "input": "prompt"
+        }
+      ]
     }
   },
   "required_gpu": [

@@ -316,7 +316,9 @@
       "resize_type.height": [
         "1339",
         1
-      ]
+      ],
+      "resize_type": "scale dimensions",
+      "resize_type.crop": "center"
     },
     "_meta": {
       "title": "Video Inpainting (Wan2.1 VACE)"

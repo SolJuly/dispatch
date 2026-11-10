@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import re
 import subprocess
 import unittest
 from pathlib import Path
@@ -415,6 +416,113 @@ class TestResultCostAndVideo(unittest.TestCase):
     def test_cost_css_present(self):
         self.assertIn(".costcard", self.css)
         self.assertIn(".big-money", self.css)
+
+
+class TestResultQualityCard(unittest.TestCase):
+    """详情页要显示产物质量分（P5：把 tools/p2/quality.py 的分数接进 UI）。
+
+    背景：质量分只落在 manifest.json 的 quality 字段里，UI 上看不到。用户跑完
+    只能看到「文件成功」，看不到「这 87 分 A 级」或「这条 32 分 D 级、糊成一片」。
+
+    判据分两层：
+      · 正/负向行为由 `web/tests/quality_card.test.js` 真跑 qualityCard() 验（见下面
+        的 test_quality_card_js），包括「没数据整张卡不渲染」这种负向断言；
+      · 这里只钉住结构与样式锚点，以及那条最重要的约束 —— 质量分**不是门禁**。
+    """
+
+    def setUp(self):
+        self.js = (WEB / "dist" / "app.js").read_text(encoding="utf-8")
+        self.css = (WEB / "dist" / "app.css").read_text(encoding="utf-8")
+
+    def test_submit_deferred_js(self):
+        """跑 web/tests/submit_deferred.test.js（9 条）。
+
+        并发满时后端降级成"建作业但不执行"，前端必须显示"已创建，未执行"。
+        显示成"已提交执行"会让用户以为在跑、实际在等，而他不去点执行，
+        作业就永远躺在 CREATED。
+        """
+        script = TESTS / "submit_deferred.test.js"
+        self.assertTrue(script.is_file(), f"缺测试脚本：{script}")
+        r = subprocess.run([NODE, str(script)], cwd=str(WEB),
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, f"提交结果渲染单测失败：\n{r.stdout}\n{r.stderr}")
+        self.assertIn("0 failed", r.stdout)
+
+    def test_quality_card_js(self):
+        """跑 web/tests/quality_card.test.js（21 条，含负向断言）。"""
+        script = TESTS / "quality_card.test.js"
+        self.assertTrue(script.is_file(), f"缺测试脚本：{script}")
+        r = subprocess.run([NODE, str(script)], cwd=str(WEB),
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, f"前端质量卡单测失败：\n{r.stdout}\n{r.stderr}")
+        self.assertIn("0 failed", r.stdout)
+
+    def test_lifecycle_ui_js(self):
+        """跑 web/tests/lifecycle_ui.test.js（20 条）。
+
+        三档的经济含义不一样（60s 打平 / 90s 亏 ¥0.017 / 120s 亏 ¥0.035），
+        而短任务给窗口等于任务成本的 53%~84%。最容易坏的地方是**前端复制了
+        一份档位数字** —— 后端改了三档，UI 还显示旧档位，用户选了 90 实际留了别的值。
+        所以那条测试同时校验 HTML 档位与 lifecycle.py 的 IDLE_TIERS 一致。
+        """
+        script = TESTS / "lifecycle_ui.test.js"
+        self.assertTrue(script.is_file(), f"缺测试脚本：{script}")
+        r = subprocess.run([NODE, str(script)], cwd=str(WEB),
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, f"生命周期 UI 单测失败：\n{r.stdout}\n{r.stderr}")
+        self.assertIn("0 failed", r.stdout)
+
+    def test_lifecycle_tiers_match_backend(self):
+        """HTML 里的档位必须和 lifecycle.py 的 IDLE_TIERS 一模一样。"""
+        html = (WEB / "dist" / "index.html").read_text(encoding="utf-8")
+        found = sorted(int(x) for x in re.findall(r'name="idleTier" value="(\d+)"', html))
+        from tools.p2 import lifecycle
+        self.assertEqual(found, sorted(lifecycle.IDLE_TIERS),
+                         "前端档位与后端不一致（数字只有后端一份）")
+
+    def test_quality_card_function_exists(self):
+        self.assertIn("function qualityCard(", self.js)
+
+    def test_quality_read_from_toplevel(self):
+        """必须读 S.detail.quality（与 cost 并列的顶层字段），不能读 job.quality。"""
+        self.assertIn("qualityCard(S.detail.quality)", self.js)
+        import re
+        self.assertIsNone(re.search(r"\bjob\.quality\b", self.js),
+                          "quality 在顶层，不该从 job 里取")
+
+    def test_quality_card_sits_next_to_cost_card(self):
+        import re
+        self.assertIsNotNone(
+            re.search(r"costCard\(S\.detail\.cost, job\)\}\s*\$\{qualityCard\(", self.js),
+            "质量卡应紧跟在成本卡之后渲染")
+
+    def test_no_quality_no_card(self):
+        """没有 quality 数据时返回空串（整张卡不渲染），不能吐空壳。"""
+        import re
+        m = re.search(r"function qualityCard\(q\) \{(.*?)\n\}", self.js, re.S)
+        self.assertIsNotNone(m, "找不到 qualityCard")
+        body = m.group(1)
+        self.assertIn("return ''", body, "无数据必须返回空串")
+        self.assertIn("q.overall", body, "以 overall 是否存在作为判据")
+
+    def test_grade_colors_defined(self):
+        """A/B/C/D 四档颜色都要有，D 不能跟 A 同色。"""
+        for sel in (".qbadge.a", ".qbadge.b", ".qbadge.c", ".qbadge.d",
+                    ".qcard", ".qissues", ".qscore"):
+            with self.subTest(sel=sel):
+                self.assertIn(sel, self.css, f"CSS 缺少 {sel}")
+
+    def test_report_mode_is_not_a_gate(self):
+        """质量分只展示，不拦截：report 模式要在卡上明说不影响作业结论。
+
+        这是本轮的硬约束 —— 现存 30 条 verified 都是按 verify.py 七项判的，
+        把质量分设成默认门禁等于全部重判一次。UI 里不能出现"阻止/拦截"这类入口。
+        """
+        self.assertIn("仅记录", self.js)
+        self.assertIn("不影响作业结论", self.js)
+        for word in ("质量门禁未通过", "blockedByQuality", "qualityBlock"):
+            with self.subTest(word=word):
+                self.assertNotIn(word, self.js)
 
 
 class TestParamDescriptions(unittest.TestCase):

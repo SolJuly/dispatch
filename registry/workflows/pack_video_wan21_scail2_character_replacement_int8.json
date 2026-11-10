@@ -1,138 +1,163 @@
 {
-  "description": "同上，int8 省显存。当前。（🚧 尚未开发）",
-  "engine": "comfyui",
-  "expect_defaults": {
-    "duration_s": [
-      1.0,
-      120.0
-    ],
-    "ext": "mp4",
-    "min_bytes": 50000
-  },
-  "graph": "workflows/pack/video_wan21_scail2_character_replacement_int8.api.json",
-  "key": "pack_video_wan21_scail2_character_replacement_int8",
-  "kind": "video",
-  "limits": {
-    "max_cost": 1.6,
-    "max_minutes": 40
-  },
-  "model": {
-    "key": "wan2_1_14b_scail_2_int8_convrot",
-    "slots": {
-      "ckpt": {
-        "input": "ckpt_name",
-        "node": "1348"
-      },
-      "clip": {
-        "input": "clip_name",
-        "node": "1326"
-      },
-      "lora": {
-        "input": "lora_name",
-        "node": "1321"
-      },
-      "lora_2": {
-        "input": "lora_name",
-        "node": "1362"
-      },
-      "unet": {
-        "input": "unet_name",
-        "node": "1328"
-      },
-      "vae": {
-        "input": "vae_name",
-        "node": "1322"
-      }
-    }
-  },
-  "name": "角色替换 · SCAIL-2（int8，尚未开发）",
-  "notes": "官方模板导入，未本地真机验证（compat=experimental）",
-  "output": {
-    "ext": "mp4",
-    "input": "filename_prefix",
-    "kind": "video",
-    "node": "202",
-    "pick": [
-      "videos",
-      "gifs"
-    ]
-  },
-  "params": {
-    "image": {
-      "bindings": [
-        {
-          "input": "file",
-          "node": "155"
-        }
-      ],
-      "description": "驱动/源视频（MP4/MOV/WebM）。",
-      "required": true,
-      "type": "video"
-    },
-    "image_2": {
-      "bindings": [
-        {
-          "input": "image",
-          "node": "30"
-        }
-      ],
-      "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
-      "required": true,
-      "type": "image"
-    },
-    "neg_prompt": {
-      "bindings": [
-        {
-          "input": "text",
-          "node": "1359"
-        }
-      ],
-      "default": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-n…",
-      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
-      "required": false,
-      "type": "string"
-    },
-    "prompt": {
-      "bindings": [
-        {
-          "input": "text",
-          "node": "1347"
-        }
-      ],
-      "default": "girl, handkerchief",
-      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
-      "required": true,
-      "type": "string"
-    },
-    "prompt_2": {
-      "bindings": [
-        {
-          "input": "text",
-          "node": "1389"
-        }
-      ],
-      "default": "girl, handkerchief",
-      "description": "第二组提示词。多阶段工作流里对应后一阶段；单阶段工作流里通常与 prompt 相同，无需单独修改。",
-      "required": false,
-      "type": "string"
-    },
-    "prompt_3": {
-      "bindings": [
-        {
-          "input": "text",
-          "node": "1404"
-        }
-      ],
-      "default": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-n…",
-      "description": "第三组提示词（常见于两段式采样的负向词）。一般与 neg_prompt 相同。",
-      "required": false,
-      "type": "string"
-    }
-  },
-  "required_gpu": [
-    "4090",
-    "4090_48G"
+ "description": "同上，int8 省显存。当前。（🚧 尚未开发）",
+ "engine": "comfyui",
+ "expect_defaults": {
+  "duration_s": [
+   1.0,
+   120.0
   ],
-  "schema": "p20.workflow/v1",
-  "version": 1
+  "ext": "mp4",
+  "min_bytes": 50000
+ },
+ "graph": "workflows/pack/video_wan21_scail2_character_replacement_int8.api.json",
+ "key": "pack_video_wan21_scail2_character_replacement_int8",
+ "kind": "video",
+ "limits": {
+  "max_cost": 1.6,
+  "max_minutes": 40
+ },
+ "model": {
+  "key": "wan2_1_14b_scail_2_int8_convrot",
+  "slots": {
+   "ckpt": {
+    "input": "ckpt_name",
+    "node": "1348"
+   },
+   "clip": {
+    "input": "clip_name",
+    "node": "1326"
+   },
+   "lora": {
+    "input": "lora_name",
+    "node": "1321"
+   },
+   "lora_2": {
+    "input": "lora_name",
+    "node": "1362"
+   },
+   "unet": {
+    "input": "unet_name",
+    "node": "1328"
+   },
+   "vae": {
+    "input": "vae_name",
+    "node": "1322"
+   }
+  }
+ },
+ "name": "角色替换 · SCAIL-2（int8，尚未开发）",
+ "notes": "官方模板导入，未本地真机验证（compat=experimental）",
+ "output": {
+  "ext": "mp4",
+  "input": "filename_prefix",
+  "kind": "video",
+  "node": "202",
+  "pick": [
+   "videos",
+   "gifs"
+  ]
+ },
+ "params": {
+  "image": {
+   "bindings": [
+    {
+     "input": "file",
+     "node": "155"
+    }
+   ],
+   "description": "驱动/源视频（MP4/MOV/WebM）。",
+   "required": true,
+   "type": "video"
+  },
+  "image_2": {
+   "bindings": [
+    {
+     "input": "image",
+     "node": "30"
+    }
+   ],
+   "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
+   "required": true,
+   "type": "image"
+  },
+  "neg_prompt": {
+   "bindings": [
+    {
+     "input": "text",
+     "node": "1359"
+    }
+   ],
+   "default": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-n…",
+   "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+   "required": false,
+   "type": "string"
+  },
+  "prompt": {
+   "bindings": [
+    {
+     "input": "text",
+     "node": "1347"
+    }
+   ],
+   "default": "girl, handkerchief",
+   "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+   "required": true,
+   "type": "string"
+  },
+  "prompt_2": {
+   "bindings": [
+    {
+     "input": "text",
+     "node": "1389"
+    }
+   ],
+   "default": "girl, handkerchief",
+   "description": "第二组提示词。多阶段工作流里对应后一阶段；单阶段工作流里通常与 prompt 相同，无需单独修改。",
+   "required": false,
+   "type": "string"
+  },
+  "prompt_3": {
+   "bindings": [
+    {
+     "input": "text",
+     "node": "1404"
+    }
+   ],
+   "default": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-n…",
+   "description": "第三组提示词（常见于两段式采样的负向词）。一般与 neg_prompt 相同。",
+   "required": false,
+   "type": "string"
+  },
+  "length": {
+   "type": "int",
+   "default": 81,
+   "min": 1,
+   "max": 121,
+   "description": "输出帧数。81 帧 ≈ 5 秒（16fps）。驱动视频会被循环取帧到这个长度。",
+   "bindings": [
+    {
+     "node": "1340",
+     "input": "length"
+    },
+    {
+     "node": "1382",
+     "input": "length"
+    },
+    {
+     "node": "1398",
+     "input": "length"
+    },
+    {
+     "node": "1400",
+     "input": "length"
+    }
+   ]
+  }
+ },
+ "required_gpu": [
+  "4090",
+  "4090_48G"
+ ],
+ "schema": "p20.workflow/v1",
+ "version": 1
 }

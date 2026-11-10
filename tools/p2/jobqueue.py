@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 import time
 from pathlib import Path
@@ -316,7 +317,11 @@ def requeue(job_id: str, error: str = "", exit_code: int | None = None,
                    detail="attempts exhausted")
             return False
         backoff = BACKOFF[min(max(row["attempts"] - 1, 0), len(BACKOFF) - 1)]
-        next_at = int(time.time()) + backoff
+        # 用 ceil 而不是 int：`int(now)` 会丢掉小数部分，让"退避 1 秒"实际变成
+        # "退避 -1~1 秒"（同一秒内 int(now) 相同，下一毫秒就可能到期）。
+        # 退避的语义是**至少等 N 秒**，向上取整才成立。
+        # 实测这个截断会让瞬时故障（限流、无现货）立刻重试，把退避打穿。
+        next_at = math.ceil(time.time()) + backoff
         c.execute("UPDATE item SET state='queued', worker=NULL, lease_until=NULL, heartbeat_at=NULL, "
                   "next_retry_at=?, backoff_s=?, last_error=?, "
                   "gpu_minutes=COALESCE(gpu_minutes,0)+COALESCE(?,0), "
@@ -337,7 +342,8 @@ def defer(job_id: str, seconds: int = 60, why: str = "", max_defers: int = 10) -
             return False
         if (row["defers"] or 0) >= max_defers:
             return False
-        now = int(time.time())
+        # 同 requeue：defer 的语义是"至少延迟 N 秒"，必须向上取整。
+        now = math.ceil(time.time())
         c.execute("UPDATE item SET state='queued', worker=NULL, lease_until=NULL, heartbeat_at=NULL, "
                   "defers=defers+1, attempts=MAX(attempts-1,0), next_retry_at=?, last_error=? "
                   "WHERE job_id=?", (now + seconds, (why or "")[:500], job_id))

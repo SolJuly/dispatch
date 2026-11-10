@@ -440,12 +440,17 @@ def list_workflows(db_path: Path = DB_PATH) -> list[dict]:
         out = []
         for r in c.execute("SELECT * FROM workflow ORDER BY key").fetchall():
             w = _wf_view(r)
-            row = c.execute("SELECT status,basis,evidence_json FROM workflow_model "
+            row = c.execute("SELECT status,basis,evidence_json,checked_at FROM workflow_model "
                             "WHERE workflow_key=? AND model_key=?", (r["key"], r["model_key"])).fetchone()
             w["model_key"] = r["model_key"]
+            # checked_at 必须带上：UI 要按"最近 N 天验证过"打 NEW 标签。
+            # 不带就只能全员无名，或者退回用 imported_at —— 那是派生索引的重建时间，
+            # 每跑一次 import 就变，会把全部工作流都标成新的。
             w["compat"] = ({"status": row["status"], "basis": row["basis"],
-                            "evidence": _loads(row["evidence_json"], [])} if row else
-                           {"status": "experimental", "basis": "missing", "evidence": []})
+                            "evidence": _loads(row["evidence_json"], []),
+                            "checked_at": row["checked_at"]} if row else
+                           {"status": "experimental", "basis": "missing",
+                            "evidence": [], "checked_at": None})
             out.append(w)
         return out
     finally:

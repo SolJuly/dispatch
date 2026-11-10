@@ -1,0 +1,48 @@
+{
+  "kind": "video",
+  "task_ref": "P2.0-pack_video_ltx2_3_i2v",
+  "model": {
+    "key": "ltx_2_3_22b_dev_fp8",
+    "workflow": "workflows/pack/video_ltx2_3_i2v.api.json",
+    "checkpoint": "ltx-2.3-22b-dev-fp8.safetensors",
+    "workflow_sha256": "868188ce823805feb5b658ea1c2de333a23a8d427256f1a3570cb6b798d01564",
+    "registry": {
+      "workflow_key": "pack_video_ltx2_3_i2v",
+      "workflow_version": 1,
+      "model_key": "ltx_2_3_22b_dev_fp8",
+      "model_version": 1,
+      "compat": "experimental",
+      "compat_basis": "unverified",
+      "setup_need": "all",
+      "graph_sha256": "868188ce823805feb5b658ea1c2de333a23a8d427256f1a3570cb6b798d01564"
+    }
+  },
+  "params": {
+    "image": "in-0b3689fa.png",
+    "neg_prompt": "静态, 模糊, 低质量, 水印, 字幕, 过曝, 形变",
+    "prompt": "A serene lakeside at sunrise, slow camera pan, soft mist, cinematic",
+    "seed": 1152147926
+  },
+  "expect": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "freeze": {
+      "ratio_max": 0.2,
+      "longest_max_s": 1.0
+    }
+  },
+  "budget": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

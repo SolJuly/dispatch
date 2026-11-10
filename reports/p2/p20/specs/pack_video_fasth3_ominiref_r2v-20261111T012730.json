@@ -1,0 +1,48 @@
+{
+  "kind": "video",
+  "task_ref": "P2.0-pack_video_fasth3_ominiref_r2v",
+  "model": {
+    "key": "fasth3_omniref_8step_pruned_int8_con",
+    "workflow": "workflows/pack/video_fasth3_ominiref_r2v.api.json",
+    "checkpoint": "fasth3_omniref_8step_pruned_int8_convrot.safetensors",
+    "workflow_sha256": "fbe39724a76b266b8bff9a489a05b2e26cff6c4b9bb5aa5346cd0811b8b867bb",
+    "registry": {
+      "workflow_key": "pack_video_fasth3_ominiref_r2v",
+      "workflow_version": 1,
+      "model_key": "fasth3_omniref_8step_pruned_int8_con",
+      "model_version": 1,
+      "compat": "experimental",
+      "compat_basis": "unverified",
+      "setup_need": "all",
+      "graph_sha256": "fbe39724a76b266b8bff9a489a05b2e26cff6c4b9bb5aa5346cd0811b8b867bb"
+    }
+  },
+  "params": {
+    "image": "in-0b3689fa.png",
+    "image_2": "in-137c6e45.jpg",
+    "prompt": "A person smiling, natural lighting, cinematic",
+    "seed": 1582178891
+  },
+  "expect": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "freeze": {
+      "ratio_max": 0.2,
+      "longest_max_s": 1.0
+    }
+  },
+  "budget": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  }
+}

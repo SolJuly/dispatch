@@ -49,6 +49,40 @@
           <div class="flabel">选择工作流 <span class="hint-inline" id="wfCount"></span></div>
           <div id="workflows"><div class="loading">加载 registry…</div></div>
           <div id="formFields"></div>
+          <div class="lifecycle" id="lifecycle">
+            <label class="sw lc-long" title="长任务跑完后实例多留一会儿等你的下一单；短任务跑完立即回收">
+              <input type="checkbox" id="isLong">这是长任务
+            </label>
+            <div class="lc-tiers" id="lcTiers" hidden>
+              <div class="flabel">跑完后保留实例多久等下一单？
+                <span class="hint-inline">每一档的空转成本都已经算好</span></div>
+              <label class="lc-tier">
+                <input type="radio" name="idleTier" value="60">
+                <span class="lc-name">60 秒 · 省钱最优</span>
+                <span class="lc-note">空转约 ¥0.036，刚好等于「停机再唤醒」能省下的钱 ——
+                  数学上打平。适合跑完就走、不确定还会不会接着跑。
+                  只够看一眼结果改一个参数。</span>
+              </label>
+              <label class="lc-tier">
+                <input type="radio" name="idleTier" value="90" checked>
+                <span class="lc-name">90 秒 · 均衡（推荐）</span>
+                <span class="lc-note">多花约 ¥0.018，换更从容的调整时间。
+                  够「看一眼结果 → 改参数 → 提交」，常规使用选这档。</span>
+              </label>
+              <label class="lc-tier">
+                <input type="radio" name="idleTier" value="120">
+                <span class="lc-name">120 秒 · 体验优先</span>
+                <span class="lc-note">多花约 ¥0.035（占一次长任务的 8%），
+                  换「不用重新等 113 秒建机」。适合反复试同一组参数的多个变体。
+                  120 秒内没提交新任务，这笔钱就白花了。</span>
+              </label>
+              <div class="lc-foot" id="lcFoot"></div>
+            </div>
+            <div class="lc-short" id="lcShort">
+              不勾选 = <b>短任务</b>，跑完立即回收，不为空转付费。
+              <span class="lc-why">短任务本身只要 ¥0.08–0.14，保留 2 分钟等于涨价 63%。</span>
+            </div>
+          </div>
           <div class="actions">
             <label class="sw" title="勾选后立即占用 GPU 执行并产生费用；不勾只建作业">
               <input type="checkbox" id="runNow">立即执行（花钱）

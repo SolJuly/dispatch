@@ -47,6 +47,10 @@ SPEC_DEFAULTS = {
     "instance": {"required_gpu": ["4090"]},
 }
 
+# 生命周期相关字段不放进 SPEC_DEFAULTS：默认值由 tools/p2/lifecycle.py 一处算，
+# 放进这里就变成"两个地方各有一份默认"，迟早漂移。
+LIFECYCLE_KEYS = ("task_class", "task_class_source", "idle_tier", "idle_after_done_s")
+
 
 def _die(msg: str, code: int = 1):
     print(f"✗ {msg}", file=sys.stderr)
@@ -60,6 +64,27 @@ def _ok(msg: str):
 def _fmt_state(s: str) -> str:
     from tools.p1.state import state_badge
     return f"{s}({state_badge(s)})"
+
+
+def _lifecycle_fields(spec: dict) -> dict:
+    """从 spec 算出写进 job.json 的生命周期字段。
+
+    策略只在这里算一次（`tools/p2/lifecycle.py`），reaper / webui / run 都读结果 ——
+    否则同一个"长任务该空转多久"会在四个地方各算一遍，改一处漏三处。
+
+    spec 里没有生命周期字段时按短任务处理：省钱方向，判错只是少留一会儿。
+    """
+    from tools.p2 import lifecycle
+    tc, src = lifecycle.normalize_task_class(spec.get("task_class"))
+    # 显式给了 task_class 但来源被标成 estimated 的（以后估算引入）保留原标记
+    src = str(spec.get("task_class_source") or src)
+    tier = lifecycle.normalize_tier(spec.get("idle_tier"), task_class=tc)
+    return {
+        "task_class": tc,
+        "task_class_source": src,
+        "idle_tier": tier,
+        "idle_after_done_s": lifecycle.long_idle_s(tc, tier),
+    }
 
 
 # ------------------------------------------------------------------ tasks
@@ -226,6 +251,14 @@ def cmd_new(a) -> int:
                 "state": state.CREATED,
                 "state_seq": 1,
             }
+
+            # ---- 生命周期（2026-11-10 定版）----
+            # 三条事实落进 job.json，reaper 只读这里，不再猜：
+            #   task_class         短任务 / 长任务（用户在 UI 勾的，或默认短）
+            #   task_class_source  user / estimated / default（以后校准估算用）
+            #   idle_tier          用户选的三档（60/90/120），短任务为 None
+            #   idle_after_done_s  实算出来的空转秒数（审计看这个，不用再算一遍）
+            job.update(_lifecycle_fields(spec))
 
             errs = schema.validate_job(job)
             if errs:

@@ -1,0 +1,25 @@
+# P2 队列调度器（领取队列作业并真正建机执行）
+#
+# 2026-11-09 重写：原 unit 的 WorkingDirectory 是 /root/wt-ui —— 那个 worktree
+# 已被删除，服务却靠 systemd 的 cwd 句柄继续"运行"了一周（active 但跑的是
+# 内存里那份早已不存在的代码，日志里一直在刷同一句熔断）。
+# 现在指向部署树 /root/智云视频工作流，且每天有预算上限。
+[Unit]
+Description=P2 队列调度器（领取队列作业并真正建机执行）
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/智云视频工作流
+Environment=P2_DISPATCH_DAEMON=1
+Environment=PYTHONUNBUFFERED=1
+# 当日预算熔断：账本当日花费（含 settle 真实扣费）达到这个数就停止领取
+ExecStart=/usr/bin/python3 /root/智云视频工作流/tools/p2/batchctl.py run --slots 1 --poll 5 --daily-budget 3
+Restart=always
+RestartSec=15
+KillSignal=SIGTERM
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target

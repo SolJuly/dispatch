@@ -8,6 +8,7 @@ import sys
 import zipfile
 import tempfile
 import shutil
+import re
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -99,6 +100,129 @@ class TestListGet(unittest.TestCase):
         with self.assertRaises(api.ApiError) as cm:
             api.get_job("../../etc/passwd", jobs_dir=self.root)
         self.assertEqual(cm.exception.code, 400)
+
+
+class TestQualityPassthrough(unittest.TestCase):
+    """质量分必须从 manifest 透到详情接口的**顶层** quality。
+
+    背景：`tools/p2/quality.py` 算出来的四维分只落在作业目录的 manifest.json 里，
+    UI 上完全看不到 —— 用户跑完只能在「文件成功」和「这一条糊成一片」之间靠肉眼赌。
+    详情页要能显示「87 分 A 级」或「32 分 D 级、糊成一片」，所以这里把它透出去。
+
+    三条硬约定（都是踩过的坑）：
+      ① quality 与 cost 并列在**顶层**，不塞进 job（cost 曾经塞进去，UI 读到 None）；
+      ② manifest 只有跑到 PERSISTED 之后才存在，未完成作业返回 None 而不是 500；
+      ③ 门禁语义不动：`from_expect()` 默认 mode=report，透出时原样透出 mode/verdict。
+    """
+
+    def setUp(self):
+        self._mp = api.maybe_publish
+        api.maybe_publish = lambda *a, **k: None
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+
+    def tearDown(self):
+        api.maybe_publish = self._mp
+        self.tmp.cleanup()
+
+    def _write_manifest(self, d: Path, payload: dict) -> None:
+        (d / "manifest.json").write_text(json.dumps(payload, ensure_ascii=False),
+                                        encoding="utf-8")
+
+    def test_done_job_exposes_quality_at_toplevel(self):
+        d = _mk_job(self.root, "p1-20260101T0000-aaaaaa", "DONE")
+        rep = {"mode": "report", "overall": 87.3, "grade": "A", "verdict": "PASS",
+               "artifacts": [{"file": "01-a.png", "kind": "image", "score": 87.3,
+                              "grade": "A", "metrics": {"sharpness": 3.1},
+                              "issues": [], "gated": False, "passed": True}]}
+        self._write_manifest(d, {"cost": {"hourly": 2.15, "minutes": 6.2,
+                                          "amount": 0.2222},
+                                 "quality": rep})
+        out = api.get_job("p1-20260101T0000-aaaaaa", jobs_dir=self.root)
+        self.assertEqual(out["quality"]["overall"], 87.3)
+        self.assertEqual(out["quality"]["grade"], "A")
+        self.assertEqual(out["quality"]["mode"], "report")
+        self.assertEqual(out["quality"]["verdict"], "PASS")
+        self.assertEqual(out["quality"]["artifacts"][0]["issues"], [])
+        # 与 cost 并列，都在顶层
+        self.assertIn("cost", out)
+        self.assertEqual(out["cost"]["amount"], 0.2222)
+        # 绝不能挂进 job（job.json 里没有这个字段，挂进去就是 None）
+        self.assertNotIn("quality", out["job"])
+
+    def test_low_grade_quality_passed_through_verbatim(self):
+        """D 级的 issues 要原样透出 —— UI 靠它讲"糊成一片"。"""
+        d = _mk_job(self.root, "p1-20260101T0000-bbbbbb", "DONE")
+        issue = "边缘能量 0.56 < 0.8：画面糊/抽象"
+        self._write_manifest(d, {"quality": {
+            "mode": "report", "overall": 32.0, "grade": "D", "verdict": "WARN",
+            "artifacts": [{"file": "01-a.png", "score": 32.0, "grade": "D",
+                           "issues": [issue]}]}})
+        q = api.get_job("p1-20260101T0000-bbbbbb", jobs_dir=self.root)["quality"]
+        self.assertEqual(q["grade"], "D")
+        self.assertEqual(q["overall"], 32.0)
+        self.assertEqual(q["artifacts"][0]["issues"], [issue])
+        # verdict=WARN 也要透出：report 模式下有严重问题只 WARN，不改 PASS/FAIL
+        self.assertEqual(q["verdict"], "WARN")
+
+    def test_unfinished_job_returns_none_not_error(self):
+        """没有 manifest（未跑到 PERSISTED）→ quality 与 cost 都是 None，不抛异常。"""
+        _mk_job(self.root, "p1-20260101T0000-cccccc", "CREATED")
+        out = api.get_job("p1-20260101T0000-cccccc", jobs_dir=self.root)
+        self.assertIsNone(out["quality"])
+        self.assertIsNone(out["cost"])
+        self.assertEqual(out["job"]["state"], "CREATED")
+
+    def test_manifest_without_quality_returns_none(self):
+        """老 manifest（这一轮之前生成的）没有 quality 字段 → None。"""
+        d = _mk_job(self.root, "p1-20260101T0000-dddddd", "DONE")
+        self._write_manifest(d, {"cost": {"hourly": 2.15, "minutes": 6.2, "amount": 0.2222}})
+        out = api.get_job("p1-20260101T0000-dddddd", jobs_dir=self.root)
+        self.assertIsNone(out["quality"])
+        self.assertEqual(out["cost"]["amount"], 0.2222)
+
+    def test_empty_quality_dict_normalized_to_none(self):
+        """manifest 里 quality={} 与"没有 quality"对 UI 是同一件事：不渲染卡片。
+
+        run.py 的 step_persist 写的是 `res.get("quality") or {}` —— 评分器
+        抛异常时也会留下空对象，直接透出成 `{}` 会让前端拿到一个"有但空"的值。
+        """
+        d = _mk_job(self.root, "p1-20260101T0000-eeeeee", "DONE")
+        self._write_manifest(d, {"quality": {}})
+        self.assertIsNone(api.get_job("p1-20260101T0000-eeeeee",
+                                      jobs_dir=self.root)["quality"])
+
+    def test_corrupt_manifest_does_not_break_detail(self):
+        """manifest 写了一半（JSON 坏了）不能让整页 500：它是派生文件，不是命门。"""
+        d = _mk_job(self.root, "p1-20260101T0000-ffffff", "DONE")
+        (d / "manifest.json").write_text('{"quality": {"overall": 8', encoding="utf-8")
+        out = api.get_job("p1-20260101T0000-ffffff", jobs_dir=self.root)
+        self.assertIsNone(out["quality"])
+        self.assertIsNone(out["cost"])
+        self.assertEqual(out["workflow"], "qwen_image_t2i")
+
+    def test_read_manifest_helper_contract(self):
+        """read_manifest 的约定：没文件 / 坏 JSON / 非对象 → {}，不做异常传播。"""
+        d = _mk_job(self.root, "p1-20260101T0000-111111", "DONE")
+        self.assertEqual(api.read_manifest("p1-20260101T0000-111111", self.root), {})
+        (d / "manifest.json").write_text("[1,2]", encoding="utf-8")
+        self.assertEqual(api.read_manifest("p1-20260101T0000-111111", self.root), {})
+        (d / "manifest.json").write_text('{"a":1}', encoding="utf-8")
+        self.assertEqual(api.read_manifest("p1-20260101T0000-111111", self.root), {"a": 1})
+
+    def test_gate_mode_also_passed_through(self):
+        """mode=gate 的作业照样透出，只是 UI 会标"门禁模式"—— 计数口径不变。"""
+        d = _mk_job(self.root, "p1-20260101T0000-222222", "DONE")
+        self._write_manifest(d, {"quality": {"mode": "gate", "overall": 40.0,
+                                             "grade": "C", "verdict": "FAIL",
+                                             "artifacts": [{"file": "01-a.png",
+                                                            "score": 40.0, "grade": "C",
+                                                            "issues": ["亮度均值 12 < 26：整体过暗"],
+                                                            "gated": True, "passed": False}]}})
+        q = api.get_job("p1-20260101T0000-222222", jobs_dir=self.root)["quality"]
+        self.assertEqual(q["mode"], "gate")
+        self.assertEqual(q["verdict"], "FAIL")
+        self.assertFalse(q["artifacts"][0]["passed"])
 
 
 class TestCancel(unittest.TestCase):
@@ -376,12 +500,30 @@ class TestVideoParamBinding(unittest.TestCase):
         self.assertEqual(bad, [])
 
     def test_animate2_exposes_video_picker(self):
+        """驱动视频字段必须用视频选择器（accept 含 video/*，不是图片类型）。
+
+        2026-11-10 前端统一到 web/dist 后，这条改测 B 套的 mediaCtl()。
+        原来测的是 `webui/components.py`（A 套服务端渲染），那套已删除。
+
+        为什么这条必须留着：`image_2` 这个**参数名**看起来是图片，
+        实际语义是"驱动视频"。只按名字推断就会给成 `accept="image/*"`，
+        用户选了 mp4 也被拒 —— 历史上这正是动作迁移跑不起来的第一个坑。
+        """
         from tools.p20 import registry
-        from webui import components
         wf = registry.get_workflow("pack_video_wan_animate2_distilled")
-        html = components.field("image_2", wf["params"]["image_2"])
-        self.assertIn('accept="video/*"', html)
-        self.assertIn("驱动视频", html)
+        spec = wf["params"]["image_2"]
+        self.assertEqual(spec.get("type"), "video",
+                         "image_2 在 animate2 里语义是驱动视频，类型必须声明为 video")
+
+        # 源码层面确认 mediaCtl 按 spec.type 分派 accept，且视频分支含 mp4
+        src = (Path(__file__).resolve().parents[3] / "web" / "dist" / "app.js").read_text(
+            encoding="utf-8")
+        m = re.search(r"function mediaCtl\(name, spec\) \{(.+?)\n\}", src, re.S)
+        self.assertIsNotNone(m, "web/dist/app.js 里找不到 mediaCtl()")
+        body = m.group(1)
+        self.assertIn("spec.type === 'video'", body,
+                      "必须按字段声明的类型分派，不能按参数名猜")
+        self.assertIn("video/mp4", body, "视频分支的 accept 必须含 video/mp4")
 
 
 class TestArtifactUrl(unittest.TestCase):

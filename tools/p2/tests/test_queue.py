@@ -80,6 +80,40 @@ class QueueTest(unittest.TestCase):
         self.assertFalse(queue.requeue("j1", "fail-3"))   # 到上限
         self.assertEqual({i["job_id"]: i for i in queue.items()}["j1"]["state"], "terminal_failed")
 
+    # ---------------- 退避必须"至少"等 N 秒（不是"最多")
+    def test_backoff_is_at_least_not_at_most(self):
+        """`int(now)` 截断会让退避提前到期 —— 实测踩到两次偶发失败。
+
+        根因：`next_at = int(time.time()) + backoff` 丢掉小数，
+        而 claim 用 `next_retry_at <= int(time.time())` 比较。
+        于是"退避 1 秒"实际是"退避 -1~1 秒"：同一秒内 int() 相同，
+        下一毫秒就可能被领走。
+
+        后果：瞬时故障（限流 / 无现货）本该退避却立刻重试，把退避阶梯打穿。
+        修法：向上取整（math.ceil）。
+        """
+        queue.submit("b-1", "j1", P("d"), max_attempts=3)
+        queue.claim("w1")
+        t0 = time.time()
+        queue.requeue("j1", "fail")
+        row = {i["job_id"]: i for i in queue.items()}["j1"]
+        nxt = row["next_retry_at"]
+        # next_at 必须是"现在之后至少 backoff 秒"
+        self.assertGreaterEqual(nxt, t0 + 1,
+                                f"退避 1 秒，但 next_retry_at={nxt} 早于 t0+1={t0 + 1}")
+        # 刚 requeue 完不该立刻能领
+        self.assertIsNone(queue.claim("w1"), "退避期内不该被领走")
+
+    def test_defer_is_at_least_not_at_most(self):
+        """defer 同样要求"至少延迟 N 秒"。"""
+        queue.submit("b-1", "j1", P("e"), max_attempts=3)
+        queue.claim("w1")
+        t0 = time.time()
+        queue.defer("j1", 60, "无现货")
+        row = {i["job_id"]: i for i in queue.items()}["j1"]
+        self.assertGreaterEqual(row["next_retry_at"], t0 + 60)
+        self.assertIsNone(queue.claim("w1"))
+
     # ---------------- 瞬时限流不消耗尝试（defer）
     def test_defer_does_not_consume_attempts(self):
         queue.submit("b-1", "j1", P("g"), max_attempts=3)
