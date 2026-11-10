@@ -8,27 +8,27 @@
   "primary": "unet",
   "files": {
     "unet": {
-      "name": "ltx-2.5-audio-vae-bf16.safetensors",
+      "name": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
       "loader": "UNETLoader",
       "input": "unet_name",
       "match": {
-        "contains": "ltx-2.5-audio-vae-bf16"
+        "contains": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot"
       }
     },
     "vae": {
-      "name": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+      "name": "ltx-2.5-video-vae-bf16.safetensors",
       "loader": "VAELoader",
       "input": "vae_name",
       "match": {
-        "contains": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot"
+        "contains": "ltx-2.5-video-vae-bf16"
       }
     },
     "vae_2": {
-      "name": "gemma4_e2b_it_int8_convrot.safetensors",
+      "name": "ltx-2.5-audio-vae-bf16.safetensors",
       "loader": "VAELoader",
       "input": "vae_name",
       "match": {
-        "contains": "gemma4_e2b_it_int8_convrot"
+        "contains": "ltx-2.5-audio-vae-bf16"
       }
     },
     "clip": {
@@ -53,5 +53,6 @@
   "setup": {
     "profile": "all",
     "links": []
-  }
+  },
+  "notes": "2026-11-10 按官方 LTX-2.5 FLF2V 工作流重写 files：原卡把 CLIP 文件错标成 vae 槽位、unet 槽位填的是 audio-vae，导致 VAELoader 加载出 None。"
 }

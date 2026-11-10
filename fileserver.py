@@ -930,10 +930,42 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             return _json({"error": f"P20 模块不可用: {e}"}, 500)
 
+        def _is_new(compat: dict | None, days: int = 1) -> bool:
+            """最近 N 天内**通过真机验证**的，算「新上线」。
+
+            两个坑都踩过：
+
+            ① 不能用 `imported_at` —— 那是派生索引的重建时间，每跑一次
+               `p20ctl import` 就变，拿它做"新"会让全部 54 条都变新。
+
+            ② `checked_at` 只对 verified 有意义。`experimental` 记录在 import
+               时会被补一条、时间戳写的是"导入那一刻"（registry.py 第 323 行），
+               所以必须先判 status，否则 20 多条 experimental 全被标成"新"。
+
+            ③ 窗口不能给 7 天 —— 仓库里 11-03~11-07 验证过 26 条老工作流，
+               按 7 天算全算"新"，标签就没有意义了。默认 1 天 = 今天验证的。
+            """
+            import datetime as _dt
+            import os
+            c = compat or {}
+            if c.get("status") != "verified":
+                return False
+            at = str(c.get("checked_at") or c.get("verified_at") or "")
+            try:
+                d = _dt.date.fromisoformat(at[:10])
+            except ValueError:
+                return False
+            try:
+                days = int(os.environ.get("P21_NEW_BADGE_DAYS") or days)
+            except ValueError:
+                pass
+            return (_dt.date.today() - d).days <= days
+
         def _wf_summary(w: dict) -> dict:
             return {"key": w.get("key"), "name": w.get("name"), "version": w.get("version"),
                     "kind": w.get("kind"), "model_key": w.get("model_key"),
                     "graph_sha256": w.get("graph_sha256"), "compat": w.get("compat"),
+                    "is_new": _is_new(w.get("compat")),
                     "params": sorted((w.get("params") or {}).keys()),
                     "nodes": len(w.get("graph_obj") or {})}
 

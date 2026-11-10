@@ -459,3 +459,17 @@ video.upthumb{height:92px;max-width:200px;border-radius:6px;border:1px solid var
 .lc-short b{color:#c6cede}
 .lc-short .lc-why{color:#6f7a8a}
 .lifecycle:has(.lc-tiers:not([hidden])) .lc-short{border-top-color:#2b3550}
+
+/* ==================================================================== NEW 标签
+   只标「今天通过真机验证」的工作流（后端 fileserver._is_new 算）。
+   为什么需要一个显眼标签：一轮改完十几条工作流，用户打开工作台分不清
+   "哪些是这次新上线的、哪些是一直就有的"，只能一条条点开看 -- 那等于没有。
+   位置用绝对定位贴在卡片右上角，不挤占标题行。 */
+.mcard{position:relative}
+.mcard.isnew{border-color:#2f6b46;background:linear-gradient(180deg,#12241a,#0f141b)}
+.newtag{position:absolute;top:-7px;right:8px;
+  font-size:9.5px;font-weight:700;letter-spacing:.6px;
+  color:#0d1a12;background:#4ade80;border-radius:5px;
+  padding:1px 6px;line-height:1.5;
+  box-shadow:0 1px 4px #0006}
+.mcard.isnew .t{color:#a7f3c4}

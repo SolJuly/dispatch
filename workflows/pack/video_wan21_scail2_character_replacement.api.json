@@ -37,7 +37,9 @@
     "1344",
     1
    ],
-   "scale_method": "area"
+   "scale_method": "area",
+   "resize_type": "scale dimensions",
+   "resize_type.crop": "center"
   },
   "_meta": {
    "title": "Character Replacement (SCAIL-2 Base)"
@@ -169,7 +171,7 @@
     0
    ],
    "add_noise": true,
-   "noise_seed": 0
+   "noise_seed": 1
   },
   "_meta": {
    "title": "Character Replacement (SCAIL-2 Base)"
@@ -375,7 +377,7 @@
     "30",
     0
    ],
-   "crop": "center"
+   "crop": "none"
   },
   "_meta": {
    "title": "Character Replacement (SCAIL-2 Base)"
@@ -531,7 +533,9 @@
     "1386",
     1
    ],
-   "scale_method": "area"
+   "scale_method": "area",
+   "resize_type": "scale dimensions",
+   "resize_type.crop": "center"
   },
   "_meta": {
    "title": "Character Replacement (SCAIL-2 Extend)"
@@ -663,7 +667,7 @@
     0
    ],
    "add_noise": true,
-   "noise_seed": 0
+   "noise_seed": 1
   },
   "_meta": {
    "title": "Character Replacement (SCAIL-2 Extend)"
@@ -883,8 +887,8 @@
     "1400",
     0
    ],
-   "method": "histogram",
-   "source_stats": "uniform",
+   "method": "reinhard_lab",
+   "source_stats": "per_frame",
    "strength": 1.0
   },
   "_meta": {
@@ -916,7 +920,7 @@
     "30",
     0
    ],
-   "crop": "center"
+   "crop": "none"
   },
   "_meta": {
    "title": "Character Replacement (SCAIL-2 Extend)"

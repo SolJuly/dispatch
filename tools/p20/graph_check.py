@@ -163,6 +163,19 @@ def _check_graph(graph: dict, oi: dict, workflow_key: str, model: str,
             if "default" in m and not strict:
                 continue
             if tname in DYNAMIC_TYPES:
+                # DYNAMICCOMBO 有个反直觉的要求：**主键和子键都要给**。
+                # 只写 `resize_type.width` 而不写 `resize_type`，
+                # ComfyUI 会报 "missing 1 required positional argument: 'resize_type'"
+                # —— 因为它按主键分派到具体实现，子键只是参数。
+                # 踩过：7 处 ResizeImageMaskNode 全是这个毛病。
+                # 只有 DYNAMICCOMBO 需要主键；AUTOGROW 天生就用子键表达
+                # （`values.a` 等价于 values 有一个名为 a 的槽），没有"主键"概念。
+                if tname == "COMFY_DYNAMICCOMBO_V3" \
+                        and any(k.startswith(f"{fname}.") for k in ins) \
+                        and fname not in ins:
+                    r.missing.append(Missing(nid, ct, f"{fname}（有子键缺主键）",
+                                             "missing", tname))
+                    continue
                 # AUTOGROW / DYNAMICCOMBO 在 API 格式里是**带前缀的子键**：
                 #   ComfyMathExpression.values  →  "values.a": 5
                 #   ResizeImageMaskNode.resize_type → "resize_type.width": 512

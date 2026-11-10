@@ -255,15 +255,23 @@ function groupWorkflows(list) {
     const done = items.filter(isDev);
     const todo = items.filter(w => !isDev(w));
     const byName = (a, b) => String(a.name || a.key).localeCompare(String(b.name || b.key), 'zh');
-    return {...g, done: done.sort(byName), todo: todo.sort(byName), total: items.length};
+    // 新上线的排最前：用户要能一眼看到"这次加了什么"，而不是在 30 条里翻。
+    const rank = w => (w.is_new ? 0 : 1);
+    const order = (a, b) => rank(a) - rank(b) || byName(a, b);
+    return {...g, done: done.sort(order), todo: todo.sort(order), total: items.length};
   }).filter(g => g.total);
 }
 
 function wfCard(w) {
   const st = (w.compat || {}).status || 'unknown';
   const cls = st === 'verified' ? 'pass' : st === 'experimental' ? 'warn' : st === 'incompatible' ? 'fail' : '';
-  return `<div class="mcard ${w.key === S.wfKey ? 'on' : ''} ${isDev(w) ? '' : 'undeveloped'}"
+  // NEW 标签由后端算（fileserver._is_new）：只认「今天通过真机验证」的。
+  // 前端不自己算日期 —— 它不知道 checked_at 对 experimental 无意义这件事，
+  // 自己算会把 20 多条未验证的全标成新。
+  const isNew = !!w.is_new;
+  return `<div class="mcard ${w.key === S.wfKey ? 'on' : ''} ${isDev(w) ? '' : 'undeveloped'} ${isNew ? 'isnew' : ''}"
        data-key="${esc(w.key)}" title="${esc((w.compat || {}).basis || '')}">
+      ${isNew ? '<span class="newtag">NEW</span>' : ''}
       <div class="t" title="${esc(w.name || w.key)}">${esc(w.name || w.key)}</div>
       <div class="b2"><span class="badge">${esc(w.kind || '')}</span>
         <span class="badge ${cls}">${esc(st)}</span>
@@ -275,8 +283,10 @@ function wfCard(w) {
 function renderWorkflows() {
   const groups = groupWorkflows(S.workflows);
   const doneN = S.workflows.filter(isDev).length;
+  const newN = S.workflows.filter(w => w.is_new).length;
   $('#wfCount').textContent =
-    `${S.workflows.length} 个 · 可用 ${doneN} · 未开发 ${S.workflows.length - doneN}`;
+    `${S.workflows.length} 个 · 可用 ${doneN} · 未开发 ${S.workflows.length - doneN}`
+    + (newN ? ` · 新增 ${newN}` : '');
   $('#workflows').innerHTML = groups.map(g => `
     <div class="wfgroup">
       <div class="wfgroup-h">

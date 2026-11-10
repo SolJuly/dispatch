@@ -220,6 +220,10 @@
       "ref_images.ref_image_0": [
         "137",
         0
+      ],
+      "ref_images.ref_image_1": [
+        "139",
+        0
       ]
     },
     "_meta": {
@@ -296,6 +300,12 @@
     },
     "_meta": {
       "title": "SaveVideo"
+    }
+  },
+  "139": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "placeholder_ref2.png"
     }
   }
 }

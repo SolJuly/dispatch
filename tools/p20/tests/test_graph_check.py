@@ -98,6 +98,38 @@ class TestKinds(unittest.TestCase):
         r = G._check_graph({"1": node}, oi, "t", "m")
         self.assertEqual(r.dynamic, [])
 
+    def test_dynamiccombo_needs_main_key_too(self):
+        """DYNAMICCOMBO 必须主键 + 子键都给。
+
+        踩过（2026-11-10）：7 处 ResizeImageMaskNode 只写了
+        `resize_type.width/height` 没写 `resize_type`，ComfyUI 报
+        "missing 1 required positional argument: 'resize_type'" ——
+        它按主键分派实现，子键只是参数。
+        """
+        node = {"class_type": "ResizeImageMaskNode",
+                "inputs": {"resize_type.width": 512, "resize_type.height": 512}}
+        oi = {"ResizeImageMaskNode": {"input": {"required": {
+            "resize_type": ["COMFY_DYNAMICCOMBO_V3", {}],
+        }}}}
+        r = G._check_graph({"1": node}, oi, "t", "m")
+        self.assertEqual(len(r.missing), 1)
+        self.assertIn("缺主键", r.missing[0].field_name)
+
+    def test_autogrow_does_not_need_main_key(self):
+        """AUTOGROW 相反：天生用子键表达，没有"主键"概念。
+
+        这条是上一条的负向对照 —— 把规则错误地套到 AUTOGROW 上，
+        会把已经正确的 ComfyMathExpression 全判成缺（实测踩到）。
+        """
+        node = {"class_type": "ComfyMathExpression",
+                "inputs": {"expression": "a * 2", "values.a": 5}}
+        oi = {"ComfyMathExpression": {"input": {"required": {
+            "expression": ["STRING", {"default": ""}],
+            "values": ["COMFY_AUTOGROW_V3", {}],
+        }}}}
+        r = G._check_graph({"1": node}, oi, "t", "m")
+        self.assertEqual(r.missing, [], "AUTOGROW 不该要求主键")
+
     def test_combo_options_extracted(self):
         """COMBO 候选值要能取出来 —— 修图时要照着填合法值。"""
         node = {"class_type": "ImageScaleToTotalPixels", "inputs": {}}

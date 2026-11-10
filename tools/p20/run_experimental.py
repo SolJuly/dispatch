@@ -110,12 +110,17 @@ JOBS: list[dict] = [
     {
         "workflow": "pack_video_fasth3_ominiref_r2v",
         "note": "参考图生视频（omniref）",
+        # 这个工作流按「多参考图」建模（ref_image_0 / ref_image_1 都要），
+        # 少给一张会让 MiniMaxH3ReferenceToVideo 的 latent 尺寸错配：
+        # 实测报 "tensor a (24) must match tensor b (768)"。
         "params": {
             "image": GIRL_BAMBOO,
-            "prompt": "subject_definitions:\n<Subject 1> a young woman in a "
-                      "cream kimono standing in a bamboo forest, holding a bamboo "
-                      "stalk.\n\nsummary: The camera slowly pushes in as she turns "
-                      "her head toward the light.",
+            "image_2": GIRL_CREEK,
+            "prompt": "subject_definitions:\n<Subject 1> is the woman in <Picture 1>: "
+                      "a young woman in a cream kimono standing in a bamboo forest.\n"
+                      "<Subject 2> is the setting in <Picture 2>: a woman sitting by a "
+                      "quiet creek at golden hour.\n\nsummary: The camera slowly "
+                      "pushes in as she turns her head toward the light.",
             "seed": 20261110,
         },
     },

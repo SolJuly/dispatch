@@ -282,14 +282,14 @@
     },
     {
       "workflow": "pack_video_minimax_h3_r2v",
-      "model": "minimax_h3_ref2va_pruned_int8_convro",
+      "model": "minimax_h3_ref2va_pruned_int8_convro_video_minimax_h3_r2v",
       "status": "verified",
-      "basis": "manual",
+      "basis": "real-run",
       "evidence": [
-        "trial-20261106"
+        "p1-20261110T1901-32e7da"
       ],
-      "verified_at": "2026-11-06",
-      "notes": "276.7s，多参考图生视频，v4 API 直跑；未经 P1 闭环，首次正式作业后应替换为 job id"
+      "verified_at": "2026-11-10",
+      "notes": "两图参考生视频。经 P1 完整闭环（建机→setup→提交→取回→校验→销毁）：305s / 66.5/B，864x480 24fps 5.17s，画质清晰。替换掉 11-06 的 trial 证据。"
     },
     {
       "workflow": "pack_video_minimax_h3_multiframe_reference",
@@ -345,6 +345,50 @@
       ],
       "verified_at": "2026-11-07",
       "notes": "51.7s，2K 高清精绘 app，v4 API 直跑；首次正式作业后应替换为 job id"
+    },
+    {
+      "workflow": "pack_image_qwen_image_edit_2511_int8",
+      "model": "qwen_image_edit_2511_int8_convrot",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261110T1319-6aba43"
+      ],
+      "verified_at": "2026-11-10",
+      "notes": "图生图编辑。原图混入 2 个 Flux 节点（FluxKontextMultiReferenceLatentMethod）把 Qwen conditioning 按 Flux 处理，且 3 个 switch 全 false 走了 40 步慢速路径 —— 修掉后 285s→72s，质量 32/D→96.1/A。"
+    },
+    {
+      "workflow": "pack_image_flux2_klein_image_edit_4b_distilled",
+      "model": "flux_2_klein_4b_fp8",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261110T1331-61fb87"
+      ],
+      "verified_at": "2026-11-10",
+      "notes": "双参考图编辑。导出时丢了 upscale_method×3 / megapixels×3 / batch_size×2 共 8 个必填字段，补齐后 27s 跑通（64.5/B）。"
+    },
+    {
+      "workflow": "pack_image_qwen_image_layered",
+      "model": "qwen_image_layered_bf16",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261110T1342-9d0017"
+      ],
+      "verified_at": "2026-11-10",
+      "notes": "分层输出。补 LatentCut.dim / layers / batch_size / largest_size 后 243s 跑通（59.8/B）。**只产出 1 张图**（预期 3 层），LatentCut.dim 的切分语义仍需对照官方示例修正。"
+    },
+    {
+      "workflow": "pack_video_ltx2_5_flf2v",
+      "model": "ltx_2_5_audio_vae_bf16",
+      "status": "verified",
+      "basis": "real-run",
+      "evidence": [
+        "p1-20261110T2244-de3779"
+      ],
+      "verified_at": "2026-11-10",
+      "notes": "首尾帧生视频 + 音频。按官方 workflow JSON 对齐后跑通：226s / 60.7/B，1280x704 121帧 5.04s，带 AAC 立体声。修了三处：模型卡 files 槽位错位（unet 填了 audio-vae、vae 填了 CLIP）、ComfyMathExpression 表达式填错（a+b 应为 a / a*b+1）、ResizeImageMaskNode 缺 resize_type 主键。"
     }
   ]
 }

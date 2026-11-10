@@ -86,6 +86,17 @@
       "max": 2147483647,
       "min": 0,
       "type": "int"
+    },
+    "image_2": {
+      "type": "image",
+      "required": true,
+      "description": "第二张参考图。这个工作流按「多参考图」建模，两张图各自提供一个主体/场景。",
+      "bindings": [
+        {
+          "node": "139",
+          "input": "image"
+        }
+      ]
     }
   },
   "required_gpu": [
