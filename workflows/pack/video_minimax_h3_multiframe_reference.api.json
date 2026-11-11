@@ -256,15 +256,15 @@
         0
       ],
       "ref_videos.ref_video_0": [
-        "179",
+        "179g",
         0
       ],
       "ref_videos.ref_video_1": [
-        "180",
+        "180g",
         0
       ],
       "ref_videos.ref_video_2": [
-        "181",
+        "181g",
         0
       ],
       "ref_audios.ref_audio_0": [
@@ -615,6 +615,33 @@
     "class_type": "LoadAudio",
     "inputs": {
       "audio": ""
+    }
+  },
+  "179g": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "179",
+        0
+      ]
+    }
+  },
+  "180g": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "180",
+        0
+      ]
+    }
+  },
+  "181g": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "181",
+        0
+      ]
     }
   }
 }

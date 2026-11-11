@@ -117,6 +117,7 @@ def render(wf: dict, model: dict, params: dict, prefix: str, *,
     apply_model(g, wf, model)
     apply_params(g, wf, params)
     apply_output(g, wf, prefix)
+    pruned = prune_empty_loaders(g)
     check_placeholders(g)
     meta = {
         "workflow_key": wf.get("key"),
@@ -126,10 +127,91 @@ def render(wf: dict, model: dict, params: dict, prefix: str, *,
         "params": dict(params),
         "prefix": prefix,
         "nodes": len(g),
+        "pruned_empty": pruned,
         "graph_sha256": cs.sha256_obj(g),
         "template_sha256": wf.get("graph_sha256"),
     }
     return g, meta
+
+
+# 空值加载节点：用户没填时，这些节点不该留在图里。
+# 字段名 → 判定"空"的方式。
+_LOADER_VALUE_FIELDS = {
+    "LoadImage": "image",
+    "LoadAudio": "audio",
+    "LoadVideo": "file",
+    "LoadImageMask": "image",
+}
+
+
+def prune_empty_loaders(g: dict) -> int:
+    """剔掉「用户没填值」的加载节点，以及只依赖它的下游节点。
+
+    为什么必须剔（2026-11-11 真机踩到）：
+
+        为了让 UI 有"参考视频 1/2/3"三个位置，图里放了 3 个
+        `LoadVideo{file: ""}` 空壳。空壳进了 ComfyUI 之后，
+        `GetVideoComponents` 会拿 `""` 去打开文件，实际打开的是
+        `/root/ComfyUI/input` 这个**目录**，报错：
+
+            GetVideoComponents: [Errno 21] Is a directory: '/root/ComfyUI/input'
+
+    所以空槽位不能"提交给服务端让它忽略"，必须**在提交前从图里删掉**。
+    这也顺带解释了为什么 `LoadImage{image:""}` 之前没炸 ——
+    它是终端节点（没有下游拆解），ComfyUI 直接跳过了。
+
+    做法：先删空加载器；再迭代删掉「所有输入都指向已删节点」的孤儿；
+    最后清理指向已删节点的输入（AUTOGROW 的可选槽位、optional 输入）。
+    返回删掉的节点数。
+    """
+    removed: set[str] = set()
+
+    for nid, node in list(g.items()):
+        if not isinstance(node, dict):
+            continue
+        cls = str(node.get("class_type") or "")
+        field = _LOADER_VALUE_FIELDS.get(cls)
+        if not field:
+            continue
+        val = (node.get("inputs") or {}).get(field)
+        if isinstance(val, str) and not val.strip():
+            removed.add(str(nid))
+
+    if not removed:
+        return 0
+
+    # 迭代删孤儿：输入全部指向已删节点的节点也该走（GetVideoComponents 是典型）
+    changed = True
+    while changed:
+        changed = False
+        for nid, node in list(g.items()):
+            nid = str(nid)
+            if nid in removed or not isinstance(node, dict):
+                continue
+            ins = node.get("inputs") or {}
+            links = [v for v in ins.values() if isinstance(v, list) and len(v) == 2]
+            if not links:
+                continue
+            if all(str(v[0]) in removed for v in links):
+                removed.add(nid)
+                changed = True
+
+    # 清理指向已删节点的输入。分两种：
+    #   ① AUTOGROW 可选槽位（`ref_videos.ref_video_0`）→ 直接删掉这个键，
+    #      服务端按"没这个位置"处理，而不是"位置存在但没连"
+    #   ② 其他 optional 输入 → 同样删键（节点自己会走默认）
+    for nid, node in list(g.items()):
+        if str(nid) in removed or not isinstance(node, dict):
+            continue
+        ins = node.get("inputs") or {}
+        for k in list(ins):
+            v = ins[k]
+            if isinstance(v, list) and len(v) == 2 and str(v[0]) in removed:
+                del ins[k]
+
+    for nid in removed:
+        g.pop(nid, None)
+    return len(removed)
 
 
 def render_job(job: dict, *, db_path: Path = registry.DB_PATH) -> tuple[dict, dict]:

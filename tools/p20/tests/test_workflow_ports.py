@@ -234,3 +234,93 @@ class TestMiniMaxPorts(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ================================================================ 空槽位剪枝
+class TestPruneEmptyLoaders(unittest.TestCase):
+    """用户没填的可选位置，必须在**提交前**从图里删掉。
+
+    2026-11-11 真机踩到：图里放了 `LoadVideo{file: ""}` 空壳给 UI 占位，
+    提交后 `GetVideoComponents` 拿空串去打开文件，实际打开的是
+    `/root/ComfyUI/input` 这个目录：
+
+        GetVideoComponents: [Errno 21] Is a directory
+
+    结论：空槽位不能指望"服务端忽略"，必须在渲染阶段剪掉。
+    """
+
+    def _graph(self):
+        return {
+            "1": {"class_type": "LoadImage", "inputs": {"image": "a.png"}},
+            "2": {"class_type": "LoadImage", "inputs": {"image": ""}},      # 空
+            "3": {"class_type": "GetVideoComponents", "inputs": {"video": ["4", 0]}},
+            "4": {"class_type": "LoadVideo", "inputs": {"file": ""}},        # 空
+            "5": {"class_type": "RefNode", "inputs": {
+                "ref_images.ref_image_0": ["1", 0],
+                "ref_images.ref_image_1": ["2", 0],
+                "ref_videos.ref_video_0": ["3", 0],
+            }},
+        }
+
+    def test_prunes_empty_and_orphans(self):
+        from tools.p20 import render
+        g = self._graph()
+        n = render.prune_empty_loaders(g)
+        self.assertNotIn("2", g, "空 LoadImage 该被删")
+        self.assertNotIn("4", g, "空 LoadVideo 该被删")
+        self.assertNotIn("3", g, "只依赖空节点的 GetVideoComponents 该被删")
+        self.assertIn("1", g, "有值的必须保留")
+        self.assertEqual(n, 3)
+
+    def test_clears_dangling_inputs(self):
+        """指向已删节点的槽位键必须一起删。
+
+        留着 `ref_videos.ref_video_0: ["3", 0]` 而 3 已不存在，
+        ComfyUI 会报 "link to missing node"。
+        """
+        from tools.p20 import render
+        g = self._graph()
+        render.prune_empty_loaders(g)
+        ins = g["5"]["inputs"]
+        self.assertNotIn("ref_videos.ref_video_0", ins)
+        self.assertNotIn("ref_images.ref_image_1", ins)
+        self.assertIn("ref_images.ref_image_0", ins, "有值的槽位不能动")
+
+    def test_noop_when_all_filled(self):
+        from tools.p20 import render
+        g = {
+            "1": {"class_type": "LoadImage", "inputs": {"image": "a.png"}},
+            "2": {"class_type": "LoadAudio", "inputs": {"audio": "a.wav"}},
+        }
+        self.assertEqual(render.prune_empty_loaders(g), 0)
+        self.assertEqual(len(g), 2)
+
+    def test_whitespace_counts_as_empty(self):
+        from tools.p20 import render
+        g = {"1": {"class_type": "LoadImage", "inputs": {"image": "   "}}}
+        self.assertEqual(render.prune_empty_loaders(g), 1)
+
+
+class TestPruneInRenderJob(unittest.TestCase):
+    """真跑一遍 render_job，确认剪枝接进了主链。"""
+
+    def test_minimax_with_only_required_has_clean_graph(self):
+        from tools.p20 import p20ctl, registry, render
+        r = registry.resolve("pack_video_minimax_h3_r2v",
+                             params={"image": "in-ff45f4b6.png",
+                                     "image_2": "in-d9b9cba6.png",
+                                     "prompt": "t", "seed": 1},
+                             allow_experimental=True)
+        spec = p20ctl._make_spec(r, job_key="pack_video_minimax_h3_r2v", task_ref="t")
+        g, meta = render.render_job({**spec, "job_id": "p1-20260101T0000-aaaaaa",
+                                     "model": spec["model"]})
+        self.assertGreater(meta.get("pruned_empty") or 0, 0, "应该剪掉空槽位")
+        for nid, n in g.items():
+            cls = n.get("class_type")
+            if cls == "LoadVideo":
+                self.assertTrue((n.get("inputs") or {}).get("file"), "不该留空 LoadVideo")
+            if cls == "LoadAudio":
+                self.assertTrue((n.get("inputs") or {}).get("audio"), "不该留空 LoadAudio")
+        # 只剩 2 张真图
+        loads = [n for n in g.values() if n.get("class_type") == "LoadImage"]
+        self.assertEqual(len(loads), 2)

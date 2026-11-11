@@ -318,6 +318,31 @@ def scan(workflow_key: str, oi: dict) -> Report | None:
     # 如果那个节点被某个参数绑了 → 这一组算"已暴露"。
     # 为什么必须走连线：参数绑的是 LoadImage 节点（`137.image`），
     # 槽位名 `ref_images.ref_image_0` 和参数名 `image` 完全没有字符串关系。
+    #
+    # **要穿透中间节点**：`ref_videos.ref_video_0` 现在接的是
+    # `GetVideoComponents`（因为 LoadVideo 输出 VIDEO，而槽位要 IMAGE），
+    # 而参数绑的是上游的 `LoadVideo`。只看直接上游会认不出这一组已被占用。
+    def _upstream_of(nid: str, depth: int = 4) -> set[str]:
+        """往上追几层，收集所有祖先节点 id。"""
+        out: set[str] = set()
+        frontier = [nid]
+        for _ in range(depth):
+            nxt = []
+            for cur in frontier:
+                node = graph.get(cur)
+                if not isinstance(node, dict):
+                    continue
+                for v in (node.get("inputs") or {}).values():
+                    if isinstance(v, list) and len(v) == 2:
+                        up = str(v[0])
+                        if up not in out:
+                            out.add(up)
+                            nxt.append(up)
+            if not nxt:
+                break
+            frontier = nxt
+        return out
+
     for nid, node in graph.items():
         if not isinstance(node, dict):
             continue
@@ -325,7 +350,10 @@ def scan(workflow_key: str, oi: dict) -> Report | None:
             if "." not in k:
                 continue
             group = k.split(".")[0]
-            if isinstance(v, list) and len(v) == 2 and str(v[0]) in bound_nodes:
+            if not (isinstance(v, list) and len(v) == 2):
+                continue
+            ancestors = _upstream_of(str(v[0])) | {str(v[0])}
+            if ancestors & bound_nodes:
                 rep.filled_groups.add(group)
 
     # 图里能给的

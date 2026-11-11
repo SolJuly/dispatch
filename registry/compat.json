@@ -164,10 +164,10 @@
       "status": "verified",
       "basis": "real-run",
       "evidence": [
-        "p1-20261110T1901-32e7da"
+        "p1-20261111T1800-9efe0c"
       ],
-      "verified_at": "2026-11-10",
-      "notes": "两图参考生视频。经 P1 完整闭环（建机→setup→提交→取回→校验→销毁）：305s / 66.5/B，864x480 24fps 5.17s，画质清晰。替换掉 11-06 的 trial 证据。"
+      "verified_at": "2026-11-11",
+      "notes": "接口补满后复验：9 图 / 3 视频 / 6 音频全部可选，只填 3 个必填也能跑。313s / 72.6(B)，864x480 124帧 5.17s，带 AAC 立体声。关键修复：空槽位必须在渲染阶段剪掉（否则 GetVideoComponents 拿空串去打开 /root/ComfyUI/input 目录报 Errno 21）；ref_videos 要 IMAGE，LoadVideo 输出 VIDEO，中间要插 GetVideoComponents。"
     },
     {
       "workflow": "pack_video_wan21_scail2_character_replacement",

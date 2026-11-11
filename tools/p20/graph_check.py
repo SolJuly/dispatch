@@ -63,6 +63,67 @@ LINK_TYPES = frozenset({
 })
 
 
+# 类型兼容：ComfyUI 里这几对可以互给，不能一律判错。
+#   IMAGE ↔ MASK  很多节点两者通吃
+#   INT   ↔ FLOAT 数值互转
+#   *     →  COMFY_*  动态类型接受任何输入（运行时才校验）
+_COMPATIBLE_PAIRS = {
+    frozenset({"IMAGE", "MASK"}),
+    frozenset({"INT", "FLOAT"}),
+}
+
+
+def _type_name(spec) -> str:
+    """输入声明的类型名。
+
+    AUTOGROW / DYNAMICCOMBO 要**下钻到 template** 取真实类型 ——
+    它们的顶层类型是 `COMFY_AUTOGROW_V3`，但每个子槽位要的是具体类型：
+
+        ref_videos  →  template.required.ref_video : IMAGE   （帧序列，不是 VIDEO）
+
+    踩过（2026-11-11）：顶层当 COMFY_* 一律放行，于是
+    `ref_videos.ref_video_0` 接 `LoadVideo`（输出 VIDEO）检查不出来，
+    真机才报 return_type_mismatch。
+    """
+    if not isinstance(spec, list) or not spec:
+        return ""
+    t = spec[0]
+    if isinstance(t, str):
+        if t in ("COMFY_AUTOGROW_V3", "COMFY_DYNAMICCOMBO_V3") and len(spec) > 1:
+            meta = spec[1] if isinstance(spec[1], dict) else {}
+            tpl = meta.get("template") or {}
+            req = ((tpl.get("input") or {}).get("required") or {})
+            inner = next(iter(req.values()), None)
+            if inner:
+                return _type_name(inner)
+        return t
+    if isinstance(t, list):
+        return "COMBO"
+    return ""
+
+
+def _types_compatible(got: str, want: str) -> bool:
+    """目标类型可能是**联合**（`FLOAT,INT,BOOLEAN`）或**通配**（`*`）。
+
+    踩过（2026-11-11）：按字符串直接比，于是 `INT` 对 `FLOAT,INT,BOOLEAN`
+    被判成不兼容 —— 一趟扫出 33 处「错误」，全是假的。
+    正确做法是把 want 按逗号拆开，任意一个匹配就算通过。
+    """
+    if want.startswith("COMFY_") or got.startswith("COMFY_"):
+        return True
+    if want in ("*", ""):
+        return True
+    for alt in (a.strip() for a in want.split(",")):
+        if not alt:
+            continue
+        if alt == "*" or alt == got:
+            return True
+        if frozenset({got, alt}) in _COMPATIBLE_PAIRS:
+            return True
+    return False
+
+
+
 def load_object_info(path: Path = OBJECT_INFO) -> dict:
     d = json.loads(Path(path).read_text(encoding="utf-8"))
     return d.get("object_info") if isinstance(d.get("object_info"), dict) else d
@@ -130,10 +191,11 @@ class Result:
     missing: list[Missing] = field(default_factory=list)
     dynamic: list[Missing] = field(default_factory=list)
     unknown_class: list[str] = field(default_factory=list)
+    type_errors: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
-        return not self.missing and not self.unknown_class
+        return not self.missing and not self.unknown_class and not self.type_errors
 
     def by_class(self) -> dict[str, list[Missing]]:
         """按节点类归并 —— 同源工作流的问题会聚到一起，修一条顶多条。"""
@@ -174,6 +236,43 @@ def _check_graph(graph: dict, oi: dict, workflow_key: str, model: str,
         if not spec:
             r.unknown_class.append(f"{nid}:{ct}")
             continue
+        # ---- 连线类型检查 ----
+        # 静态检查以前只看"字段在不在"，查不出"类型对不对"。
+        # 踩过（2026-11-11）：`ref_videos.ref_video_0` 要 IMAGE，
+        # 我接了 `LoadVideo` 的输出 VIDEO —— 字段齐全、graph_check 全绿，
+        # 真机才报 `return_type_mismatch`，一次 ¥0.09 建机费换一条错误信息。
+        #
+        # 判据：每个连线 [源节点, 输出索引] 取源节点的 output 列表对应类型，
+        # 和目标输入声明的类型比对（少数类型允许互转，见 COMPATIBLE）。
+        for fname, val in ins.items():
+            if not (isinstance(val, list) and len(val) == 2):
+                continue
+            src_id, out_idx = str(val[0]), val[1]
+            src = graph.get(src_id)
+            if not isinstance(src, dict):
+                continue
+            src_cls = src.get("class_type")
+            src_spec = oi.get(src_cls) or {}
+            src_out = src_spec.get("output") or []
+            if not isinstance(out_idx, int) or out_idx >= len(src_out):
+                continue
+            got = src_out[out_idx]
+            # 目标声明的类型
+            want = None
+            # 子槽位（`ref_videos.ref_video_0`）要拆出组名去查 `ref_videos` 的声明
+            base = fname.split(".")[0] if "." in fname else fname
+            for grp in ("required", "optional"):
+                fspec = ((spec.get("input") or {}).get(grp) or {}).get(base)
+                if fspec:
+                    want = _type_name(fspec)
+                    break
+            if not want or not isinstance(got, str):
+                continue
+            if got == want or _types_compatible(got, want):
+                continue
+            r.type_errors.append(
+                f"{nid}.{fname} ← {src_id}({src_cls})[{out_idx}] "
+                f"给出 {got}，但需要 {want}")
         req = (spec.get("input") or {}).get("required") or {}
         for fname, fspec in req.items():
             tname0 = fspec[0] if isinstance(fspec, list) and fspec else ""

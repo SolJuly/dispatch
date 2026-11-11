@@ -575,20 +575,37 @@ def step_provision(job: dict, opts) -> dict:
                     "from_pool": True}
         _say("池内无空闲实例，回落到新建")
 
-    # 库存检查通过≠下单成功：热门卡会被别人抢（226604 竞态），重试几次
+    # 库存检查通过≠下单成功：热门卡会被别人抢（226604 竞态）。
+    #
+    # **被抢后要换卡型，不能死等同一张**（2026-11-11 实测）：
+    # `stock('4090')` 报 4 台可用，`create()` 连抢 4 次全 226604。
+    # 原因是有货和抢到之间有窗口，而所有人都在抢同一张热门卡。
+    # 这时换到 `4090_48G`（贵一点但没人抢）成功率高得多。
+    #
+    # 策略：每轮在被抢后顺延到下一个候选卡型；候选都试完了才原地重试。
     ids, last_err = None, None
+    cands = _gpu_candidates(job, opts)
+    if gpu not in cands:
+        cands = [gpu] + cands
     for attempt in range(1, CREATE_RETRY + 1):
+        # 每轮换一张卡：attempt 1 用首选，之后顺延
+        try_gpu = cands[(attempt - 1) % len(cands)] if cands else gpu
         try:
-            ids = cs.create(image_id=img["CompShareImageId"], gpu_type=gpu, gpu=1,
-                            cpu=cpu_n, memory_gb=mem_gb, name=f"p1-{job['job_id'][-6:]}",
+            cpu_t, mem_t = GPU_SPEC.get(try_gpu, (cpu_n, mem_gb))
+            ids = cs.create(image_id=img["CompShareImageId"], gpu_type=try_gpu, gpu=1,
+                            cpu=cpu_t, memory_gb=mem_t, name=f"p1-{job['job_id'][-6:]}",
                             charge_type="Postpay", disk_gb=100, data_disk_gb=0,
                             remark="p1 single-task")
+            if try_gpu != gpu:
+                _say(f"  ✓ 改用 {try_gpu} 建机成功")
             break
         except CompShareError as e:
             last_err = str(e)
             if "226604" in last_err and attempt < CREATE_RETRY:
-                _say(f"  下单被抢（{attempt}/{CREATE_RETRY}），20s 后重试")
-                time.sleep(20)
+                nxt = cands[attempt % len(cands)] if cands else gpu
+                _say(f"  {try_gpu} 下单被抢（{attempt}/{CREATE_RETRY}），"
+                     f"换 {nxt} 再试")
+                time.sleep(5)          # 缩短等待：换卡比死等有效
                 continue
             raise RunError(f"建机失败：{last_err[:200]}", state.FAILED_PROVISION) from e
     if not ids:
