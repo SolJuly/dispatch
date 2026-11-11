@@ -157,26 +157,39 @@ def check_slot(jobs_dir: Path | None = None, *, limit: int | None = None,
                    f"本次需要 {need} 个槽。等它们结束，或用 P21_MAX_PARALLEL 调大上限。")
 
 
-def running_instances() -> int | None:
-    """平台侧真实在跑的 p1-/p2- 实例数。读不到返回 None（不是 0 —— 0 会被当成"没占槽"）。"""
+def running_instances(exclude: set[str] | None = None) -> int | None:
+    """平台侧真实在跑的 p1-/p2- 实例数。读不到返回 None（不是 0 —— 0 会被当成"没占槽"）。
+
+    `exclude`：不算进来的 UHostId 集合。给**续跑**用 —— 见 `check_provision` 的说明。
+    """
     try:
         from compshare.cs import CS
         cs = CS()
+        skip = {str(x) for x in (exclude or ()) if x}
         return sum(1 for i in cs.instances()
                    if (i.get("State") or "").lower() == "running"
-                   and str(i.get("Name") or "").startswith(("p1-", "p2-")))
+                   and str(i.get("Name") or "").startswith(("p1-", "p2-"))
+                   and str(i.get("UHostId") or "") not in skip)
     except Exception:                      # noqa: BLE001  无凭证/断网都属于"读不到"
         return None
 
 
-def check_provision(*, limit: int | None = None) -> tuple[bool, str]:
+def check_provision(*, limit: int | None = None,
+                    exclude: set[str] | None = None) -> tuple[bool, str]:
     """建机闸：以云端 running 实例数为准（本地 job.json 会撒谎）。
 
-    读不到平台时**放行**并说明原因 —— 这一闸是最后兜底，不是主闸；
-    主闸在提交处已经拦过一遍。网络抖动就把所有作业堵死，代价比超建一台机更大。
+    `exclude` 存在的理由（实测 bug，2026-11-11）：
+      `p1-20261111T0058-8302f5` 推理失败后 restart，状态走
+      `FAILED_RUN → RESUMING → PROVISIONING`。这三步之间只隔 3 秒，
+      它**上一轮那台实例还没销毁完**，仍是 Running 状态。
+      于是本闸数出「云端已有 2 台」，把这次重启拒了 —— 而那 2 台里
+      **有一台是它自己**。重启变成自我否决，作业直接判死。
+
+      续跑时调用方应把自己已登记的 uhost_id 传进来排除。
+      注意只排除**自己的**：别人的实例必须照数，否则并发上限就没意义了。
     """
     cap = limit if limit is not None else max_parallel()
-    n = running_instances()
+    n = running_instances(exclude=exclude)
     if n is None:
         return True, f"读不到平台实例数，按放行处理（上限 {cap}）"
     if n < cap:

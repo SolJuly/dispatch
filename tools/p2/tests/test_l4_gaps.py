@@ -176,7 +176,7 @@ class TestConcurrency(unittest.TestCase):
         网络抖动把所有作业堵死的代价，比偶尔多开一台机更大。
         """
         orig = conc.running_instances
-        conc.running_instances = lambda: None
+        conc.running_instances = lambda **kw: None      # 新签名带 exclude 关键字
         try:
             ok, why = conc.check_provision(limit=2)
             self.assertTrue(ok)
@@ -187,13 +187,75 @@ class TestConcurrency(unittest.TestCase):
     def test_check_provision_blocks_at_limit(self):
         """云端 running 数到上限就拒 —— 本地 job.json 会撒谎，这个不撒谎。"""
         orig = conc.running_instances
-        conc.running_instances = lambda: 2
+        conc.running_instances = lambda **kw: 2
         try:
             ok, why = conc.check_provision(limit=2)
             self.assertFalse(ok)
             self.assertIn("云端已有 2 台", why)
         finally:
             conc.running_instances = orig
+
+    def test_check_provision_excludes_own_instance(self):
+        """续跑时必须排除**自己那台**，否则重启会自我否决。
+
+        实测 p1-20261111T0058-8302f5：推理失败后 restart，
+        状态 FAILED_RUN → RESUMING → PROVISIONING 只隔 3 秒，
+        上一轮实例还没销毁完仍在 Running。旧代码数到「云端 2 台（上限 2）」
+        就把重启拒了 —— 而那 2 台里有一台是它自己。作业直接判死。
+
+        为什么这个测试重要：这个 bug 只在"上限刚好等于实例数"时出现，
+        平时手工验证很难撞上，但一旦撞上就是**自己的作业杀掉自己**。
+        """
+        seen = {}
+
+        def fake(**kw):
+            seen.update(kw)
+            ex = kw.get("exclude") or set()
+            return 2 - len(ex)          # 云端 2 台，排掉自己的就剩 1 台
+
+        orig = conc.running_instances
+        conc.running_instances = fake
+        try:
+            ok, why = conc.check_provision(limit=2)
+            self.assertFalse(ok, "不排除自己时应判定已满")
+
+            ok2, why2 = conc.check_provision(limit=2, exclude={"uhost-mine"})
+            self.assertTrue(ok2, f"排除自己后应放行，实际 {why2}")
+            self.assertIn("1/2", why2)
+            self.assertEqual(seen.get("exclude"), {"uhost-mine"})
+        finally:
+            conc.running_instances = orig
+
+    def test_running_instances_counts_only_name_prefixed(self):
+        """只数 p1-/p2- 开头的、Running 的实例；别的机器一概不算。
+
+        这条守住"排除"机制的边界：exclude 只能少算指定的 UHostId，
+        不能顺带漏掉别人的机器，也不能把 lab- 之外的无关实例算进来。
+        """
+        fake = [
+            {"UHostId": "a", "Name": "p1-x", "State": "Running"},
+            {"UHostId": "b", "Name": "p2-y", "State": "Running"},
+            {"UHostId": "c", "Name": "exp-other", "State": "Running"},   # 不算
+            {"UHostId": "d", "Name": "p1-z", "State": "Stopped"},        # 不算
+        ]
+        import sys, types
+        stub = types.ModuleType("compshare.cs")
+        stub.CS = lambda: types.SimpleNamespace(instances=lambda: fake)
+        saved = sys.modules.get("compshare.cs")
+        sys.modules["compshare.cs"] = stub
+        try:
+            self.assertEqual(conc.running_instances(), 2)
+            # 排除自己那台 → 只剩 1
+            self.assertEqual(conc.running_instances(exclude={"a"}), 1)
+            # 排除一个不存在/别人的 id → 不该少算
+            self.assertEqual(conc.running_instances(exclude={"nope"}), 2)
+            self.assertEqual(conc.running_instances(exclude={""}), 2)
+            self.assertEqual(conc.running_instances(exclude=None), 2)
+        finally:
+            if saved is not None:
+                sys.modules["compshare.cs"] = saved
+            else:
+                sys.modules.pop("compshare.cs", None)
 
 
 class TestCostAccounting(unittest.TestCase):

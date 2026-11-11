@@ -546,8 +546,14 @@ def step_provision(job: dict, opts) -> dict:
     # 这不是理论风险，是点五次"提交并执行"就能触发的事。
     # 判据用**云端 running 实例数**，不用本地 job.json：孤儿作业（进程被 kill、
     # 状态卡在 RUNNING）在本地看是一个作业，在云端是一台正在计费的机器。
+    #
+    # **排除自己那台**：续跑/重启时本作业上一轮的实例可能还没销毁完
+    # （RESUMING → PROVISIONING 只隔几秒），仍在 Running。不排除的话，
+    # 它会数到自己、把自己拒掉 —— 实测 p1-20261111T0058-8302f5 就是这么死的：
+    # 「云端已有 2 台（上限 2）」其中一台就是它自己。见 check_provision 的注释。
     from tools.p2 import concurrency as conc
-    slot_ok, slot_why = conc.check_provision()
+    own_uid = str(((job.get("instance") or {}).get("uhost_id")) or "")
+    slot_ok, slot_why = conc.check_provision(exclude={own_uid} if own_uid else None)
     if not slot_ok:
         raise RunError(f"{slot_why}", state.FAILED_PROVISION)
     _say(f"并发检查通过：{slot_why}")
@@ -633,8 +639,48 @@ def step_provision(job: dict, opts) -> dict:
                           "up_at": dt.datetime.now().astimezone().isoformat(timespec="seconds")})
     store.atomic_write_json(store.job_file(job["job_id"]), j)
     _note_instance(uid)              # 信号兜底：进程被打断时把实例停掉
+    _set_stop_at_guard(cs, uid, job)
     return {"uhost_id": uid, "inst": inst, "hourly": float(price.get("total") or 0),
             **opts_ctx}
+
+
+def _set_stop_at_guard(cs, uid: str, job: dict) -> None:
+    """建机成功后**立刻**设一个定时关机兜底。
+
+    为什么不能只靠信号处理器：`_on_signal` 只在 SIGTERM/SIGINT 时执行，
+    而进程被 `kill -9`、OOM killer 干掉、或机器重启时**不走任何信号处理器**。
+    那时 `_ORPHAN_UID` 只活在内存里，实例仍在 Running 计费，没人知道该关它。
+
+    实测 2026-11-11 23:40 的 riskmon R02：
+        「运行中实例无定时关机 · 1 台 · p1-f76311」
+    那台机器正在正常跑（有作业在管），但**平台侧没有任何兜底**。
+    reaper 每 5 分钟巡一次能兜住，但 reaper 本身也可能停（服务挂掉、主机重启）。
+
+    留的余量：`max_minutes`（作业自己的推理超时上限）+ 15 分钟。
+    · 太短 → 正常作业跑到一半被准时关掉，白花钱
+    · 太长 → 进程真死了也还在烧钱
+    作业超时本身有 enforce（wait 步骤会 abort），所以 +15 分钟足够覆盖
+    「推理完成后收尾 / 拉产物 / 写 manifest」这段时间。
+
+    设的是**平台侧**定时关机，不是本地计时器 —— 控制机挂了它照样生效。
+    """
+    inst = job.get("instance") or {}
+    budget = job.get("budget") or {}
+    try:
+        max_min = int(budget.get("max_minutes") or 0)
+    except (TypeError, ValueError):
+        max_min = 0
+    if max_min <= 0:
+        max_min = 45                       # 与 _make_spec 的默认一致
+    # 已经跑掉的时间要扣掉，否则续跑时这个兜底会被无谓地拉长
+    remaining = max_min + 15
+    try:
+        cs.stop_at(uid, int(time.time() + remaining * 60))
+        _say(f"已设平台侧定时关机兜底：{remaining} 分钟后（kill -9 也能生效）")
+    except Exception as e:                 # noqa: BLE001
+        # 设不上不中断作业 —— reaper 还在。但要说出来，别让人以为有兜底。
+        _say(f"⚠ 平台侧定时关机设置失败（{type(e).__name__}: {e}）；"
+             f"仅剩 reaper 巡检兜底，请勿强杀进程")
 
 
 def run_setup(uid: str, need: str = "all", ctx: dict | None = None) -> None:

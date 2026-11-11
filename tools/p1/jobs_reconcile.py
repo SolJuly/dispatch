@@ -182,9 +182,16 @@ def assess_one(d: Path, procs: set[str], insts: dict[str, str] | None,
     if insts is None:
         inst_alive = True        # 仅用于展示，配合 inst_unknown 走 keep 分支
         inst_unknown = True
+        inst_running = False
     else:
         inst_alive = bool(uid) and uid in insts
         inst_unknown = False
+        # 实例还在但**已关机** = 同样不会再有进展（推理不可能在关机状态跑）。
+        # 实测 2026-11-11 23:57：run.py 23:47 被 SIGTERM 打死，信号兜底把实例
+        # 定时关机。之后 uid 仍在云端列表里（State=Stopped），若只按"存在"判定，
+        # 作业会一直被当成"实例还在、可能在推理"而挂着。
+        inst_running = bool(uid) and inst_alive and \
+            (insts.get(uid) or "").lower() in ("running", "rebooting")
 
     steps = job.get("steps") or {}
     # **必须对着 STEP_ORDER 全表查**，不能只查 steps 里出现过的那几个。
@@ -203,7 +210,50 @@ def assess_one(d: Path, procs: set[str], insts: dict[str, str] | None,
     if has_proc:
         return v("keep", "run.py 进程还在处理它")
 
-    # 静默不够久 → 可能刚被拉起，保守保留
+    # ② **进程没了 + 实例也没了** → 证据已经足够，不必等静默阈值。
+    #
+    # 这里曾经把"静默够不够久"排在前面，导致：作业 23:47 被 SIGTERM 打死
+    # （进程退出、信号兜底把实例 23:57 关机），到 23:58 时进程没了、实例也没了，
+    # 只剩"静默 0.3h < 60min"这一条把它判 keep —— 而它**永远不可能再变化了**。
+    # 页面上就一直显示「执行中」，用户看到的是"任务栏里有活，但什么都没有在跑"。
+    #
+    # 阈值是给"进程还在、只是没写日志"那种情况的保守兜底，不是给"进程和实例
+    # 都已消失"用的。后者是终局，早判早干净。
+    #
+    # 注意条件：`not inst_unknown` 排除"读不到云端"（那是证据不足，不是终局）；
+    # 不看 uid 有没有值 —— 登记过 uid 但实例已不在云端，同样是没进展。
+    if not inst_unknown and not inst_alive:
+        if arts and man.get("verdict") == "PASS":
+            return v("done", f"实例已消失、manifest PASS、{len(arts)} 个产物——补写 DONE")
+        if arts:
+            if not man:
+                return v("fail_verify",
+                         f"实例已消失，有 {len(arts)} 个产物但**没有 manifest**"
+                         f"（persist 未完成，无从判质量）")
+            return v("fail_verify",
+                     f"实例已消失，有 {len(arts)} 个产物但 manifest verdict="
+                     f"{man.get('verdict')!r}")
+        # 无产物：区分"跑完了却拿不出东西"和"跑一半就死了" —— 排查方向完全不同。
+        if all_steps_done:
+            return v("fail",
+                     "九步全 done 但 artifacts/ 为空——产物已被删除或未落盘，"
+                     "现在拿不出任何东西，不能算成功")
+        where = f"实例 {uid} 已不在云端" if uid else "无实例记录"
+        return v("fail", f"run.py 已退出、{where}、无产物、步骤未走完 —— 作业已无进展可能")
+
+    # ②-b 进程没了 + 实例**已关机** → 同样是终局，不等静默阈值。
+    # 关机状态下推理不可能继续，这台机器不会再替这个作业做任何事。
+    if not inst_unknown and inst_alive and not inst_running:
+        if man.get("verdict") == "PASS" and arts:
+            return v("done", f"实例已关机、manifest PASS、{len(arts)} 个产物——补写 DONE")
+        if arts:
+            return v("fail_verify",
+                     f"实例已关机，有 {len(arts)} 个产物但 manifest verdict="
+                     f"{man.get('verdict')!r}")
+        return v("fail",
+                 f"run.py 已退出、实例已关机（{insts.get(uid)}），无产物 —— 作业已无进展可能")
+
+    # 静默不够久 → 可能刚被拉起，保守保留（仅用于"实例状态未知/仍在"的情形）
     if idle_h * 60 < stale_min:
         return v("keep", f"静默 {idle_h:.1f}h < {stale_min}min 阈值，先不动")
 
@@ -212,7 +262,7 @@ def assess_one(d: Path, procs: set[str], insts: dict[str, str] | None,
     if inst_unknown:
         return v("keep", "读不到云端实例列表，证据不足，保守保留")
 
-    # ② 进程没了，实例还在 → ComfyUI 可能仍在推理，实例留着供排查
+    # ③ 进程没了，实例还在 → ComfyUI 可能仍在推理，实例留着供排查
     if inst_alive:
         cloud = (insts or {}).get(uid, "?")
         return v("fail_run",

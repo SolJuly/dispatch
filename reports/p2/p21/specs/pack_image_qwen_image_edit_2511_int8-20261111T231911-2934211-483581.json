@@ -1,0 +1,42 @@
+{
+  "kind": "image",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "qwen_image_edit_2511_int8_convrot",
+    "workflow": "workflows/pack/image_qwen_image_edit_2511_int8.api.json",
+    "checkpoint": "qwen_image_edit_2511_int8_convrot.safetensors",
+    "workflow_sha256": "7c3652dcf1e6bd060facca8f0463b727066c2427dc69bd0ff874abae9cc78fc1",
+    "registry": {
+      "workflow_key": "pack_image_qwen_image_edit_2511_int8",
+      "workflow_version": 1,
+      "model_key": "qwen_image_edit_2511_int8_convrot",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "real-run",
+      "setup_need": "all",
+      "graph_sha256": "7c3652dcf1e6bd060facca8f0463b727066c2427dc69bd0ff874abae9cc78fc1"
+    }
+  },
+  "params": {
+    "image": "in-c69017f5.png",
+    "neg_prompt": "人物畸形，动作变形，色彩不均匀",
+    "prompt": "照片中女神背起手对着镜头笑，镜头机位不变，光线光影变化",
+    "seed": 799541509
+  },
+  "expect": {
+    "ext": "png",
+    "min_bytes": 20000
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  },
+  "task_class": "short",
+  "task_class_source": "user"
+}

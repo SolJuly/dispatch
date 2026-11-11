@@ -787,10 +787,16 @@ function renderJobKpis() {
   // 免得用户以为「队列总数」就是全部历史。
   const shown = c.all;
   const total = (S.count != null && S.count !== shown) ? ` / 共 ${S.count}` : '';
-  const qst = ((S.queue || {}).stats || {}).by_state || {};
-  const doneCost = typeof (qst.done || {}).cost === 'number' ? qst.done.cost : null;
+  // **花费也只能来自 S.jobs**。
+  // 以前这里读 S.queue.stats.by_state.done.cost —— 那是 queue.db 的统计，
+  // 而 queue.db 从 2026-11-01 起就没再写入过（`enqueue()` 没有调用方）。
+  // 结果：屏幕上「失败 26 / 完成 20」来自 job.json 的 47 条，
+  // 而「已完成花费 ¥7.35」来自 queue.db 的 8 条旧记录 —— 两个数字互相不认识，
+  // 加起来也对不上。真实花费是 ¥3.86（20 条 manifest 的 amount 合计）。
+  const spent = S.jobs.reduce((a, j) => a + (typeof j.cost === 'number' ? j.cost : 0), 0);
+  const doneN = S.jobs.filter(j => typeof j.cost === 'number').length;
   set(0, '', shown,
-      `作业总数${total}` + (doneCost != null ? ` · 已完成花费 ¥${doneCost.toFixed(2)}` : ''));
+      `作业总数${total}` + (doneN ? ` · 已花费 ¥${spent.toFixed(2)}（${doneN} 条有账单）` : ''));
   set(1, 'run', c.run, '在建机/执行');
   set(2, 'que', c.que, '等待执行');
   set(3, 'ok', c.ok, 'DONE');
@@ -802,14 +808,12 @@ function renderDispatchBar(active) {
   const box = $('#dispatchbar');
   if (!box) return;
   const d = S.dispatch;
-  // dispatch 接口线上是 404（后端没这个路由）。以前这里 `if (!d) { box.hidden = true; }`
-  // —— 整条提示被隐藏，于是「CREATED 作业不会自己跑」这个最该说的话也一起消失了。
-  // 用户看到的就是"有两条挂在那，没人管，也没人告诉我为什么"。
-  //
-  // 现在：拿不到 dispatch 就按"没有调度器"处理，照样把话说出来。
-  // 系统里确实**没有**常驻调度器守护进程：CREATED 只会停在那儿等人点「执行」。
+  // 后端 /api/p2/dispatch 现在**已实现**（以前是 404，前端一直在硬扛）。
+  // 字段：alive（有没有调度器进程）/ running（队列活跃数）/ slots / age_s / note。
+  // 拿不到（旧后端、网络失败）时仍按"没有调度器"处理 —— 下一条分支兜底。
   if (!d) {
-    box.hidden = !active.some(x => String(x.state || '').toUpperCase() === 'CREATED');
+    const hasCreated = active.some(x => String(x.state || '').toUpperCase() === 'CREATED');
+    box.hidden = !hasCreated;
     if (box.hidden) return;
     box.className = 'tip warn';
     box.innerHTML = '有作业停在「已创建」：它们不会自己启动。'
@@ -818,13 +822,18 @@ function renderDispatchBar(active) {
   }
   box.hidden = false;
   if (!d.alive) {
-    box.className = 'tip ' + (active.length ? 'bad' : 'warn');
-    box.innerHTML = active.length
-      ? `⚠ 有 <b>${active.length}</b> 个作业，但调度器没在跑 —— 它们不会自动执行。`
-      : '调度器当前没在跑：新作业会停在 CREATED，直到有进程领取。';
+    // 没有常驻调度器 —— 这是本机的真实状态（p2-dispatch.service 是 disabled）。
+    // 不能让用户以为"等一会儿就轮到了"，必须明说要么点执行、要么开调度器。
+    const createdN = active.filter(x => String(x.state || '').toUpperCase() === 'CREATED').length;
+    box.className = 'tip ' + (createdN ? 'bad' : 'warn');
+    box.innerHTML = createdN
+      ? `⚠ 有 <b>${createdN}</b> 个作业停在「已创建」，但<b>没有调度器在跑</b> —— `
+        + `它们不会自动开始。点作业右边的「执行」即可（不点就一直等着，不花钱也不出片）。`
+      : (esc(d.note || '没有调度器在跑：新作业会停在「已创建」，需要手动点「执行」。'));
   } else {
     box.className = 'tip';
-    box.innerHTML = `调度器在线 · 心跳 ${d.age_s != null ? d.age_s + 's 前' : '—'} · 并发 ${d.slots} · 在跑 ${d.running || 0}`;
+    box.innerHTML = `调度器在线 · 心跳 ${d.age_s != null ? d.age_s + 's 前' : '—'}`
+      + ` · 并发 ${d.slots} · 在跑 ${d.running || 0}`;
   }
 }
 

@@ -174,12 +174,31 @@ def c_service(cs):
 
 
 def c_cron(cs):
+    """关键定时任务是否都在。
+
+    `watch --once`（csctl watch）已于 2026-11-11 撤掉：它按 GPU 利用率 15 分钟
+    停机，装模型阶段 GPU 也是 0%，会把正在装环境的机器误关。停机判据改由
+    systemd 的 p2-reaper.timer 承担（按作业状态 + 生命周期窗口）。
+    但**采样**功能必须留下 —— 那是实例页/watchdog 唯一的数据源，撤掉就会
+    静默停更（实测停更 52 小时）。所以这里改成检查 sampler.py。
+    """
     txt = _sh("crontab -l")
-    need = {"watch": "watch --once", "arch": "tools/arch.py", "cost": "cost_snapshot.py"}
+    need = {
+        "sampler": "tools/p2/sampler.py",
+        "arch": "tools/arch.py",
+        "cost": "cost_snapshot.py",
+        "reconcile": "jobs_reconcile.py",
+    }
     miss = [k for k, v in need.items() if v not in txt]
+    # 反向检查：撤掉的 watch 不该再出现（它和 reaper 的判据会打架）
+    stale = [k for k, v in {"watch --once": "watch --once"}.items() if v in txt]
+    if stale:
+        return ("medium", ", ".join(stale),
+                f"已废弃的定时任务仍在: {stale}（会与 p2-reaper 判据打架）",
+                "bash scripts/install_cron.sh")
     if miss:
         return "medium", ", ".join(miss), f"缺定时任务: {miss}", "bash scripts/install_cron.sh"
-    return "ok", "3/3", "watch / arch / cost 定时任务齐全", ""
+    return "ok", f"{len(need)}/{len(need)}", "sampler / arch / cost / reconcile 齐全", ""
 
 
 def c_cred_perm(cs):

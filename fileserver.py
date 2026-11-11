@@ -328,6 +328,72 @@ def page(title: str, body: str, back: str | None = None, extra_btn: str = "",
     return head.encode("utf-8")
 
 
+def _dispatch_state() -> dict:
+    """调度器是否在跑 —— 给 /api/p2/dispatch 用。
+
+    判据（全部来自事实，不猜）：
+      · alive      本机有没有 `batchctl.py run` 进程
+      · running    队列里 state in (claimed, running) 的条数
+      · slots      并发上限（P21_MAX_PARALLEL，默认 2）
+      · age_s      距上次调度活动的秒数（None = 读不到）
+
+    为什么看进程而不是看队列：本机 queue.db 里还留着 8 条 11-01 的旧记录，
+    全是 done/cancelled。按"队列有条目"判会得出"调度器在工作"的结论，
+    那是撒谎。p2-dispatch.service 的实际状态是 disabled/inactive。
+
+    为什么 age_s 可能是 None：调度器目前**不写心跳**（jobqueue.heartbeat 只
+    更新单个 item 的 heartbeat_at，没有全局时钟）。这里退化为用队列里最近
+    一次 heartbeat_at 估算；一条活跃记录都没有时返回 None，前端显示"—"。
+    绝不编一个数字出来。
+    """
+    import subprocess as _sp
+
+    alive = False
+    try:
+        out = _sp.run(["ps", "-eo", "args"], capture_output=True, text=True, timeout=10).stdout
+        alive = any(("batchctl.py" in ln and " run" in ln and "grep" not in ln)
+                    for ln in out.splitlines())
+    except Exception:                     # noqa: BLE001  读不到就按"没在跑"
+        alive = False
+
+    running = 0
+    age_s = None
+    try:
+        from tools.p2 import jobqueue as qq
+        from tools.p2 import concurrency as conc
+        running = qq.active_count()
+        slots = conc.max_parallel()
+        # 最近一次心跳 → 调度活动的年龄
+        import sqlite3
+        from pathlib import Path as _P
+        db = _P(__file__).resolve().parent / "reports" / "p2" / "queue.db"
+        if db.exists():
+            c = sqlite3.connect(str(db))
+            try:
+                row = c.execute("SELECT MAX(heartbeat_at) m FROM item").fetchone()
+                last = row[0] if row else None
+                if last:
+                    import time as _t
+                    age = max(0, int(_t.time() - int(last)))
+                    # 只认**新鲜**的心跳。queue.db 里还留着 11-01 的记录，
+                    # 它们的 heartbeat_at 是 10 天前的；照实返回会让前端显示
+                    # 「调度器 10 天前活动过」，比 None 更容易误导。
+                    # 超过 10 分钟 = 早就不算"在活动"了 → None（显示「—」）。
+                    age_s = age if age <= 600 else None
+            finally:
+                c.close()
+    except Exception:                     # noqa: BLE001
+        try:
+            from tools.p2 import concurrency as conc
+            slots = conc.max_parallel()
+        except Exception:                 # noqa: BLE001
+            slots = 2
+
+    return {"alive": alive, "running": running, "slots": slots, "age_s": age_s,
+            "note": ("调度器进程在跑" if alive else
+                     "没有调度器在跑：CREATED 作业不会自己启动，需在任务页点「执行」")}
+
+
 class Handler(BaseHTTPRequestHandler):
     # 上传最长 128MB：慢连接别一直占着线程（StreamRequestHandler 用这个值设 socket 超时）
     timeout = 120
@@ -1075,10 +1141,48 @@ class Handler(BaseHTTPRequestHandler):
                 return self._err(500, f"实例快照失败: {e}")
 
         if sub == ["queue"]:
-            return _json({"stats": qq.stats(),
-                          "items": [{k: it.get(k) for k in ("job_id", "state", "model_key", "attempts",
-                                                            "defers", "cost", "exit_code", "enqueued_at")}
-                                    for it in qq.items()]})
+            # **队列目前没有生产者**：jobqueue.enqueue() 定义了但没有任何调用方
+            # （grep enqueue( 全库无命中），所以 queue.db 从 2026-11-01 起就没再写过。
+            # 里面剩的 8 条是当初 P2 队列功能的历史残留，最新一条停在 11-01 18:22。
+            #
+            # 这条接口以前照样返回 stats.total=8，前端拿来算「已完成花费」，
+            # 于是屏幕上的「失败 26 / 完成 20」（来自 job.json 47 条）和
+            # 「已完成花费 ¥7.35」（来自 queue.db 8 条）互相对不上 ——
+            # 真实花费是 ¥3.86。两套数据源各自看起来都对，合起来没有任何意义。
+            #
+            # 修法：如实标注这套队列是停用的，让调用方知道别拿它当事实。
+            st = qq.stats()
+            items = [{k: it.get(k) for k in ("job_id", "state", "model_key", "attempts",
+                                             "defers", "cost", "exit_code", "enqueued_at")}
+                     for it in qq.items()]
+            stale = ""
+            if items:
+                last = max((it.get("enqueued_at") or "") for it in items)
+                if last and last[:10] < time.strftime("%Y-%m-%d", time.localtime(time.time() - 86400)):
+                    stale = last
+            return _json({
+                "stats": st,
+                "items": items,
+                "active": False,
+                "note": ("队列没有生产者（jobqueue.enqueue 无调用方），"
+                         "本表是历史残留，不代表当前作业状态。真实状态看 /api/p2/jobs。"),
+                "stale_since": stale or None,
+            })
+
+        # /api/p2/dispatch —— 调度器（tools/p2/batchctl.py run）是否在跑。
+        #
+        # 这条路由**不在 docs/openapi.json 契约里**，是 SPA 初版自己发明的，
+        # 而前端一直在调用它、一直拿到 404、于是提示条整条隐藏。
+        # 用户看到的是"两条作业挂着，没人动，也没人告诉我为什么"。
+        #
+        # 要么实现要么删调用。这里选择实现 —— 因为"作业不会自己跑"这件事
+        # 必须能被界面说出来，藏起来只会让人以为是 bug。
+        #
+        # 判据用**进程 + 队列活跃数**，不用 DB 里的历史记录：
+        # 本机 queue.db 里还留着 8 条 11-01 的旧记录，全是 done/cancelled，
+        # 拿它当"调度器在工作"的证据是彻头彻尾的撒谎。
+        if sub == ["dispatch"]:
+            return _json(_dispatch_state())
 
         # /api/p2/jobs  |  /api/p2/jobs/<id>
         if sub and sub[0] == "jobs":
