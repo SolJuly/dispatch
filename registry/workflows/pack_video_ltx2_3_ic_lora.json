@@ -34,7 +34,7 @@
     }
   },
   "name": "视频风格/结构控制 · LTX 2.3 IC-LoRA（尚未开发）",
-  "notes": "vid.style.iclora · 视频风格化 / 结构控制（LTX IC-LoRA） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "notes": "vid.style.iclora · 视频风格化 / 结构控制（LTX IC-LoRA） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental） · 2026-11-11 修：prompt 原绑在 ComfySwitchNode 的 on_true 分支（switch=False 时不生效），改绑 on_false",
   "output": {
     "ext": "mp4",
     "input": "filename_prefix",
@@ -97,8 +97,8 @@
     "prompt": {
       "bindings": [
         {
-          "input": "prompt",
-          "node": "1729"
+          "node": "1731",
+          "input": "on_false"
         }
       ],
       "default": "A slow forward dolly shot on a bright, sunlit day in a lush jungle ruin. A lone figure in nature-the…",
@@ -139,5 +139,5 @@
     "4090_48G"
   ],
   "schema": "p20.workflow/v1",
-  "version": 1
+  "version": 2
 }

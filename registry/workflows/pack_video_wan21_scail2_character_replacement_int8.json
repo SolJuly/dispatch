@@ -45,8 +45,8 @@
    }
   }
  },
- "name": "角色替换 · SCAIL-2（int8，尚未开发）",
- "notes": "官方模板导入，未本地真机验证（compat=experimental）",
+ "name": "角色替换 · SCAIL-2（int8）",
+ "notes": "官方模板导入，未本地真机验证（compat=experimental） · 2026-11-11 修：prompt 原绑到 SAM3_VideoTrack.conditioning（分割条件，不是提示词），neg_prompt 绑到正向节点 —— 两个都错 · 2026-11-11 修：删掉重复的 prompt_3（与 prompt 同绑 1404.text，会把用户的修改覆盖回去）；prompt_2 说明改为「分割目标描述」，它绑的是 SAM3_VideoTrack.conditioning",
  "output": {
   "ext": "mp4",
   "input": "filename_prefix",
@@ -83,24 +83,32 @@
   "neg_prompt": {
    "bindings": [
     {
-     "input": "text",
-     "node": "1359"
+     "node": "1358",
+     "input": "text"
+    },
+    {
+     "node": "1403",
+     "input": "text"
     }
    ],
-   "default": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-n…",
-   "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+   "default": "",
+   "description": "负向提示词：不想出现的东西。这类工作流默认留空即可。",
    "required": false,
    "type": "string"
   },
   "prompt": {
    "bindings": [
     {
-     "input": "text",
-     "node": "1347"
+     "node": "1359",
+     "input": "text"
+    },
+    {
+     "node": "1404",
+     "input": "text"
     }
    ],
-   "default": "girl, handkerchief",
-   "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
+   "default": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-neck top, is standing in a lush apple orchard. She holds a large glossy red apple with both hands, using a white paper handkerchief to wipe and clean the apple before smelling and eating it with her eyes closed and a blissful expression. Ripe red and yellow apples hang from leafy branches in the foreground, with rows of green apple trees softly blurred in the background under natural daylight.",
+   "description": "正向提示词：描述替换后的人物/画面。这类工作流靠它描述**目标**外观，写具体的外貌/衣着/背景，写得太笼统会得到和参考图不像的结果。",
    "required": true,
    "type": "string"
   },
@@ -112,19 +120,7 @@
     }
    ],
    "default": "girl, handkerchief",
-   "description": "第二组提示词。多阶段工作流里对应后一阶段；单阶段工作流里通常与 prompt 相同，无需单独修改。",
-   "required": false,
-   "type": "string"
-  },
-  "prompt_3": {
-   "bindings": [
-    {
-     "input": "text",
-     "node": "1404"
-    }
-   ],
-   "default": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-n…",
-   "description": "第三组提示词（常见于两段式采样的负向词）。一般与 neg_prompt 相同。",
+   "description": "**分割目标描述**：告诉 SAM3 要抠什么（例如「girl, handkerchief」）。它不是画面提示词 —— 写错了抠错对象，成片会替换错主体。",
    "required": false,
    "type": "string"
   },
@@ -159,5 +155,5 @@
   "4090_48G"
  ],
  "schema": "p20.workflow/v1",
- "version": 1
+ "version": 3
 }

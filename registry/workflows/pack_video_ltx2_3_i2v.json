@@ -38,8 +38,8 @@
    }
   }
  },
- "name": "图生视频 · LTX 2.3（带原生音频，尚未开发）",
- "notes": "vid.i2v.fast · 图生视频 · 快速基线（带原生音频） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+ "name": "图生视频 · LTX 2.3（带原生音频）",
+ "notes": "vid.i2v.fast · 图生视频 · 快速基线（带原生音频） · 许可：LTX 社区许可（年营收 <$10M 免费；各版本条款不一，逐版本核对） · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental） · 2026-11-11 修：正负提示词曾绑定反（prompt 绑到负向编码器）",
  "output": {
   "ext": "mp4",
   "input": "filename_prefix",
@@ -63,28 +63,28 @@
    "type": "image"
   },
   "neg_prompt": {
+   "type": "string",
+   "required": false,
    "bindings": [
     {
-     "input": "prompt",
-     "node": "1376"
+     "node": "1367",
+     "input": "text"
     }
    ],
-   "default": "静态，静止画面，画面模糊，细节不清，低质量，最差质量，JPEG 压缩残留，字幕，水印，文字，logo，过曝，整体发灰，形变，畸形的肢体，多余的手指",
-   "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
-   "required": false,
-   "type": "string"
+   "description": "负向提示词：不想出现的东西。默认值是一套通用避坑词，没有特殊需求别改。",
+   "default": "静态，静止画面，画面模糊，细节不清，低质量，最差质量，JPEG 压缩残留，字幕，水印，文字，logo，过曝，整体发灰，形变，畸形的肢体，多余的手指"
   },
   "prompt": {
+   "type": "string",
+   "required": true,
    "bindings": [
     {
-     "input": "text",
-     "node": "1367"
+     "node": "1378",
+     "input": "on_false"
     }
    ],
-   "default": "pc game, console game, video game, cartoon, childish, ugly",
-   "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
-   "required": true,
-   "type": "string"
+   "description": "正向提示词：描述你想要的画面（主体、动作、镜头运动、氛围）。写成一段完整的描述比堆关键词效果好。",
+   "default": "Egyptian royal in blue-and-gold headdress and high collar, white dress with golden embroidery and armbands, desert, robot soldiers in formation left and right. She walks steadily forward, head held level and gaze fixed ahead—no dipping or lowering of the head. The camera performs a single, smooth push-in only: starting in a wider shot of her, the robots, and the desert, it moves steadily forward until she is in a medium or medium-close frame, then holds. She stops, posture and head still upright, and says: “The old gods are silent. I am not.” Robot soldiers shift or march in place; sand and fabric move with the wind. No pull-back; the only camera move is the continuous push-in."
   },
   "seed": {
    "bindings": [
@@ -109,5 +109,5 @@
   "4090_48G"
  ],
  "schema": "p20.workflow/v1",
- "version": 1
+ "version": 3
 }

@@ -4,10 +4,11 @@
 
 ## 为什么需要
 
-工作流由四样东西构成，它们**必须一起变**：
+工作流由五样东西构成，它们**必须一起变**：
 
     graph     workflows/<key>.api.json        节点图
     params    registry/workflows/<key>.json   参数契约（类型/默认/绑定）
+    model     registry/models/<key>.json      权重槽位
     compat    真机证据                         能不能跑
     index     registry/registry.db            派生索引（可重建）
 
@@ -17,41 +18,43 @@
   · 标了 verified，但镜像里缺节点 → 开了机才报错（¥0.13/次）
   · 改了 params 默认值，忘了 `p20ctl import` → UI 还是旧的
   · 手改 `compat.json` 把 experimental 写成 verified → 没有证据
+  · prompt 和 neg_prompt 填成同一句话 → 出片必糊，但作业 PASS
 
-所以把动作收敛成 4 个动词，每个都保证四样东西一致：
+所以把动作收敛成 5 个动词，每个都保证五样东西一致：
 
-    wfctl new      新增工作流（生成卡 + 校验 + 导入）
-    wfctl update   改已有工作流（改完自动校验 + 导入）
+    wfctl new      新增（选模板 → 反推参数 → 门禁 → 落盘 → 导入）
+    wfctl update   改已有（改完自动门禁 + 校验 + 导入）
     wfctl verify   真机跑完 → 写兼容性证据（唯一能标 verified 的入口）
-    wfctl check    全量体检（配置 + 守卫 + 预检，不花钱）
+    wfctl check    全量体检（配置 + 门禁 + 预演 + 预检，不花钱）
+    wfctl guide    打印新增工作流的七步流程
+
+## 新增工作流的七步（`wfctl new` 会自动跑完 1–5）
+
+    ① 拿图      从 ComfyUI「导出 API 格式」，落进 workflows/<key>.api.json
+    ② 选骨架    wfctl new --template i2v     （8 个模板，见 wf_templates）
+    ③ 反推参数  wf_infer 读图推 params/槽位/output/期望，人只确认不手填
+    ④ 过门禁    wf_lint 19 条规则（历史事故全部转成规则）
+    ⑤ 导入索引  p20ctl import + validate
+    ⑥ 真机验证  p20ctl new --workflow K --allow-experimental --run    （花钱）
+    ⑦ 转正      wfctl verify --key K --job-id <job>                   （唯一入口）
+
+第 ③ 步是这次新加的关键：节点 id 是 ComfyUI 导出时生成的随机数字串
+（`1349`、`src`、`ks`），手填 bindings 必然出错，而错了的后果不是报错，
+是渲染时 `_set()` 抛异常 —— 那时实例已经开好、钱已经花了。
 
 ## 设计原则
 
-**能自动做的不要让人记。** `update` 改完自动 `validate` + `import`，
-不需要你记得先跑什么后跑什么。
+**能自动做的不要让人记。** update 改完自动 validate + import，不要求你
+记得先跑什么后跑什么。参数契约由 wf_infer 从图反推，人只做确认。
 
-**不能自动的要说清代价。** `verify` 要建机花钱，所以它不会在
-`update` 里被自动触发 —— 但会明确告诉你"这条现在还是 experimental"。
+**不能自动的要说清代价。** verify 要建机花钱，不会在 update 里自动触发 ——
+但会明确告诉你"这条现在还是 experimental"。
+
+**机器判不了的不许编。** 张量形状（`fasth3_tensor 24 vs 768`）、显存够不够、
+推理会不会 NaN，本地没有求解器。这些不写成门禁规则，免得变成
+"检查通过 = 一定能跑"的假承诺。
 
 **失败要说人话。** 每条错误都带"该改哪个文件的哪一段"。
-
-## 用法
-
-    # 新增：从 ComfyUI 导出的 API 图开始
-    python3 -m tools.wfctl new \\
-        --key my_new_wf --name "我的新工作流" --kind video \\
-        --graph /path/to/exported.api.json \\
-        --model ltx_2_3_22b_dev_fp8 \\
-        --params '{"prompt": {"type":"string","required":true}}'
-
-    # 改：直接编辑 registry/*.json 后跑这个
-    python3 -m tools.wfctl update --key my_new_wf
-
-    # 真机验证并转正（会花钱）
-    python3 -m tools.wfctl verify --key my_new_wf --job-id p1-...
-
-    # 体检（¥0）
-    python3 -m tools.wfctl check
 """
 from __future__ import annotations
 
@@ -106,6 +109,23 @@ def _import_and_validate() -> bool:
     return True
 
 
+def _lint(key: str = "") -> bool:
+    """门禁：历史事故转成的规则集。任一 ERROR 就拦。"""
+    from tools.p20 import wf_lint as L
+    rep = L.lint_all(only=key)
+    if not rep.ok():
+        _say(L.format_report(rep))
+        return False
+    warns = rep.warnings
+    if warns:
+        _say(f"  ! 门禁提示 {len(warns)} 条（不阻塞，发布前跑 --strict 会拦）")
+        for f in warns:
+            _say(f"    [{f.rule}] {f.workflow}.{f.where}: {f.detail}")
+    else:
+        _say(f"  ✓ 门禁通过（{len(L.RULES)} 条规则）")
+    return True
+
+
 def _guard() -> bool:
     """控制台入口守卫：确保前端/工作流没有被改到错地方。"""
     from tools import console_guard as G
@@ -119,8 +139,11 @@ def _guard() -> bool:
 
 # ---------------------------------------------------------------- new
 def cmd_new(a) -> int:
+    """新增工作流：模板 → 反推 → 门禁 → 落盘 → 导入。
+
+    七步里的 ①–⑤ 全在这里跑完，人只做两件事：给图、确认三处机器判不了的。
+    """
     key = a.key
-    # 前置校验：key 规则写在 config_schema，这里提前拦，免得图都拷进去了才报错
     from tools.p20 import config_schema as _cs
     if not _cs.KEY_RE.match(str(key)):
         _die(f"key 非法：{key!r}\n"
@@ -131,214 +154,255 @@ def cmd_new(a) -> int:
         _die(f"{card_path.relative_to(ROOT)} 已存在。"
              f"改已有工作流用 `wfctl update --key {key}`；确要覆盖加 --force")
 
-    # ① 图：从外部拷贝进 workflows/，保证 graph 路径在库内
+    # ① 图入库
     src = Path(a.graph)
     if not src.is_file():
         _die(f"图文件不存在：{src}")
+    try:
+        graph = json.loads(src.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        _die(f"图不是合法 JSON：{e}\n"
+             "  从 ComfyUI 导出的必须是「API 格式」（Save (API Format) 按钮），"
+             "不是普通 Save（UI 格式）—— 后者顶层是 nodes 数组，不是节点对象")
+    if not isinstance(graph, dict) or not all(
+            isinstance(v, dict) and "class_type" in v for v in graph.values()):
+        _die("图不是 ComfyUI API 格式：顶层应是 {节点id: {class_type, inputs}}。\n"
+             "  在 ComfyUI 里用「Save (API Format)」导出，不要用普通 Save。")
     dst = GRAPH_DIR / f"{key}.api.json"
-    dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
-    _say(f"  ✓ 图已入库：{dst.relative_to(ROOT)}")
+    # 记下「本来有没有」—— 失败回滚时只能删本次新建的，
+    # 用 --force 覆盖别人已有文件时不许把原件一起删掉。
+    existed_graph = dst.is_file()
+    existed_card = card_path.is_file()
+    dst.write_text(json.dumps(graph, ensure_ascii=False, indent=1) + "\n",
+                   encoding="utf-8")
+    _say(f"  ✓ 图已入库：{dst.relative_to(ROOT)}（{len(graph)} 个节点）")
 
-    # ② 模型卡必须存在
-    if not (MODEL_DIR / f"{a.model}.json").is_file():
+    # 从这里往后任何一步失败都不许留半成品：一张没有卡引用的
+    # `workflows/<key>.api.json` 是孤儿文件 —— `p20ctl import` 不认它、
+    # `wfctl check` 不查它，下次同 key 重跑还会撞「已存在」。
+    # 2026-11-11 实测过：槽位校验拦住时图已经拷进库，得手工 `rm`。
+    try:
+        return _new_after_graph(a, key, card_path, graph, dst)
+    except BaseException:
+        for p_, existed in ((dst, existed_graph), (card_path, existed_card)):
+            if existed:
+                continue                  # 原本就有的不动
+            try:
+                p_.unlink(missing_ok=True)
+            except OSError:
+                pass
+        raise
+
+
+def _new_after_graph(a, key: str, card_path: Path, graph: dict, dst: Path) -> int:
+    """`new` 主流程：图已经落盘之后的部分。抽出来是为了失败时能统一清理。"""
+    from tools.p20 import config_schema as _cs
+
+    # ② 模型卡
+    if a.model and not (MODEL_DIR / f"{a.model}.json").is_file():
         _die(f"模型卡不存在：registry/models/{a.model}.json\n"
              f"  先建模型卡（含 files 里每个权重的 name/loader/input/match）")
 
-    # ③ 参数契约
-    try:
-        params = json.loads(a.params) if a.params else {}
-    except json.JSONDecodeError as e:
-        _die(f"--params 不是合法 JSON：{e}")
-    if not isinstance(params, dict) or not params:
-        _die("--params 不能为空：至少要有 prompt 之类的必填项")
-    _fill_bindings(params, dst)
-    _say(f"  ✓ 参数绑定已补全（{len(params)} 个参数）")
+    # ③ 反推参数契约（不手填 bindings）
+    from tools.p20 import wf_infer as INF, wf_templates as T
+    oi = _object_info()
+    inf = INF.infer(graph, oi)
+    for w in inf.warnings:
+        _say(f"  ! {w}")
 
-    # ④ 生成卡
-    from tools.p20 import config_schema as cs
+    # ③b 槽位 vs 模型卡：早拦，别等 p20ctl import 抛异常
+    #
+    # 图里每个「权重文件名输入」都会被推成一个槽位，但模型卡不一定覆盖它。
+    # 2026-11-11 实测：`video_ltx2_3_flf2v` 会推出 ckpt + text_encoder，
+    # 而对应的模型卡只声明了 ckpt —— 于是 import 阶段才报「缺槽位」，
+    # 那时图已经拷进库、卡已经写了一半，回滚要手工来。
+    for role in [x.strip() for x in (a.drop_slots or "").split(",") if x.strip()]:
+        if role in inf.slots:
+            inf.slots.pop(role)
+            _say(f"  · 按 --drop-slots 放弃槽位 {role}（保留图里的硬编码文件名）")
+        else:
+            _say(f"  ! --drop-slots 指定了 {role}，但图里没有这个槽位，忽略")
+
+    model_key = a.model or _guess_model_from_slots(inf.slots)
+    if model_key:
+        mp = MODEL_DIR / f"{model_key}.json"
+        if mp.is_file():
+            mfiles = set(json.loads(mp.read_text(encoding="utf-8")).get("files") or {})
+            lack = sorted(set(inf.slots) - mfiles)
+            if lack:
+                extra = sorted(mfiles - set(inf.slots))
+                _die(
+                    f"模型卡 {model_key} 覆盖不了图里推出来的槽位。\n"
+                    f"  图要的槽位 : {sorted(inf.slots)}\n"
+                    f"  模型卡有   : {sorted(mfiles)}\n"
+                    f"  缺         : {lack}\n"
+                    f"  卡里多的   : {extra or '（无）'}\n"
+                    f"\n  三条路，选一条：\n"
+                    f"  a) 换个模型卡：--model <已有覆盖这些槽位的卡>\n"
+                    f"     现有卡里覆盖 {sorted(inf.slots)} 的有："
+                    f"{_models_covering(set(inf.slots)) or '（没有，见 b/c）'}\n"
+                    f"  b) 给 {model_key} 补 files.{lack[0]}（照现有槽位的写法：\n"
+                    f"     name/loader/input/match，name 要等于图里那个文件名）\n"
+                    f"  c) 这个槽位如果本来就该硬编码在图中（换模型也不动它），\n"
+                    f"     加 --drop-slots {','.join(lack)} 明确放弃由 registry 管理")
+
+    # ④ 选骨架：显式 --template 优先，否则按图的输入形态推荐
+    has_video = any(p["type"] == "video" for p in inf.params.values())
+    has_img = sum(1 for p in inf.params.values() if p["type"] == "image")
+    kind = (inf.output or {}).get("kind") or a.kind or "image"
+    tpl_key = a.template
+    if tpl_key:
+        tpl = T.get(tpl_key)
+        if not tpl:
+            _die(f"没有模板 {tpl_key!r}。可选：{', '.join(T.TEMPLATES)}")
+    else:
+        rec = T.pick_by_kind(kind, has_video_input=has_video,
+                             has_two_images=has_img >= 2, has_image_input=has_img >= 1)
+        tpl = T.get(rec[0])
+        _say(f"  · 按图形态推荐模板 {rec}，采用 {tpl.key}"
+             + (f"（如需换用 --template {'/'.join(rec[1:])}）" if len(rec) > 1 else ""))
+
+    # 模板提供**骨架**（该有哪些参数、说明怎么写），反推提供**真实值**（绑到哪）。
+    # 两边都缺的字段直接报错 —— 宁可拦住也不要落一张半成品卡。
+    params = _merge_template(tpl, inf, key)
+
+    if not params:
+        _die("推不出任何参数。请确认图里有保存节点、采样器、提示词编码节点。")
+
+    # ⑤ 生成卡
     card = {
-        "schema": cs.WORKFLOW_SCHEMA,
+        "schema": _cs.WORKFLOW_SCHEMA,
         "key": key,
-        "name": a.name,
+        "name": a.name or f"{tpl.name}（待命名）",
         "version": 1,
-        "kind": a.kind,
+        "kind": kind,
         "engine": "comfyui",
         "graph": str(dst.relative_to(ROOT)),
-        "model": {"key": a.model, "slots": _slots_from_graph(dst, a.model)},
+        "model": {"key": a.model or _guess_model_from_slots(inf.slots), "slots": inf.slots},
         "params": params,
-        "output": _guess_output(dst, a.kind),
-        "expect_defaults": {
-            "ext": "mp4" if a.kind == "video" else "png",
-            "min_bytes": 50000 if a.kind == "video" else 20000,
-        },
+        "output": inf.output or {"node": "", "input": "filename_prefix",
+                                 "kind": kind, "ext": "mp4" if kind == "video" else "png"},
+        "expect_defaults": inf.expect,
         "limits": {"max_cost": 1.6, "max_minutes": 40},
         "required_gpu": ["4090", "4090_48G"],
         "description": a.description or "",
-        "notes": "新建（未真机验证，compat=experimental）",
+        "notes": f"wfctl new 从图反推（模板 {tpl.key}），未真机验证（compat=experimental）",
     }
     card_path.write_text(json.dumps(card, ensure_ascii=False, indent=1) + "\n",
                          encoding="utf-8")
-    _say(f"  ✓ 卡已生成：{card_path.relative_to(ROOT)}")
+    _say(f"  ✓ 卡已生成：{card_path.relative_to(ROOT)}"
+         f"（{len(params)} 个参数 / {len(inf.slots)} 个槽位）")
 
+    # ⑥ 门禁 —— 落盘后立刻查，查完再导入
+    _say("\n  门禁：")
+    if not _lint(key):
+        _die(f"卡没过门禁。改好 registry/workflows/{key}.json 后跑 `wfctl update --key {key}`")
+
+    # ⑦ 导入
     if not _import_and_validate():
         return 1
 
     _say("")
-    _say(f"下一步：")
-    _say(f"  1. 检查生成的卡（尤其 model.slots 与 params.bindings，是自动推断的）")
-    _say(f"  2. 预检：python3 -m tools.wfctl check --key {key}")
+    _say("下一步：")
+    _say(f"  1. 人审三处（机器判不了）：")
+    _say(f"     · 正负提示词方向 —— 把 prompt / neg_prompt 的默认值念一遍")
+    for s in inf.suggestions:
+        if s.confidence != "high":
+            _say(f"     · {s.name}：{s.note}")
+    _say(f"     · 模型卡 {card['model']['key'] or '（未填！）'} 的 files 是否覆盖"
+         f" {sorted(inf.slots)}")
+    _say(f"  2. 预演（¥0）：python3 -m tools.p2.asset_preflight --workflow {key}")
     _say(f"  3. 真机：python3 -m tools.p20.p20ctl new --workflow {key} "
          f"--allow-experimental --run")
     _say(f"  4. 转正：python3 -m tools.wfctl verify --key {key} --job-id <job>")
     return 0
 
 
-def _fill_bindings(params: dict, graph_path: Path) -> None:
-    """给每个参数补 bindings（指到图里的节点/输入）。
-
-    为什么不让人手填：bindings 是 `{node: "节点id", input: "输入名"}`，
-    而节点 id 是 ComfyUI 导出时随机生成的数字串。手填必然出错，
-    错了的后果是渲染时 `_set()` 报"指向不存在的节点"，那时作业已经建好了。
-
-    推断规则（按可信度排序）：
-      1. 参数名本身是图里某个输入名 → 直接绑（prompt/seed/steps/width…）
-      2. 参数名是已知别名 → 按别名表找（length→length/frames、image→image）
-      3. 都不是 → 报错并列出图里所有可绑的输入，让人明确指定
-    """
-    graph = json.loads(graph_path.read_text(encoding="utf-8"))
-
-    # 图里所有 `{input名: [(节点id, class_type), ...]}`，跳过连线（连线是数组）
-    candidates: dict[str, list[tuple[str, str]]] = {}
-    for nid, node in graph.items():
-        if not isinstance(node, dict):
-            continue
-        ct = str(node.get("class_type") or "")
-        for inp, val in (node.get("inputs") or {}).items():
-            # 连线是 ["12", 0] 这种两元数组；常量才是标量/字符串
-            if isinstance(val, list) and len(val) == 2 and isinstance(val[1], int):
-                continue
-            candidates.setdefault(inp, []).append((str(nid), ct))
-
-    # 别名表：参数名 ≠ 输入名时用
-    ALIAS = {
-        "prompt": ("text", "prompt", "positive"),
-        "neg_prompt": ("negative", "neg_prompt"),
-        "seed": ("seed", "noise_seed"),
-        "steps": ("steps",),
-        "cfg": ("cfg",),
-        "width": ("width",),
-        "height": ("height",),
-        "frames": ("length", "num_frames", "frames"),
-        "length": ("length", "num_frames"),
-        "image": ("image",),
-        "image_2": ("image",),
-        "mask": ("mask",),
-        "video": ("video",),
-        "audio": ("audio",),
-    }
-
-    missing = []
-    for name, spec in params.items():
-        if not isinstance(spec, dict):
-            continue
-        if spec.get("bindings"):
-            continue                      # 用户已显式给了，尊重
-        if spec.get("virtual"):
-            continue                      # 虚拟参数不绑节点
-        keys = [name] + list(ALIAS.get(name, ()))
-        hit = None
-        for k in keys:
-            if k in candidates:
-                # 同名多个节点时优先 sampler/encode 类（避免绑到无关节点）
-                prefer = ("KSampler", "CLIPTextEncode", "EmptyLatentImage",
-                          "EmptySD3LatentImage", "EmptyLTXVLatentVideo",
-                          "LoadImage", "LoadVideo", "LoadAudio")
-                ranked = sorted(candidates[k],
-                                key=lambda x: 0 if x[1] in prefer else 1)
-                hit = ranked[0]
-                break
-        if not hit:
-            missing.append(name)
-            continue
-        spec["bindings"] = [{"node": hit[0], "input": keys[keys.index(
-            next(k for k in keys if k in candidates))]}]
-
-    if missing:
-        avail = ", ".join(sorted(candidates)[:25])
-        _die(
-            "这些参数在图里找不到可绑的输入：" + ", ".join(missing) + "\n"
-            "  请在 --params 里显式给出 bindings，例如：\n"
-            '    {"my_param": {"type": "string", "required": true,\n'
-            '                  "bindings": [{"node": "5", "input": "text"}]}}\n'
-            f"  图里可绑的输入有：{avail}")
-
-
-def _slots_from_graph(graph_path: Path, model_key: str) -> dict:
-    """从图和模型卡推断 model.slots（角色 → 节点/输入）。
-
-    不猜：模型卡的 files 已经写明每个角色的 loader/input，
-    这里只要在图上找到"同一个 input 名"的节点即可。
-    """
+def _object_info() -> dict:
+    """真机 object_info 快照。没有就返回空 —— 反推退化为「只看图结构」。"""
+    p = ROOT / "reports" / "p2" / "p21" / "evidence" / "objectinfo-linked.json"
+    if not p.is_file():
+        return {}
     try:
-        graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as e:
-        _die(f"图不是合法 JSON：{e}")
-    mp = MODEL_DIR / f"{model_key}.json"
-    model = json.loads(mp.read_text(encoding="utf-8"))
+        return json.loads(p.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
 
-    # 按「input 名 + 图里的当前值」双重匹配。
-    #
-    # 只用 input 名会撞车：一条工作流常有两个 LoRA（主 LoRA + 文本编码器 LoRA），
-    # 它们的 input 都叫 `lora_name`，只按名字找会让两个角色绑到同一个节点，
-    # 而另一个节点永远没人填 —— 渲染时不会报错（值都填上了），
-    # 但实际用的是错的那一个 LoRA。这种错误在成片里看不出来。
-    #
-    # 模型卡的 files.<role>.name 就是"这个角色应该填的文件名"，
-    # 拿它去图里找当前值相同的节点，能唯一确定。
-    slots: dict[str, dict] = {}
-    used: set[str] = set()                 # 一个节点只能服务一个角色
-    for role, f in (model.get("files") or {}).items():
-        want_input = (f or {}).get("input")
-        want_name = str((f or {}).get("name") or "")
-        if not want_input:
+
+def _models_covering(roles: set[str]) -> list[str]:
+    """哪些模型卡的 files 覆盖了这些槽位角色。"""
+    hits = []
+    for p in sorted(MODEL_DIR.glob("*.json")):
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
             continue
-        exact, loose = None, None
-        for nid, node in graph.items():
-            if not isinstance(node, dict) or str(nid) in used:
-                continue
-            ins = node.get("inputs") or {}
-            if want_input not in ins:
-                continue
-            val = str(ins.get(want_input))
-            if want_name and val.endswith(want_name):
-                exact = (str(nid), want_input)      # 当前值就是它
-                break
-            if loose is None:
-                loose = (str(nid), want_input)      # 名字对得上，值还没对上
-        hit = exact or loose
-        if hit:
-            slots[role] = {"node": hit[0], "input": hit[1]}
-            used.add(hit[0])
+        if roles <= set(d.get("files") or {}):
+            hits.append(d.get("key", p.stem))
+    return hits
+
+
+def _guess_model_from_slots(slots: dict) -> str:
+    """按槽位角色反查最匹配的模型卡 —— 只是建议，人必须确认。"""
     if not slots:
-        _die("无法从图推断 model.slots：模型卡的 files 里没有与图匹配的 input。\n"
-             "  请手填卡的 model.slots，格式 {\"角色\": {\"node\": \"节点id\", \"input\": \"输入名\"}}")
-    return slots
-
-
-def _guess_output(graph_path: Path, kind: str) -> dict:
-    """找保存节点（SaveImage / VHS_VideoCombine 等）当输出。"""
-    graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    for nid, node in graph.items():
-        if not isinstance(node, dict):
+        return ""
+    want = set(slots)
+    best, best_score = "", -1
+    for p in sorted(MODEL_DIR.glob("*.json")):
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
             continue
-        ct = str(node.get("class_type") or "")
-        if ct in ("SaveImage", "PreviewImage"):
-            return {"node": str(nid), "input": "filename_prefix",
-                    "kind": "image", "ext": "png", "pick": ["images"]}
-        if ct in ("VHS_VideoCombine", "SaveVideo", "SaveAnimatedWEBP"):
-            return {"node": str(nid), "input": "filename_prefix",
-                    "kind": "video", "ext": "mp4", "pick": ["videos", "gifs"]}
-    _die("图里找不到保存节点（SaveImage / VHS_VideoCombine 等），无法确定 output")
+        have = set((d.get("files") or {}))
+        score = len(want & have) - len(want ^ have)
+        if score > best_score:
+            best, best_score = d.get("key", p.stem), score
+    return best
+
+
+def _merge_template(tpl, inf, key: str) -> dict:
+    """把模板骨架和反推结果合成参数契约。
+
+    规则：
+      · 模板有的参数 → 用模板的说明/类型/范围（那是给人看的产品定义）
+      · 反推有的绑定 → 覆写模板的 REVIEW_SLOTS 占位
+      · 只在一侧有的 → 也保留（模板多的说明该参数可选；反推多的说明图里真有）
+      · 模板里还剩 REVIEW_SLOTS 的参数 → 直接丢掉并告警
+        （宁可少一个参数，也不要落一张绑定到 "REVIEW_SLOTS" 的卡）
+    """
+    out: dict = {}
+    dropped: list[str] = []
+
+    for name, spec in tpl.params.items():
+        real = inf.params.get(name)
+        merged = dict(spec)
+        if real:
+            merged["bindings"] = real.get("bindings") or []
+            for k in ("default", "values", "min", "max"):
+                if k in real and k not in merged:
+                    merged[k] = real[k]
+            if real.get("required") and not merged.get("required"):
+                merged["required"] = True
+        # 占位符没被真实绑定替掉 → 丢掉
+        binds = merged.get("bindings") or []
+        if not binds or any(str(b.get("node", "")).startswith("REVIEW_") for b in binds):
+            dropped.append(name)
+            continue
+        out[name] = merged
+
+    # 反推有、模板没有的参数（例如模型特有的 guidance、image_3）
+    for name, spec in inf.params.items():
+        if name in out:
+            continue
+        s = dict(spec)
+        s.setdefault("description", f"（自动推断：{name}）**请补一句人话说明**")
+        out[name] = s
+
+    if dropped:
+        _say(f"  ! 模板里这些参数在图里找不到对应节点，已丢弃：{dropped}")
+        _say(f"    （说明这张图和模板 {tpl.key} 的形态不完全一致，"
+             f"必要时用 --template 换一个）")
+    return out
 
 
 # ---------------------------------------------------------------- update
@@ -355,7 +419,9 @@ def cmd_update(a) -> int:
         card_path.write_text(json.dumps(d, ensure_ascii=False, indent=1) + "\n",
                              encoding="utf-8")
         _say(f"  ✓ 版本 {old} → {old + 1}")
-    _say(f"  · 校验 {card_path.relative_to(ROOT)}")
+    _say(f"  · 门禁 {card_path.relative_to(ROOT)}")
+    if not _lint(a.key):
+        _die(f"卡没过门禁。改好 registry/workflows/{a.key}.json 再跑 update")
     return 0 if _import_and_validate() else 1
 
 
@@ -367,6 +433,11 @@ def cmd_verify(a) -> int:
         _die(f"工作流不存在：{a.key}")
     d = json.loads(card_path.read_text(encoding="utf-8"))
     model = (d.get("model") or {}).get("key") or ""
+
+    # 转正前必须过门禁 —— 门禁漏的错会被永久写进 compat.json，
+    # 之后再没人回头看这张卡。跑完真机更要查，不是跑通了就没事。
+    if not _lint(a.key):
+        _die(f"卡没过门禁，不许转正。改好 registry/workflows/{a.key}.json 再跑 verify")
 
     jf = ROOT / "reports" / "p1" / "jobs" / a.job_id / "job.json"
     mf = ROOT / "reports" / "p1" / "jobs" / a.job_id / "manifest.json"
@@ -417,7 +488,21 @@ def cmd_check(a) -> int:
     _say("① 控制台入口")
     ok &= _guard()
 
-    _say("\n② registry 配置")
+    from tools.p20 import wf_lint as L
+    _say(f"\n② 工作流卡门禁（{len(L.RULES)} 条规则，¥0）")
+    rep = L.lint_all(only=a.key or "")
+    ne, nw = len(rep.errors), len(rep.warnings)
+    if ne or nw:
+        _say(f"  {len(rep.checked)} 条 · 错误 {ne} · 警告 {nw}")
+        for f in rep.findings:
+            mark = "✗" if f.level == "ERROR" else "!"
+            _say(f"    {mark} [{f.rule}] {f.workflow}.{f.where}: {f.detail}")
+        if ne:
+            ok = False
+    else:
+        _say(f"  ✓ 门禁通过（{len(rep.checked)} 条）")
+
+    _say("\n③ registry 配置")
     rc, out = _p20(["validate"], quiet=True)
     warns = [l for l in out.splitlines() if l.startswith("⚠")]
     tail = [l for l in out.splitlines() if l.strip().startswith("工作流")]
@@ -428,7 +513,7 @@ def cmd_check(a) -> int:
     else:
         _say(f"  ✓ 配置合法（{len(warns)} 条 experimental）")
 
-    _say("\n③ 开机前资产预演（¥0，不建机）")
+    _say("\n④ 开机前资产预演（¥0，不建机）")
     try:
         from tools.p2 import asset_preflight as AP
         oi_p = Path(a.object_info) if getattr(a, "object_info", None) else None
@@ -452,7 +537,7 @@ def cmd_check(a) -> int:
     except Exception as e:                       # noqa: BLE001
         _say(f"  ! 资产预演跳过（{type(e).__name__}: {e}）")
 
-    _say("\n④ 环境预检（节点 + 权重，粗筛）")
+    _say("\n⑤ 环境预检（节点 + 权重，粗筛）")
     try:
         from tools.p2 import preflight as P
         oi = ROOT / "reports" / "p2" / "p21" / "evidence" / "objectinfo-v4.json"
@@ -483,6 +568,80 @@ def cmd_check(a) -> int:
     return 0 if ok else 1
 
 
+# ---------------------------------------------------------------- guide
+GUIDE = """
+新增一条工作流的七步 —— 每一步失败该看哪儿
+
+  ① 拿图
+      ComfyUI 里「Save (API Format)」导出，不是普通 Save。
+      判据：文件顶层是 {\"节点id\": {\"class_type\": ..., \"inputs\": {...}}}，
+      不是 {"nodes": [...]}。
+      失败 → JsonDecodeError 或「图不是 API 格式」，重新导出即可。
+
+  ② 落盘 + 反推 + 门禁 + 导入（一条命令跑完）
+      python3 -m tools.wfctl new --key my_wf --name "显示名" \\
+          --graph /path/to/my_wf.api.json --model <模型key> --template i2v
+      不给 --template 时按图的输入形态自动推荐（见下）。
+
+      失败 → 按输出改 registry/workflows/my_wf.json，然后：
+      python3 -m tools.wfctl update --key my_wf
+
+  ③ 人审三处（机器判不了，必须自己看）
+      a) 正负提示词方向
+         把 prompt 和 neg_prompt 的默认值各念一遍，方向反了出片必糊且不报错。
+      b) 模型卡
+         registry/models/<key>.json 的 files 要覆盖卡里 model.slots 的每个角色。
+         缺一个角色 → 渲染时 apply_model 抛「缺槽位」，而那时实例已开好。
+      c) 该暴露的参数是否都暴露了
+         尤其 frames/length：它必须绑到决定 latent 长度的节点。
+         绑到 ImageFromBatch.length 是裁切，改了成片长度不变（2026-11-11 踩过）。
+
+  ④ 预演（¥0，不建机）
+      python3 -m tools.p2.asset_preflight --workflow my_wf
+      查：图里要的节点在不在镜像里、权重在不在共享库、值在不在候选列表。
+      查不到：张量形状 / 显存 / 推理 NaN —— 这三类只能真机跑才知道。
+
+  ⑤ 真机验证（花钱，约 ¥0.13–0.5/次）
+      python3 -m tools.p20.p20ctl new --workflow my_wf --allow-experimental --run
+      失败 → 作业目录在 reports/p1/jobs/<job_id>/，看 manifest.json 的 issues。
+
+  ⑥ 转正（唯一能写 verified 的入口）
+      python3 -m tools.wfctl verify --key my_wf --job-id <job_id>
+      硬条件：作业 DONE + manifest PASS + 作业 meta 与卡一致 + 过门禁。
+      质量分 D 会拦下来，确要转正加 --allow-low-quality。
+
+  ⑦ 上线
+      ./deploy.sh
+      会跑 repo-guard → sync_share → 重启 → healthcheck。
+
+模板怎么选
+
+  t2i      text → image                只要提示词
+  i2i      image + text → image        拿图改风格/加细节
+  t2v      text → video                只给提示词出片
+  i2v      image + text → video        首帧推运动（最常用）
+  flf2v    image + image_2 + text      首尾帧插值
+  v2v      video + image + text        动作迁移 / 整片重绘
+  upscale  image → image               超分放大
+  inpaint  image (+mask) → image       擦除 / 局部修复
+
+看模板详情：python3 -m tools.p20.wf_templates i2v
+
+门禁规则（历史事故全部转成规则）
+
+  python3 -m tools.p20.wf_lint --rules
+
+零花费的全量体检
+
+  python3 -m tools.wfctl check
+"""
+
+
+def cmd_guide(a) -> int:
+    print(GUIDE.strip())
+    return 0
+
+
 # ---------------------------------------------------------------- main
 def main(argv=None) -> int:
     import argparse
@@ -497,7 +656,11 @@ def main(argv=None) -> int:
     p.add_argument("--kind", required=True, choices=("image", "video"))
     p.add_argument("--graph", required=True, help="ComfyUI 导出的 API 图路径")
     p.add_argument("--model", required=True, help="模型 key（registry/models 下）")
-    p.add_argument("--params", help="参数契约 JSON 字符串")
+    p.add_argument("--params", help="（已弃用，参数由图反推；保留仅为兼容）")
+    p.add_argument("--template", help="骨架模板：t2i/i2i/t2v/i2v/flf2v/v2v/upscale/inpaint"
+                                      "（不给则按图形态推荐）")
+    p.add_argument("--drop-slots", dest="drop_slots", default="",
+                   help="逗号分隔：这些槽位不由 registry 管理（图里硬编码，换模型也不动）")
     p.add_argument("--description", default="", help="给人看的一句话说明")
     p.add_argument("--force", action="store_true", help="覆盖已存在的卡")
     p.set_defaults(func=cmd_new)
@@ -519,6 +682,9 @@ def main(argv=None) -> int:
     p.add_argument("--object-info", dest="object_info", metavar="FILE",
                    help="真机 object_info 快照（默认用 evidence 里的）")
     p.set_defaults(func=cmd_check)
+
+    p = sub.add_parser("guide", help="打印新增工作流的七步流程")
+    p.set_defaults(func=cmd_guide)
 
     a = ap.parse_args(argv)
     return a.func(a)

@@ -30,7 +30,7 @@
     }
   },
   "name": "图层分离 · Qwen-Image Layered",
-  "notes": "img.layered · 图层分离（可分别改背景/主体） · 许可：需自行核对模型卡 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "notes": "img.layered · 图层分离（可分别改背景/主体） · 许可：需自行核对模型卡 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental） · 2026-11-11 修：neg_prompt 原绑在第二段采样的编码器（1164），且默认值抄了正向词",
   "output": {
     "ext": "png",
     "input": "filename_prefix",
@@ -55,12 +55,12 @@
     "neg_prompt": {
       "bindings": [
         {
-          "input": "text",
-          "node": "1164"
+          "node": "1144",
+          "input": "text"
         }
       ],
-      "default": "A cinematic medium shot of a beautiful young woman with fair skin and a joyful, radiant smile, looki…",
-      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+      "default": "",
+      "description": "负向提示词：不想出现的东西（糊、水印、畸形手、字幕等）。留空即可。",
       "required": false,
       "type": "string"
     },
@@ -99,5 +99,5 @@
     "4090_48G"
   ],
   "schema": "p20.workflow/v1",
-  "version": 1
+  "version": 2
 }

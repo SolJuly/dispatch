@@ -45,8 +45,8 @@
    }
   }
  },
- "name": "角色替换 · SCAIL-2（fp16，尚未开发）",
- "notes": "vid.character_replace · ★ 角色替换 / 视频换人（SCAIL-2） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+ "name": "角色替换 · SCAIL-2（fp16）",
+ "notes": "vid.character_replace · ★ 角色替换 / 视频换人（SCAIL-2） · 许可：Apache-2.0（Wan 2.1 / 2.2 开放权重） · 商用：可 · ≥24GB 显存 · 官方模板导入，未本地真机验证（compat=experimental） · 2026-11-11 修：neg_prompt 原绑到第二段采样的正向节点（正负填反），改成两段各绑正确一侧",
  "output": {
   "ext": "mp4",
   "input": "filename_prefix",
@@ -83,20 +83,28 @@
   "neg_prompt": {
    "bindings": [
     {
-     "input": "text",
-     "node": "1404"
+     "node": "1358",
+     "input": "text"
+    },
+    {
+     "node": "1403",
+     "input": "text"
     }
    ],
-   "default": "A young woman with dark hair tied in a neat high bun, with a few loose strands framing her face, is …",
-   "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
+   "default": "",
+   "description": "负向提示词：不想出现的东西。这类工作流默认留空即可 —— 负向词写太强会让人物细节糊掉。",
    "required": false,
    "type": "string"
   },
   "prompt": {
    "bindings": [
     {
-     "input": "text",
-     "node": "1359"
+     "node": "1359",
+     "input": "text"
+    },
+    {
+     "node": "1404",
+     "input": "text"
     }
    ],
    "default": "A young woman with dark hair tied in a neat high bun, with a few loose strands framing her face, is …",
@@ -135,5 +143,5 @@
   "4090_48G"
  ],
  "schema": "p20.workflow/v1",
- "version": 1
+ "version": 3
 }

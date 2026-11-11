@@ -25,7 +25,7 @@
       }
     }
   },
-  "name": "首尾帧生视频 · LTX 2.3（尚未开发）",
+  "name": "首尾帧生视频 · LTX 2.3",
   "notes": "官方模板导入，未本地真机验证（compat=experimental）",
   "output": {
     "ext": "mp4",
@@ -103,5 +103,5 @@
     "4090_48G"
   ],
   "schema": "p20.workflow/v1",
-  "version": 1
+  "version": 2
 }

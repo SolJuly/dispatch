@@ -34,7 +34,7 @@
     }
   },
   "name": "语义编辑 · Qwen-Image 2.1（换脸/换装，尚未开发）",
-  "notes": "img.faceswap.semantic · 换脸 / 换装 / 多参考一致性（语义编辑） · 许可：Qwen Research License（仅研究/评测，商用需单独授权） · 商用：需授权 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental）",
+  "notes": "img.faceswap.semantic · 换脸 / 换装 / 多参考一致性（语义编辑） · 许可：Qwen Research License（仅研究/评测，商用需单独授权） · 商用：需授权 · ≥16GB 显存 · 官方模板导入，未本地真机验证（compat=experimental） · 2026-11-11 修：prompt/neg_prompt 原绑到 1516（TextGenerate，一条不被任何节点引用的旁支），改成主编码器 1510 的 prompt/negative_prompt",
   "output": {
     "ext": "png",
     "input": "filename_prefix",
@@ -68,28 +68,27 @@
       "type": "image"
     },
     "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "",
       "bindings": [
         {
-          "input": "system_prompt",
-          "node": "1516"
+          "node": "1510",
+          "input": "negative_prompt"
         }
       ],
-      "default": "# Edit Prompt Enhancer — General (v2, 精简版)\n\n**FIRST — there are TWO separate language decisions. Do …",
-      "description": "负向提示词：不想出现的东西。默认值是一套通用的避坑词（防手部畸形、画面静止、糊、水印等），没有特殊需求就保持原样。",
-      "required": false,
-      "type": "string"
+      "description": "负向提示词：不想出现的东西（糊、水印、畸形手、字幕等）。留空即可。"
     },
     "prompt": {
+      "type": "string",
+      "required": true,
       "bindings": [
         {
-          "input": "prompt",
-          "node": "1516"
+          "node": "1510",
+          "input": "prompt"
         }
       ],
-      "default": "Replace costumes for the character",
-      "description": "正向提示词：描述你想要的画面内容（主体、外貌、衣着、背景、风格）。写得具体比写得多更重要。",
-      "required": true,
-      "type": "string"
+      "description": "编辑指令：直接说要改什么。例「把外套换成红色皮夹克」「把背景换成海边黄昏」。这类工作流默认空（图上原值就是空），用户必须自己写。"
     },
     "seed": {
       "bindings": [
@@ -110,5 +109,5 @@
     "4090_48G"
   ],
   "schema": "p20.workflow/v1",
-  "version": 1
+  "version": 2
 }

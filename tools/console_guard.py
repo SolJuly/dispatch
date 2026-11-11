@@ -29,12 +29,24 @@
 | 加一个页面 / 区块 | `web/dist/app.js` | ~~`webui/pages.py`~~（已删除） |
 | 改样式 | `web/dist/app.css` | ~~`webui/assets.py`~~（已删除） |
 | 改页面骨架 | `web/dist/index.html` | 同上 |
-| 加一个工作流 | `registry/workflows/<key>.json` + `workflows/*.api.json` | 不要只改 DB |
+| 加一个工作流 | `python3 -m tools.wfctl new`（见 `wfctl guide`） | 不要手写 bindings |
 | 加一个模型 | `registry/models/<key>.json` | 同上 |
+| 加一类工作流形态 | `tools/p20/wf_templates.py` 加一个 `Template(...)` | 不要复制粘贴旧卡 |
 | 改工作流参数 | `registry/workflows/<key>.json` 的 `params` | 不要改渲染代码 |
 | 改兼容性结论 | `p20ctl compat verify`（要真机证据） | 不要手改 `compat.json` |
 | 前端单测 | `web/tests/*.test.js` | — |
 | 后端接口 | `webui/api.py` | — |
+
+## 新增工作流的唯一路径
+
+    python3 -m tools.wfctl new --key K --name "名" --kind video --graph G --model M
+    python3 -m tools.wfctl update --key K          # 改完必须跑
+    python3 -m tools.p20.wf_lint --key K           # 18 条门禁
+    python3 -m tools.p20.wf_infer --graph G        # 单看图推什么契约
+
+手写 `params.bindings` 是**唯一被禁止的操作**：节点 id 是 ComfyUI 导出生成的
+随机数字串，手填必然出错，而错了的后果不是报错，是渲染时抛异常 ——
+那时实例已经开好、钱已经花了。
 
 ## 为什么工作流必须走 registry
 
