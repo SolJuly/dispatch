@@ -71,9 +71,11 @@ RULES: dict[str, tuple[str, str, str]] = {
     "WF006": ("ERROR", "prompt 默认值里含负向词",
               "2026-11-11：ltx2_3_i2v 的 prompt 默认值是 'pc game, cartoon, ugly'，"
               "那是负向词，被填进了正向框"),
-    "WF007": ("WARN", "params 里暴露权重文件名（应走 model.slots）",
-              "权重文件名是模型属性，不是用户参数。放进 params 等于让用户改模型，"
-              "而 UI 会渲染成文本框 —— 用户打错一个字就是 use_missing_models"),
+    "WF007": ("WARN", "权重文件名暴露成**自由文本**参数（应改 enum 或走 model.slots）",
+              "2026-11-11：`sdxl_t2i_lora.lora` 是 string 类型，UI 渲染成文本框 —— "
+              "用户打错一个字就是 use_missing_models，而报错发生在提交那一刻。\n"
+              "             判据细化为「类型不是 enum」：改成 enum 且 values 来自真机候选后，"
+              "用户只能选库里真有的文件，这类风险就消失了"),
     "WF008": ("ERROR", "name 里写死状态词，与 compat 结论矛盾",
               "2026-11-11：4 条已 verified 的卡名字里还挂着「尚未开发」，"
               "用户以为不能用，实际上能用"),
@@ -260,11 +262,18 @@ def lint_card(key: str, card: dict, compat_status: str = "experimental") -> list
                 # 连线型输入在图里可能只是没写（可选），但 required 的写错了必然炸
                 _add(r, "WF004", key, f"params.{pn}.bindings[{i}]",
                      f"节点 {nid}（{node.get('class_type')}）没有输入 {inp!r}")
-            # WF007 权重文件名不该是用户参数
-            if inp in WEIGHT_INPUTS:
+            # WF007 权重文件名不该是**自由文本**参数。
+            #
+            # 判据不是「有没有绑权重输入」，而是「用户能不能打错」：
+            #   enum + 非空 values → 下拉框，只能选库里真有的 → 不算风险
+            #   string            → 文本框，错了要等提交才报 → 才是这条规则要防的
+            # 2026-11-11 踩过第一版：`detail_polish.upscale_model` 改成 enum 后
+            # 规则还在报，等于逼人把合理的下拉框删掉。
+            if inp in WEIGHT_INPUTS and typ != "enum":
                 _add(r, "WF007", key, f"params.{pn}",
-                     f"绑定到权重输入 {nid}.{inp} —— 权重文件属于模型卡的 files，"
-                     f"放进 params 会被 UI 渲染成文本框，用户打错字就 use_missing_models")
+                     f"绑定到权重输入 {nid}.{inp}，但类型是 {typ} —— "
+                     f"UI 会渲染成文本框，用户打错一个字就是 use_missing_models。"
+                     f"改成 enum（values 用真机候选）或走 model.slots")
             # WF011 媒体类型 ↔ loader
             if typ in LOADER_FOR and node:
                 ct = str(node.get("class_type") or "")

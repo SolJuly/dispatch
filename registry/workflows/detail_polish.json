@@ -23,7 +23,7 @@
     }
   },
   "name": "细节增强 · 低 denoise 重绘 + 4× 放大",
-  "notes": "P2.1 5.4：无 Impact Pack（无 FaceDetailer），用低 denoise 重绘 + 4x 放大近似「细节增强/面部修复」；真 FaceDetailer 留到 P2.2 装节点后替换。",
+  "notes": "P2.1 5.4：无 Impact Pack（无 FaceDetailer），用低 denoise 重绘 + 4x 放大近似「细节增强/面部修复」；真 FaceDetailer 留到 P2.2 装节点后替换。 · 2026-11-11 修：upscale_model 从 string 改成 enum（真机候选 12 个），写错只会 use_missing_models",
   "output": {
     "ext": "png",
     "input": "filename_prefix",
@@ -153,15 +153,30 @@
       "type": "int"
     },
     "upscale_model": {
+      "type": "enum",
+      "required": false,
+      "default": "4x-UltraSharp.pth",
+      "values": [
+        "4x-UltraSharp.pth",
+        "BSRGAN.pth",
+        "ESRGAN_4x.pth",
+        "OmniSR_X2_DIV2K.safetensors",
+        "OmniSR_X3_DIV2K.safetensors",
+        "OmniSR_X4_DIV2K.safetensors",
+        "RealESRGAN_x4plus.pth",
+        "RealESRGAN_x4plus.safetensors",
+        "RealESRGAN_x4plus_anime_6B.pth",
+        "SwinIR_4x.pth",
+        "ltxv-spatial-upscaler-0.9.7.safetensors",
+        "ltxv-temporal-upscaler-0.9.7.safetensors"
+      ],
+      "description": "放大模型。4x-UltraSharp 偏锐利（适合照片），RealESRGAN_x4plus 更保守，ESRGAN_4x 偏平滑。换它只影响细节锐度，不影响构图。",
       "bindings": [
         {
-          "input": "model_name",
-          "node": "up"
+          "node": "up",
+          "input": "model_name"
         }
-      ],
-      "default": "4x-UltraSharp.pth",
-      "description": "放大模型文件名（需在共享库里存在）。不同模型的风格不同：4x-UltraSharp 偏锐利，适合照片；其他模型可能偏平滑或带锐化痕迹。",
-      "type": "string"
+      ]
     }
   },
   "required_gpu": [
@@ -169,5 +184,5 @@
     "4090_48G"
   ],
   "schema": "p20.workflow/v1",
-  "version": 1
+  "version": 2
 }

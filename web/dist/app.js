@@ -644,14 +644,16 @@ function renderJobs() {
   $('#qlist').innerHTML = active.map(j => {
     const g = STATE_GROUP(j.state);
     const pct = progressOf(j);
+    // 工作流名/模型名加 title —— 被省略号截断时鼠标悬停能看全。
+    // 以前没有 title，长名字既看不全也不知道是什么，只能去点详情。
     return `<div class="qitem">
       <div class="pos dim">${g === 'que' ? '排队' : '跑'}</div>
       <div class="mid">
         <div class="j"><a href="#/result/${encodeURIComponent(j.job_id)}">${esc(j.job_id)}</a>
           <span class="st ${g}"><i class="dot"></i>${esc(stateCn(j.state))}</span>
-          <span class="badge">${esc(j.workflow || '')}</span>
-          <span class="badge">${esc(j.model || '')}</span></div>
-        <div class="meta">${esc((j.prompt || '').slice(0, 80) || '（无 prompt）')} · ${esc(dt(ts(j.created_at)))}</div>
+          <span class="badge" title="${esc(j.workflow || '')}">${esc(j.workflow || '')}</span>
+          <span class="badge" title="${esc(j.model || '')}">${esc(j.model || '')}</span></div>
+        <div class="meta" title="${esc(j.prompt || '')}">${esc((j.prompt || '').slice(0, 80) || '（无 prompt）')} · ${esc(dt(ts(j.created_at)))}</div>
         ${pct != null ? `<div class="pbar"><i style="width:${pct}%"></i></div>` : ''}
       </div>
       <div class="right"><span class="pct">${pct != null ? pct + '%' : '—'}</span>
@@ -673,18 +675,36 @@ const progressOf = j => {
 };
 const ORDER_FAIL = st => /^FAILED|^ABORTED/.test(st);
 
+/* 顶部 5 个数字全部来自**同一份数据**（S.jobs = GET /api/p2/jobs 的结果）。
+ *
+ * 曾经的 bug：主数字取 S.jobs（35 条），副标题取 GET /api/p2/queue 的
+ * by_state —— 那是另一套统计，只覆盖 8 条，于是屏幕上出现
+ * 「队列总数 35 / cancelled:4 done:4」，两个数字互相矛盾，
+ * 用户完全无法判断到底有多少活。2026-11-11 用户截图确认。
+ *
+ * 修法：副标题也从 S.jobs 算，只做「分项说明」，不再引用第二个数据源。
+ * 另外 EXCLUDED 的作业要显式说出来 —— 总数和四项之和不等时，
+ * 差额必须能解释，否则用户会以为算错了。 */
 function renderJobKpis() {
-  const c = {all: S.count || S.jobs.length, run: 0, que: 0, ok: 0, bad: 0};
-  const by = (S.queue && (S.queue.by_state || (S.queue.stats || {}).by_state)) || null;
+  const c = {all: S.jobs.length, run: 0, que: 0, ok: 0, bad: 0, off: 0};
   S.jobs.forEach(j => { const g = STATE_GROUP(j.state); if (c[g] != null) c[g] += 1; });
   const ks = $('#jkpis').children;
   const set = (i, cls, v, s) => { ks[i].className = 'kpi' + (cls ? ' ' + cls : '');
     ks[i].querySelector('.v').textContent = v; ks[i].querySelector('.s').textContent = s; };
-  set(0, '', c.all, by ? Object.entries(by).map(([k, v]) => `${k}:${v.n ?? v}`).join(' ') : 'registry 作业');
+
+  // 页脚筛选：当前列表只是作业全集的一个切片时，把真实总量写进副标题，
+  // 免得用户以为「队列总数」就是全部历史。
+  const shown = c.all;
+  const total = (S.count != null && S.count !== shown) ? ` / 共 ${S.count}` : '';
+  const qst = ((S.queue || {}).stats || {}).by_state || {};
+  const doneCost = typeof (qst.done || {}).cost === 'number' ? qst.done.cost : null;
+  set(0, '', shown,
+      `作业总数${total}` + (doneCost != null ? ` · 已完成花费 ¥${doneCost.toFixed(2)}` : ''));
   set(1, 'run', c.run, '在建机/执行');
   set(2, 'que', c.que, '等待执行');
   set(3, 'ok', c.ok, 'DONE');
-  set(4, 'bad', c.bad, 'FAILED_* / ABORTED');
+  // 取消的既不是「完成」也不是「失败」。以前并进失败里，看着像出错了。
+  set(4, 'bad', c.bad, c.off ? `FAILED_* · 另 ${c.off} 条已取消` : 'FAILED_* / ABORTED');
 }
 
 function renderDispatchBar(active) {
