@@ -56,6 +56,17 @@ def _say(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] [autostart] {msg}", flush=True)
 
 
+def _ledger_for(jobs_dir: Path) -> Path | None:
+    """测试用临时账本；生产返回 None（让 money_guard 用真实账本）。
+
+    为什么跟着 jobs_dir 走：测试把作业目录指到临时目录，如果账本还读真实的，
+    那么"今日已花 ¥1.20"会串进测试里，结果取决于当天跑了多少活 —— 那种测试
+    迟早会莫名其妙地红。
+    """
+    cand = Path(jobs_dir).parent / "ledger.jsonl"
+    return cand if cand.exists() else None
+
+
 def pending_jobs(jobs_dir: Path | None = None) -> list[dict]:
     """所有「想跑但还没跑」的作业，按创建时间升序（先来先跑）。
 
@@ -94,6 +105,15 @@ def start_pending(jobs_dir: Path | None = None, *, limit: int | None = None,
     root = Path(jobs_dir) if jobs_dir else JOBS_DIR
     spawn = spawn or subprocess.Popen
     run_py = _ROOT / "tools" / "p1" / "run.py"
+
+    # ---- 花费闸：超过日预算或余额见底就不补位 ----
+    # 补位是**入口**，在这里拦住成本为零（作业还没建机）。
+    # 已经在跑的作业不受影响 —— 中途杀掉只是白烧已经花掉的 GPU 时间。
+    from tools.p1 import money_guard
+    ok_money, why_money = money_guard.check(_ledger_for(root), creds=None)
+    if not ok_money:
+        say(f"⛔ 停止补位：{why_money}")
+        return []
 
     try:
         cap = conc.max_parallel()
@@ -149,12 +169,18 @@ def after_terminal(job_id: str, jobs_dir: Path | None = None, *, say=_say) -> li
 def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if "--dry-run" in argv:
-        room_pending = pending_jobs()
+        from tools.p1 import money_guard
         from tools.p2 import concurrency as conc
+        room_pending = pending_jobs()
         print(f"待跑 auto_run 作业：{len(room_pending)}")
         for j in room_pending:
             print(f"  {j['job_id']}  {j.get('created_at')}")
         print(f"并发：{conc.slots_used()}/{conc.max_parallel()}")
+        # 花费闸的状态也打出来 —— 补位被拦时，"为什么没启动"
+        # 应该一眼看见，而不是去翻账本猜。
+        print(f"花费：{money_guard.describe()}")
+        ok, why = money_guard.check()
+        print("→ " + ("会补位" if ok else f"不会补位：{why}"))
         return 0
     started = start_pending()
     if not started:
