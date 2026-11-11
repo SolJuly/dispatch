@@ -124,12 +124,56 @@ class TestUiRoute(unittest.TestCase):
                 self.assertIn("script-src 'self'", h.get("Content-Security-Policy", ""))
 
     # ---------------- 缓存策略
-    def test_html_not_cached_asset_immutable(self):
+    def test_html_not_cached_asset_revalidated(self):
+        """HTML 不缓存；静态资源**必须回源校验**，不能 immutable。
+
+        踩过：这里原本断言 `public, max-age=31536000, immutable`，理由是
+        「Vite 产物名带内容 hash」。但 `web/dist` 是**源码**不是构建产物 ——
+        文件名固定为 app.js / app.css，永远不带 hash。发 immutable 的结果是
+        改一次前端，浏览器整整一年看不到新版本，而且**刷新也无效**，
+        表现成「UI 改了还是老样子」，排查时被误判成"前端没同步"。
+        """
         _, _, h = self._get(f"/{self.mod.TOKEN}/ui/")
         self.assertEqual(h.get("Cache-Control"), "no-cache")   # 发版即生效
+
         _, _, h = self._get(f"/{self.mod.TOKEN}/ui/assets/a.js")
-        # Vite 产物名带内容 hash，长缓存安全
-        self.assertEqual(h.get("Cache-Control"), "public, max-age=31536000, immutable")
+        cc = h.get("Cache-Control")
+        self.assertEqual(cc, "no-cache", "静态资源要能缓存但必须回源校验")
+        self.assertNotIn("immutable", cc or "",
+                         "文件名不带 hash，immutable 会让改动永远到不了浏览器")
+        self.assertTrue(h.get("ETag"), "没有 ETag 就只能整包重传")
+
+    def test_asset_returns_304_on_matching_etag(self):
+        """带上 If-None-Match 必须回 304，否则轮询页面每次重下 63KB。"""
+        _, _, h = self._get(f"/{self.mod.TOKEN}/ui/assets/a.js")
+        etag = h.get("ETag")
+        self.assertTrue(etag)
+
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{self.port}/{self.mod.TOKEN}/ui/assets/a.js",
+            headers={"If-None-Match": etag})
+        try:
+            with urllib.request.urlopen(req, timeout=5) as r:
+                code, body = r.status, r.read()
+        except urllib.error.HTTPError as e:
+            code, body = e.code, e.read()
+        self.assertEqual(code, 304)
+        self.assertEqual(body, b"")
+
+    def test_etag_changes_when_content_changes(self):
+        """改了内容 ETag 必须变，否则 304 会把旧版本永远钉住。"""
+        import time as _t
+        p = self.dist / "assets" / "a.js"
+        _, _, h1 = self._get(f"/{self.mod.TOKEN}/ui/assets/a.js")
+        etag1 = h1.get("ETag")
+        _t.sleep(0.01)
+        p.write_bytes(JS_BODY + b"\n// touch")
+        try:
+            _, _, h2 = self._get(f"/{self.mod.TOKEN}/ui/assets/a.js")
+            self.assertNotEqual(etag1, h2.get("ETag"),
+                                "内容变了 ETag 得跟着变")
+        finally:
+            p.write_bytes(JS_BODY)
 
     def test_no_duplicate_cache_control_header(self):
         """回归：_send 曾无条件补 no-store，与调用方的 Cache-Control 重复下发，

@@ -653,8 +653,27 @@ class Handler(BaseHTTPRequestHandler):
             headers["Content-Security-Policy"] = UI_CSP
             headers["Cache-Control"] = "no-cache"          # HTML 不缓存，发版即生效
         else:
-            # Vite 产物名带内容 hash，可以放心长缓存；改一次变一次名
-            headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            # **web/dist 是源码，不是 Vite 构建产物** —— 文件名固定为 app.js / app.css，
+            # 永远不带内容 hash。所以「产物名带 hash，可以放心 immutable」这条不成立。
+            #
+            # 踩过：这里原本发 `max-age=31536000, immutable`。改一次 app.js，
+            # 用户浏览器整整一年看不到新版本，而且**刷新也无效**（immutable 连
+            # 强制刷新都跳过校验）。表现就是「UI 改了却还是老样子」，
+            # 排查时很容易误判成"前端没同步"。
+            #
+            # 现在的策略：no-cache（= 可以缓存，但每次必须回源校验）+ 强 ETag。
+            # 校验只用 mtime+size，代价一个 304 空响应；内容一变 ETag 立刻变。
+            st = target.stat()
+            etag = f'"{int(st.st_mtime)}-{st.st_size:x}"'
+            headers["ETag"] = etag
+            headers["Cache-Control"] = "no-cache"
+            inm = (self.headers.get("If-None-Match") or "").strip()
+            if inm and etag in [t.strip() for t in inm.split(",")]:
+                self.send_response(304)
+                for k, v in headers.items():
+                    self.send_header(k, v)
+                self.end_headers()
+                return
         return self._send(200, target.read_bytes(), ctype, headers)
 
     def _api_jobs(self, rest: list[str], q: dict):

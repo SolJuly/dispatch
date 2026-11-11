@@ -35,6 +35,9 @@ WATCHDOG_LOG = ROOT / "logs" / "watchdog.log"
 
 WINDOW_S = int(os.environ.get("P2_INSTANCE_WINDOW_S") or 6 * 3600)
 OFFLINE_S = int(os.environ.get("P2_INSTANCE_OFFLINE_S") or 900)   # 15 分钟没采样 = 离线
+# 超过这个时长没有新采样，就在 notes 里明确告警。
+# 采样是 5 分钟一次，20 分钟 = 连续漏了 4 轮，已经不能当"抖动"看。
+STALE_MIN = int(os.environ.get("P2_INSTANCE_STALE_MIN") or 20)
 LIMIT = 60
 
 _TS_RE = re.compile(r"^\[(\d{2}):(\d{2}):(\d{2})\]$")
@@ -254,7 +257,18 @@ def snapshot(window_s: int | None = None, now: float | None = None) -> dict:
 
     samples = parse_watch_log(WATCH_LOG)
     if not samples:
-        notes.append("watch.log 不可用或为空：GPU/CPU 采样缺失")
+        notes.append("watch.log 不可用或为空：GPU/CPU 采样缺失，实例页只能显示队列占用")
+    else:
+        # **采样停更必须说出来**。踩过：b1d70e7 撤掉 csctl watch 后 watch.log
+        # 停更 52 小时，而这里只在"完全为空"时才提示 —— 文件里还有 11-09 的老数据，
+        # 于是 notes 是空的，页面看起来一切正常，实际一个样本都没在更新。
+        # 用户报"watchdog 不实时了"，代码这边一句告警都没有。
+        newest = max((s.get("at") or 0) for s in samples.values())
+        age_min = (now - newest) / 60 if newest else None
+        if age_min is not None and age_min > STALE_MIN:
+            notes.append(
+                f"采样已停更 {int(age_min)} 分钟（最后一条 {_iso(newest)}）："
+                f"cron 里的 tools/p2/sampler.py 可能没在跑")
     state = parse_watch_state(WATCH_STATE)
     ledger = ledger_cost_by_instance(LEDGER)
     wd_log = parse_watchdog_log(WATCHDOG_LOG)

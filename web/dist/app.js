@@ -93,10 +93,45 @@ function artUrl(u) {
   return originOf() + base + path;
 }
 
+/* fetch 超时包装。
+ *
+ * 为什么要它：`fetch` **默认永不超时**。请求一旦挂住（服务端卡在一个慢查询、
+ * nginx 那头连着但不回、手机切网），`await` 会永远不返回。
+ *
+ * 而 tick() 里是 `busy = true; try { await refresh() } finally { busy = false }`
+ * —— `finally` 只在 await **返回或抛出**时执行。永挂的 fetch 两者都不是，
+ * 于是 busy 永久为 true，之后每次 tick 都走 `if (busy) return schedule();`
+ * 直接返回，一个请求都不再发。
+ *
+ * 表现：页面**看起来正常**（最后一次渲染的内容还在），但永远停在那一刻。
+ * 实测 2026-11-11 用户截图：作业 20:45 就 DONE 了，22:43 页面还显示
+ * 「执行中 44%」——44% 正是 RUNNING 在进度表里的位置。冻了两小时。
+ *
+ * 这种"静默冻结"比报错难查得多：没有红字、连接指示器还亮着。
+ * 所以每个请求都必须带超时，超时后**当失败处理**，让 tick 走到退避重试。
+ */
+const FETCH_TIMEOUT_MS = 15000;
+async function _fetch(url, opts = {}) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), opts.timeout || FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, {...opts, signal: ctl.signal});
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      const err = new Error(`请求超时（${(opts.timeout || FETCH_TIMEOUT_MS) / 1000}s 无响应）`);
+      err.status = 0;              // 与网络错误同口径：tick 会退避重试
+      throw err;
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function get(path, params) {
   const qs = params ? ('?' + new URLSearchParams(
     Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ''))) : '';
-  const r = await fetch(apiBase() + path + qs, {cache: 'no-store'});
+  const r = await _fetch(apiBase() + path + qs, {cache: 'no-store'});
   if (!r.ok) {
     let msg = r.status + ' ' + r.statusText;
     try { const j = await r.json(); msg = j.error || j.detail || msg; } catch (e) { /* keep */ }
@@ -105,10 +140,12 @@ async function get(path, params) {
   return r.json();
 }
 async function post(path, body, opts = {}) {
-  const r = await fetch(apiBase() + path, {
+  // 上传/建作业可能慢，给更长的超时；普通 POST 用默认。
+  const r = await _fetch(apiBase() + path, {
     method: 'POST', cache: 'no-store',
     headers: opts.form ? {} : {'Content-Type': 'application/json'},
     body: opts.form ? body : JSON.stringify(body || {}),
+    timeout: opts.form ? 120000 : undefined,
   });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) {
@@ -118,7 +155,7 @@ async function post(path, body, opts = {}) {
   return data;
 }
 async function getBlob(path) {
-  const r = await fetch(apiBase() + path, {cache: 'no-store'});
+  const r = await _fetch(apiBase() + path, {cache: 'no-store', timeout: 60000});
   if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
   return r.blob();
 }
@@ -182,11 +219,21 @@ function schedule(delay) {
 async function tick() {
   if (busy) return schedule();
   busy = true; let next = null;
+  // **看门狗**：即使某个 await 因为没预料的路径永挂（新的接口、第三方 SDK、
+  // 浏览器怪异行为），也强制在 2× 超时后解除 busy，让下一轮继续。
+  // 单靠 _fetch 的超时只能覆盖走 _fetch 的请求；这里是最后一道保险，
+  // 因为 busy 一旦永久为 true，页面就**静默冻结**且没有任何报错。
+  const wd = setTimeout(() => {
+    if (busy) { busy = false; failN += 1; setSync(false, 0, '请求超时，正在重试'); schedule(); }
+  }, 40000);
   try { await refresh(); failN = 0; }
   catch (e) {
     if (!e.status || e.status >= 500) setSync(false, 0, e.message || '');
     failN += 1; next = Math.min(20000, (S.interval || 5000) * 2 ** Math.min(3, failN));
-  } finally { busy = false; }
+  } finally {
+    clearTimeout(wd);
+    busy = false;
+  }
   schedule(next);
 }
 async function refresh() {
@@ -630,7 +677,8 @@ async function submitJob() {
     const note = res.deferred
       ? `<span style="color:var(--amber)">${esc(res.job_id)} · 已创建，未执行</span>
          <div class="fdesc" style="margin-top:6px">${esc(res.deferred_reason || '并发已满')}
-         作业已保存，等前面的跑完到任务页点「执行」即可，不会重复建机。</div>
+         作业已保存但**没有启动**。等前面的跑完，到「任务」页点这条作业右边的「执行」，
+         或者现在就点（并发腾出来才会真正启动）。不会重复建机。</div>
          <div class="fdesc" style="margin-top:6px;border-left-color:#2f6b46">${lcLine}</div>`
       : `<span style="color:var(--green)">${esc(res.job_id)} · ${esc(res.state)}</span>
          <div class="fdesc" style="margin-top:6px;border-left-color:#2f6b46">${lcLine}</div>`;
@@ -654,10 +702,14 @@ function renderJobs() {
   $('#qlist').innerHTML = active.map(j => {
     const g = STATE_GROUP(j.state);
     const pct = progressOf(j);
+    // CREATED = 已建作业但**从未启动**：不建机、不花钱，也不会自己跑。
+    // 这种作业必须给一个「执行」按钮 —— 否则它永远停在任务栏，用户点遍
+    // 整个页面也找不到启动入口（后端 /jobs/run 一直在，只是没人调）。
+    const canRun = String(j.state || '').toUpperCase() === 'CREATED';
     // 工作流名/模型名加 title —— 被省略号截断时鼠标悬停能看全。
     // 以前没有 title，长名字既看不全也不知道是什么，只能去点详情。
     return `<div class="qitem">
-      <div class="pos dim">${g === 'que' ? '排队' : '跑'}</div>
+      <div class="pos dim">${g === 'que' ? (canRun ? '待执行' : '排队') : '跑'}</div>
       <div class="mid">
         <div class="j"><a href="#/result/${encodeURIComponent(j.job_id)}">${esc(j.job_id)}</a>
           <span class="st ${g}"><i class="dot"></i>${esc(stateCn(j.state))}</span>
@@ -667,11 +719,40 @@ function renderJobs() {
         ${pct != null ? `<div class="pbar"><i style="width:${pct}%"></i></div>` : ''}
       </div>
       <div class="right"><span class="pct">${pct != null ? pct + '%' : '—'}</span>
+        ${canRun ? `<button class="btn tiny p" data-run="${esc(j.job_id)}"
+          title="立即建机执行（会产生费用）">执行</button>` : ''}
         <a class="btn tiny" href="#/result/${encodeURIComponent(j.job_id)}">详情</a></div>
     </div>`;
   }).join('');
   renderJobKpis();
   renderDispatchBar(active);
+}
+
+/* 执行一个欠着的作业。
+ *
+ * 为什么需要它：勾了「立即执行」但并发已满时，后端**降级成只建作业不执行**
+ * （deferred），并把作业留在 CREATED。并发腾出来之后没有任何东西会回头启动它 ——
+ * 没有调度器守护进程，run.py 也没被 spawn 过。于是作业永远挂在任务栏。
+ *
+ * 后端接口早就有了（POST /api/p2/jobs/run），前端从来没接。这里补上。 */
+async function runPending(ids) {
+  const list = (Array.isArray(ids) ? ids : [ids]).filter(Boolean);
+  if (!list.length) return;
+  if (!confirm(`立即执行 ${list.length} 条作业？\n\n会立刻建机并开始计费（约 ¥2.15/小时）。`)) return;
+  try {
+    const res = await post('/jobs/run', {ids: list});
+    const items = (res && res.items) || [];
+    const bad = items.filter(x => x.error);
+    const okN = items.length - bad.length;
+    if (bad.length) {
+      toast(`${okN} 条已启动，${bad.length} 条没启动：${bad.map(b => b.error).join('；')}`, 'err');
+    } else {
+      toast(`已启动 ${okN} 条作业`, 'ok');
+    }
+  } catch (e) {
+    toast('启动失败：' + (e.message || e), 'err');
+  }
+  tick();
 }
 
 const progressOf = j => {
@@ -721,7 +802,20 @@ function renderDispatchBar(active) {
   const box = $('#dispatchbar');
   if (!box) return;
   const d = S.dispatch;
-  if (!d) { box.hidden = true; return; }
+  // dispatch 接口线上是 404（后端没这个路由）。以前这里 `if (!d) { box.hidden = true; }`
+  // —— 整条提示被隐藏，于是「CREATED 作业不会自己跑」这个最该说的话也一起消失了。
+  // 用户看到的就是"有两条挂在那，没人管，也没人告诉我为什么"。
+  //
+  // 现在：拿不到 dispatch 就按"没有调度器"处理，照样把话说出来。
+  // 系统里确实**没有**常驻调度器守护进程：CREATED 只会停在那儿等人点「执行」。
+  if (!d) {
+    box.hidden = !active.some(x => String(x.state || '').toUpperCase() === 'CREATED');
+    if (box.hidden) return;
+    box.className = 'tip warn';
+    box.innerHTML = '有作业停在「已创建」：它们不会自己启动。'
+      + '点右边的「执行」才会建机开跑（已创建的作业不占 GPU、不花钱）。';
+    return;
+  }
   box.hidden = false;
   if (!d.alive) {
     box.className = 'tip ' + (active.length ? 'bad' : 'warn');
@@ -1175,6 +1269,14 @@ function bind() {
     $('#auto').checked = S.auto; schedule(0);
   });
   $('#retry').addEventListener('click', () => { failN = 0; schedule(0); });
+  // 「执行」按钮用**事件委托**：qlist 每次刷新都重建 innerHTML，
+  // 直接给按钮绑 onClick 会在下一轮轮询后全部丢失。
+  $('#qlist').addEventListener('click', e => {
+    const btn = e.target.closest('[data-run]');
+    if (!btn) return;
+    e.preventDefault();
+    runPending(btn.getAttribute('data-run'));
+  });
   $('#resolve').addEventListener('click', () => doResolve().catch(() => {}));
   $('#submit').addEventListener('click', submitJob);
   if ($('#isLong')) {
