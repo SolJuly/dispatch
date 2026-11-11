@@ -1,0 +1,52 @@
+{
+  "kind": "video",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "wan2_1_14b_scail_2_fp16",
+    "workflow": "workflows/pack/video_wan21_scail2_character_replacement.api.json",
+    "checkpoint": "wan2.1_14B_SCAIL_2_fp16.safetensors",
+    "workflow_sha256": "521708a4c25ed5a11c9208195e715d1c54c49c9dc5f222214fa16d6375b0a03e",
+    "registry": {
+      "workflow_key": "pack_video_wan21_scail2_character_replacement",
+      "workflow_version": 3,
+      "model_key": "wan2_1_14b_scail_2_fp16",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "all",
+      "graph_sha256": "521708a4c25ed5a11c9208195e715d1c54c49c9dc5f222214fa16d6375b0a03e"
+    }
+  },
+  "params": {
+    "image": "in-f4d7f7b3.mp4",
+    "image_2": "in-1957c001.jpg",
+    "length": 81,
+    "neg_prompt": "",
+    "prompt": "A young woman with dark hair tied in a neat high bun, with a few loose strands framing her face, is …"
+  },
+  "expect": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "freeze": {
+      "mode": "full_freeze_only",
+      "ratio_max": 0.2,
+      "longest_max_s": 1.0
+    }
+  },
+  "budget": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  },
+  "task_class": "short",
+  "task_class_source": "user"
+}
