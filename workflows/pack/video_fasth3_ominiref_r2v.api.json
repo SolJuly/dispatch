@@ -1,311 +1,471 @@
 {
- "115": {
-  "class_type": "ResolutionSelector",
-  "inputs": {
-   "aspect_ratio": "1:1 (Square)",
-   "megapixels": 1,
-   "multiple": 8
+  "115": {
+    "class_type": "ResolutionSelector",
+    "inputs": {
+      "aspect_ratio": "1:1 (Square)",
+      "megapixels": 1,
+      "multiple": 8
+    },
+    "_meta": {
+      "title": "Resolution Selector (Size)"
+    }
   },
-  "_meta": {
-   "title": "Resolution Selector (Size)"
-  }
- },
- "119": {
-  "class_type": "VAELoader",
-  "inputs": {
-   "vae_name": "minimax_h3_video_vae_int8_convrot.safetensors"
+  "119": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_int8_convrot.safetensors"
+    },
+    "_meta": {
+      "title": "VAELoader"
+    }
   },
-  "_meta": {
-   "title": "VAELoader"
-  }
- },
- "120": {
-  "class_type": "VAELoader",
-  "inputs": {
-   "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+  "120": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "_meta": {
+      "title": "VAELoader"
+    }
   },
-  "_meta": {
-   "title": "VAELoader"
-  }
- },
- "121": {
-  "class_type": "VAEDecodeAudio",
-  "inputs": {
-   "samples": [
-    "125",
-    0
-   ],
-   "vae": [
-    "120",
-    0
-   ]
+  "121": {
+    "class_type": "VAEDecodeAudio",
+    "inputs": {
+      "samples": [
+        "125",
+        0
+      ],
+      "vae": [
+        "120",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEDecodeAudio"
+    }
   },
-  "_meta": {
-   "title": "VAEDecodeAudio"
-  }
- },
- "122": {
-  "class_type": "VAEDecode",
-  "inputs": {
-   "samples": [
-    "125",
-    0
-   ],
-   "vae": [
-    "119",
-    0
-   ]
+  "122": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "125",
+        0
+      ],
+      "vae": [
+        "119",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEDecode"
+    }
   },
-  "_meta": {
-   "title": "VAEDecode"
-  }
- },
- "123": {
-  "class_type": "KSamplerSelect",
-  "inputs": {
-   "sampler_name": "euler"
+  "123": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
   },
-  "_meta": {
-   "title": "KSamplerSelect"
-  }
- },
- "124": {
-  "class_type": "BasicScheduler",
-  "inputs": {
-   "scheduler": "simple",
-   "steps": 8,
-   "denoise": 1,
-   "model": [
-    "143",
-    0
-   ]
+  "124": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 8,
+      "denoise": 1,
+      "model": [
+        "143",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "BasicScheduler"
+    }
   },
-  "_meta": {
-   "title": "BasicScheduler"
-  }
- },
- "125": {
-  "class_type": "SamplerCustomAdvanced",
-  "inputs": {
-   "noise": [
-    "129",
-    0
-   ],
-   "guider": [
-    "126",
-    0
-   ],
-   "sampler": [
-    "123",
-    0
-   ],
-   "sigmas": [
-    "124",
-    0
-   ],
-   "latent_image": [
-    "136",
-    1
-   ]
+  "125": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "129",
+        0
+      ],
+      "guider": [
+        "126",
+        0
+      ],
+      "sampler": [
+        "123",
+        0
+      ],
+      "sigmas": [
+        "124",
+        0
+      ],
+      "latent_image": [
+        "136",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
   },
-  "_meta": {
-   "title": "SamplerCustomAdvanced"
-  }
- },
- "126": {
-  "class_type": "BasicGuider",
-  "inputs": {
-   "model": [
-    "143",
-    0
-   ],
-   "conditioning": [
-    "136",
-    0
-   ]
+  "126": {
+    "class_type": "BasicGuider",
+    "inputs": {
+      "model": [
+        "143",
+        0
+      ],
+      "conditioning": [
+        "136",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "BasicGuider"
+    }
   },
-  "_meta": {
-   "title": "BasicGuider"
-  }
- },
- "127": {
-  "class_type": "UNETLoader",
-  "inputs": {
-   "unet_name": "fasth3_omniref_8step_pruned_int8_convrot.safetensors",
-   "weight_dtype": "default"
+  "127": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "fasth3_omniref_8step_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "UNETLoader"
+    }
   },
-  "_meta": {
-   "title": "UNETLoader"
-  }
- },
- "128": {
-  "class_type": "CLIPLoader",
-  "inputs": {
-   "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
-   "type": "minimax",
-   "device": "default"
+  "128": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "CLIPLoader"
+    }
   },
-  "_meta": {
-   "title": "CLIPLoader"
-  }
- },
- "129": {
-  "class_type": "RandomNoise",
-  "inputs": {
-   "noise_seed": 771204598
+  "129": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 771204598
+    },
+    "_meta": {
+      "title": "RandomNoise"
+    }
   },
-  "_meta": {
-   "title": "RandomNoise"
-  }
- },
- "130": {
-  "class_type": "CreateVideo",
-  "inputs": {
-   "fps": 24,
-   "bit_depth": 8,
-   "color_space": "sRGB",
-   "codec": "none",
-   "images": [
-    "122",
-    0
-   ],
-   "audio": [
-    "121",
-    0
-   ]
+  "130": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": 24,
+      "bit_depth": 8,
+      "color_space": "sRGB",
+      "codec": "none",
+      "images": [
+        "122",
+        0
+      ],
+      "audio": [
+        "121",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "CreateVideo"
+    }
   },
-  "_meta": {
-   "title": "CreateVideo"
-  }
- },
- "131": {
-  "class_type": "ComfyMathExpression",
-  "inputs": {
-   "expression": "max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17",
-   "values.a": 5
+  "131": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17",
+      "values.a": 5
+    },
+    "_meta": {
+      "title": "ComfyMathExpression"
+    }
   },
-  "_meta": {
-   "title": "ComfyMathExpression"
-  }
- },
- "136": {
-  "class_type": "MiniMaxH3ReferenceToVideo",
-  "inputs": {
-   "prompt": "subject_definitions:\n<Subject 1> is the plane in <Picture 1>: a yellow propeller plane climbing vertically with a smoke trail.\n<Subject 2> is the setting in <Picture 1>: a towering cumulus cloud against a near-black sky.\n\nsummary:\n[reference generation] The target video is a 5-second, multi-cut cinematic aviation film. The plane climbs vertically, stalls at the top and tumbles into a dramatic dive.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1], [Shot 2]): fully_preserved - the yellow plane and white smoke trail are retained.\n<Subject 2> (appears in [Shot 1], [Shot 2]): fully_preserved - the towering cumulus and dark sky are retained.\n\ndetailed_description:\nThe target video is a striking, high-contrast aerial film with bright sunlit clouds, deep dark sky and dynamic camera moves.\n[Shot 1] A wide shot matches <Picture 1>: <Subject 1> climbs straight up above <Subject 2>, smoke trail curling, and the camera tilts up with it.\n[Shot 2] At 00:02.000, the shot cuts to a beautiful close-up of the propeller and yellow nose as it slows at the top; the plane stalls, flips over and the camera follows it diving toward the bright cloud.\n\noverall_soundscape:\nStraining engine, wind, a sudden silence at the stall and a roaring dive.\n\nnon_diegetic_music:\nTense rising strings that break into a thrilling crescendo.",
-   "width": [
-    "115",
-    0
-   ],
-   "height": [
-    "115",
-    1
-   ],
-   "length": [
-    "131",
-    1
-   ],
-   "ref_image_size": "match",
-   "clip": [
-    "128",
-    0
-   ],
-   "vae": [
-    "119",
-    0
-   ],
-   "audio_vae": [
-    "120",
-    0
-   ],
-   "ref_images.ref_image_0": [
-    "137",
-    0
-   ],
-   "ref_images.ref_image_1": [
-    "139",
-    0
-   ]
+  "136": {
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "inputs": {
+      "prompt": "subject_definitions:\n<Subject 1> is the plane in <Picture 1>: a yellow propeller plane climbing vertically with a smoke trail.\n<Subject 2> is the setting in <Picture 1>: a towering cumulus cloud against a near-black sky.\n\nsummary:\n[reference generation] The target video is a 5-second, multi-cut cinematic aviation film. The plane climbs vertically, stalls at the top and tumbles into a dramatic dive.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1], [Shot 2]): fully_preserved - the yellow plane and white smoke trail are retained.\n<Subject 2> (appears in [Shot 1], [Shot 2]): fully_preserved - the towering cumulus and dark sky are retained.\n\ndetailed_description:\nThe target video is a striking, high-contrast aerial film with bright sunlit clouds, deep dark sky and dynamic camera moves.\n[Shot 1] A wide shot matches <Picture 1>: <Subject 1> climbs straight up above <Subject 2>, smoke trail curling, and the camera tilts up with it.\n[Shot 2] At 00:02.000, the shot cuts to a beautiful close-up of the propeller and yellow nose as it slows at the top; the plane stalls, flips over and the camera follows it diving toward the bright cloud.\n\noverall_soundscape:\nStraining engine, wind, a sudden silence at the stall and a roaring dive.\n\nnon_diegetic_music:\nTense rising strings that break into a thrilling crescendo.",
+      "width": [
+        "115",
+        0
+      ],
+      "height": [
+        "115",
+        1
+      ],
+      "length": [
+        "131",
+        1
+      ],
+      "ref_image_size": "match",
+      "clip": [
+        "128",
+        0
+      ],
+      "vae": [
+        "119",
+        0
+      ],
+      "audio_vae": [
+        "120",
+        0
+      ],
+      "ref_images.ref_image_0": [
+        "137",
+        0
+      ],
+      "ref_images.ref_image_1": [
+        "139",
+        0
+      ],
+      "ref_images.ref_image_2": [
+        "144",
+        0
+      ],
+      "ref_images.ref_image_3": [
+        "145",
+        0
+      ],
+      "ref_images.ref_image_4": [
+        "146",
+        0
+      ],
+      "ref_images.ref_image_5": [
+        "147",
+        0
+      ],
+      "ref_images.ref_image_6": [
+        "148",
+        0
+      ],
+      "ref_images.ref_image_7": [
+        "149",
+        0
+      ],
+      "ref_images.ref_image_8": [
+        "150",
+        0
+      ],
+      "ref_videos.ref_video_0": [
+        "151",
+        0
+      ],
+      "ref_videos.ref_video_1": [
+        "152",
+        0
+      ],
+      "ref_videos.ref_video_2": [
+        "153",
+        0
+      ],
+      "ref_audios.ref_audio_0": [
+        "154",
+        0
+      ],
+      "ref_audios.ref_audio_1": [
+        "155",
+        0
+      ],
+      "ref_audios.ref_audio_2": [
+        "156",
+        0
+      ],
+      "ref_video_audios.ref_video_audio_0": [
+        "157",
+        0
+      ],
+      "ref_video_audios.ref_video_audio_1": [
+        "158",
+        0
+      ],
+      "ref_video_audios.ref_video_audio_2": [
+        "159",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "MiniMaxH3ReferenceToVideo"
+    }
   },
-  "_meta": {
-   "title": "MiniMaxH3ReferenceToVideo"
-  }
- },
- "137": {
-  "class_type": "LoadImage",
-  "inputs": {
-   "image": "yellow_plane_ref.png"
+  "137": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "yellow_plane_ref.png"
+    },
+    "_meta": {
+      "title": "LoadImage"
+    }
   },
-  "_meta": {
-   "title": "LoadImage"
-  }
- },
- "141": {
-  "class_type": "MiniMaxH3SigmaShift",
-  "inputs": {
-   "shift_video": 12,
-   "shift_audio": 3,
-   "model": [
-    "127",
-    0
-   ]
+  "141": {
+    "class_type": "MiniMaxH3SigmaShift",
+    "inputs": {
+      "shift_video": 12,
+      "shift_audio": 3,
+      "model": [
+        "127",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "MiniMaxH3SigmaShift"
+    }
   },
-  "_meta": {
-   "title": "MiniMaxH3SigmaShift"
-  }
- },
- "142": {
-  "class_type": "ModelAttentionBackend",
-  "inputs": {
-   "attention": "comfy kitchen attention",
-   "model": [
-    "141",
-    0
-   ]
+  "142": {
+    "class_type": "ModelAttentionBackend",
+    "inputs": {
+      "attention": "comfy kitchen attention",
+      "model": [
+        "141",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ModelAttentionBackend"
+    }
   },
-  "_meta": {
-   "title": "ModelAttentionBackend"
-  }
- },
- "143": {
-  "class_type": "BlockSparseAttention",
-  "inputs": {
-   "selection": "vsa",
-   "selection.keep_percent": 10,
-   "start_percent": 0,
-   "end_percent": 1,
-   "dense_blocks": "",
-   "min_tokens": 12288,
-   "extra_tokens": 256,
-   "sink_conditioning": "exact_kv_and_rows",
-   "verbose": false,
-   "model": [
-    "142",
-    0
-   ]
+  "143": {
+    "class_type": "BlockSparseAttention",
+    "inputs": {
+      "selection": "vsa",
+      "selection.keep_percent": 10,
+      "start_percent": 0,
+      "end_percent": 1,
+      "dense_blocks": "",
+      "min_tokens": 12288,
+      "extra_tokens": 256,
+      "sink_conditioning": "exact_kv_and_rows",
+      "verbose": false,
+      "model": [
+        "142",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "BlockSparseAttention"
+    }
   },
-  "_meta": {
-   "title": "BlockSparseAttention"
-  }
- },
- "92": {
-  "class_type": "SaveVideo",
-  "inputs": {
-   "filename_prefix": "video/FastH3_OmniRef",
-   "format": "auto",
-   "codec": "auto",
-   "video": [
-    "130",
-    0
-   ]
+  "92": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "video/FastH3_OmniRef",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "130",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "SaveVideo"
+    }
   },
-  "_meta": {
-   "title": "SaveVideo"
+  "139": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "placeholder_ref2.png"
+    }
+  },
+  "144": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "145": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "146": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "147": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "148": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "149": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "150": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "151": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": ""
+    }
+  },
+  "152": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": ""
+    }
+  },
+  "153": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": ""
+    }
+  },
+  "154": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": ""
+    }
+  },
+  "155": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": ""
+    }
+  },
+  "156": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": ""
+    }
+  },
+  "157": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": ""
+    }
+  },
+  "158": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": ""
+    }
+  },
+  "159": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": ""
+    }
   }
- },
- "139": {
-  "class_type": "LoadImage",
-  "inputs": {
-   "image": "placeholder_ref2.png"
-  }
- }
 }

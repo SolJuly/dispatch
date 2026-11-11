@@ -62,7 +62,7 @@
           "node": "157"
         }
       ],
-      "description": "主输入图。人脸/人物类工作流用它当身份或首帧来源。",
+      "description": "参考图 1。**prompt 里写 <Picture 1> 才会被用上**。",
       "required": true,
       "type": "image"
     },
@@ -73,7 +73,7 @@
           "node": "159"
         }
       ],
-      "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
+      "description": "参考图 2。prompt 里写 <Picture 2>。",
       "required": true,
       "type": "image"
     },
@@ -123,6 +123,193 @@
       "max": 2147483647,
       "min": 0,
       "type": "int"
+    },
+    "ref_image_2": {
+      "type": "image",
+      "required": false,
+      "description": "参考图。**prompt 里用 <Picture N> 引用第 N 张才会生效**。不填也能跑；填几张就用几张。",
+      "bindings": [
+        {
+          "node": "171",
+          "input": "image"
+        }
+      ]
+    },
+    "ref_image_3": {
+      "type": "image",
+      "required": false,
+      "description": "参考图 3。prompt 里写 <Picture 3>。不填也行。",
+      "bindings": [
+        {
+          "node": "172",
+          "input": "image"
+        }
+      ]
+    },
+    "ref_image_4": {
+      "type": "image",
+      "required": false,
+      "description": "参考图 4。prompt 里写 <Picture 4>。不填也行。",
+      "bindings": [
+        {
+          "node": "173",
+          "input": "image"
+        }
+      ]
+    },
+    "ref_image_5": {
+      "type": "image",
+      "required": false,
+      "description": "参考图 5。prompt 里写 <Picture 5>。不填也行。",
+      "bindings": [
+        {
+          "node": "174",
+          "input": "image"
+        }
+      ]
+    },
+    "ref_image_6": {
+      "type": "image",
+      "required": false,
+      "description": "参考图 6。prompt 里写 <Picture 6>。不填也行。",
+      "bindings": [
+        {
+          "node": "175",
+          "input": "image"
+        }
+      ]
+    },
+    "ref_image_7": {
+      "type": "image",
+      "required": false,
+      "description": "参考图 7。prompt 里写 <Picture 7>。不填也行。",
+      "bindings": [
+        {
+          "node": "176",
+          "input": "image"
+        }
+      ]
+    },
+    "ref_image_8": {
+      "type": "image",
+      "required": false,
+      "description": "参考图 8。prompt 里写 <Picture 8>。不填也行。",
+      "bindings": [
+        {
+          "node": "177",
+          "input": "image"
+        }
+      ]
+    },
+    "ref_image_9": {
+      "type": "image",
+      "required": false,
+      "description": "参考图 9。prompt 里写 <Picture 9>。不填也行。",
+      "bindings": [
+        {
+          "node": "178",
+          "input": "image"
+        }
+      ]
+    },
+    "ref_video_1": {
+      "type": "video",
+      "required": false,
+      "description": "参考视频 1。prompt 里写 <Video 1>。不填也行。",
+      "bindings": [
+        {
+          "node": "179",
+          "input": "file"
+        }
+      ]
+    },
+    "ref_video_2": {
+      "type": "video",
+      "required": false,
+      "description": "参考视频 2。prompt 里写 <Video 2>。不填也行。",
+      "bindings": [
+        {
+          "node": "180",
+          "input": "file"
+        }
+      ]
+    },
+    "ref_video_3": {
+      "type": "video",
+      "required": false,
+      "description": "参考视频 3。prompt 里写 <Video 3>。不填也行。",
+      "bindings": [
+        {
+          "node": "181",
+          "input": "file"
+        }
+      ]
+    },
+    "ref_audio_1": {
+      "type": "audio",
+      "required": false,
+      "description": "参考音频 1。**prompt 里写 <Audio 1> 才会生效**。支持 WAV/MP3/FLAC。不填也行。",
+      "bindings": [
+        {
+          "node": "182",
+          "input": "audio"
+        }
+      ]
+    },
+    "ref_audio_2": {
+      "type": "audio",
+      "required": false,
+      "description": "参考音频 2。**prompt 里写 <Audio 2> 才会生效**。支持 WAV/MP3/FLAC。不填也行。",
+      "bindings": [
+        {
+          "node": "183",
+          "input": "audio"
+        }
+      ]
+    },
+    "ref_audio_3": {
+      "type": "audio",
+      "required": false,
+      "description": "参考音频 3。**prompt 里写 <Audio 3> 才会生效**。支持 WAV/MP3/FLAC。不填也行。",
+      "bindings": [
+        {
+          "node": "184",
+          "input": "audio"
+        }
+      ]
+    },
+    "ref_video_audio_1": {
+      "type": "audio",
+      "required": false,
+      "description": "参考视频 1 的音轨。配合同序号参考视频用。",
+      "bindings": [
+        {
+          "node": "185",
+          "input": "audio"
+        }
+      ]
+    },
+    "ref_video_audio_2": {
+      "type": "audio",
+      "required": false,
+      "description": "参考视频 2 的音轨。配合同序号参考视频用。",
+      "bindings": [
+        {
+          "node": "186",
+          "input": "audio"
+        }
+      ]
+    },
+    "ref_video_audio_3": {
+      "type": "audio",
+      "required": false,
+      "description": "参考视频 3 的音轨。配合同序号参考视频用。",
+      "bindings": [
+        {
+          "node": "187",
+          "input": "audio"
+        }
+      ]
     }
   },
   "required_gpu": [

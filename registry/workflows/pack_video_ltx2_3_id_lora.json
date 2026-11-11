@@ -102,6 +102,17 @@
       "max": 2147483647,
       "min": 0,
       "type": "int"
+    },
+    "ref_audio": {
+      "type": "audio",
+      "required": false,
+      "description": "参考音频。prompt 里用 <Audio 1> 引用才会生效。支持 WAV/MP3/FLAC。",
+      "bindings": [
+        {
+          "node": "276",
+          "input": "audio"
+        }
+      ]
     }
   },
   "required_gpu": [

@@ -365,13 +365,19 @@ function fieldDesc(spec) {
  * （sniff_upload 认 mp4/mov/webm/avi，上限 128MB），缺的只是这块 UI。 */
 function mediaCtl(name, spec) {
   const isVid = spec.type === 'video';
+  const isAud = spec.type === 'audio';
   const up = S.uploads[name];
-  const accept = isVid
-    ? 'video/mp4,video/quicktime,video/webm,video/x-m4v,.mp4,.mov,.webm,.m4v'
-    : 'image/png,image/jpeg,image/webp';
+  // accept 用 MIME + 扩展名双写：有些浏览器对 audio/wav 的 MIME 推断不一致
+  // （Windows 上 .wav 有时给 audio/wave 或 audio/x-wav），只写 MIME 会让
+  // 文件选择器把正常的 wav 灰掉。扩展名兜底能解决。
+  const accept = isAud
+    ? 'audio/wav,audio/wave,audio/x-wav,audio/mpeg,audio/flac,.wav,.mp3,.flac'
+    : isVid
+      ? 'video/mp4,video/quicktime,video/webm,video/x-m4v,.mp4,.mov,.webm,.m4v'
+      : 'image/png,image/jpeg,image/webp';
   // 只显示「上传状态」。用途说明交给外层的 fieldDesc 常驻显示，避免两处重复。
-  const ph = isVid ? '未选择视频文件' : '未选择图片文件';
-  const label = isVid ? '选择视频' : '选择图片';
+  const ph = isAud ? '未选择音频文件' : isVid ? '未选择视频文件' : '未选择图片文件';
+  const label = isAud ? '选择音频' : isVid ? '选择视频' : '选择图片';
   let preview = '';
   if (up) {
     // 预览标签按**实际文件扩展名**决定，而不是字段声明的类型。
@@ -379,15 +385,19 @@ function mediaCtl(name, spec) {
     // 这时用 <img> 显示 mp4 又是黑块 —— 和列表页踩过的是同一个坑。
     const url = String(up.url || up.name || '');
     const isVideoFile = /\.(mp4|mov|webm|m4v|avi)$/i.test(url);
-    preview = isVideoFile
-      ? `<video class="upthumb" src="${esc(artUrl(up.url))}" controls muted playsinline
-           preload="metadata"></video>`
-      : `<img class="upthumb" src="${esc(artUrl(up.url))}" alt="">`;
+    const isAudioFile = /\.(wav|mp3|flac)$/i.test(url);
+    preview = isAudioFile
+      ? `<audio class="upthumb" src="${esc(artUrl(up.url))}" controls
+           preload="metadata"></audio>`
+      : isVideoFile
+        ? `<video class="upthumb" src="${esc(artUrl(up.url))}" controls muted playsinline
+             preload="metadata"></video>`
+        : `<img class="upthumb" src="${esc(artUrl(up.url))}" alt="">`;
   }
   // 结构：row 是横向的上传控件行；fdesc 在它下面独占一行（由 renderForm 统一插入）。
   // 以前把 fdesc 塞进这个 flex 容器，说明文字会被挤到按钮右边变成一长条。
   return `<div class="upwrap">
-    <div class="up" data-up="${esc(name)}" data-kind="${isVid ? 'video' : 'image'}">
+    <div class="up" data-up="${esc(name)}" data-kind="${isAud ? 'audio' : isVid ? 'video' : 'image'}">
       <input type="file" accept="${accept}" hidden id="f_${esc(name)}"
              data-field="${esc(name)}">
       <button class="btn tiny" data-pick="${esc(name)}">${label}</button>
@@ -416,7 +426,7 @@ function renderForm(params) {
     const spec = params[name] || {};
     const val = S.form[name] !== undefined ? S.form[name] : (spec.default !== undefined ? spec.default : '');
     let ctl;
-    if (spec.type === 'image' || spec.type === 'video') {
+    if (spec.type === 'image' || spec.type === 'video' || spec.type === 'audio') {
       ctl = mediaCtl(name, spec);
     } else if (spec.type === 'enum') {
       const opts = spec.values || [];
@@ -585,7 +595,7 @@ async function submitJob() {
     // 媒体字段（image / video）一律取上传结果的文件名。
     // 以前只判 'image'，video 字段靠 S.form 里恰好也存了文件名才没崩 ——
     // 但那是巧合（doUpload 顺手写的），不是设计。
-    if (spec.type === 'image' || spec.type === 'video') {
+    if (spec.type === 'image' || spec.type === 'video' || spec.type === 'audio') {
       const up = S.uploads[name];
       if (up && up.name) { params[name] = up.name; return; }
       // 没上传就不传，交给服务端报「必填缺失」，别送空值

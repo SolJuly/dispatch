@@ -125,6 +125,17 @@
       "min": 256,
       "multiple": 32,
       "type": "int"
+    },
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "description": "反向提示词。留空也能跑。",
+      "bindings": [
+        {
+          "node": "1174",
+          "input": "text"
+        }
+      ]
     }
   },
   "required_gpu": [

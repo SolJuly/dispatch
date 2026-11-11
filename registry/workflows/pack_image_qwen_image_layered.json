@@ -92,6 +92,28 @@
       "max": 2147483647,
       "min": 0,
       "type": "int"
+    },
+    "prompt_2": {
+      "type": "string",
+      "required": false,
+      "description": "第二组提示词（这个工作流跑两次采样，各有一组正/负提示词）。",
+      "bindings": [
+        {
+          "node": "1164",
+          "input": "text"
+        }
+      ]
+    },
+    "neg_prompt_2": {
+      "type": "string",
+      "required": false,
+      "description": "第二组反向提示词。",
+      "bindings": [
+        {
+          "node": "1159",
+          "input": "text"
+        }
+      ]
     }
   },
   "required_gpu": [

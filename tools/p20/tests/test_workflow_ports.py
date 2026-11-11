@@ -1,0 +1,236 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""工作流接口盘点 + 音频上传链路测试。
+
+两个东西一起测，因为它们是同一件事的两半：
+「图里有多少个用户可给的输入」和「用户能不能把那个输入传上来」。
+2026-11-11 之前后者是断的（`sniff_upload` 拒 WAV），所以前者有再多也没用。
+
+用法：python3 -m unittest tools.p20.tests.test_workflow_ports
+"""
+from __future__ import annotations
+
+import io
+import json
+import math
+import struct
+import sys
+import unittest
+import wave
+from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parents[3]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+from tools.p20 import workflow_ports as W  # noqa: E402
+
+
+def _wav_bytes(seconds: float = 0.1, rate: int = 8000) -> bytes:
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        n = int(seconds * rate)
+        w.writeframes(b"".join(
+            struct.pack("<h", int(12000 * math.sin(2 * math.pi * 440 * i / rate)))
+            for i in range(n)))
+    return buf.getvalue()
+
+
+# ================================================================ 音频上传
+class TestAudioSniff(unittest.TestCase):
+    """`sniff_upload` 必须认音频，且不能把已有格式判错。
+
+    RIFF 头被 WebP / AVI / WAV 三家共用，判断顺序错了会互相抢 ——
+    这是本节最值得测的地方。
+    """
+
+    def setUp(self):
+        from webui import api
+        self.api = api
+
+    def test_wav(self):
+        self.assertEqual(self.api.sniff_upload(b"RIFF\x00\x00\x00\x00WAVE", "a.wav"), ".wav")
+
+    def test_mp3_with_id3(self):
+        self.assertEqual(self.api.sniff_upload(b"ID3\x04\x00\x00", "a.mp3"), ".mp3")
+
+    def test_mp3_raw_sync(self):
+        for magic in (b"\xff\xfb\x90\x00", b"\xff\xf3\x90\x00", b"\xff\xf2\x90\x00"):
+            with self.subTest(magic=magic):
+                self.assertEqual(self.api.sniff_upload(magic, "a.mp3"), ".mp3")
+
+    def test_flac(self):
+        self.assertEqual(self.api.sniff_upload(b"fLaC\x00\x00\x00\x00", "a.flac"), ".flac")
+
+    def test_riff_siblings_not_confused(self):
+        """**关键回归**：RIFF 里 WebP / AVI / WAV 必须分得开。
+
+        如果 WAV 的检查写在 WebP 前面（只判 `RIFF`），
+        上传 .webp 会被存成 .wav，之后 ComfyUI 读图就崩。
+        """
+        cases = {
+            b"RIFF\x00\x00\x00\x00WEBP": ".webp",
+            b"RIFF\x00\x00\x00\x00AVI ": ".avi",
+            b"RIFF\x00\x00\x00\x00WAVE": ".wav",
+        }
+        for data, want in cases.items():
+            with self.subTest(want=want):
+                self.assertEqual(self.api.sniff_upload(data, "x"), want)
+
+    def test_image_still_works(self):
+        self.assertEqual(self.api.sniff_upload(b"\x89PNG\r\n\x1a\n", "a.png"), ".png")
+        self.assertEqual(self.api.sniff_upload(b"\xff\xd8\xff\xe0", "a.jpg"), ".jpg")
+
+    def test_unknown_still_rejected(self):
+        from webui.api import ApiError
+        with self.assertRaises(ApiError) as cm:
+            self.api.sniff_upload(b"random garbage", "a.xyz")
+        self.assertEqual(cm.exception.code, 415)
+        self.assertIn("音频", cm.exception.msg, "报错里要写明支持音频")
+
+
+class TestAudioCap(unittest.TestCase):
+    def test_audio_has_own_limit(self):
+        """音频单独一档：不能套图片的 20MB（90 秒无损就超），
+        也不该套视频的 128MB。"""
+        from webui import api
+        self.assertEqual(api._cap_for(".wav"), api.MAX_UPLOAD_AUDIO)
+        self.assertEqual(api._cap_for(".mp3"), api.MAX_UPLOAD_AUDIO)
+        self.assertEqual(api._cap_for(".flac"), api.MAX_UPLOAD_AUDIO)
+        self.assertNotEqual(api.MAX_UPLOAD_AUDIO, api.MAX_UPLOAD)
+        self.assertNotEqual(api.MAX_UPLOAD_AUDIO, api.MAX_UPLOAD_VIDEO)
+        self.assertGreater(api.max_upload_bytes(), api.MAX_UPLOAD_AUDIO)
+
+
+class TestAudioUploadRoundTrip(unittest.TestCase):
+    """真的走一遍 save_upload，确认落盘名字和内容都对。"""
+
+    def test_real_wav(self):
+        from webui import api
+        data = _wav_bytes()
+        r = api.save_upload("ref.wav", data)
+        try:
+            self.assertTrue(r["name"].endswith(".wav"), r["name"])
+            self.assertEqual(r["bytes"], len(data))
+            p = Path(api.INPUTS_DIR) / r["name"]
+            self.assertTrue(p.is_file())
+            self.assertEqual(p.read_bytes(), data)
+        finally:
+            p = Path(api.INPUTS_DIR) / r["name"]
+            p.unlink(missing_ok=True)
+
+
+# ================================================================ 接口盘点
+class TestPortClassification(unittest.TestCase):
+    """三类输入的判据。写错了会让 UI 出现无意义的上传框。"""
+
+    def test_autogrow_reference_is_port(self):
+        """`ref_images`（max=9）是用户接口 —— 要给 9 个位置。"""
+        spec = ["COMFY_AUTOGROW_V3", {"template": {
+            "input": {"required": {"ref_image": ["IMAGE", {}]}},
+            "prefix": "ref_image_", "min": 0, "max": 9}}]
+        p = W._classify_field("MiniMaxH3ReferenceToVideo", "ref_images", spec,
+                              is_optional=True)
+        self.assertIsNotNone(p)
+        self.assertEqual(p.kind, "image")
+        self.assertEqual(p.max_count, 9)
+
+    def test_batch_node_autogrow_is_not_port(self):
+        """**踩过的误报**：`BatchImagesNode.images`（max=50）只是把上游
+        LoadImage 打包，不是"用户给 50 张图"。按它算会让 UI 出现 50 个空框。
+        """
+        spec = ["COMFY_AUTOGROW_V3", {"template": {
+            "input": {"required": {"image": ["IMAGE", {}]}},
+            "prefix": "image", "min": 1, "max": 50}}]
+        p = W._classify_field("BatchImagesNode", "images", spec, is_optional=True)
+        self.assertIsNone(p, "内部编排节点不该算用户接口")
+
+    def test_textgenerate_is_not_port(self):
+        """`TextGenerate*.prompt` 是给 LLM 的指令，不是用户的创作提示词。"""
+        spec = ["STRING", {"default": ""}]
+        p = W._classify_field("TextGenerateLTX2Prompt", "prompt", spec,
+                              is_optional=True)
+        self.assertIsNone(p)
+
+    def test_clip_text_is_port(self):
+        spec = ["STRING", {"default": ""}]
+        p = W._classify_field("CLIPTextEncode", "text", spec, is_optional=True)
+        self.assertIsNotNone(p)
+        self.assertEqual(p.kind, "text")
+
+    def test_loader_model_file_is_not_port(self):
+        """加载器的**模型权重**字段不是用户接口（用户不选 safetensors）。"""
+        spec = ["COMBO", {"options": ["a.safetensors", "b.safetensors"]}]
+        p = W._classify_field("UNETLoader", "unet_name", spec, is_optional=False)
+        self.assertIsNone(p)
+
+    def test_loader_media_file_is_port(self):
+        spec = ["COMBO", {"options": ["a.png", "b.jpg"]}]
+        p = W._classify_field("LoadImage", "image", spec, is_optional=False)
+        self.assertIsNotNone(p)
+        self.assertEqual(p.kind, "image")
+
+
+class TestNoGapsInVerified(unittest.TestCase):
+    """盘点的目标状态：**零缺口**。
+
+    2026-11-11 已经把 37 处缺口补到 0（其中 21 处是扫描器误报，16 处是真缺）。
+    这条测试防的是"以后加工作流时忘了接参数" —— 那会让 UI 少一个上传框，
+    而用户只会觉得"这个功能没有"。
+    """
+
+    def setUp(self):
+        self.oi = W._load_oi()
+
+    def test_all_workflows_have_no_gaps(self):
+        from tools.p20 import registry
+        bad = []
+        for w in registry.list_workflows():
+            r = W.scan(w["key"], self.oi)
+            if not r:
+                continue
+            g = r.gaps()
+            if g:
+                n = sum(len(v) for v in g.values())
+                bad.append(f"{w['key']}({n})")
+        self.assertEqual(bad, [], f"这些工作流还有未暴露的接口：{bad}")
+
+
+class TestMiniMaxPorts(unittest.TestCase):
+    """MiniMax 系列：9 图 / 3 视频 / 3 音频 / 3 视频音频 全都要有位置。"""
+
+    def setUp(self):
+        from tools.p20 import registry
+        self.wf = registry.get_workflow("pack_video_minimax_h3_r2v")
+        self.params = self.wf.get("params") or {}
+
+    def test_counts(self):
+        from collections import Counter
+        c = Counter(v.get("type") for v in self.params.values())
+        self.assertEqual(c["image"], 9, "9 个图片位置")
+        self.assertEqual(c["audio"], 6, "3 参考音频 + 3 视频音轨")
+        self.assertEqual(c["video"], 3, "3 个参考视频")
+
+    def test_optional_so_plain_user_can_run(self):
+        """**平民用户不该被 20 个框吓到**：只有 3 个必填。"""
+        req = [k for k, v in self.params.items() if v.get("required")]
+        self.assertEqual(sorted(req), ["image", "image_2", "prompt"])
+
+    def test_ref_audio_guidance_mentions_tag(self):
+        """参考音频必须告诉用户「要在 prompt 里写 <Audio N>」。
+
+        不说的话用户传了也不会生效，然后以为是坏的。
+        节点描述原文：`Use the same tags when prompting.`
+        """
+        for k, v in self.params.items():
+            if v.get("type") != "audio" or k.startswith("ref_video_audio"):
+                continue
+            self.assertIn("<Audio", v.get("description") or "",
+                          f"{k} 的说明没提 prompt 标签")
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -38,11 +38,15 @@ INPUTS_DIR = ROOT / "reports/p2/p21/inputs"
 SHARE_INPUTS = Path(os.environ.get("P21_SHARE_INPUTS", ROOT / "share" / "inputs"))
 MAX_UPLOAD = 20 * 1048576                    # 图片
 MAX_UPLOAD_VIDEO = int(os.environ.get("P21_MAX_UPLOAD_VIDEO_MB", "128")) * 1048576
+# 音频单独一档：WAV 24bit/48kHz 立体声约 17MB/分钟，3 分钟无损就 50MB。
+# 不能套用图片的 20MB（剪一段 90 秒的参考音频就超了），
+# 也不该套视频的 128MB（音频很少需要那么大，放宽了只是纵容浪费）。
+MAX_UPLOAD_AUDIO = int(os.environ.get("P21_MAX_UPLOAD_AUDIO_MB", "64")) * 1048576
 
 
 def max_upload_bytes() -> int:
     """单次上传请求体上限（视频比图片大很多；fileserver 也用这个数）。"""
-    return max(MAX_UPLOAD, MAX_UPLOAD_VIDEO)
+    return max(MAX_UPLOAD, MAX_UPLOAD_VIDEO, MAX_UPLOAD_AUDIO)
 # 控制台提交时排队等锁的上限（秒）：单任务串行，前面还有作业就等着，别扔在 CREATED
 QUEUE_WAIT_S = int(os.environ.get("P21_QUEUE_WAIT_S", "14400"))
 # 卡型没现货时最多等多久（秒）；全都没货才失败
@@ -202,14 +206,32 @@ IMAGE_MAGIC = (
 
 
 def sniff_upload(data: bytes, filename: str = "") -> str:
-    """按内容判类型，返回扩展名。图片 + 视频都认（动作迁移要传驱动视频）。"""
+    """按内容判类型，返回扩展名。图片 + 视频 + 音频都认。
+
+    音频三种格式的判据（**顺序很关键**）：
+
+        WAV   RIFF....WAVE     ← 和 WebP(RIFF+WEBP) / AVI(RIFF+AVI ) 共用 RIFF 头
+        MP3   ID3 或 FF FB/FF F3/FF F2（帧同步字）
+        FLAC  fLaC
+
+    所以 RIFF 的分支必须**先判断 data[8:12]** 再决定是 webp/avi/wav，
+    不能把 WAV 的检查放在 WebP 前面 —— 否则 .webp 会被误判成音频。
+    """
     for magic, ext in IMAGE_MAGIC:
         if data.startswith(magic):
             return ext
-    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
-        return ".webp"
-    if data[:4] == b"RIFF" and data[8:12] == b"AVI ":
-        return ".avi"
+    if data[:4] == b"RIFF":
+        riff = data[8:12]
+        if riff == b"WEBP":
+            return ".webp"
+        if riff == b"AVI ":
+            return ".avi"
+        if riff == b"WAVE":
+            return ".wav"
+    if data[:4] == b"fLaC":
+        return ".flac"
+    if data[:3] == b"ID3" or data[:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"):
+        return ".mp3"
     if data[4:8] == b"ftyp":
         brand = data[8:12]
         if brand.startswith(b"qt"):
@@ -223,14 +245,19 @@ def sniff_upload(data: bytes, filename: str = "") -> str:
         return ".gif"
     ext = Path(filename or "").suffix.lower()
     raise ApiError(f"不支持的文件类型（{ext or '未知'}）；图片收 PNG/JPEG/WebP，"
-                   f"视频收 MP4/MOV/WebM", 415)
+                   f"视频收 MP4/MOV/WebM/AVI，音频收 WAV/MP3/FLAC", 415)
 
 
 VIDEO_EXTS = (".mp4", ".mov", ".m4v", ".webm", ".avi", ".gif")
+AUDIO_EXTS = (".wav", ".mp3", ".flac")
 
 
 def _cap_for(ext: str) -> int:
-    return MAX_UPLOAD_VIDEO if ext in VIDEO_EXTS else MAX_UPLOAD
+    if ext in VIDEO_EXTS:
+        return MAX_UPLOAD_VIDEO
+    if ext in AUDIO_EXTS:
+        return MAX_UPLOAD_AUDIO
+    return MAX_UPLOAD
 
 
 def _drop_copy(src: Path, dst: Path) -> None:

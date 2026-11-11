@@ -222,6 +222,74 @@
       "ref_images.ref_image_0": [
         "164",
         0
+      ],
+      "ref_images.ref_image_1": [
+        "171",
+        0
+      ],
+      "ref_images.ref_image_2": [
+        "172",
+        0
+      ],
+      "ref_images.ref_image_3": [
+        "173",
+        0
+      ],
+      "ref_images.ref_image_4": [
+        "174",
+        0
+      ],
+      "ref_images.ref_image_5": [
+        "175",
+        0
+      ],
+      "ref_images.ref_image_6": [
+        "176",
+        0
+      ],
+      "ref_images.ref_image_7": [
+        "177",
+        0
+      ],
+      "ref_images.ref_image_8": [
+        "178",
+        0
+      ],
+      "ref_videos.ref_video_0": [
+        "179",
+        0
+      ],
+      "ref_videos.ref_video_1": [
+        "180",
+        0
+      ],
+      "ref_videos.ref_video_2": [
+        "181",
+        0
+      ],
+      "ref_audios.ref_audio_0": [
+        "182",
+        0
+      ],
+      "ref_audios.ref_audio_1": [
+        "183",
+        0
+      ],
+      "ref_audios.ref_audio_2": [
+        "184",
+        0
+      ],
+      "ref_video_audios.ref_video_audio_0": [
+        "185",
+        0
+      ],
+      "ref_video_audios.ref_video_audio_1": [
+        "186",
+        0
+      ],
+      "ref_video_audios.ref_video_audio_2": [
+        "187",
+        0
       ]
     },
     "_meta": {
@@ -445,6 +513,108 @@
     },
     "_meta": {
       "title": "SaveVideo"
+    }
+  },
+  "171": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "172": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "173": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "174": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "175": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "176": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "177": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "178": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": ""
+    }
+  },
+  "179": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": ""
+    }
+  },
+  "180": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": ""
+    }
+  },
+  "181": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": ""
+    }
+  },
+  "182": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": ""
+    }
+  },
+  "183": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": ""
+    }
+  },
+  "184": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": ""
+    }
+  },
+  "185": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": ""
+    }
+  },
+  "186": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": ""
+    }
+  },
+  "187": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": ""
     }
   }
 }

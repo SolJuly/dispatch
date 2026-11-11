@@ -80,6 +80,17 @@
       "max": 2147483647,
       "min": 0,
       "type": "int"
+    },
+    "neg_prompt": {
+      "type": "string",
+      "required": false,
+      "description": "反向提示词：描述不希望出现的画面。留空也能跑。",
+      "bindings": [
+        {
+          "node": "1096",
+          "input": "text"
+        }
+      ]
     }
   },
   "required_gpu": [

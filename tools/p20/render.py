@@ -515,15 +515,37 @@ def _is_material_driven(wf: dict) -> bool:
     判据只用注册表事实，不猜工作流名字：
       1) params 里有 type=video 的输入；或
       2) API 图里有 LoadVideo / VHS_LoadVideo 节点。
+
+    **但只看必填的 video 输入**（2026-11-11 修正）。
+
+    为什么：`pack_video_minimax_h3_r2v` 补满了参考接口之后，多出
+    `ref_video_1..3` 三个**可选**的视频输入。如果按"有 video 就算"，
+    它会被判成素材驱动、冻结门禁放宽到 full_freeze_only ——
+    可用户完全可能不传参考视频（纯两图生成），那时输出理应有运动，
+    放宽门禁就会漏掉真崩坏（人物走出画/全片静止）。
+
+    反过来，`wan_vace_v2v` 这类必填视频输入的，不传就根本跑不了，
+    它们才是真正的素材驱动。
     """
     for v in (wf.get("params") or {}).values():
-        if isinstance(v, dict) and v.get("type") == "video":
+        if isinstance(v, dict) and v.get("type") == "video" and v.get("required"):
             return True
     graph = _load_graph(wf)
     if isinstance(graph, dict):
         for n in graph.values():
-            ct = (n or {}).get("class_type", "")
-            if isinstance(ct, str) and ct.startswith(("LoadVideo", "VHS_LoadVideo")):
+            if not isinstance(n, dict):
+                continue
+            ct = n.get("class_type", "")
+            if not (isinstance(ct, str) and ct.startswith(("LoadVideo", "VHS_LoadVideo"))):
+                continue
+            # **空壳不算**（2026-11-11 踩到）。
+            # 为了让 UI 有"参考视频 1/2/3"三个位置，图里放了 3 个
+            # `LoadVideo{file: ""}` 空节点，等用户填。它们不是"用户在传视频"，
+            # 只是占位。按"有节点就算"会把纯图生视频的工作流误判成素材驱动，
+            # 进而把冻结门禁放宽 —— 用户不传视频时输出理应有运动，
+            # 放宽了就漏掉真崩坏。
+            val = (n.get("inputs") or {}).get("file")
+            if isinstance(val, str) and val.strip():
                 return True
     return False
 
