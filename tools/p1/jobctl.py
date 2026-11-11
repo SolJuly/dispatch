@@ -51,6 +51,10 @@ SPEC_DEFAULTS = {
 # 放进这里就变成"两个地方各有一份默认"，迟早漂移。
 LIFECYCLE_KEYS = ("task_class", "task_class_source", "idle_tier", "idle_after_done_s")
 
+# 不是生命周期字段，但同样由 spec 带入 job.json：用户"想让这个作业跑"的意图。
+# 和 LIFECYCLE_KEYS 分开列，是因为它不参与"实例留多久"的计算，只影响补位。
+INTENT_KEYS = ("auto_run",)
+
 
 def _die(msg: str, code: int = 1):
     print(f"✗ {msg}", file=sys.stderr)
@@ -259,6 +263,10 @@ def cmd_new(a) -> int:
             #   idle_tier          用户选的三档（60/90/120），短任务为 None
             #   idle_after_done_s  实算出来的空转秒数（审计看这个，不用再算一遍）
             job.update(_lifecycle_fields(spec))
+            # auto_run：只有"勾了立即执行但被并发挡住"的作业才带。
+            # 没勾的作业不带这个字段 —— 它们该等人点「执行」，不该被自动拉起。
+            if spec.get("auto_run"):
+                job["auto_run"] = True
 
             errs = schema.validate_job(job)
             if errs:

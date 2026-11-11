@@ -31,29 +31,48 @@ const END = src.indexOf('/* ====================================================
 assert(START > 0 && END > START, 'app.js 里找不到 submitJob 区段');
 const body = src.slice(START, END);
 
-/* 复刻 submitJob 里那段渲染逻辑（保持与源码同形，源码改了这里也要改） */
+/* 从源码里**真正抽出** note 的渲染逻辑，不再手抄一份。
+ *
+ * 踩过的坑：这里原来是手抄模板 —— 源码把「已创建，未执行」改成
+ * 「已排队，未启动」之后，测试还在断言旧文案，于是报"文案没说明没执行"，
+ * 而源码其实早就说清楚了。手抄的副本让测试变成**在测它自己**。
+ *
+ * 做法：从 app.js 截出 `const plan = ...` 到 `const note = ...` 整段，
+ * 包成一个工厂函数求值。只依赖两个外部量：`res` 和 `esc`。
+ */
 const ESC = `const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
   c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));`;
-const sandbox = {};
-const fn = new Function('module', ESC + `
+
+const BLK_START = src.indexOf('const plan = res.lifecycle');
+const BLK_END = src.indexOf("$('#submitMsg').innerHTML = note;", BLK_START);
+assert(BLK_START > 0 && BLK_END > BLK_START,
+  'app.js 里找不到 note 渲染区段（`const plan = res.lifecycle` … `innerHTML = note`）');
+
+// 整段原样搬过来，只在末尾追加导出。这样源码怎么改，这里就怎么变。
+const BLOCK = src.slice(BLK_START, BLK_END);
+const build = new Function('module', 'res', ESC + '\n' + BLOCK + '\nmodule.exports = note;');
+
 function note(res) {
-  return res.deferred
-    ? \`<span style="color:var(--amber)">\${esc(res.job_id)} · 已创建，未执行</span>
-       <div class="fdesc" style="margin-top:6px">\${esc(res.deferred_reason || '并发已满')}
-       作业已保存，等前面的跑完到任务页点「执行」即可，不会重复建机。</div>\`
-    : \`<span style="color:var(--green)">\${esc(res.job_id)} · \${esc(res.state)}</span>\`;
+  const m = {};
+  build(m, res);
+  return m.exports;
 }
-module.exports = {note};`);
-fn(sandbox, {});
-const {note} = sandbox.exports;
 
 /* ---------------------------------------------------------------- 源码断言 */
 t('submitJob 读 res.deferred', () => {
   assert.ok(body.includes('res.deferred'), '必须读 res.deferred');
 });
 
-t('降级时显示「已创建，未执行」而不是「已提交」', () => {
-  assert.ok(body.includes('已创建，未执行'), '文案必须明确说没执行');
+t('降级时必须明说「没在跑」而不是「已提交」', () => {
+  // **断言意图，不锁死文案**。以前这里写的是 assert.ok(includes('已创建，未执行'))，
+  // 文案一改成「已排队，未启动」就误报 —— 而那句新文案其实更准确
+  // （作业确实在排队，会自动开始）。
+  //
+  // 真正要守的是这条：用户看完必须知道「现在没在跑」。
+  const h = note({job_id: 'p1-x', deferred: true, deferred_reason: '并发已满'});
+  assert.ok(/未执行|未启动|排队/.test(h), '必须说出现在没在跑：' + h.slice(0, 120));
+  assert.ok(!/已提交执行/.test(h), '不能让人以为已经在执行');
+  assert.ok(!h.includes('var(--green)'), '降级不是成功态');
 });
 
 t('降级时解释原因（后端给的 deferred_reason）', () => {
@@ -70,7 +89,7 @@ t('deferred=true 渲染成 amber 且不含绿色', () => {
                   deferred_reason: '并发已满：2/2 个作业在跑'});
   assert.ok(h.includes('var(--amber)'), '应当是警示色');
   assert.ok(!h.includes('var(--green)'), '降级不能显示成功绿');
-  assert.ok(h.includes('已创建，未执行'));
+  assert.ok(/未执行|未启动|排队/.test(h), '要说清现在没在跑');
   assert.ok(h.includes('并发已满：2/2'));
 });
 

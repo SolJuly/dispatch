@@ -375,6 +375,10 @@ def list_jobs(limit: int = 20, *, offset: int = 0, state_prefix: str = "", workf
                                      d, jobs_dir) if arts else ""),
             "thumb_kind": ("video" if arts and arts[0]["name"].lower().endswith(
                 (".mp4", ".mov", ".webm", ".m4v")) else "image") if arts else "",
+            # 排队意图：这个作业是"用户想跑、但当时并发满了"。
+            # 前端据此说"会自动排上"而不是"请点执行" —— 两种说法对应两种
+            # 完全不同的用户预期，含糊过去就是让人白等。
+            "auto_run": bool(job.get("auto_run")),
         })
     rows.sort(key=lambda r: r.get("created_at") or "", reverse=True)
     lim = max(1, min(int(limit or 20), 200))
@@ -568,6 +572,14 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
     # 直接拒绝会丢掉用户填好的整套参数（prompt / 输入图 / seed…），
     # 那比"作业躺在 CREATED 等人点执行"难受得多 —— 后者零风险、可随时启动。
     # 代价是要明确告诉前端它没跑，否则用户以为在跑、其实在等。
+    #
+    # **但要记住用户的意图**：勾了「立即执行」却因为并发满被挡下，说明用户
+    # 是想让它跑的，只是暂时没槽。`auto_run` 记下这件事，等前面的作业结束、
+    # 槽位腾出来，由 `tools/p1/autostart.py` 自动拉起。
+    #
+    # 和"根本没勾执行"是两回事：
+    #   勾了 + 并发满 → auto_run=True  → 排队，前面跑完自动接着跑
+    #   没勾          → 不带这个字段  → 一直等人点「执行」，不会被自动拉起
     defer_reason = ""
     if run:
         from tools.p2 import concurrency as conc
@@ -577,6 +589,8 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
             defer_reason = why
 
     spec = p20cli._make_spec(res, job_key=workflow, task_ref="P2.1")
+    if defer_reason:
+        spec["auto_run"] = True
 
     # ---- 生命周期（2026-11-10 定版）----
     # 短任务不空转；长任务三档（60/90/120，默认 90）。

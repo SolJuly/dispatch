@@ -675,10 +675,11 @@ async function submitJob() {
         + ` 然后${esc(plan.stopped_ttl_label || '停机 2 小时')}，超时销毁。`
       : '跑完立即回收实例，不空转。';
     const note = res.deferred
-      ? `<span style="color:var(--amber)">${esc(res.job_id)} · 已创建，未执行</span>
+      ? `<span style="color:var(--amber)">${esc(res.job_id)} · 已排队，未启动</span>
          <div class="fdesc" style="margin-top:6px">${esc(res.deferred_reason || '并发已满')}
-         作业已保存但**没有启动**。等前面的跑完，到「任务」页点这条作业右边的「执行」，
-         或者现在就点（并发腾出来才会真正启动）。不会重复建机。</div>
+         作业已保存，正在排队。<b>前面的作业一结束，它会自动开始</b>，不用你盯着。
+         想提前跑就点这条作业右边的「执行」（并发腾出来才会真正启动）。
+         不会重复建机，排队期间也不花钱。</div>
          <div class="fdesc" style="margin-top:6px;border-left-color:#2f6b46">${lcLine}</div>`
       : `<span style="color:var(--green)">${esc(res.job_id)} · ${esc(res.state)}</span>
          <div class="fdesc" style="margin-top:6px;border-left-color:#2f6b46">${lcLine}</div>`;
@@ -702,24 +703,32 @@ function renderJobs() {
   $('#qlist').innerHTML = active.map(j => {
     const g = STATE_GROUP(j.state);
     const pct = progressOf(j);
-    // CREATED = 已建作业但**从未启动**：不建机、不花钱，也不会自己跑。
-    // 这种作业必须给一个「执行」按钮 —— 否则它永远停在任务栏，用户点遍
-    // 整个页面也找不到启动入口（后端 /jobs/run 一直在，只是没人调）。
-    const canRun = String(j.state || '').toUpperCase() === 'CREATED';
+    // CREATED = 已建作业但**从未启动**：不建机、不花钱。
+    //
+    // 两种 CREATED，含义完全不同，左边那个标签必须分开写：
+    //   auto_run=true  → 用户勾了执行但并发满了 → "排队中"，会自动开始
+    //   auto_run=false → 用户没勾执行           → "待执行"，必须点才会跑
+    // 都说成"排队"会让第二种的人一直等；都说成"待执行"会让第一种的人
+    // 以为要手动干预。
+    const isCreated = String(j.state || '').toUpperCase() === 'CREATED';
+    const canRun = isCreated;
+    const queuedAuto = isCreated && j.auto_run;
+    const posLabel = queuedAuto ? '排队中' : (canRun ? '待执行' : '跑');
     // 工作流名/模型名加 title —— 被省略号截断时鼠标悬停能看全。
     // 以前没有 title，长名字既看不全也不知道是什么，只能去点详情。
     return `<div class="qitem">
-      <div class="pos dim">${g === 'que' ? (canRun ? '待执行' : '排队') : '跑'}</div>
+      <div class="pos dim">${posLabel}</div>
       <div class="mid">
         <div class="j"><a href="#/result/${encodeURIComponent(j.job_id)}">${esc(j.job_id)}</a>
           <span class="st ${g}"><i class="dot"></i>${esc(stateCn(j.state))}</span>
           <span class="badge" title="${esc(j.workflow || '')}">${esc(j.workflow || '')}</span>
           <span class="badge" title="${esc(j.model || '')}">${esc(j.model || '')}</span></div>
         <div class="meta" title="${esc(j.prompt || '')}">${esc((j.prompt || '').slice(0, 80) || '（无 prompt）')} · ${esc(dt(ts(j.created_at)))}</div>
+        ${queuedAuto ? '<div class="meta" style="color:var(--dim)">前面的作业结束后自动开始，不用管</div>' : ''}
         ${pct != null ? `<div class="pbar"><i style="width:${pct}%"></i></div>` : ''}
       </div>
       <div class="right"><span class="pct">${pct != null ? pct + '%' : '—'}</span>
-        ${canRun ? `<button class="btn tiny p" data-run="${esc(j.job_id)}"
+        ${canRun ? `<button class="btn tiny${queuedAuto ? '' : ' p'}" data-run="${esc(j.job_id)}"
           title="立即建机执行（会产生费用）">执行</button>` : ''}
         <a class="btn tiny" href="#/result/${encodeURIComponent(j.job_id)}">详情</a></div>
     </div>`;
@@ -821,15 +830,30 @@ function renderDispatchBar(active) {
     return;
   }
   box.hidden = false;
+  // 把"停在已创建"的作业按**有没有排队意图**分成两组再说。
+  //   auto_run=true  → 用户勾了执行但并发满了，会自动排上，不用管
+  //   auto_run=false → 用户就是没勾执行，必须点「执行」才会跑
+  // 混在一起说「它们不会自动开始」是错的，会让等着的人也跑去点执行。
+  const created = active.filter(x => String(x.state || '').toUpperCase() === 'CREATED');
+  const queued = created.filter(x => x.auto_run);
+  const manual = created.filter(x => !x.auto_run);
+  if (created.length) {
+    const parts = [];
+    if (queued.length) {
+      parts.push(`<b>${queued.length}</b> 个排队中，前面的作业一结束会自动开始（不用管）`);
+    }
+    if (manual.length) {
+      parts.push(`<b>${manual.length}</b> 个需要手动点「执行」才会跑`);
+    }
+    const allAuto = !manual.length;
+    box.className = 'tip ' + (allAuto ? '' : (d && !d.alive ? 'bad' : 'warn'));
+    box.innerHTML = `有 ${created.length} 个作业停在「已创建」：` + parts.join('；') + '。'
+      + (manual.length ? ' 排队期间不占 GPU、不花钱。' : '');
+    return;
+  }
   if (!d.alive) {
-    // 没有常驻调度器 —— 这是本机的真实状态（p2-dispatch.service 是 disabled）。
-    // 不能让用户以为"等一会儿就轮到了"，必须明说要么点执行、要么开调度器。
-    const createdN = active.filter(x => String(x.state || '').toUpperCase() === 'CREATED').length;
-    box.className = 'tip ' + (createdN ? 'bad' : 'warn');
-    box.innerHTML = createdN
-      ? `⚠ 有 <b>${createdN}</b> 个作业停在「已创建」，但<b>没有调度器在跑</b> —— `
-        + `它们不会自动开始。点作业右边的「执行」即可（不点就一直等着，不花钱也不出片）。`
-      : (esc(d.note || '没有调度器在跑：新作业会停在「已创建」，需要手动点「执行」。'));
+    box.className = 'tip';
+    box.innerHTML = esc(d.note || '没有调度器在跑；需要自动排队时把作业勾上「立即执行」提交。');
   } else {
     box.className = 'tip';
     box.innerHTML = `调度器在线 · 心跳 ${d.age_s != null ? d.age_s + 's 前' : '—'}`

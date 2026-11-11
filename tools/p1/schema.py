@@ -167,6 +167,14 @@ def validate_job(d, *, job_id_expected: str | None = None) -> list[str]:
         elif tc == "long" and iad not in IDLE_TIERS:
             e.append(f"长任务 idle_after_done_s 应为 {IDLE_TIERS} 之一，实际 {iad}")
 
+    # ---- auto_run（2026-11-12）----
+    # 用户提交时勾了「立即执行」，但并发已满被降级成"只建作业不执行"。
+    # 这个字段记住"用户是想让它跑的"，等并发腾出来自动补位。
+    # 缺省 = False（没勾执行 / 老作业），那种作业就该老实等人点「执行」。
+    ar = d.get("auto_run")
+    if ar is not None and not isinstance(ar, bool):
+        e.append(f"auto_run 应为布尔值，实际 {ar!r}")
+
     return e
 
 

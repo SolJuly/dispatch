@@ -1731,6 +1731,38 @@ def _salvage(job_id: str, job: dict, opts) -> int:
 
 
 def run(job_id: str, opts) -> int:
+    """执行一个作业。返回 0=成功、1=失败。
+
+    外面包一层 `_with_autostart`：本作业无论从哪条路径结束（成功／失败／
+    abort／salvage／restart／异常），只要进入终态就该让出槽位、拉起下一个
+    排队的 auto_run 作业。这里的 return 点有七八个，逐个加补位必漏，
+    而且漏掉的那条路径会让后面排队的作业永远卡住。
+    """
+    return _with_autostart(job_id, _run_inner(job_id, opts))
+
+
+def _with_autostart(job_id: str, rc: int) -> int:
+    """作业跑完后补位 —— 只在**本作业确实进入终态**时才触发。
+
+    为什么必须判终态：`run.py` 有些路径是"暂时退出、稍后还能续"（比如失败后
+    保留实例等 --resume）。那种情况下槽位并没有真正让出来，急着补位会让
+    下一个作业撞上并发上限，白白失败一轮。
+    """
+    try:
+        st = state.load_job(job_id).get("state")
+    except Exception:                      # noqa: BLE001
+        return rc
+    if st not in state.TERMINAL:
+        return rc
+    try:
+        from tools.p1 import autostart
+        autostart.after_terminal(job_id, say=lambda m: _say(m))
+    except Exception as e:                 # noqa: BLE001  补位绝不能影响本作业结果
+        _say(f"⚠ 自动补位出错（不影响本作业）：{type(e).__name__}: {e}")
+    return rc
+
+
+def _run_inner(job_id: str, opts) -> int:
     global _LOG_PREFIX
     if getattr(opts, "batch", False):
         _LOG_PREFIX = f"[{job_id}] "
