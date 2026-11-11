@@ -894,36 +894,18 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             return _json({"error": f"P20 模块不可用: {e}"}, 500)
 
-        def _is_new(compat: dict | None, days: int = 1) -> bool:
-            """最近 N 天内**通过真机验证**的，算「新上线」。
+        def _is_new(compat: dict | None) -> bool:
+            """最近 N 天内**通过真机验证** = 「新上线」。
 
-            两个坑都踩过：
-
-            ① 不能用 `imported_at` —— 那是派生索引的重建时间，每跑一次
-               `p20ctl import` 就变，拿它做"新"会让全部 54 条都变新。
-
-            ② `checked_at` 只对 verified 有意义。`experimental` 记录在 import
-               时会被补一条、时间戳写的是"导入那一刻"（registry.py 第 323 行），
-               所以必须先判 status，否则 20 多条 experimental 全被标成"新"。
-
-            ③ 窗口不能给 7 天 —— 仓库里 11-03~11-07 验证过 26 条老工作流，
-               按 7 天算全算"新"，标签就没有意义了。默认 1 天 = 今天验证的。
+            判据只有一份，在 `webui.api.is_recent_verified`。
+            这里不再重复实现 —— 之前 UI 有两套（服务端渲染的 /app/ 与 SPA 的 /ui/），
+            "新"的定义各写一遍，改一处漏一处；两套前端合并成 SPA 后
+            唯一的消费方只剩这里的 `/api/p2/registry/workflows`，
+            再复制一份就纯粹是隐患。
             """
-            import datetime as _dt
-            import os
-            c = compat or {}
-            if c.get("status") != "verified":
-                return False
-            at = str(c.get("checked_at") or c.get("verified_at") or "")
-            try:
-                d = _dt.date.fromisoformat(at[:10])
-            except ValueError:
-                return False
-            try:
-                days = int(os.environ.get("P21_NEW_BADGE_DAYS") or days)
-            except ValueError:
-                pass
-            return (_dt.date.today() - d).days <= days
+            from webui.api import is_recent_verified
+            return is_recent_verified(compat)
+
 
         def _wf_summary(w: dict) -> dict:
             return {"key": w.get("key"), "name": w.get("name"), "version": w.get("version"),
