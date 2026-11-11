@@ -1,0 +1,53 @@
+{
+  "kind": "video",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "wan2_1_14b_scail_2_fp16",
+    "workflow": "workflows/pack/video_wan21_scail2_character_replacement.api.json",
+    "checkpoint": "wan2.1_14B_SCAIL_2_fp16.safetensors",
+    "workflow_sha256": "2065131926198552d96c38589f07ee32878921b574aac26c4de0165914b0f45b",
+    "registry": {
+      "workflow_key": "pack_video_wan21_scail2_character_replacement",
+      "workflow_version": 3,
+      "model_key": "wan2_1_14b_scail_2_fp16",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "all",
+      "graph_sha256": "2065131926198552d96c38589f07ee32878921b574aac26c4de0165914b0f45b"
+    }
+  },
+  "params": {
+    "image": "in-e9257a64-t4-16fps.mp4",
+    "image_2": "in-9a2f9304.jpg",
+    "length": 81,
+    "neg_prompt": "画面模糊不清，人物畸形",
+    "prompt": "把视频中的女生换成照片中的女生",
+    "trim_seconds": 4
+  },
+  "expect": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "freeze": {
+      "mode": "full_freeze_only",
+      "ratio_max": 0.2,
+      "longest_max_s": 1.0
+    }
+  },
+  "budget": {
+    "max_minutes": 40,
+    "max_cost": 1.6
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  },
+  "task_class": "short",
+  "task_class_source": "user"
+}

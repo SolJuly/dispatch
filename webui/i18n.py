@@ -29,7 +29,7 @@ PARAM_LABELS = {
     "mask": "蒙版",
     "audio": "音频",
     "video": "驱动视频",
-    "trim_seconds": "驱动视频截取秒数",
+    "trim_seconds": "用参考视频的前几秒（0=整条）",
     "denoise": "重绘强度（denoise）",
     "strength": "强度",
     "scale": "放大倍数",

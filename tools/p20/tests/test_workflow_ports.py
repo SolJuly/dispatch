@@ -391,3 +391,76 @@ class TestImportGate(unittest.TestCase):
                 os.environ.pop("P21_SKIP_PORT_GATE", None)
             else:
                 os.environ["P21_SKIP_PORT_GATE"] = old
+
+
+# ================================================================ 参数说明质量
+class TestTrimSecondsGuidance(unittest.TestCase):
+    """`trim_seconds` 的说明必须让**用户自己**能选对。
+
+    2026-11-11 用户的原话：
+
+        不做取舍，做好备注，让用户决定是否需要完整视频。
+        我自己在测试的时候都没反应过来，更别说用户了，
+        用大白话备注好，让用户自定义。
+
+    所以这条测试卡三件事：
+      ① 首行就要给结论（前端折叠只显示前两行 ≈ 56 字）
+      ② 必须写清 0 和 4 两种选择的**实际代价**（分钟 + 钱）
+      ③ 必须说清「成片时长由谁决定」，否则用户会以为改这里能让成片更长
+    """
+
+    WF = ["pack_video_wan21_scail2_character_replacement",
+          "pack_video_wan_animate2_distilled"]
+
+    def setUp(self):
+        from tools.p20 import registry
+        self.wfs = {k: registry.get_workflow(k) for k in self.WF}
+
+    def _desc(self, key):
+        ps = self.wfs[key].get("params") or {}
+        return (ps.get("trim_seconds") or {}).get("description") or ""
+
+    def test_each_workflow_has_guidance(self):
+        for k in self.WF:
+            with self.subTest(workflow=k):
+                self.assertTrue(self._desc(k), f"{k} 的 trim_seconds 没有说明")
+
+    def test_first_line_has_conclusion(self):
+        """前端折叠只露前两行，结论必须在首行。"""
+        for k in self.WF:
+            with self.subTest(workflow=k):
+                first = self._desc(k).splitlines()[0]
+                self.assertLessEqual(len(first), 56,
+                                     f"{k} 首行 {len(first)} 字，会被折叠截断")
+                self.assertIn("4", first, "首行要点明默认值")
+                self.assertIn("0", first, "首行要点明 0 = 整条")
+
+    def test_mentions_both_costs(self):
+        """必须给出两种选择的分钟数和钱 —— 只说"会变慢变贵"用户没法判断。"""
+        for k in self.WF:
+            with self.subTest(workflow=k):
+                d = self._desc(k)
+                self.assertIn("分钟", d, "要写耗时")
+                self.assertIn("¥", d, "要写花费")
+
+    def test_says_what_controls_duration(self):
+        """必须说清「成片时长由谁决定」——这是用户最容易误解的地方。
+
+        实测两个工作流语义不同：
+          scail2     成片时长跟驱动视频走（trim 直接影响）
+          animate2   成片帧数由 frames 决定（trim 只影响参考量，不影响长度）
+        所以两类都要提这件事，措辞可以不同。
+        """
+        for k in self.WF:
+            with self.subTest(workflow=k):
+                d = self._desc(k)
+                self.assertTrue(("成片" in d and ("跟着" in d or "决定" in d)),
+                                f"{k} 没说明成片时长由什么决定")
+
+    def test_label_is_plain_language(self):
+        """标签也不能是术语。「驱动视频截取秒数」用户看不懂。"""
+        from webui import i18n
+        label = i18n.PARAM_LABELS.get("trim_seconds") or ""
+        self.assertTrue(label)
+        self.assertNotIn("截取", label, "「截取」太术语，换成「用前几秒」")
+        self.assertIn("秒", label)

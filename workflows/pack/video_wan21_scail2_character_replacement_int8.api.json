@@ -223,11 +223,8 @@
     "1324",
     0
    ],
-   "batch_index": [
-    "1346",
-    1
-   ],
-   "length": 1
+   "batch_index": 0,
+   "length": 81
   },
   "_meta": {
    "title": "Character Replacement (SCAIL-2 Int8 Base)"
@@ -719,11 +716,8 @@
     "1366",
     0
    ],
-   "batch_index": [
-    "1388",
-    1
-   ],
-   "length": 1
+   "batch_index": 0,
+   "length": 81
   },
   "_meta": {
    "title": "Character Replacement (SCAIL-2 Int8 Extend)"
@@ -869,8 +863,8 @@
     "1397",
     0
    ],
-   "batch_index": 0,
-   "length": 1
+   "batch_index": 5,
+   "length": 4096
   },
   "_meta": {
    "title": "Character Replacement (SCAIL-2 Int8 Extend)"
@@ -902,7 +896,7 @@
     "30",
     0
    ],
-   "batch_index": 0,
+   "batch_index": -1,
    "length": 1
   },
   "_meta": {
