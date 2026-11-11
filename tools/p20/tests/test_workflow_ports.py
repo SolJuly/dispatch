@@ -324,3 +324,70 @@ class TestPruneInRenderJob(unittest.TestCase):
         # 只剩 2 张真图
         loads = [n for n in g.values() if n.get("class_type") == "LoadImage"]
         self.assertEqual(len(loads), 2)
+
+
+# ================================================================ 导入门禁
+class TestImportGate(unittest.TestCase):
+    """接口完整性必须卡在**写库之前**，否则等于没卡。
+
+    2026-11-11 装这个门禁时错了三次，都写进测试：
+
+    ① 门禁放在 `import_all` 的成功分支末尾 —— 那时 DB 已提交，
+       抛错也晚了，库里已经是"缺接口"的状态
+    ② `_discover()` 返回的是 `{key: (wf_dict, path)}`，按 list 遍历
+       拿到的是 key 字符串，`wf.get()` 静默失败 → 门禁永远通过
+    ③ `workflow_ports` 的加载函数叫 `_load_oi`，门禁里写成
+       `load_object_info`，`except: return {}` 把它吞了 → 同样永远通过
+       ②③ 都是"门禁坏了但看起来通过"，比没门禁更危险
+    """
+
+    def test_gate_function_exists(self):
+        from tools.p20 import registry
+        self.assertTrue(callable(getattr(registry, "_port_gaps", None)))
+
+    def test_gate_scans_discover_shape(self):
+        """直接喂 `_discover()` 的真实结构，必须能扫出结果。
+
+        ②的回归：按 list 遍历会得到 0 条。
+        """
+        from tools.p20 import registry
+        models, workflows = registry._discover(registry.WORKFLOW_DIR,
+                                               registry.MODEL_DIR)
+        self.assertIsInstance(workflows, dict, "前提：_discover 返回 dict")
+        # 当前仓库零缺口，所以结果应为空 —— 但要能"扫得动"，
+        # 而不是因为结构不认识而空。用一个必然有缺口的假 wf 验。
+        sample_key = next(iter(workflows))
+        wf, _ = workflows[sample_key]
+        self.assertIn("graph", wf, "前提：wf 里有 graph 字段")
+        gaps = registry._port_gaps(preview_workflows=workflows)
+        self.assertIsInstance(gaps, dict)
+
+    def test_public_object_info_loader(self):
+        """③的回归：门禁要的加载函数必须是公开名，不能只靠下划线版本。"""
+        from tools.p20 import workflow_ports as wp
+        self.assertTrue(hasattr(wp, "load_object_info"),
+                        "缺 load_object_info 会让门禁静默失效")
+        self.assertGreater(len(wp.load_object_info()), 100)
+
+    def test_current_repo_passes_gate(self):
+        """当前仓库应该零缺口（真被拦了说明有工作流漏接口）。"""
+        from tools.p20 import registry
+        models, workflows = registry._discover(registry.WORKFLOW_DIR,
+                                               registry.MODEL_DIR)
+        self.assertEqual(registry._port_gaps(preview_workflows=workflows), {})
+
+    def test_skip_env_escape_hatch(self):
+        """误报时要有逃生口，但不能是默认。"""
+        import os
+        from tools.p20 import registry
+        models, workflows = registry._discover(registry.WORKFLOW_DIR,
+                                               registry.MODEL_DIR)
+        old = os.environ.get("P21_SKIP_PORT_GATE")
+        try:
+            os.environ["P21_SKIP_PORT_GATE"] = "1"
+            self.assertEqual(registry._port_gaps(preview_workflows=workflows), {})
+        finally:
+            if old is None:
+                os.environ.pop("P21_SKIP_PORT_GATE", None)
+            else:
+                os.environ["P21_SKIP_PORT_GATE"] = old

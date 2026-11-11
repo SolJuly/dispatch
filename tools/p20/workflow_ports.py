@@ -170,6 +170,11 @@ class Report:
     exposed_bindings: list[str] = field(default_factory=list)
 
 
+def load_object_info() -> dict:
+    """公开名：模块外部（导入门禁）用这个，不要用下划线版本。"""
+    return _load_oi()
+
+
 def _load_oi() -> dict:
     d = json.loads(Path(OBJECT_INFO).read_text(encoding="utf-8"))
     return d.get("object_info") if isinstance(d.get("object_info"), dict) else d
@@ -288,6 +293,21 @@ def _feeds_detector(graph: dict, node_id: str) -> bool:
     return False
 
 
+def scan_one(wf: dict, oi: dict) -> Report | None:
+    """直接检查一份工作流配置（不查 DB）—— 给导入门禁用。
+
+    `scan()` 要 `registry.get_workflow(key)`，而门禁跑在**写库之前**，
+    那时库里还没有这条记录。所以拆出这个吃 dict 的版本。
+    """
+    try:
+        graph = json.loads((ROOT / wf["graph"]).read_text(encoding="utf-8"))
+    except Exception:                      # noqa: BLE001
+        return None
+    key = str(wf.get("key") or "")
+    model = str((wf.get("model") or {}).get("key") or wf.get("model_key") or "")
+    return _build_report(wf, graph, oi, key, str(wf.get("kind") or ""), model)
+
+
 def scan(workflow_key: str, oi: dict) -> Report | None:
     from tools.p20 import registry
     try:
@@ -297,7 +317,12 @@ def scan(workflow_key: str, oi: dict) -> Report | None:
 
     graph = json.loads((ROOT / wf["graph"]).read_text(encoding="utf-8"))
     model = str((wf.get("model") or {}).get("key") or wf.get("model_key") or "")
-    rep = Report(workflow=workflow_key, kind=str(wf.get("kind") or ""), model=model)
+    return _build_report(wf, graph, oi, workflow_key, str(wf.get("kind") or ""), model)
+
+
+def _build_report(wf: dict, graph: dict, oi: dict, workflow_key: str,
+                  kind: str, model: str) -> Report:
+    rep = Report(workflow=workflow_key, kind=kind, model=model)
 
     params = wf.get("params") or {}
     rep.exposed = sorted(params)

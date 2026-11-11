@@ -1,159 +1,167 @@
 {
- "description": "同上，int8 省显存。当前。（🚧 尚未开发）",
- "engine": "comfyui",
- "expect_defaults": {
-  "duration_s": [
-   1.0,
-   120.0
-  ],
-  "ext": "mp4",
-  "min_bytes": 50000
- },
- "graph": "workflows/pack/video_wan21_scail2_character_replacement_int8.api.json",
- "key": "pack_video_wan21_scail2_character_replacement_int8",
- "kind": "video",
- "limits": {
-  "max_cost": 1.6,
-  "max_minutes": 40
- },
- "model": {
-  "key": "wan2_1_14b_scail_2_int8_convrot",
-  "slots": {
-   "ckpt": {
-    "input": "ckpt_name",
-    "node": "1348"
-   },
-   "clip": {
-    "input": "clip_name",
-    "node": "1326"
-   },
-   "lora": {
-    "input": "lora_name",
-    "node": "1321"
-   },
-   "lora_2": {
-    "input": "lora_name",
-    "node": "1362"
-   },
-   "unet": {
-    "input": "unet_name",
-    "node": "1328"
-   },
-   "vae": {
-    "input": "vae_name",
-    "node": "1322"
-   }
-  }
- },
- "name": "角色替换 · SCAIL-2（int8）",
- "notes": "官方模板导入，未本地真机验证（compat=experimental） · 2026-11-11 修：prompt 原绑到 SAM3_VideoTrack.conditioning（分割条件，不是提示词），neg_prompt 绑到正向节点 —— 两个都错 · 2026-11-11 修：删掉重复的 prompt_3（与 prompt 同绑 1404.text，会把用户的修改覆盖回去）；prompt_2 说明改为「分割目标描述」，它绑的是 SAM3_VideoTrack.conditioning",
- "output": {
-  "ext": "mp4",
-  "input": "filename_prefix",
+  "description": "同上，int8 省显存。当前。（🚧 尚未开发）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
+    "ext": "mp4",
+    "min_bytes": 50000
+  },
+  "graph": "workflows/pack/video_wan21_scail2_character_replacement_int8.api.json",
+  "key": "pack_video_wan21_scail2_character_replacement_int8",
   "kind": "video",
-  "node": "202",
-  "pick": [
-   "videos",
-   "gifs"
-  ]
- },
- "params": {
-  "image": {
-   "bindings": [
-    {
-     "input": "file",
-     "node": "155"
-    }
-   ],
-   "description": "驱动/源视频（MP4/MOV/WebM）。",
-   "required": true,
-   "type": "video"
+  "limits": {
+    "max_cost": 1.6,
+    "max_minutes": 40
   },
-  "image_2": {
-   "bindings": [
-    {
-     "input": "image",
-     "node": "30"
+  "model": {
+    "key": "wan2_1_14b_scail_2_int8_convrot",
+    "slots": {
+      "ckpt": {
+        "input": "ckpt_name",
+        "node": "1348"
+      },
+      "clip": {
+        "input": "clip_name",
+        "node": "1326"
+      },
+      "lora": {
+        "input": "lora_name",
+        "node": "1321"
+      },
+      "lora_2": {
+        "input": "lora_name",
+        "node": "1362"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "1328"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "1322"
+      }
     }
-   ],
-   "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
-   "required": true,
-   "type": "image"
   },
-  "neg_prompt": {
-   "bindings": [
-    {
-     "node": "1358",
-     "input": "text"
-    },
-    {
-     "node": "1403",
-     "input": "text"
-    }
-   ],
-   "default": "",
-   "description": "负向提示词：不想出现的东西。这类工作流默认留空即可。",
-   "required": false,
-   "type": "string"
+  "name": "角色替换 · SCAIL-2（int8）",
+  "notes": "官方模板导入，未本地真机验证（compat=experimental） · 2026-11-11 修：prompt 原绑到 SAM3_VideoTrack.conditioning（分割条件，不是提示词），neg_prompt 绑到正向节点 —— 两个都错 · 2026-11-11 修：删掉重复的 prompt_3（与 prompt 同绑 1404.text，会把用户的修改覆盖回去）；prompt_2 说明改为「分割目标描述」，它绑的是 SAM3_VideoTrack.conditioning",
+  "output": {
+    "ext": "mp4",
+    "input": "filename_prefix",
+    "kind": "video",
+    "node": "202",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
   },
-  "prompt": {
-   "bindings": [
-    {
-     "node": "1359",
-     "input": "text"
+  "params": {
+    "image": {
+      "bindings": [
+        {
+          "input": "file",
+          "node": "155"
+        }
+      ],
+      "description": "驱动/源视频（MP4/MOV/WebM）。",
+      "required": true,
+      "type": "video"
     },
-    {
-     "node": "1404",
-     "input": "text"
+    "image_2": {
+      "bindings": [
+        {
+          "input": "image",
+          "node": "30"
+        }
+      ],
+      "description": "第二张输入图（多图输入的第二个位置，常见于参考图 + 素材的组合）。",
+      "required": true,
+      "type": "image"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "node": "1358",
+          "input": "text"
+        },
+        {
+          "node": "1403",
+          "input": "text"
+        }
+      ],
+      "default": "",
+      "description": "负向提示词：不想出现的东西。这类工作流默认留空即可。",
+      "required": false,
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "node": "1359",
+          "input": "text"
+        },
+        {
+          "node": "1404",
+          "input": "text"
+        }
+      ],
+      "default": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-neck top, is standing in a lush apple orchard. She holds a large glossy red apple with both hands, using a white paper handkerchief to wipe and clean the apple before smelling and eating it with her eyes closed and a blissful expression. Ripe red and yellow apples hang from leafy branches in the foreground, with rows of green apple trees softly blurred in the background under natural daylight.",
+      "description": "正向提示词：描述替换后的人物/画面。这类工作流靠它描述**目标**外观，写具体的外貌/衣着/背景，写得太笼统会得到和参考图不像的结果。",
+      "required": true,
+      "type": "string"
+    },
+    "prompt_2": {
+      "bindings": [
+        {
+          "input": "text",
+          "node": "1389"
+        }
+      ],
+      "default": "girl, handkerchief",
+      "description": "**分割目标描述**：告诉 SAM3 要抠什么（例如「girl, handkerchief」）。它不是画面提示词 —— 写错了抠错对象，成片会替换错主体。",
+      "required": false,
+      "type": "string"
+    },
+    "length": {
+      "type": "int",
+      "default": 81,
+      "min": 1,
+      "max": 121,
+      "description": "输出帧数。81 帧 ≈ 5 秒（16fps）。驱动视频会被循环取帧到这个长度。",
+      "bindings": [
+        {
+          "node": "1340",
+          "input": "length"
+        },
+        {
+          "node": "1382",
+          "input": "length"
+        },
+        {
+          "node": "1398",
+          "input": "length"
+        },
+        {
+          "node": "1400",
+          "input": "length"
+        }
+      ]
+    },
+    "trim_seconds": {
+      "type": "float",
+      "default": 4,
+      "min": 0,
+      "max": 60,
+      "description": "驱动视频截取秒数。**默认 4 秒**——这个工作流按驱动视频帧数分轮跑，每轮约 81 帧（16fps 下 5 秒）；一条 10 秒的手机视频 = 2 轮以上，耗时 30 分钟、¥1.2+，而输出只有 3~4 秒，性价比极低。截到 4 秒（16fps→64 帧）一轮就完，约 6 分钟 ¥0.3。填 0 = 用整条（只在确实需要长动作时用）。",
+      "virtual": true
     }
-   ],
-   "default": "A young East Asian woman with dark hair neatly pulled back, wearing a white sleeveless ribbed mock-neck top, is standing in a lush apple orchard. She holds a large glossy red apple with both hands, using a white paper handkerchief to wipe and clean the apple before smelling and eating it with her eyes closed and a blissful expression. Ripe red and yellow apples hang from leafy branches in the foreground, with rows of green apple trees softly blurred in the background under natural daylight.",
-   "description": "正向提示词：描述替换后的人物/画面。这类工作流靠它描述**目标**外观，写具体的外貌/衣着/背景，写得太笼统会得到和参考图不像的结果。",
-   "required": true,
-   "type": "string"
   },
-  "prompt_2": {
-   "bindings": [
-    {
-     "input": "text",
-     "node": "1389"
-    }
-   ],
-   "default": "girl, handkerchief",
-   "description": "**分割目标描述**：告诉 SAM3 要抠什么（例如「girl, handkerchief」）。它不是画面提示词 —— 写错了抠错对象，成片会替换错主体。",
-   "required": false,
-   "type": "string"
-  },
-  "length": {
-   "type": "int",
-   "default": 81,
-   "min": 1,
-   "max": 121,
-   "description": "输出帧数。81 帧 ≈ 5 秒（16fps）。驱动视频会被循环取帧到这个长度。",
-   "bindings": [
-    {
-     "node": "1340",
-     "input": "length"
-    },
-    {
-     "node": "1382",
-     "input": "length"
-    },
-    {
-     "node": "1398",
-     "input": "length"
-    },
-    {
-     "node": "1400",
-     "input": "length"
-    }
-   ]
-  }
- },
- "required_gpu": [
-  "4090",
-  "4090_48G"
- ],
- "schema": "p20.workflow/v1",
- "version": 3
+  "required_gpu": [
+    "4090",
+    "4090_48G"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 3
 }

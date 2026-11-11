@@ -108,9 +108,43 @@ def _scale(params: dict, ref_frames: int, ref_w: int, ref_h: int,
                     _trimmed = int(round(_secs * 16))   # _trim_video 固定重采样 16fps
                     if _trimmed:
                         frames = min(frames, _trimmed)
-                break
-    if not frames:
-        frames = params.get("frames") or params.get("length")
+                # **不要在这里 break**（2026-11-11 修的 bug）。
+                #
+                # 原来的写法：一旦探到驱动视频帧数就 break，于是
+                # `params["length"]`（输出帧数）被**彻底忽略**。
+                # 实测：把 length 从 121 改成 81，估价一直是 20.0 分钟不变，
+                # 用户以为没生效、反复改，还在看到"超 40 分钟上限"的警告。
+                #
+                # 正确语义是**两者取小的那个**：
+                #   · 驱动视频决定上限（按它分几轮跑）
+                #   · length 是用户要的输出帧数，不会超过它
+                # 所以先把驱动帧数记下来，循环后跟 length/frames 比一次。
+    # **驱动帧数和输出帧数是两个维度，不能取小，要相乘**。
+    #
+    # 语义（动作迁移模板的实际行为）：
+    #   轮数     = ceil(驱动视频帧数 / 单轮容量)   ← 驱动视频决定
+    #   总帧数   = 轮数 × length（每轮输出帧数）   ← length 决定每轮产出
+    #
+    # 踩过两次，方向相反：
+    #   ① 只按模板默认 frames=77 算 → 563 帧的驱动视频被报成 3 分钟，
+    #      实际 20 分钟（2026-11-07 修，测试
+    #      `test_driving_video_frames_beat_template_default` 守着）
+    #   ② 探到驱动帧数就 break，length 被完全忽略 → 121 改成 81 估值不变，
+    #      用户以为没生效（2026-11-11 修）
+    #
+    # 所以这里要**先按驱动帧数算出轮数，再乘 length**。
+    want = params.get("frames") or params.get("length")
+    try:
+        want_n = int(want) if want not in (None, "") else 0
+    except (TypeError, ValueError):
+        want_n = 0
+    if want_n > 0 and frames:
+        # frames 此时是驱动视频帧数（或已 trim 后的）；整轮数 × 每轮输出帧
+        per_round = max(1, want_n)
+        rounds = max(1, -(-frames // per_round))      # 向上取整
+        frames = rounds * per_round
+    elif want_n > 0:
+        frames = want_n
     if not frames and params.get("video"):
         frames = _probe_frames(str(params["video"]))
     if not frames and params.get("duration"):
@@ -165,8 +199,10 @@ def check_budget(workflow: dict, params: dict, budget: float | None) -> dict:
     max_min = limits.get("max_minutes")
     if isinstance(max_min, (int, float)) and max_min > 0 and est["seconds"] > max_min * 60:
         raise BudgetError(
-            f"预估 {est['seconds'] / 60:.1f} 分钟超过该工作流运行上限 {max_min:g} 分钟"
-            f"（跑到上限会被判超时，实例时间照扣）。请调小帧数/分辨率，或先截短驱动视频。",
+            f"预估 {est['seconds'] / 60:.1f} 分钟超过该工作流运行上限 {max_min:g} 分钟。"
+            f"**实例不会被强行关闭**（只要作业还在跑，reaper 就不会动它），"
+            f"但超过上限的作业会被判超时失败、钱照扣。"
+            f"请调小帧数/分辨率，或用 trim_seconds 截短驱动视频。",
             est)
     if budget is not None and budget > 0 and est["cost"] > float(budget):
         raise BudgetError(

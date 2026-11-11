@@ -384,3 +384,43 @@ class TestEnumValidation(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLengthAffectsEstimate(unittest.TestCase):
+    """`length`（输出帧数）必须影响估值。
+
+    2026-11-11 用户报的 bug：把 length 从 121 改成 81，预估一秒没变，
+    还在显示"超 40 分钟上限"的警告。
+
+    根因：`_scale` 里探到驱动视频帧数后直接 `break`，`params["length"]`
+    被完全忽略。上面那条 `test_driving_video_frames_beat_template_default`
+    守的是"别只看模板默认"，这条守的是另一头"别只看驱动视频"——
+    两个维度都要算，是**相乘**关系（轮数 × 每轮输出帧数）。
+    """
+
+    def test_length_changes_estimate(self):
+        from webui import budget
+        from tools.p20 import registry
+        wf = json.loads((ROOT / "registry/workflows/pack_video_wan_animate2_distilled.json")
+                        .read_text(encoding="utf-8"))
+        with mock.patch.object(budget, "_probe_frames", return_value=256):
+            big = budget.estimate(wf, {"image_2": "in-abc.mp4", "length": 121,
+                                       "trim_seconds": 0})
+            small = budget.estimate(wf, {"image_2": "in-abc.mp4", "length": 33,
+                                         "trim_seconds": 0})
+        self.assertGreater(big["seconds"], small["seconds"],
+                           "length 变小，估值必须变小（否则用户以为改了没生效）")
+
+    def test_rounds_times_per_round(self):
+        """轮数 × 每轮帧数：256 帧驱动 / length=81 → 4 轮 × 81 = 324 帧。
+
+        老实现要么只算 256（忽略 length），要么只算 81（忽略轮数），
+        都不对。
+        """
+        from webui import budget
+        with mock.patch.object(budget, "_probe_frames", return_value=256):
+            ratio = budget._scale({"image_2": "in-abc.mp4", "length": 81,
+                                   "trim_seconds": 0}, 81, 768, 512,
+                                  video_keys={"image_2"})
+        # 324/81 = 4.0
+        self.assertAlmostEqual(ratio, 4.0, places=2)

@@ -230,6 +230,36 @@ def import_all(db_path: Path | str = DB_PATH, *, workflow_dir: Path = WORKFLOW_D
     """全量重建派生索引（幂等）。配置有错 → 整体失败，不写半成品。"""
     models, workflows = _discover(workflow_dir, model_dir)
 
+    # ---- 接口完整性门禁（2026-11-11 起强制）----
+    #
+    # 你的要求：「每次新添工作流时把这个固定成流程，UI 必须严格按工作流给的
+    # 模板，输入一个都不能少。」
+    #
+    # 所以它是**写库之前的硬门禁**，不是事后提示：
+    # 图里有用户可给的输入（图片/视频/音频/提示词）却没在 registry.params
+    # 里暴露，直接拒绝导入。
+    #
+    # 为什么必须硬卡 —— 这种缺陷在别的环节全都看不见：
+    #   · 预检只查节点类和权重，全绿
+    #   · 渲染能过（没暴露的参数不参与渲染）
+    #   · 真机能跑，只是"少了个输入框"，用户以为这个功能不存在
+    # 实测代价：minimax H3 的 ref_audios 支持 3 段参考音频，图里位置一直在，
+    # 但没暴露参数 → 谁都不知道有这个能力。
+    #
+    # 必须在拿 DB 连接**之前**做：门禁要读现有 registry 算"已暴露"，
+    # 而事务里读到的是写了一半的状态。
+    _gate = _port_gaps(preview_workflows=workflows)
+    if _gate:
+        detail = "；".join(f"{k} 缺 {v} 处" for k, v in list(_gate.items())[:8])
+        more = f" 等 {len(_gate)} 条" if len(_gate) > 8 else ""
+        raise cs.ConfigError(
+            [f"接口完整性门禁失败{more}：{detail}",
+             "每个『用户可给』的输入都必须在 registry.params 里暴露 —— "
+             "否则 UI 少一个上传框，用户会以为这个功能不存在。",
+             "查看详情：python3 tools/p20/workflow_ports.py --gaps",
+             "确认是误报时：临时设 P21_SKIP_PORT_GATE=1（不建议长期用）"],
+            str(workflow_dir))
+
     # 兼容性文件（可缺省 = 全部 experimental）
     compat_entries: list[dict] = []
     if compat_path.exists():
@@ -344,6 +374,52 @@ def import_all(db_path: Path | str = DB_PATH, *, workflow_dir: Path = WORKFLOW_D
     return {"workflows": len(workflows), "models": len(models),
             "compat_explicit": len(compat_entries), "fingerprint": fp, "db": str(db_path)}
 
+
+def _port_gaps(preview_workflows: list[dict] | None = None) -> dict[str, int]:
+    """有多少工作流存在未暴露的用户输入。返回 {workflow: 缺口数}。
+
+    `preview_workflows` 是**尚未落库**的工作流配置（import 时传进来）——
+    门禁必须在写库之前判断，所以不能走 `list_workflows()` 读 DB。
+    """
+    import os as _os
+    if _os.environ.get("P21_SKIP_PORT_GATE") == "1":
+        return {}
+    try:
+        from tools.p20 import workflow_ports as wp
+        oi = wp.load_object_info()
+    except Exception as e:                 # noqa: BLE001
+        # **不能静默返回空**（2026-11-11 踩到）：门禁代码自己写错时，
+        # `return {}` 会让它看起来"全部通过"，于是永远拦不住任何东西。
+        # 这种情况必须喊出来 —— 门禁坏了和门禁通过是两回事。
+        import warnings
+        warnings.warn(f"接口门禁不可用（{type(e).__name__}: {e}），本次跳过检查",
+                      RuntimeWarning, stacklevel=2)
+        return {}
+
+    # `_discover()` 返回的是 {key: (wf_dict, path)}，不是 list ——
+    # 之前按 list 遍历，拿到的是 key 字符串，`wf.get()` 静默失败，
+    # 门禁永远返回空（2026-11-11 实测踩到，拦不住任何东西）。
+    out: dict[str, int] = {}
+    items = (preview_workflows or {}).items() if isinstance(preview_workflows, dict) \
+        else [(None, w) for w in (preview_workflows or [])]
+    for key, item in items:
+        wf = item[0] if isinstance(item, tuple) else item
+        if not isinstance(wf, dict):
+            continue
+        try:
+            r = wp.scan_one(wf, oi)
+        except Exception as e:             # noqa: BLE001
+            import warnings
+            warnings.warn(f"接口门禁扫描 {key} 失败（{type(e).__name__}: {e}）",
+                          RuntimeWarning, stacklevel=2)
+            continue
+        if not r:
+            continue
+        g = r.gaps()
+        n = sum(len(v) for v in g.values())
+        if n:
+            out[str(key or wf.get("key") or "?")] = n
+    return out
 
 def ensure_fresh(db_path: Path | str = DB_PATH, *, quiet: bool = True) -> bool:
     """DB 不存在或源文件指纹变化 → 自动重建。返回是否发生了重建。
