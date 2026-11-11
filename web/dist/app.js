@@ -262,7 +262,13 @@ const qsState = () => S.filter.state === 'all' ? undefined : S.filter.state;
 const qsWf = () => S.filter.wf === 'all' ? undefined : S.filter.wf;
 
 async function loadQueue() {
-  try { S.queue = await get('/queue'); } catch (e) { S.queue = null; }
+  // 只保留 dispatch：**队列已经禁用**（tool/p2/jobqueue.py），没有生产者，
+  // 它的数据永远为空。之前每轮轮询都还去请求一次 /queue，纯属浪费 ——
+  // 更糟的是，谁看到 S.queue 里那些字段还在，下次就可能又拿它算点什么，
+  // 重演「已完成花费 ¥7.35」（真实 ¥3.86）那个 bug。
+  //
+  // 要恢复队列时，把这一行解注释、并在 jobqueue 里设 P2_QUEUE_ENABLED=1。
+  // try { S.queue = await get('/queue'); } catch (e) { S.queue = null; }
   try { S.dispatch = await get('/dispatch'); } catch (e) { S.dispatch = null; }
 }
 
@@ -1207,7 +1213,7 @@ async function deleteJobs(ids) {
 
 /* ==================================================================== 运行环境 */
 async function loadInstances() {
-  try { S.queue = await get('/queue'); } catch (e) { S.queue = null; }
+  // 队列已禁用，不再请求 /queue（见 loadQueue 的说明）。
   try { S.dispatch = await get('/dispatch'); } catch (e) { S.dispatch = null; }
   let inst = null;
   try { inst = await get('/instances'); } catch (e) { inst = null; }

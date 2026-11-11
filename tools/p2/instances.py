@@ -226,18 +226,30 @@ def ledger_cost_by_instance(path: Path, limit_lines: int = 20000) -> dict[str, f
 
 # ---------------------------------------------------------------- 审计里的回收记录
 def _audit_rows(limit: int = 200) -> list[dict]:
-    c = queue.connect()
+    """队列审计里的回收记录。**队列禁用时返回空**。
+
+    注意 `connect()` 必须在 try **里面**。原来的写法是：
+        c = queue.connect()      ← 在 try 外
+        try: ...
+    队列禁用后 `connect()` 直接抛 `QueueDisabled`，而它不在 try 保护范围内，
+    整条 `snapshot()` 就炸了 —— 实例页直接 500。
+    这是加开关时漏掉的一处"直接调 connect"，不是 `queue.items()` 那种
+    有 `is_enabled()` 保护的路径。
+    """
+    c = None
     try:
+        c = queue.connect()
         rows = c.execute(
             "SELECT id, ts, job_id, instance_id, from_state, to_state, exit_code, detail "
             "FROM audit_log WHERE to_state='reclaimed' "
             "   OR detail LIKE '%watchdog%' OR detail LIKE '%timeout%' OR detail LIKE '%reclaim%' "
             "ORDER BY id DESC LIMIT ?", (int(limit),)).fetchall()
         return [dict(r) for r in rows]
-    except Exception:
+    except Exception:                      # noqa: BLE001  队列禁用/库损坏都算"没有记录"
         return []
     finally:
-        c.close()
+        if c is not None:
+            c.close()
 
 
 def _reclaim_reason(row: dict) -> str:

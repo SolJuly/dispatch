@@ -3,6 +3,7 @@
 """P2 队列单测（P0 幂等/心跳 + P1 退避/审计）：¥0，临时 SQLite。"""
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 import time
@@ -22,12 +23,17 @@ def P(c):
 
 class QueueTest(unittest.TestCase):
     def setUp(self):
+        # 队列默认禁用（见 jobqueue 模块 docstring）。这些用例测的就是队列
+        # 本身，所以显式打开开关 —— 用环境变量而不是改 ENABLED 常量，
+        # 这样测完自动恢复，不会污染同进程里别的用例。
+        os.environ["P2_QUEUE_ENABLED"] = "1"
         self._orig_db = queue.DB
         self._td = tempfile.TemporaryDirectory()
         queue.DB = Path(self._td.name) / "queue.db"
         queue.create_batch("b-1", "test", 2, 1.0)
 
     def tearDown(self):
+        os.environ.pop("P2_QUEUE_ENABLED", None)
         queue.DB = self._orig_db
         self._td.cleanup()
 

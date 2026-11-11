@@ -3,6 +3,7 @@
 """P2 调度器单测（¥0，临时 DB + monkeypatch，不建机、不联网）。"""
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 import unittest
@@ -22,6 +23,10 @@ def H(c):
 
 class SchedulerTest(unittest.TestCase):
     def setUp(self):
+        # 队列默认禁用（见 jobqueue 模块 docstring）。这些用例测的就是队列
+        # 本身，所以显式打开开关 —— 用环境变量而不是改 ENABLED 常量，
+        # 这样测完自动恢复，不会污染同进程里别的用例。
+        os.environ["P2_QUEUE_ENABLED"] = "1"
         self._orig_db = queue.DB
         self._td = tempfile.TemporaryDirectory()
         queue.DB = Path(self._td.name) / "queue.db"
@@ -36,6 +41,7 @@ class SchedulerTest(unittest.TestCase):
         sch.reclaim_orphans = lambda dry_run=False: []
 
     def tearDown(self):
+        os.environ.pop("P2_QUEUE_ENABLED", None)
         sch.Scheduler._quota_left = self._orig_quota
         sch.Scheduler._spawn = self._orig_spawn
         queue.DB = self._orig_db

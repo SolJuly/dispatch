@@ -353,9 +353,20 @@ def c_deep(cs):
 
 
 def _queue_items():
-    """读 P2 队列（不可用时返回 None）；不建库、不惊动主流程。"""
+    """读 P2 队列。**禁用或不可用时返回 (None, [])**，调用方按"跳过"处理。
+
+    队列已于 2026-11-12 禁用（没有生产者，见 jobqueue 模块 docstring）。
+    返回 None 而不是空列表，是为了让调用方区分：
+
+      · (q, [])   → 队列在跑，只是恰好没有条目   → 报"队列为空"（正常）
+      · (None, [])→ 队列根本没开                  → 报"已禁用（跳过）"
+
+    混成一样的话，看板会一直显示"队列为空"，让人以为它在正常工作。
+    """
     try:
         from tools.p2 import jobqueue as q
+        if not q.is_enabled():
+            return None, []
         return q, q.items()
     except Exception:
         return None, []
@@ -365,7 +376,7 @@ def c_queue_terminal(cs):
     """R17：队列终态失败 / 已回收（P0/P1 硬化的告警出口）。"""
     q, items = _queue_items()
     if q is None:
-        return "info", "—", "P2 队列不可用（跳过）", ""
+        return "info", "—", "P2 队列已禁用（无生产者，跳过）", ""
     if not items:
         return "ok", "0", "队列为空", ""
     tf = [i for i in items if i["state"] == "terminal_failed"]
@@ -383,7 +394,7 @@ def c_queue_heartbeat(cs):
     """R18：队列心跳超时 / 卡死（P0-2 的监控面）。"""
     q, items = _queue_items()
     if q is None:
-        return "info", "—", "P2 队列不可用（跳过）", ""
+        return "info", "—", "P2 队列已禁用（无生产者，跳过）", ""
     try:
         st = q.stale(q.TIMEOUT_S)
     except Exception as e:

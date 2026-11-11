@@ -44,7 +44,11 @@ def collect() -> dict:
         })
     done = sum(1 for j in jobs if j["state"] == state.DONE)
     failed = sum(1 for j in jobs if j["state"] in FAILED_STATES)
-    q = jobqueue.stats()
+    # 队列已禁用时不能只写 {"total":0} —— 那和"队列空着"长得一模一样，
+    # arch.py 的架构图和 /p2 看板都会照实显示"队列 0 项"，让人以为它在正常工作。
+    # 写 enabled 标记，消费方据此显示"已禁用"。
+    q = jobqueue.stats() if jobqueue.is_enabled() else {
+        "total": 0, "by_state": {}, "enabled": False}
     return {
         "schema": "p2.status/v1",
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),

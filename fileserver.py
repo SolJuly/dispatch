@@ -1141,16 +1141,31 @@ class Handler(BaseHTTPRequestHandler):
                 return self._err(500, f"实例快照失败: {e}")
 
         if sub == ["queue"]:
-            # **队列目前没有生产者**：jobqueue.enqueue() 定义了但没有任何调用方
-            # （grep enqueue( 全库无命中），所以 queue.db 从 2026-11-01 起就没再写过。
-            # 里面剩的 8 条是当初 P2 队列功能的历史残留，最新一条停在 11-01 18:22。
+            # **队列已禁用**（2026-11-12，见 tools/p2/jobqueue.py 的模块 docstring）。
             #
-            # 这条接口以前照样返回 stats.total=8，前端拿来算「已完成花费」，
-            # 于是屏幕上的「失败 26 / 完成 20」（来自 job.json 47 条）和
-            # 「已完成花费 ¥7.35」（来自 queue.db 8 条）互相对不上 ——
-            # 真实花费是 ¥3.86。两套数据源各自看起来都对，合起来没有任何意义。
+            # 为什么禁：队列没有生产者 —— `enqueue()` 有实现、零调用方，
+            # UI 提交的作业直接写 reports/p1/jobs/，从不进队列。于是 queue.db
+            # 从 2026-11-01 起就没再写入过，只剩 8 条历史残留。
             #
-            # 修法：如实标注这套队列是停用的，让调用方知道别拿它当事实。
+            # 它唯一的实际作用是**让界面数字互相矛盾**：
+            # 「失败 26 / 完成 20」来自 job.json 的 47 条，
+            # 「已完成花费 ¥7.35」来自 queue.db 的 8 条 —— 真实是 ¥3.86。
+            #
+            # 自动补位已由 tools/p1/autostart.py 承担（事件驱动，不需要队列），
+            # 所以这条接口现在只做一件事：**如实说明它是关的**，别再让调用方
+            # 拿它当事实。
+            enabled = qq.is_enabled()
+            if not enabled:
+                return _json({
+                    "stats": {"total": 0, "by_state": {}},
+                    "items": [],
+                    "active": False,
+                    "enabled": False,
+                    "note": ("队列已禁用：没有生产者（jobqueue.enqueue 无调用方），"
+                             "UI 提交的作业不进队列。自动补位请用 tools/p1/autostart.py；"
+                             "真实作业状态看 /api/p2/jobs。"),
+                    "stale_since": None,
+                })
             st = qq.stats()
             items = [{k: it.get(k) for k in ("job_id", "state", "model_key", "attempts",
                                              "defers", "cost", "exit_code", "enqueued_at")}
@@ -1163,9 +1178,9 @@ class Handler(BaseHTTPRequestHandler):
             return _json({
                 "stats": st,
                 "items": items,
-                "active": False,
-                "note": ("队列没有生产者（jobqueue.enqueue 无调用方），"
-                         "本表是历史残留，不代表当前作业状态。真实状态看 /api/p2/jobs。"),
+                "active": True,
+                "enabled": True,
+                "note": "队列已启用。",
                 "stale_since": stale or None,
             })
 
@@ -1273,8 +1288,10 @@ class Handler(BaseHTTPRequestHandler):
         try:
             p2p = PROJ / "reports" / "p2" / "status2.json"
             dd = json.loads(p2p.read_text(encoding="utf-8")) if p2p.exists() else {}
-            by = ((dd.get("queue") or {}).get("by_state") or {})
+            qinfo = dd.get("queue") or {}
+            by = (qinfo.get("by_state") or {})
             out["p2"] = {
+                "queue_enabled": qinfo.get("enabled", True) is not False,
                 "jobs": dd.get("jobs") or {},
                 "cost": float(dd.get("cost_total") or 0),
                 "queued": (by.get("queued") or {}).get("n", 0),
@@ -1428,7 +1445,10 @@ class Handler(BaseHTTPRequestHandler):
         kpi = "".join([
             f"<div><b>{html.escape(str(d.get('balance')))}</b><span>余额 ¥</span></div>",
             f"<div><b>{len(d.get('instances') or [])}</b><span>实例</span></div>",
-            f"<div><b>{(d.get('p2') or {}).get('queued', 0)}</b><span>队列待跑</span></div>",
+            # 队列禁用时显示「—」而不是 0：0 读起来像"队列空着待命"，
+            # 而真相是这套机制根本没开。
+            f"<div><b>{'—' if not (d.get('p2') or {}).get('queue_enabled', True) else (d.get('p2') or {}).get('queued', 0)}</b>"
+            f"<span>{'队列已禁用' if not (d.get('p2') or {}).get('queue_enabled', True) else '队列待跑'}</span></div>",
             f"<div><b>{(d.get('p2') or {}).get('terminal_failed', 0)}</b><span>终态失败</span></div>",
         ] + [f"<div><b style='font-size:14px'>{html.escape(str(v))}</b><span>{html.escape(k)}</span></div>"
              for k, v in (d.get("services") or {}).items()])
@@ -1447,8 +1467,15 @@ class Handler(BaseHTTPRequestHandler):
                     (it.get("verdict") or "-"),
                     "".join("✓" if v else "✗" for v in (it.get("checks") or {}).values())]
                    for it in (p2.get("items") or [])]
-        lab = self._tbl(["作业", "队列状态", "模型", "成本", "判定", "复验"],
-                        p2_rows) if p2_rows else "<div class='hint'>队列为空（batchctl submit 后可在此看到）</div>"
+        if not p2.get("queue_enabled", True):
+            # 队列已禁用。不能显示"队列为空" —— 那和"队列在跑但恰好没活"
+            # 长得一模一样，看的人会以为它在正常工作。
+            lab = ("<div class='hint'>队列已禁用（没有生产者）：UI 提交的作业不进队列，"
+                   "自动补位由 <code>tools/p1/autostart.py</code> 承担。"
+                   "真实作业状态见任务页 / <code>/api/p2/jobs</code>。</div>")
+        else:
+            lab = self._tbl(["作业", "队列状态", "模型", "成本", "判定", "复验"],
+                            p2_rows) if p2_rows else "<div class='hint'>队列为空（batchctl submit 后可在此看到）</div>"
 
         log_text, _ = self._api_log("watchdog.log", 200)
         body = f"""
@@ -1456,7 +1483,7 @@ class Handler(BaseHTTPRequestHandler):
 <div class='kpi'>{kpi}</div>
 <h2>实例</h2>{inst}
 <h2>库存</h2><div class="hint">{html.escape(stock or '无现货')}</div>
-<h2>P2 队列（最近 8 项 · 数据源 status2.json）</h2>{lab}
+<h2>P2 队列（数据源 status2.json）</h2>{lab}
 <h2>日志（watchdog.log 尾部）</h2>
 <pre class='code' style='max-height:46vh;overflow:auto;white-space:pre-wrap'>{html.escape(log_text[-20000:])}</pre>
 <div class='hint'>完整数据：<a href="{root}/f/reports/p2/status2.json">status2.json</a> ·

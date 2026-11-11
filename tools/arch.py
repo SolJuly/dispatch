@@ -304,9 +304,16 @@ def p2_section(sec, y: int, LX: int, LW: int, text, svg) -> int:
          f"作业 {j.get('total', 0)} · 完成 {j.get('done', 0)} · 失败 {j.get('failed', 0)}"
          f" · 进行 {j.get('running', 0)} · 产物成本 ¥{float(d.get('cost_total') or 0):.3f}"
          f" · 更新 {d.get('generated_at', '—')}", 11.4, DIM)
-    text(LX + 20, y + 74,
-         f"队列 {q.get('total', 0)} 项：待跑 {n_queued} · 在跑 {n_run} · 完成 {n_done}"
-         f" · 失败 {n_fail} · 终态失败 {n_tf} · 已回收 {n_rc}", 11.4, DIM)
+    # 队列禁用时说"已禁用"，不要说"0 项" —— 后者和"队列空着"长得一模一样，
+    # 看图的人会以为这套机制在正常工作。
+    if q.get("enabled") is False:
+        text(LX + 20, y + 74,
+             "队列：已禁用（无生产者）· 自动补位由 tools/p1/autostart.py 承担",
+             11.4, DIM)
+    else:
+        text(LX + 20, y + 74,
+             f"队列 {q.get('total', 0)} 项：待跑 {n_queued} · 在跑 {n_run} · 完成 {n_done}"
+             f" · 失败 {n_fail} · 终态失败 {n_tf} · 已回收 {n_rc}", 11.4, DIM)
     items = (d.get("items") or [])[-4:]
     if items:
         text(LX + 20, y + 94, "最近：" + " · ".join(
