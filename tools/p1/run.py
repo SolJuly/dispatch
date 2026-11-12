@@ -1816,6 +1816,12 @@ def _wake_if_stopped(cs, uid: str, info: dict) -> dict | None:
         lifecycle.clear_stopped(uid)
     except Exception:                                  # noqa: BLE001
         pass
+    # 唤醒后这台机器归本进程管了 —— 必须登记给孤儿守卫。
+    # 不登记的话：resume 中途被 kill，信号处理器说"无实例需要处理"，
+    # 机器就只能靠 provision 时设的那个 stop_at 兜底（真机验证时踩到）。
+    # 那个定时器是按**首次建机**的时刻算的，机器停过再唤醒后早已过期，
+    # 等于没有任何兜底。
+    _note_instance(uid)
     _say(f"  ✓ {uid} 已唤醒")
     return info
 

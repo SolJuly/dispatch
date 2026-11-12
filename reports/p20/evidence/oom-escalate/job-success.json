@@ -1,0 +1,146 @@
+{
+  "schema": "p1.job/v1",
+  "job_id": "p1-20261112T1847-315bec",
+  "created_at": "2026-11-12T18:47:18+08:00",
+  "branch": "main",
+  "kind": "video",
+  "task_ref": "P2.0-seedvr2_3b_upscale_video",
+  "model": {
+    "key": "seedvr2_3b",
+    "workflow": "workflows/seedvr2_3b_upscale_video.api.json",
+    "checkpoint": "seedvr2_ema_3b_fp8_e4m3fn.safetensors",
+    "workflow_sha256": "21e3baf6d6595f873fafb84d767269f3a0f3c1c8c120cc1e092bc31372549460",
+    "registry": {
+      "workflow_key": "seedvr2_3b_upscale_video",
+      "workflow_version": 1,
+      "model_key": "seedvr2_3b",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "none",
+      "graph_sha256": "21e3baf6d6595f873fafb84d767269f3a0f3c1c8c120cc1e092bc31372549460"
+    }
+  },
+  "params": {
+    "batch_size": 21,
+    "color_correction": "lab",
+    "resolution": 1440,
+    "seed": 11,
+    "video": "in-29a86dc3.mp4"
+  },
+  "params_hash": "sha256:1990ec5ecaa890e21134dca12466d60d6dd8e606139b3dc7f128b4a585a1f13f",
+  "task_dedup_key": "sha256:baf10678032dbc50348658854a3e4981f57e1bc8b0e806b95c60e4e941c842d9",
+  "expect": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "images": 1,
+    "freeze": {
+      "mode": "full_freeze_only",
+      "ratio_max": 0.2,
+      "longest_max_s": 1.0
+    },
+    "black_ratio_max": 0.5
+  },
+  "freeze_policy": "strict",
+  "budget": {
+    "max_minutes": 25,
+    "max_cost": 3.6
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ],
+    "uhost_id": "uhost-1xm9wwsraij0",
+    "gpu": "A800",
+    "zone": "cn-wlcb-01",
+    "up_at": "2026-11-12T18:55:56+08:00",
+    "oom_escalation": {
+      "attempts": [
+        {
+          "gpu": "4090",
+          "vram": 24,
+          "hourly": 2.15,
+          "minutes": 1.3,
+          "cost": 0.0466,
+          "why": "SeedVR2VideoUpscaler: Allocation on device",
+          "at": "2026-11-12T18:50:26+08:00"
+        },
+        {
+          "gpu": "4090_48G",
+          "vram": 48,
+          "hourly": 3.8,
+          "minutes": 2.3,
+          "cost": 0.1457,
+          "why": "SeedVR2VideoUpscaler: Allocation on device",
+          "at": "2026-11-12T18:53:48+08:00"
+        }
+      ],
+      "floor_vram": 80,
+      "schema": "p1.oom_escalation/v1",
+      "last_gpu": "4090_48G"
+    }
+  },
+  "state": "DONE",
+  "state_seq": 26,
+  "task_class": "short",
+  "task_class_source": "default",
+  "idle_tier": null,
+  "idle_after_done_s": 0,
+  "steps": {
+    "provision": {
+      "done": true,
+      "at": "2026-11-12T18:55:57+08:00",
+      "uhost_id": "uhost-1xm9wwsraij0",
+      "gpu": "A800",
+      "hourly": 7.36
+    },
+    "setup": {
+      "done": true,
+      "at": "2026-11-12T18:56:39+08:00"
+    },
+    "ready": {
+      "done": true,
+      "at": "2026-11-12T18:56:42+08:00"
+    },
+    "submit": {
+      "done": true,
+      "at": "2026-11-12T18:56:45+08:00",
+      "prompt_id": "6d45c8f5-3b01-4524-a9bc-c589faaf7443"
+    },
+    "wait": {
+      "done": true,
+      "at": "2026-11-12T19:01:31+08:00",
+      "files": [
+        [
+          "",
+          "p1-20261112T1847-315bec_00001_.mp4"
+        ]
+      ]
+    },
+    "fetch": {
+      "done": true,
+      "at": "2026-11-12T19:01:33+08:00",
+      "local": [
+        "00-primary-p1-20261112T1847-315bec_00001_.mp4"
+      ]
+    },
+    "verify": {
+      "done": true,
+      "at": "2026-11-12T19:01:45+08:00",
+      "verdict": "PASS"
+    },
+    "persist": {
+      "done": true,
+      "at": "2026-11-12T19:01:45+08:00"
+    },
+    "release": {
+      "done": true,
+      "at": "2026-11-12T19:01:48+08:00"
+    }
+  }
+}

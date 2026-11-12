@@ -1,0 +1,26 @@
+{"seq": 1, "at": "2026-11-12T18:47:18+08:00", "from": null, "to": "CREATED", "reason": "新建作业（P2.0-seedvr2_3b_upscale_video）"}
+{"seq": 2, "at": "2026-11-12T18:48:02+08:00", "from": "CREATED", "to": "PROVISIONING", "reason": "步骤 provision"}
+{"seq": 3, "at": "2026-11-12T18:50:09+08:00", "from": "PROVISIONING", "to": "READY", "reason": "步骤 ready"}
+{"seq": 4, "at": "2026-11-12T18:50:11+08:00", "from": "READY", "to": "SUBMITTED", "reason": "步骤 submit"}
+{"seq": 5, "at": "2026-11-12T18:50:15+08:00", "from": "SUBMITTED", "to": "RUNNING", "reason": "步骤 wait"}
+{"seq": 6, "at": "2026-11-12T18:50:23+08:00", "from": "RUNNING", "to": "FAILED_RUN", "reason": "推理失败：SeedVR2VideoUpscaler: Allocation on device \nThis error means you ran out of memory on your GPU.\n\nTIPS: If the workflow worked before you might have accidentally set the batch_size to a large numb"}
+{"seq": 7, "at": "2026-11-12T18:50:24+08:00", "from": "FAILED_RUN", "to": "RELEASING", "reason": "升卡：释放 4090"}
+{"seq": 8, "at": "2026-11-12T18:50:26+08:00", "from": "RELEASING", "to": "FAILED", "reason": "升卡前释放（4090 已证伪）"}
+{"seq": 9, "at": "2026-11-12T18:50:26+08:00", "from": "FAILED", "to": "RESUMING", "reason": "OOM 升卡到 4090_48G"}
+{"seq": 10, "at": "2026-11-12T18:50:26+08:00", "from": "RESUMING", "to": "PROVISIONING", "reason": "OOM 升卡重跑（4090_48G）"}
+{"seq": 11, "at": "2026-11-12T18:52:24+08:00", "from": "PROVISIONING", "to": "READY", "reason": "步骤 ready"}
+{"seq": 12, "at": "2026-11-12T18:52:27+08:00", "from": "READY", "to": "SUBMITTED", "reason": "步骤 submit"}
+{"seq": 13, "at": "2026-11-12T18:52:30+08:00", "from": "SUBMITTED", "to": "RUNNING", "reason": "步骤 wait"}
+{"seq": 14, "at": "2026-11-12T18:53:47+08:00", "from": "RUNNING", "to": "FAILED_RUN", "reason": "推理失败：SeedVR2VideoUpscaler: Allocation on device \nThis error means you ran out of memory on your GPU.\n\nTIPS: If the workflow worked before you might have accidentally set the batch_size to a large numb"}
+{"seq": 15, "at": "2026-11-12T18:53:47+08:00", "from": "FAILED_RUN", "to": "RELEASING", "reason": "升卡：释放 4090_48G"}
+{"seq": 16, "at": "2026-11-12T18:53:48+08:00", "from": "RELEASING", "to": "FAILED", "reason": "升卡前释放（4090_48G 已证伪）"}
+{"seq": 17, "at": "2026-11-12T18:53:48+08:00", "from": "FAILED", "to": "RESUMING", "reason": "OOM 升卡到 A800"}
+{"seq": 18, "at": "2026-11-12T18:53:48+08:00", "from": "RESUMING", "to": "PROVISIONING", "reason": "OOM 升卡重跑（A800）"}
+{"seq": 19, "at": "2026-11-12T18:56:39+08:00", "from": "PROVISIONING", "to": "READY", "reason": "步骤 ready"}
+{"seq": 20, "at": "2026-11-12T18:56:42+08:00", "from": "READY", "to": "SUBMITTED", "reason": "步骤 submit"}
+{"seq": 21, "at": "2026-11-12T18:56:45+08:00", "from": "SUBMITTED", "to": "RUNNING", "reason": "步骤 wait"}
+{"seq": 22, "at": "2026-11-12T19:01:31+08:00", "from": "RUNNING", "to": "FETCHING", "reason": "步骤 fetch"}
+{"seq": 23, "at": "2026-11-12T19:01:33+08:00", "from": "FETCHING", "to": "VERIFYING", "reason": "步骤 verify"}
+{"seq": 24, "at": "2026-11-12T19:01:45+08:00", "from": "VERIFYING", "to": "PERSISTED", "reason": "步骤 persist"}
+{"seq": 25, "at": "2026-11-12T19:01:45+08:00", "from": "PERSISTED", "to": "RELEASING", "reason": "步骤 release"}
+{"seq": 26, "at": "2026-11-12T19:01:48+08:00", "from": "RELEASING", "to": "DONE", "reason": "闭环完成"}

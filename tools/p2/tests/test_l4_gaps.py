@@ -375,10 +375,17 @@ class TestOrphanGuard(unittest.TestCase):
         self.assertGreater(idx_exc, idx_try,
                            "terminate 只能出现在 stop_at 失败的降级分支里")
 
-    def test_note_instance_called_on_both_provision_paths(self):
-        """两条建机路径（预热池 / 新建）都要登记实例，否则兜底拿不到 uid。"""
-        self.assertEqual(self.src.count("_note_instance(uid)"), 2,
-                         "预热池分支和新建分支各要一次")
+    def test_note_instance_called_on_all_owner_paths(self):
+        """拿到实例的路径都要登记，否则孤儿守卫拿不到 uid、机器没人收。
+
+        三处：预热池分支 / 新建分支 / **唤醒停机实例**。
+        第三处是 2026-11-12 真机验证时踩到的——resume 唤醒机器后被 kill，
+        信号处理器说"无实例需要处理"，而那台机器唯一的兜底（首次建机时
+        设的 stop_at）早就过期了。改成 ≥3 而不是 ==3：以后再加"拿到实例"
+        的路径（比如 salvage）也该登记，不该被这条测试挡住。
+        """
+        self.assertGreaterEqual(self.src.count("_note_instance(uid)"), 3,
+                                "预热池 / 新建 / 唤醒停机实例，三处都要登记")
 
     def test_guard_installed_at_run_entry(self):
         self.assertIn("_install_orphan_guard(job_id, opts)", self.src)
