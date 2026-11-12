@@ -62,6 +62,9 @@ find_pids() {
 
 show_status() {
   local pids
+  if systemctl list-unit-files 2>/dev/null | grep -q '^cs-files\.service'; then
+    echo "systemd cs-files: $(systemctl is-active cs-files 2>/dev/null || true)"
+  fi
   pids="$(find_pids || true)"
   if [ -z "$pids" ]; then
     echo "文件服务：未运行"
@@ -76,6 +79,33 @@ if [ "${1:-}" = "--status" ]; then
   exit 0
 fi
 
+# ---- 有 systemd 单元就交给 systemd（2026-11-12 修）----
+#
+# 为什么必须优先走 systemctl：本脚本下半段是"杀掉旧进程 + setsid 起一个新的"。
+# 如果 cs-files.service 也在管同一个端口，就变成**两个进程抢 8081**：
+#   systemd 的进程绑不上 → 每 2 秒重启一次 → 一天崩 3 万多轮
+#   而本脚本起的那个孤儿（PPID=1）占着端口，看起来"服务是好的"
+# 真机踩到：`systemctl is-active cs-files` 是 activating(auto-restart)，
+# journal 里刷满 `OSError: [Errno 98] Address already in use`，
+# 而站点因为孤儿进程还活着所以"看起来正常"——这种假象最危险。
+if systemctl list-unit-files 2>/dev/null | grep -q '^cs-files\.service'; then
+  echo "== 用 systemd 重启（cs-files.service）=="
+  systemctl restart cs-files
+  sleep 2
+  systemctl is-active --quiet cs-files || {
+    echo "✗ cs-files 起不来，看 journalctl -u cs-files -n 50"; exit 1; }
+  TOKEN="$(cat "$DIR/.share_token" 2>/dev/null || echo '')"
+  if [ -n "$TOKEN" ]; then
+    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+            "http://127.0.0.1:$PORT/$TOKEN/api/p2/version" || echo 000)"
+    echo "  /api/p2/version → $code"
+    [ "$code" = "200" ] || { echo "✗ 接口不通"; exit 1; }
+  fi
+  echo "✓ 完成（systemd）"
+  exit 0
+fi
+
+echo "== 没有 systemd 单元，走独立进程 =="
 echo "== 停旧进程（按 PID，不用 pkill -f）=="
 pids="$(find_pids || true)"
 if [ -z "$pids" ]; then
