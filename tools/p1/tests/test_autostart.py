@@ -89,6 +89,58 @@ class Base(unittest.TestCase):
             return A.start_pending(self.root, spawn=self._spawn, say=self.say, **kw)
 
 
+class TestLedgerIsolation(unittest.TestCase):
+    """测试绝不能读生产账本。
+
+    ## 为什么这条单独抽出来
+
+    2026-11-12 真机验证时踩到的连锁故障：
+
+        真机花了 ¥9.03 → 超过日上限 ¥8.00 → money_guard 拒绝补位
+        → 9 条 autostart 测试全红
+
+    而代码里一行没改。测试红的原因是**当天真的花了太多钱**。
+
+    根因在 `_ledger_for()` 的"文件不存在就返回 None"分支：
+    临时目录没有 ledger.jsonl → None → `money_guard.check(None)` 读**真实账本**。
+
+    讽刺的是那个函数的 docstring 早就写"如果账本还读真实的，那种测试迟早会
+    莫名其妙地红"。注释写对了，但那个 None 分支把临时路径换回了真实路径。
+
+    这类测试的失效方式最难受：**它红的时候你会去查代码，而代码是对的。**
+    """
+
+    def test_temp_dir_gets_temp_ledger_even_if_missing(self):
+        with tempfile.TemporaryDirectory() as t:
+            d = Path(t) / "jobs"
+            d.mkdir()
+            got = A._ledger_for(d)
+            self.assertIsNotNone(got, "临时目录不能返回 None（None = 读真实账本）")
+            self.assertNotEqual(Path(got).resolve(), Path(A._money_guard_ledger()).resolve(),
+                                "临时目录拿到了真实账本路径")
+
+    def test_production_dir_gets_real_ledger(self):
+        got = Path(A._ledger_for(A._REAL_JOBS)).resolve()
+        self.assertEqual(got, Path(A._money_guard_ledger()).resolve())
+
+    def test_temp_ledger_means_zero_spent(self):
+        """临时账本不存在 = 今天没花钱，闸门必须放行。
+
+        直接用 money_guard，因为问题出在"不存在的账本怎么算已花"。
+        这也是那条连锁故障的最小复现：账本指向临时目录后，
+        当天真花多少钱都不该影响这个判断。
+        """
+        from tools.p1 import money_guard
+        with tempfile.TemporaryDirectory() as t:
+            d = Path(t) / "jobs"
+            d.mkdir()
+            ledger = A._ledger_for(d)
+            self.assertEqual(money_guard.today_spent(ledger), 0.0)
+            ok, why = money_guard.check(ledger, creds=None,
+                                        balance_cache=99.0)   # 余额充足，只看日预算
+        self.assertTrue(ok, why)
+
+
 class TestSelection(Base):
     """挑谁、不挑谁 —— 这是整个功能的对错分界线。"""
 

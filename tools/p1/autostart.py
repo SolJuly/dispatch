@@ -39,6 +39,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -56,15 +57,42 @@ def _say(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] [autostart] {msg}", flush=True)
 
 
-def _ledger_for(jobs_dir: Path) -> Path | None:
-    """测试用临时账本；生产返回 None（让 money_guard 用真实账本）。
+# 生产环境的作业目录。用来区分"调用方给了临时目录"和"调用方没给"。
+_REAL_JOBS = Path(__file__).resolve().parents[2] / "reports" / "p1" / "jobs"
 
-    为什么跟着 jobs_dir 走：测试把作业目录指到临时目录，如果账本还读真实的，
-    那么"今日已花 ¥1.20"会串进测试里，结果取决于当天跑了多少活 —— 那种测试
-    迟早会莫名其妙地红。
+
+def _ledger_for(jobs_dir: Path) -> Path | os.PathLike:
+    """这个作业目录对应的账本路径。
+
+    **规则：jobs_dir 不是生产目录 → 一律用该目录下的账本（哪怕文件不存在）。**
+
+    为什么不能"文件不存在就返回 None"（2026-11-12 真机验证时踩到）：
+    第一版是这么写的 ——
+
+        cand = Path(jobs_dir).parent / "ledger.jsonl"
+        return cand if cand.exists() else None      # ← None = 用真实账本
+
+    于是测试跑起来时：临时目录里没有 ledger.jsonl → 返回 None →
+    `money_guard.check(None)` 读**真实账本** → 那天真机验证花了 ¥9.03，
+    超过日上限 ¥8.00 → 闸门拒绝补位 → **9 条 autostart 测试全红**。
+
+    讽刺的是这个函数的 docstring 早就写着"如果账本还读真实的……那种测试
+    迟早会莫名其妙地红"。它写对了，但没挡住 —— 因为"不存在"这个分支
+    恰好把临时路径换回了真实路径。
+
+    正确做法是**从不返回 None**：临时目录用临时账本（不存在就等于"今天没花钱"），
+    只有生产目录才用真实账本。`money_guard.check()` 对不存在的账本返回
+    "已花 ¥0"，正是测试想要的语义。
     """
-    cand = Path(jobs_dir).parent / "ledger.jsonl"
-    return cand if cand.exists() else None
+    d = Path(jobs_dir)
+    if d.resolve() == _REAL_JOBS.resolve():
+        return _money_guard_ledger()
+    return d.parent / "ledger.jsonl"
+
+
+def _money_guard_ledger() -> Path:
+    from tools.p1 import money_guard
+    return Path(money_guard.LEDGER)
 
 
 def pending_jobs(jobs_dir: Path | None = None) -> list[dict]:

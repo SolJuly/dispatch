@@ -1,0 +1,42 @@
+{"seq": 1, "at": "2026-11-12T12:11:24+08:00", "from": null, "to": "CREATED", "reason": "新建作业（P2.0-pack_video_wan2_2_14b_i2v）"}
+{"seq": 2, "at": "2026-11-12T12:11:31+08:00", "from": "CREATED", "to": "PROVISIONING", "reason": "步骤 provision"}
+{"seq": 3, "at": "2026-11-12T12:13:37+08:00", "from": "PROVISIONING", "to": "READY", "reason": "步骤 ready"}
+{"seq": 4, "at": "2026-11-12T12:13:40+08:00", "from": "READY", "to": "SUBMITTED", "reason": "步骤 submit"}
+{"seq": 5, "at": "2026-11-12T12:13:51+08:00", "from": "SUBMITTED", "to": "RUNNING", "reason": "步骤 wait"}
+{"seq": 6, "at": "2026-11-12T12:14:31+08:00", "from": "RUNNING", "to": "FAILED_RUN", "reason": "推理失败：KSamplerAdvanced: Allocation on device \nThis error means you ran out of memory on your GPU.\n\nTIPS: If the workflow worked before you might have accidentally set the batch_size to a large number."}
+{"seq": 7, "at": "2026-11-12T12:14:31+08:00", "from": "FAILED_RUN", "to": "RELEASING", "reason": "升卡：释放 4090"}
+{"seq": 8, "at": "2026-11-12T12:14:32+08:00", "from": "RELEASING", "to": "FAILED", "reason": "升卡前释放（4090 已证伪）"}
+{"seq": 9, "at": "2026-11-12T12:14:32+08:00", "from": "FAILED", "to": "RESUMING", "reason": "OOM 升卡到 5090"}
+{"seq": 10, "at": "2026-11-12T12:14:33+08:00", "from": "RESUMING", "to": "PROVISIONING", "reason": "OOM 升卡重跑（5090）"}
+{"seq": 11, "at": "2026-11-12T12:16:40+08:00", "from": "PROVISIONING", "to": "READY", "reason": "步骤 ready"}
+{"seq": 12, "at": "2026-11-12T12:16:44+08:00", "from": "READY", "to": "SUBMITTED", "reason": "步骤 submit"}
+{"seq": 13, "at": "2026-11-12T12:16:54+08:00", "from": "SUBMITTED", "to": "RUNNING", "reason": "步骤 wait"}
+{"seq": 14, "at": "2026-11-12T12:17:35+08:00", "from": "RUNNING", "to": "FAILED_RUN", "reason": "推理失败：KSamplerAdvanced: Allocation on device \nThis error means you ran out of memory on your GPU.\n\nTIPS: If the workflow worked before you might have accidentally set the batch_size to a large number."}
+{"seq": 15, "at": "2026-11-12T12:17:35+08:00", "from": "FAILED_RUN", "to": "RELEASING", "reason": "升卡：释放 4090"}
+{"seq": 16, "at": "2026-11-12T12:17:37+08:00", "from": "RELEASING", "to": "FAILED", "reason": "升卡前释放（4090 已证伪）"}
+{"seq": 17, "at": "2026-11-12T12:17:37+08:00", "from": "FAILED", "to": "RESUMING", "reason": "OOM 升卡到 4090_48G"}
+{"seq": 18, "at": "2026-11-12T12:17:37+08:00", "from": "RESUMING", "to": "PROVISIONING", "reason": "OOM 升卡重跑（4090_48G）"}
+{"seq": 19, "at": "2026-11-12T12:19:49+08:00", "from": "PROVISIONING", "to": "READY", "reason": "步骤 ready"}
+{"seq": 20, "at": "2026-11-12T12:19:52+08:00", "from": "READY", "to": "SUBMITTED", "reason": "步骤 submit"}
+{"seq": 21, "at": "2026-11-12T12:20:03+08:00", "from": "SUBMITTED", "to": "RUNNING", "reason": "步骤 wait"}
+{"seq": 22, "at": "2026-11-12T12:20:44+08:00", "from": "RUNNING", "to": "FAILED_RUN", "reason": "推理失败：KSamplerAdvanced: Allocation on device \nThis error means you ran out of memory on your GPU.\n\nTIPS: If the workflow worked before you might have accidentally set the batch_size to a large number."}
+{"seq": 23, "at": "2026-11-12T12:22:11+08:00", "from": "FAILED_RUN", "to": "RELEASING", "reason": "abort：放弃续跑"}
+{"seq": 24, "at": "2026-11-12T12:22:12+08:00", "from": "RELEASING", "to": "FAILED", "reason": "abort 收尾"}
+{"seq": 25, "at": "2026-11-12T12:24:11+08:00", "from": "FAILED", "to": "RESUMING", "reason": "restart"}
+{"seq": 26, "at": "2026-11-12T12:24:11+08:00", "from": "RESUMING", "to": "PROVISIONING", "reason": "restart from scratch"}
+{"seq": 27, "at": "2026-11-12T12:24:32+08:00", "from": "PROVISIONING", "to": "FAILED_PROVISION", "reason": "建机失败：[bc264285-48e8-4f13-896e-106a2f49cba7] CreateCompShareInstance - 226604: This GPU type is currently out of resources. Please refresh or try again later."}
+{"seq": 28, "at": "2026-11-12T12:24:32+08:00", "from": "FAILED_PROVISION", "to": "RELEASING", "reason": "失败后清理"}
+{"seq": 29, "at": "2026-11-12T12:24:32+08:00", "from": "RELEASING", "to": "FAILED", "reason": "失败收尾"}
+{"seq": 30, "at": "2026-11-12T12:25:28+08:00", "from": "FAILED", "to": "RESUMING", "reason": "restart"}
+{"seq": 31, "at": "2026-11-12T12:25:28+08:00", "from": "RESUMING", "to": "PROVISIONING", "reason": "restart from scratch"}
+{"seq": 32, "at": "2026-11-12T12:25:30+08:00", "from": "PROVISIONING", "to": "FAILED_PROVISION", "reason": "4090_48G 当前无现货（226604）。换 --gpu，或加 --wait-stock 秒数排队等货"}
+{"seq": 33, "at": "2026-11-12T12:25:30+08:00", "from": "FAILED_PROVISION", "to": "RELEASING", "reason": "失败后清理"}
+{"seq": 34, "at": "2026-11-12T12:25:30+08:00", "from": "RELEASING", "to": "FAILED", "reason": "失败收尾"}
+{"seq": 35, "at": "2026-11-12T12:26:16+08:00", "from": "FAILED", "to": "RESUMING", "reason": "restart"}
+{"seq": 36, "at": "2026-11-12T12:26:16+08:00", "from": "RESUMING", "to": "PROVISIONING", "reason": "restart from scratch"}
+{"seq": 37, "at": "2026-11-12T12:29:28+08:00", "from": "PROVISIONING", "to": "READY", "reason": "步骤 ready"}
+{"seq": 38, "at": "2026-11-12T12:29:32+08:00", "from": "READY", "to": "SUBMITTED", "reason": "步骤 submit"}
+{"seq": 39, "at": "2026-11-12T12:29:43+08:00", "from": "SUBMITTED", "to": "RUNNING", "reason": "步骤 wait"}
+{"seq": 40, "at": "2026-11-12T13:09:48+08:00", "from": "RUNNING", "to": "FAILED_RUN", "reason": "推理超时（2400s）"}
+{"seq": 41, "at": "2026-11-12T13:19:06+08:00", "from": "FAILED_RUN", "to": "RELEASING", "reason": "abort：放弃续跑"}
+{"seq": 42, "at": "2026-11-12T13:19:09+08:00", "from": "RELEASING", "to": "FAILED", "reason": "abort 收尾"}

@@ -354,50 +354,91 @@ def _pick_image(cs, opts, job: dict) -> dict:
 
 
 def _gpu_candidates(job: dict, opts) -> list[str]:
-    """候选卡型：--gpu 指定则只它一个，否则按 required_gpu 顺序去重。
+    """候选卡型，按优先级：显存下限 > --gpu > required_gpu。
 
-    再按 `oom_escalate` 记下的**显存下限**过滤一道（2026-11-12 加）。
+    三条规则，顺序不能换：
 
-    为什么下限要在这里生效而不是在"升卡那一刻"：
-    升卡发生在 `_run_inner` 的失败分支里，而真正建机是下一轮 `step_provision`
-    调 `_pick_gpu()` → 本函数。把下限检查放在本函数，意味着
-    **首次运行、--resume、--restart、升卡重跑** 四条路径全都自动遵守它 ——
-    否则 `--resume` 会悄悄回到 24G 卡上，把已经证伪的配置再跑一遍。
+      ① **显存下限**（`oom_escalation.floor_vram`，曾因 OOM 升过卡）
+         最高的优先级。它代表"这张卡已经用真金白银证明跑不了这个作业"。
 
-    下限只提高不放宽：`required_gpu=["4090","4090_48G"]` + floor=48
-    → `["4090_48G"]`；floor=0（没升过卡）→ 原样返回，行为与旧版完全一致。
+      ② `--gpu`（人工指定）
+         其次。人工指定是调试/对比用的，正常情况下该被尊重。
+
+      ③ `required_gpu`（工作流声明）
+         兜底。
+
+    ## 为什么下限必须压过 --gpu（2026-11-12 真机踩到）
+
+    第一版把 `--gpu` 放在最前面短路返回：
+
+        if getattr(opts, "gpu", None):
+            return [opts.gpu]        # ← 下限被完全绕过
+
+    而 `p20ctl new --run` 和 `batchctl run` **会自己补 `--gpu`**：
+
+        p20ctl.py:419  cmd = [..., "--gpu", a.gpu or spec["instance"]["required_gpu"][0], ...]
+        batchctl.py:215  sp.add_argument("--gpu", default="4090")
+
+    也就是说生产路径上**几乎总是**带着 `--gpu`。于是升卡写进 job.json 的
+    `floor_vram=48` 从来没被读过，三轮建机全都是 24G —— 真机日志里
+    "计划 4090 ×1" 重复了三次，`oom_escalation.attempts` 也记了三次
+    `gpu: "4090"`, `vram: 24`。
+
+    测试没抓到是因为它们直接构造 `opts.gpu = None` 调本函数，
+    而生产路径传的是具体值。**这个 bug 只有真机能发现。**
+
+    现在：下限 > --gpu。人工显式指定的卡如果比下限小，会被**改写**并大声说出来，
+    而不是静默失败 —— 静默是最坏的一种，因为你以为指定生效了。
     """
-    if getattr(opts, "gpu", None):
-        return [opts.gpu]
-    raw = (job.get("instance") or {}).get("required_gpu") or ["4090_48G"]
-    out: list[str] = []
-    for g in raw:
-        if g and g not in out:
-            out.append(str(g))
-    out = out or ["4090_48G"]
+    from tools.p2 import gpu_ladder as ladder
 
+    floor = 0
     try:
         from tools.p1 import oom_escalate
         floor = oom_escalate.floor_vram(job)
     except Exception:                     # noqa: BLE001
         floor = 0
-    if not floor:
-        return out
 
-    from tools.p2 import gpu_ladder as ladder
-    kept = ladder.filter_by_floor(out, floor)
-    if kept:
-        # 原列表里有足够大的卡：保持用户写的顺序（他可能有偏好）
-        if kept != out:
-            _say(f"显存下限 {floor}G（曾因 OOM 升卡）→ 候选 {out} 收窄为 {kept}")
-        return kept
+    forced = str(getattr(opts, "gpu", None) or "").strip()
+    if forced and floor and ladder.vram_of(forced) < floor:
+        _say(f"⚠ --gpu {forced} 只有 {ladder.vram_of(forced) or '?'}G，"
+             f"低于本作业的显存下限 {floor}G（曾因 OOM 升卡）→ 忽略 --gpu")
+        forced = ""
 
-    # 原列表里全都太小：从阶梯表里补够大的，按价格升序（够用就好，先试便宜的）
-    extra = sorted(
-        (g for g in ladder.VRAM_GB if ladder.vram_of(g) >= floor),
-        key=lambda g: (ladder.hourly_of(g), ladder.vram_of(g)))
-    _say(f"显存下限 {floor}G：声明列表 {out} 全都不够，改用阶梯候选 {extra[:4]}")
-    return extra or out
+    if floor:
+        if forced and ladder.vram_of(forced) >= floor:
+            return [forced]               # 人工指定且够大 → 尊重
+        raw = (job.get("instance") or {}).get("required_gpu") or []
+        out = [str(g) for g in raw if g]
+        kept = ladder.filter_by_floor(out, floor)
+        if kept:
+            if kept != out:
+                _say(f"显存下限 {floor}G → 候选 {out} 收窄为 {kept}")
+            return kept
+        # 声明列表全都太小：从阶梯表里补够大的，按价格升序（够用就好）
+        extra = sorted(
+            (g for g in ladder.VRAM_GB if ladder.vram_of(g) >= floor),
+            key=lambda g: (ladder.hourly_of(g), ladder.vram_of(g)))
+        _say(f"显存下限 {floor}G：声明列表 {out or '空'} 全都不够，"
+             f"改用阶梯候选 {extra[:4]}")
+        return extra or ["4090_48G"]
+
+    if forced:
+        return [forced]
+    raw = (job.get("instance") or {}).get("required_gpu") or ["4090_48G"]
+    out: list[str] = []
+    for g in raw:
+        if g and g not in out:
+            out.append(str(g))
+    return out or ["4090_48G"]
+
+
+def _stock_of(cs, gpu: str) -> int:
+    """单卡型库存，读不到按 0（保守：当作没货，不擅自降级）。"""
+    try:
+        return int(cs.stock(gpu) or 0)
+    except Exception:                      # noqa: BLE001
+        return 0
 
 
 def _pick_gpu(cs, job: dict, opts) -> str:
@@ -408,6 +449,36 @@ def _pick_gpu(cs, job: dict, opts) -> str:
     """
     cands = _gpu_candidates(job, opts)
     wait_s = int(getattr(opts, "wait_stock", 0) or 0)
+
+    # 有显存下限时，候选全都无货要**从阶梯表补同档或更大的卡**（2026-11-12 真机踩到）
+    #
+    # 现场：floor=48，`_gpu_candidates()` 返回 `["4090_48G"]`，而 4090_48G 当时
+    # 被抢光了（库存 0），日志直接报「4090_48G 当前无现货」——尽管 **H20（96G）
+    # 还有 2 台**，完全满足「≥48G」。结果是一次真机上验证不了升卡。
+    #
+    # 判据：只补 **显存 ≥ 下限** 的卡，按价格升序（够用就好）。
+    # 不补低于下限的 —— 那等于偷偷退回小卡，又回到"再烧一轮"。
+    floor_now = 0
+    try:
+        from tools.p1 import oom_escalate as _oom
+        floor_now = _oom.floor_vram(job)
+    except Exception:                      # noqa: BLE001
+        floor_now = 0
+    if floor_now:
+        from tools.p2 import gpu_ladder as _lad
+        listed = set(cands)
+        extra = sorted(
+            (g for g in _lad.VRAM_GB
+             if _lad.vram_of(g) >= floor_now and g not in listed),
+            key=lambda g: (_lad.hourly_of(g), _lad.vram_of(g)))
+        if extra:
+            covered = [g for g in extra
+                       if _stock_of(cs, g) > 0]
+            if covered:
+                _say(f"显存下限 {floor_now}G：声明候选都无货，"
+                     f"从阶梯补满足下限的卡 {covered[:3]}")
+                cands = cands + covered
+
     stocks: dict[str, int] = {}
     for g in cands:
         try:
@@ -650,6 +721,36 @@ def step_provision(job: dict, opts) -> dict:
     cands = _gpu_candidates(job, opts)
     if gpu not in cands:
         cands = [gpu] + cands
+
+    # 有显存下限时，抢卡顺延**不能**退回低于下限的卡（2026-11-12 真机踩到）
+    #
+    # 现场：floor=48，`_gpu_candidates()` 正确返回 `["4090_48G"]`。
+    # 但上面这两行把 `gpu`（= 首选的 4090，24G）又插回列表最前面，
+    # 于是候选变成 `["4090", "4090_48G"]` —— 下一轮抢卡就在这里顺手退回 24G，
+    # 而这正是升卡想要避免的那张卡。
+    #
+    # 修复：把候选按下限过滤一次；**过滤后为空也不退回小卡** ——
+    # 宁可这一轮建机失败（¥0，只是没抢到），也不要造出一台注定
+    # 又要 OOM 的机器（¥2.15/h 起步 + 一轮 setup）。
+    floor_now = 0
+    try:
+        from tools.p1 import oom_escalate as _oom
+        floor_now = _oom.floor_vram(job)
+    except Exception:                      # noqa: BLE001
+        floor_now = 0
+    if floor_now:
+        from tools.p2 import gpu_ladder as _lad
+        before = list(cands)
+        cands = _lad.filter_by_floor(cands, floor_now)
+        if cands != before:
+            _say(f"抢卡候选按显存下限 {floor_now}G 过滤：{before} → {cands}")
+        if not cands:
+            raise RunError(
+                f"显存下限 {floor_now}G：候选卡型 {before} 全都不满足，"
+                f"不退回小卡（那只会再造一台注定 OOM 的机器）。"
+                f"等更大卡型有货，或 --reset-escalation 后重跑。",
+                state.FAILED_PROVISION)
+
     for attempt in range(1, CREATE_RETRY + 1):
         # 每轮换一张卡：attempt 1 用首选，之后顺延
         try_gpu = cands[(attempt - 1) % len(cands)] if cands else gpu
@@ -676,6 +777,31 @@ def step_provision(job: dict, opts) -> dict:
     uid = ids[0]
     _say(f"已创建 {uid}，等 Running…")
     inst = cs.wait_state(uid, {"running"}, timeout=900)
+
+    # 建机后校验：实际卡型必须满足显存下限（2026-11-12 真机踩到后加）
+    #
+    # 上面 `_gpu_candidates()` 已经保证候选列表够大，但"候选够大"和
+    # "建出来的机器够大"是两件事：抢卡换型、平台返回的 GpuType 与我们
+    # 请求的不一致、或者以后又有人加了一条绕过路径，都会让两者分叉。
+    # 真机那次的表现是：日志三轮都写"计划 4090"，job.json 里 floor_vram=48
+    # 明明记着，而创建出来的三台全是 24G —— **决策和执行分叉，但没人发现**。
+    # 所以这里补一道与平台返回值的核对：分叉就立刻失败，不要白跑一轮。
+    got_gpu = str((inst or {}).get("GpuType") or try_gpu or "")
+    floor_now = 0
+    try:
+        from tools.p1 import oom_escalate as _oom
+        floor_now = _oom.floor_vram(job)
+    except Exception:                      # noqa: BLE001
+        floor_now = 0
+    if floor_now:
+        from tools.p2 import gpu_ladder as _lad
+        if _lad.vram_of(got_gpu) < floor_now:
+            raise RunError(
+                f"建机卡型不满足显存下限：要 ≥{floor_now}G，实到 {got_gpu}"
+                f"（{_lad.vram_of(got_gpu) or '?'}G）。"
+                f"本作业曾因 OOM 升卡，这台机器跑不了它 —— 已中止，不计入下一轮。",
+                state.FAILED_PROVISION)
+        _say(f"卡型核对通过：{_lad.describe(got_gpu)}（显存下限 {floor_now}G）")
 
     # Running ≠ sshd 就绪（实测还要 20–40s），不探活就 push 必然失败
     host, port = cs.public_ip(inst), "23"

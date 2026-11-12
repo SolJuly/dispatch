@@ -57,18 +57,64 @@ class TestGpuCandidatesHonoursFloor(unittest.TestCase):
         self.assertEqual(got[0], "4090_48G", "48G 够用就不该直接跳 80G")
         self.assertNotIn("V100S", got, "V100S 是 Volta，量化内核跑不动")
 
-    def test_explicit_gpu_flag_wins(self):
-        """`--gpu` 是人工强制覆盖，不该被下限改写。
+    def test_explicit_gpu_larger_than_floor_is_respected(self):
+        """人工指定且**够大**的卡要尊重 —— 下限只排除太小的，不是否决权。"""
+        self.assertEqual(run._gpu_candidates(_job(floor=48), _opts(gpu="4090_48G")),
+                         ["4090_48G"])
 
-        理由：下限是**自动判断**的产物，人工指定是**人的判断**。
-        人明确要 V100S 调试，就该给他 V100S —— 只是日志里会警告。
+    def test_explicit_gpu_below_floor_is_overridden(self):
+        """真机 bug 回归（2026-11-12）：`--gpu 4090` 不能让升卡失效。
+
+        现场证据：Wan 14B 在 24G 卡上 OOM 三次，每轮日志都写「计划 4090 ×1」，
+        `job.json` 里 `floor_vram=48` 明明记着，而创建出来的三台全是 24G
+        （`oom_escalation.attempts` 记着 `gpu: "4090", vram: 24` 三遍）。
+
+        根因：`_gpu_candidates()` 第一版把 `--gpu` 放在最前面短路返回，
+        而下限检查在它后面 —— 永远走不到。而 `p20ctl new --run` 和
+        `batchctl run` **都会自动补 `--gpu`**（前者取 `required_gpu[0]`，
+        后者 default="4090"），所以生产路径上几乎总是带着它。
+
+        测试没抓到是因为它们直接构造 `opts.gpu = None`；生产传的是具体值。
+        **这个 bug 只有真机能发现。**
         """
-        self.assertEqual(run._gpu_candidates(_job(floor=48), _opts(gpu="4090")), ["4090"])
+        self.assertEqual(run._gpu_candidates(_job(floor=48), _opts(gpu="4090")),
+                         ["4090_48G"])
 
     def test_garbage_floor_ignored(self):
         j = _job()
         j["instance"]["oom_escalation"] = {"floor_vram": "abc"}
         self.assertEqual(run._gpu_candidates(j, _opts()), ["4090", "4090_48G"])
+
+
+class TestGrabFallbackRespectsFloor(unittest.TestCase):
+    """抢卡顺延不能退回低于下限的卡。
+
+    真机现场（2026-11-12）：floor=48，`_gpu_candidates()` 正确返回
+    `["4090_48G"]`，但 `step_provision` 随后把首选的 `gpu`（4090/24G）
+    插回列表最前面 → 候选变 `["4090", "4090_48G"]` → 抢卡在那两者间轮转，
+    下一轮就退回 24G。那正是升卡要避免的卡。
+
+    这条用源码断言守，因为真跑要"抢不到卡"这个外部条件。
+    """
+
+    def test_candidates_filtered_after_floor_reinsert(self):
+        import inspect
+        src = inspect.getsource(run.step_provision)
+        i_reinsert = src.find("if gpu not in cands:")
+        i_filter = src.find("filter_by_floor(cands, floor_now)")
+        self.assertGreater(i_reinsert, 0)
+        self.assertGreater(i_filter, 0, "抢卡候选没有按下限过滤")
+        self.assertLess(i_reinsert, i_filter,
+                        "过滤必须在把首选 gpu 插回列表**之后**，否则漏掉那一项")
+
+    def test_empty_after_filter_fails_instead_of_retreating(self):
+        import inspect
+        src = inspect.getsource(run.step_provision)
+        seg = src[src.find("filter_by_floor(cands, floor_now)"):]
+        seg = seg[:seg.find("for attempt in range")]
+        self.assertIn("if not cands:", seg,
+                      "过滤后为空必须显式失败，不能退回到小卡")
+        self.assertIn("不退回小卡", seg)
 
 
 class TestEscalationBudget(unittest.TestCase):
