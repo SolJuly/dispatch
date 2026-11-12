@@ -377,7 +377,14 @@ def rebuild_from_jobs(jobs_dir: Path | None = None) -> int:
         uid = ((j.get("instance") or {}) or {}).get("uhost_id")
         if not (wk and mk and uid):
             continue
-        s = seen.get(uid) or Slot(uid=str(uid), model_key=str(mk))
+        # gpu_type 必须从作业里带出来（2026-11-12 审计发现）：
+        # Slot.gpu_type 默认 "4090"，`find_compatible(min_vram=N)` 靠它过滤。
+        # 不带的话重建出来的槽位**全部**被当成 24G —— 一台真跑在 48G 上的机器
+        # 也会因为"默认 4090"被升卡作业拒绝复用。方向是保守的（不复用，
+        # 不会多花钱），但复用机制等于悄悄失效，而且没有任何报错。
+        s = seen.get(uid) or Slot(
+            uid=str(uid), model_key=str(mk),
+            gpu_type=str(((j.get("instance") or {}).get("gpu")) or "4090"))
         nodes, assets = workflow_needs(str(wk), str(mk))
         s.workflows_ok = sorted(set(s.workflows_ok) | {str(wk)})
         s.verified_nodes = sorted(set(s.verified_nodes) | nodes)

@@ -433,12 +433,30 @@ def _gpu_candidates(job: dict, opts) -> list[str]:
     return out or ["4090_48G"]
 
 
-def _stock_of(cs, gpu: str) -> int:
-    """单卡型库存，读不到按 0（保守：当作没货，不擅自降级）。"""
-    try:
-        return int(cs.stock(gpu) or 0)
-    except Exception:                      # noqa: BLE001
-        return 0
+class _StockTable:
+    """一次 inventory，全卡型复用。
+
+    `cs.stock()` 每次调用都打一遍 `DescribeCompShareGpuInventory`（无缓存）。
+    `_pick_gpu` 的主循环本来就要对每张候选各查一次 —— 候选 2~4 张时是 2~4 次
+    往返；`_oom_stock` 已经演示过"整表一次拿"的正确做法，这里照做。
+
+    读不到 → 全部按 0（保守：当作没货，不擅自降级到小卡）。
+    """
+
+    def __init__(self, cs):
+        self._t: dict[str, int] | None = None
+        self._cs = cs
+
+    def get(self, gpu: str) -> int:
+        if self._t is None:
+            try:
+                inv = self._cs.inventory()
+                zid = self._cs._zone_id(self._cs.zone)      # noqa: SLF001 与 stock() 同口径
+                self._t = {str(k): int(v or 0)
+                           for k, v in ((inv.get("Exclusive") or {}).get(zid) or {}).items()}
+            except Exception:                               # noqa: BLE001
+                self._t = {}
+        return int(self._t.get(gpu, 0) or 0)
 
 
 def _pick_gpu(cs, job: dict, opts) -> str:
@@ -449,6 +467,19 @@ def _pick_gpu(cs, job: dict, opts) -> str:
     """
     cands = _gpu_candidates(job, opts)
     wait_s = int(getattr(opts, "wait_stock", 0) or 0)
+
+    # 有显存下限时，候选全都无货要**从阶梯表补同档或更大的卡**（2026-11-12 真机踩到）
+    #
+    # 现场：floor=48，`_gpu_candidates()` 返回 `["4090_48G"]`，而 4090_48G 当时
+    # 被抢光了（库存 0），日志直接报「4090_48G 当前无现货」——尽管 **H20（96G）
+    # 还有 2 台**，完全满足「≥48G」。结果是一次真机上验证不了升卡。
+    #
+    # 判据：只补 **显存 ≥ 下限** 的卡，按价格升序（够用就好）。
+    # 不补低于下限的 —— 那等于偷偷退回小卡，又回到"再烧一轮"。
+    # 一次 inventory 服务整个挑选过程（下面的阶梯补卡 + 主循环）
+    # `cs.stock()` 每次都打一遍 `DescribeCompShareGpuInventory`（无缓存），
+    # 逐卡查是 N 次 API 往返；这里整表一次拿，两边共用。
+    table = _StockTable(cs)
 
     # 有显存下限时，候选全都无货要**从阶梯表补同档或更大的卡**（2026-11-12 真机踩到）
     #
@@ -472,17 +503,15 @@ def _pick_gpu(cs, job: dict, opts) -> str:
              if _lad.vram_of(g) >= floor_now and g not in listed),
             key=lambda g: (_lad.hourly_of(g), _lad.vram_of(g)))
         if extra:
-            covered = [g for g in extra
-                       if _stock_of(cs, g) > 0]
+            covered = [g for g in extra if table.get(g) > 0]
             if covered:
                 _say(f"显存下限 {floor_now}G：声明候选都无货，"
                      f"从阶梯补满足下限的卡 {covered[:3]}")
                 cands = cands + covered
-
     stocks: dict[str, int] = {}
     for g in cands:
         try:
-            stocks[g] = cs.stock(g)
+            stocks[g] = table.get(g)
         except Exception as e:                      # noqa: BLE001
             _say(f"  {g} 库存查询失败（{type(e).__name__}: {e}），跳过预检")
             stocks[g] = 1
@@ -1514,6 +1543,23 @@ def step_release(job: dict, opts, ctx: dict) -> None:
                 slots_f.remove(uid)
             except Exception:                      # noqa: BLE001
                 pass
+        # from_pool 的实例也要从池里除名（2026-11-12 审计发现）：
+        # 池记录还写着 busy，下次 `pool.acquire()` 会去 start 一个已销毁的 uid，
+        # 失败后才标 dead —— 自愈，但每次都白试一轮。这里直接把状态摆 dead。
+        # 不调 `pool.release(uid, keep=False)`：那会**再** terminate 一遍
+        # （对已销毁的 uid 必然报错），只为落到同一个 dead 状态。
+        try:
+            jk = state.load_job(job["job_id"])
+            if (jk.get("instance") or {}).get("from_pool") or ctx.get("from_pool"):
+                from tools.p2 import pool as pool_f
+                d = pool_f.load()
+                it = next((i for i in d["instances"] if i["uid"] == uid), None)
+                if it and it.get("state") != "dead":
+                    it["state"] = "dead"
+                    pool_f.save(d)
+                    _say(f"  池实例 {uid} 已标 dead（升卡销毁）")
+        except Exception:                          # noqa: BLE001
+            pass
         return
 
     # ---- 长任务：留空转窗口，不销毁 ----

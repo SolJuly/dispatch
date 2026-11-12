@@ -64,7 +64,6 @@ from __future__ import annotations
 import datetime as dt
 import os
 import sys
-import time
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -87,9 +86,6 @@ MAX_ESCALATIONS = 2
 # 粗估（含 SAFETY=2），这里是预算核算，两个口径混用会让预算莫名收紧一半。
 _PLAN_MINUTES = 45
 
-
-def _say(msg: str) -> None:
-    print(f"[{dt.datetime.now():%H:%M:%S}] [oom] {msg}", flush=True)
 
 
 # ------------------------------------------------------------------ 开关
@@ -344,6 +340,3 @@ def reset(job_id: str) -> None:
     j["instance"] = inst
     store.atomic_write_json(store.job_file(job_id), j)
 
-
-def _unused_time_hint() -> str:                          # pragma: no cover
-    return f"{time.time():.0f}"

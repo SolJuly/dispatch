@@ -325,6 +325,11 @@ def cmd_show(a) -> int:
     print(f"  参数 {json.dumps(j.get('params'), ensure_ascii=False)[:110]}")
     print(f"  期望 ≥{j['expect'].get('min_bytes')}B {j['expect'].get('ext')}"
           f" 时长{j['expect'].get('duration_s')}")
+    esc = ((j.get("instance") or {}).get("oom_escalation")) or {}
+    if esc.get("floor_vram"):
+        atts = esc.get("attempts") or []
+        trail = "：".join(f"{a.get('gpu')}({a.get('vram')}G)¥{a.get('cost')}" for a in atts[-3:])
+        print(f"  ⤴ 已升卡 {len(atts)} 次 → 下次要求 ≥{esc['floor_vram']}G（{trail}）")
     print(f"  预算 ¥{j['budget'].get('max_cost')} / {j['budget'].get('max_minutes')}min"
           f" · 任务 {j.get('task_ref') or '—'}")
     print()

@@ -180,9 +180,6 @@ def classify_oom(text: str) -> str:
     return "no"
 
 
-def is_oom(text: str) -> bool:
-    return classify_oom(text) == "certain"
-
 
 def oom_line(text: str, *, limit: int = 240) -> str:
     """从一大段日志里摘出与 OOM 有关的那几行（给人看，不是给程序判）。"""
@@ -246,11 +243,6 @@ def skipped_note(current_gpu: str) -> str:
             out.append(f"{g}（{why}）")
     return "；".join(out)
 
-
-def min_vram_for(candidates: list[str]) -> int:
-    """一组候选卡型里的最小显存 —— 用来把用户声明的列表转成「下限」。"""
-    vs = [vram_of(g) for g in (candidates or []) if vram_of(g) > 0]
-    return min(vs) if vs else 0
 
 
 def filter_by_floor(candidates: list[str], floor: int) -> list[str]:

@@ -67,8 +67,18 @@ SEVERITY_CN = {"LOST": "节点没了", "OUTPUT": "输出变了",
 
 # ------------------------------------------------------------------ 读快照
 def load_oi(path: Path | str) -> dict:
-    """读 object_info 快照。容忍 `{"object_info": {...}}` 包一层和裸 dict。"""
-    d = json.loads(Path(path).read_text(encoding="utf-8"))
+    """读 object_info 快照。容忍 `{"object_info": {...}}` 包一层和裸 dict。
+
+    缺文件时给**人话**报错而不是 traceback —— 这个工具的用法是
+    `--target 新采的快照`，最常见的错误就是路径打错或忘了先采集。
+    一个 FileNotFoundError 的栈对"我路径写错了"这个事实毫无增益。
+    """
+    p = Path(path)
+    if not p.is_file():
+        raise SystemExit(f"✗ 快照不存在：{p}\n"
+                         f"  先在一台目标镜像的实例上采集：\n"
+                         f"    curl -s http://127.0.0.1:8188/object_info > {p}")
+    d = json.loads(p.read_text(encoding="utf-8"))
     if isinstance(d, dict) and isinstance(d.get("object_info"), dict):
         return d["object_info"]
     if not isinstance(d, dict):
@@ -262,7 +272,7 @@ def attach_workflows(d: Diff, wf_classes: dict[str, set[str]]) -> dict[str, list
 
 
 # ------------------------------------------------------------------ 输出
-def format_diff(d: Diff, *, verbose: bool = False, limit: int = 0) -> str:
+def format_diff(d: Diff, *, verbose: bool = False) -> str:
     lines = [f"基线 {d.base_n} 节点 → 目标 {d.target_n} 节点"
              f"（净 {d.target_n - d.base_n:+d}）", ""]
     for kind in ("LOST", "OUTPUT", "INPUT", "ADDED"):
@@ -271,12 +281,10 @@ def format_diff(d: Diff, *, verbose: bool = False, limit: int = 0) -> str:
             continue
         head = f"[{kind}] {SEVERITY_CN[kind]} · {len(fs)} 处"
         lines.append(head)
-        show = fs if (verbose or limit <= 0) else fs[:limit]
+        show = fs
         for f in show:
             w = f" ⚠ {len(f.workflows)} 条工作流用到" if f.workflows else ""
             lines.append(f"  · {f.class_type}: {f.detail}{w}")
-        if len(show) < len(fs):
-            lines.append(f"  …另有 {len(fs) - len(show)} 处（--verbose 全看）")
         lines.append("")
     if not d.breaking:
         lines.append("✓ 没有会破坏现有工作流的变更")
@@ -310,20 +318,6 @@ def format_impact(d: Diff, wf_classes: dict[str, set[str]]) -> str:
 
 
 # ------------------------------------------------------------------ 对比两套镜像
-@dataclass
-class Mirror:
-    """一次升级的完整结论。用来说明"为什么不能只比节点数"。"""
-
-    label: str
-    diff: Diff
-    impact: str
-
-    def as_dict(self) -> dict:
-        return {"label": self.label, "base_nodes": self.diff.base_n,
-                "target_nodes": self.diff.target_n,
-                "breaking": len(self.diff.breaking),
-                "lost_classes": self.diff.lost,
-                "impact": self.impact}
 
 
 def audit(base_path: Path | str, target_path: Path | str,
