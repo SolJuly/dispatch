@@ -87,4 +87,6 @@ reports/p2/p21/us3-check.sh
 reports/p2/status2.json
 
 # UI/HTTP 探测留下的 spec（每次提交都会新增，只在本地有用）
-reports/p2/p21/specs/sdxl_t2i-*
+# P2.1 实验作业的 spec（run_experimental.py 每次生成，可由参数重建）
+# 不用逐模型列文件名：任何 <模型>-<时间戳>-<id>.json 都由参数重建
+reports/p2/p21/specs/

@@ -273,6 +273,33 @@ class TestWake(Base):
 
 
 # --------------------------------------------------------------- 接线
+class TestForceReleaseReason(unittest.TestCase):
+    """同一个"强制销毁"有两个来由，日志不能都写"升卡"。
+
+    真机踩到：oom_policy=destroy 的作业日志是
+    「已销毁 uhost-xxx（升卡：这台机器已证明显存不足）」——
+    用户选的是"直接销毁"，读到的却是"升卡"，自相矛盾。
+    """
+
+    def test_reason_comes_from_ctx(self):
+        import inspect
+        src = inspect.getsource(R.step_release)
+        self.assertIn("force_release_reason", src,
+                      "销毁原因必须由调用方给，不能写死")
+        self.assertNotIn('why="升卡：', src,
+                         "step_release 里不该出现写死的升卡原因")
+
+    def test_escalation_sets_its_own_reason(self):
+        import inspect
+        src = inspect.getsource(R._try_escalate)
+        self.assertIn('force_release_reason"] = f"升卡：', src)
+
+    def test_destroy_sets_its_own_reason(self):
+        import inspect
+        src = inspect.getsource(R._run_inner)
+        self.assertIn("oom_policy=destroy 销毁", src)
+
+
 class TestWiring(unittest.TestCase):
     """源码级断言：接线错了行为测试看不出（它们 mock 的是同一层）。"""
 

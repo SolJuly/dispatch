@@ -1536,7 +1536,13 @@ def step_release(job: dict, opts, ctx: dict) -> None:
     #   · 预热池          → 下次从池里取出来还是这张小卡
     # 所以这条分支必须在所有"保留"判断**之前** return，且走真销毁。
     if ctx.get("force_release"):
-        _terminate_with_retry(uid, opts, why="升卡：这台机器已证明显存不足")
+        # 原因由调用方给 —— 同一个"强制销毁"动作有两个来由：
+        #   升卡前释放（这台机器显存不够，要换大的）
+        #   用户选了 oom_policy=destroy（这台机器不用了，直接删）
+        # 写死成"升卡"会让 destroy 档的日志自相矛盾（真机验证时踩到）。
+        _terminate_with_retry(
+            uid, opts,
+            why=str(ctx.get("force_release_reason") or "强制释放"))
         if ctx.get("borrowed"):
             try:
                 from tools.p2 import instance_slots as slots_f
@@ -2316,6 +2322,7 @@ def _try_escalate(job_id: str, job: dict, opts, ctx: dict, err: RunError) -> boo
     #    跳过"长任务空转窗口"和"借来的不销毁"两条分支（见该函数的首段）。
     cur = state.load_job(job_id).get("state")
     ctx["force_release"] = True
+    ctx["force_release_reason"] = f"升卡：{current} 已证明显存不足"
     try:
         if cur in state.FAIL_BRANCH:
             state.transition(job_id, state.RELEASING, reason=f"升卡：释放 {current}")
@@ -2332,6 +2339,7 @@ def _try_escalate(job_id: str, job: dict, opts, ctx: dict, err: RunError) -> boo
         return False
     finally:
         ctx.pop("force_release", None)
+        ctx.pop("force_release_reason", None)
 
     # ③ 落盘：清断点、抬显存下限、记下本轮花了多少
     oom.apply(job_id, current_gpu=current, target=p["target"], oom_text=err.oom_text)
@@ -2450,6 +2458,7 @@ def _run_inner(job_id: str, opts) -> int:
                         and _oom.policy_of(job, opts) == _oom.POLICY_DESTROY
                         and ctx.get("uhost_id")):
                     ctx["force_release"] = True
+                    ctx["force_release_reason"] = f"按 oom_policy=destroy 销毁 {ctx.get('uhost_id')}"
                     try:
                         cur = state.load_job(job_id).get("state")
                         if cur in state.FAIL_BRANCH:
@@ -2461,6 +2470,7 @@ def _run_inner(job_id: str, opts) -> int:
                         _say(f"  ⚠ 按策略销毁失败（{type(e3).__name__}: {e3}）")
                     finally:
                         ctx.pop("force_release", None)
+                        ctx.pop("force_release_reason", None)
                     _say("  已按 oom_policy=destroy 销毁实例（不留停机实例，不可续跑）")
                     return 1
                 # 断点续跑：失败时**保留实例**，靠定时关机兜底，等 --resume 或 --abort

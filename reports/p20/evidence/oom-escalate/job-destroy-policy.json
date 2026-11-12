@@ -1,0 +1,92 @@
+{
+  "schema": "p1.job/v1",
+  "job_id": "p1-20261112T2203-5b1568",
+  "created_at": "2026-11-12T22:03:37+08:00",
+  "branch": "main",
+  "kind": "video",
+  "task_ref": "P2.0-seedvr2_3b_upscale_video",
+  "model": {
+    "key": "seedvr2_3b",
+    "workflow": "workflows/seedvr2_3b_upscale_video.api.json",
+    "checkpoint": "seedvr2_ema_3b_fp8_e4m3fn.safetensors",
+    "workflow_sha256": "21e3baf6d6595f873fafb84d767269f3a0f3c1c8c120cc1e092bc31372549460",
+    "registry": {
+      "workflow_key": "seedvr2_3b_upscale_video",
+      "workflow_version": 1,
+      "model_key": "seedvr2_3b",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "none",
+      "graph_sha256": "21e3baf6d6595f873fafb84d767269f3a0f3c1c8c120cc1e092bc31372549460"
+    }
+  },
+  "params": {
+    "batch_size": 21,
+    "color_correction": "lab",
+    "resolution": 1440,
+    "seed": 23,
+    "video": "in-29a86dc3.mp4"
+  },
+  "params_hash": "sha256:aa5e27495e393d51610ad19af24f6100a9ef418643aa57737da72f6c8ebfbabc",
+  "task_dedup_key": "sha256:ace29606d574a3d596e12b170a04f01efa2a59df64218e465daf97c58a334ad7",
+  "expect": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "images": 1,
+    "freeze": {
+      "mode": "full_freeze_only",
+      "ratio_max": 0.2,
+      "longest_max_s": 1.0
+    },
+    "black_ratio_max": 0.5
+  },
+  "freeze_policy": "strict",
+  "budget": {
+    "max_minutes": 10,
+    "max_cost": 1.0
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ],
+    "uhost_id": "uhost-1xmgp2bgvr4s",
+    "gpu": "4090",
+    "zone": "cn-wlcb-01",
+    "up_at": "2026-11-12T22:04:50+08:00"
+  },
+  "state": "FAILED",
+  "state_seq": 8,
+  "task_class": "short",
+  "task_class_source": "default",
+  "idle_tier": null,
+  "idle_after_done_s": 0,
+  "oom_policy": "destroy",
+  "steps": {
+    "provision": {
+      "done": true,
+      "at": "2026-11-12T22:04:51+08:00",
+      "uhost_id": "uhost-1xmgp2bgvr4s",
+      "gpu": "4090",
+      "hourly": 2.15
+    },
+    "setup": {
+      "done": true,
+      "at": "2026-11-12T22:05:44+08:00"
+    },
+    "ready": {
+      "done": true,
+      "at": "2026-11-12T22:05:47+08:00"
+    },
+    "submit": {
+      "done": true,
+      "at": "2026-11-12T22:05:51+08:00",
+      "prompt_id": "c1a1e04a-dc0b-406d-8724-00433cfd966c"
+    }
+  }
+}

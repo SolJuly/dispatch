@@ -1,0 +1,8 @@
+{"seq": 1, "at": "2026-11-12T22:03:37+08:00", "from": null, "to": "CREATED", "reason": "新建作业（P2.0-seedvr2_3b_upscale_video）"}
+{"seq": 2, "at": "2026-11-12T22:03:53+08:00", "from": "CREATED", "to": "PROVISIONING", "reason": "步骤 provision"}
+{"seq": 3, "at": "2026-11-12T22:05:44+08:00", "from": "PROVISIONING", "to": "READY", "reason": "步骤 ready"}
+{"seq": 4, "at": "2026-11-12T22:05:47+08:00", "from": "READY", "to": "SUBMITTED", "reason": "步骤 submit"}
+{"seq": 5, "at": "2026-11-12T22:05:51+08:00", "from": "SUBMITTED", "to": "RUNNING", "reason": "步骤 wait"}
+{"seq": 6, "at": "2026-11-12T22:05:58+08:00", "from": "RUNNING", "to": "FAILED_RUN", "reason": "推理失败：SeedVR2VideoUpscaler: Allocation on device \nThis error means you ran out of memory on your GPU.\n\nTIPS: If the workflow worked before you might have accidentally set the batch_size to a large numb"}
+{"seq": 7, "at": "2026-11-12T22:05:58+08:00", "from": "FAILED_RUN", "to": "RELEASING", "reason": "OOM 策略=destroy：销毁 uhost-1xmgp2bgvr4s"}
+{"seq": 8, "at": "2026-11-12T22:06:00+08:00", "from": "RELEASING", "to": "FAILED", "reason": "OOM 后按策略销毁"}
