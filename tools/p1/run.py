@@ -1776,14 +1776,69 @@ def _next_step(job: dict) -> str | None:
     return None
 
 
-def _rebuild_ctx(job: dict, creds: dict[str, str] | None = None) -> dict:
-    """续跑时重建上下文：从 uhost_id 反查 host/密码，从 steps 取 prompt_id。"""
+def _wake_if_stopped(cs, uid: str, info: dict) -> dict | None:
+    """停机实例开机续跑。返回更新后的实例信息；唤醒不了返回 None。
+
+    三步缺一不可：
+      ① start + 等 Running（平台侧 ~12s）
+      ② sshd 探活（Running ≠ ssh 能连，实测还要几秒；
+         不探的话 `_execute` 的第一个 ssh 步骤必失败）
+      ③ `lifecycle.clear_stopped` —— 不清的话 reaper 拿着旧的停机起点算
+         "已停 2 小时"，唤醒后下一轮巡检就把它销毁了（误销毁不可逆）
+
+    这三步和 `_try_borrow_slot` 唤醒停机槽位是同一套 —— 那边验证过可行。
+    """
+    st = str((info or {}).get("State") or "").lower()
+    if st == "running":
+        return info
+    if st != "stopped":
+        _say(f"  ⚠ 实例 {uid} 状态 {st or '未知'}，无法唤醒（可能已被回收）")
+        return None
+    _say(f"  唤醒停机实例 {uid}（~12s）…")
+    try:
+        cs.start(uid)
+        cs.wait_state(uid, {"running"}, timeout=300)
+    except Exception as e:                             # noqa: BLE001
+        _say(f"  ⚠ 唤醒失败（{type(e).__name__}: {e}）—— 重新 new 一个作业吧")
+        return None
+    info = cs.get(uid)
+    host, port, pwd = cs.public_ip(info), "23", cs.password_of(info)
+    for i in range(20):
+        rc, out = _ssh_run(host, port, pwd, "echo ssh-ready", timeout=20)
+        if rc == 0 and "ssh-ready" in out:
+            break
+        time.sleep(3)
+    else:
+        _say(f"  ⚠ {uid} 已 Running 但 sshd 未就绪")
+        return None
+    try:
+        from tools.p2 import lifecycle
+        lifecycle.clear_stopped(uid)
+    except Exception:                                  # noqa: BLE001
+        pass
+    _say(f"  ✓ {uid} 已唤醒")
+    return info
+
+
+def _rebuild_ctx(job: dict, creds: dict[str, str] | None = None,
+                 *, wake: bool = False) -> dict:
+    """续跑时重建上下文：从 uhost_id 反查 host/密码，从 steps 取 prompt_id。
+
+    `wake=True`（--resume 用）：实例处于 Stopped 时先开机再返回。
+    停机保留的实例（`_keep_instance` 2026-11-12 起）在续跑时要唤醒，
+    否则 ssh 连不上。`--abort` 不传 wake —— 销毁对 Stopped 实例照样有效，
+    为销毁一台机器先花 12 秒开机是纯浪费。
+    """
     inst = job.get("instance") or {}
     uid = inst.get("uhost_id")
     if not uid:
         return {}
     cs = _cs(creds)
     info = cs.get(uid)
+    if wake:
+        info = _wake_if_stopped(cs, uid, info)
+        if info is None:
+            return {}
     steps = job.get("steps") or {}
     ctx = {
         "uhost_id": uid,
@@ -1831,16 +1886,59 @@ def lifecycle_tier_label(seconds: int) -> str:
         return f"{seconds} 秒"
 
 
+def _stop_now(cs, uid: str) -> bool:
+    """立刻停机。返回 True=已确认 Stopped，False=回落到定时关机。
+
+    为什么停不下来要**回落**而不是放弃：
+    老设计（`stop_at` 15 分钟后关）的好处是**平台侧**有定时器，我们进程死了
+    机器也会到点关。改成立刻停之后，如果 `cs.stop()` 失败（平台抖动 / 8903
+    过渡态）而我们就这么算了，那台机器就**没有任何兜底**地一直计费 ——
+    比老设计还糟。所以停不下来就退回 `stop_at`，最坏也只是回到老行为。
+    """
+    try:
+        cs.stop(uid)
+        cs.wait_state(uid, {"stopped"}, timeout=600)
+    except Exception as e:                             # noqa: BLE001
+        _say(f"  ⚠ 立刻停机失败（{type(e).__name__}: {e}），回落定时关机"
+             f"（{KEEP_MINUTES} 分钟兜底）")
+        try:
+            cs.stop_at(uid, int(time.time() + KEEP_MINUTES * 60))
+        except Exception as e2:                        # noqa: BLE001
+            raise RunError(f"停机与定时关机都失败，实例 {uid} 可能仍在计费：{e2}",
+                           state.FAILED) from e2
+        return False
+    try:
+        from tools.p2 import lifecycle
+        lifecycle.record_stopped(uid)      # 2 小时后 reaper 自动销毁腾配额
+    except Exception:                                  # noqa: BLE001
+        pass
+    return True
+
+
 def _keep_instance(job_id: str, ctx: dict, opts) -> bool:
-    """失败后保留实例：设定时关机兜底，提示可续跑/可 abort。
+    """失败后保留实例：**立刻停机**（¥0），续跑时再唤醒（~12s）。
 
     返回 True 表示实例被保留（调用方不要再销毁）。
 
-    **--batch 模式下默认不保留**（2026-11-11 改）。
-    原因：保留实例是为「人工看日志、接着续跑」设计的，一次只跑一条时很划算。
-    但批量跑的时候，每失败一条就留一台，很快就撞上并发上限
-    （`云端已有 2 台 p1-/p2- 实例在跑（上限 2）`），后面的作业全部建不了机 ——
-    而这时人根本不在旁边，保留下来的机器只是在烧钱等 15 分钟自动关机。
+    ## 为什么是"停机保留"而不是"开机等 15 分钟"（2026-11-12 改）
+
+    老设计是 `cs.stop_at(uid, now + 15min)` —— **定时**关机。机器在那
+    15 分钟里是 Running，照常计费，等着人来 `--resume`（模型还在显存里，
+    来了立刻能跑）。没人来就是纯烧：
+
+        4090  ¥0.54    H20  ¥1.88    A100  ¥2.69
+
+    停机实例是 **¥0**（实测：算力 ¥0 + 系统盘 ≤100G ¥0）。所以改成
+    失败就立刻停，要续跑先花 ~12 秒开机。代价只是模型要重新装载
+    （SDXL ~21s / Qwen ~53s）—— 用 1 分钟换掉最多 ¥2.69 的空转。
+
+    顺带修掉一个隐藏问题：老设计那台 Running 机器**占着并发槽位**
+    （并发闸数的是 running 实例），失败一条就顶掉一个槽 15 分钟。
+    停机不占槽，槽立刻让出来给下一个作业。
+
+    回收：`lifecycle.record_stopped()` 登记，reaper 2 小时后自动销毁。
+    **--batch 模式下默认不保留**（直接销毁）—— 停机虽然 ¥0，但占着
+    账户 5 台的配额，批量失败一条留一台很快就建不了新机。
 
     要保留就显式加 `--keep-on-fail`。
     """
@@ -1852,17 +1950,57 @@ def _keep_instance(job_id: str, ctx: dict, opts) -> bool:
         return False
     try:
         cs = _cs(getattr(opts, "creds", None))
-        ts = int(time.time() + KEEP_MINUTES * 60)
-        cs.stop_at(uid, ts)
-        # 说明：Describe 不返回 SchedulerStopTime，所以查实例看到的该字段永远是 None，
-        # 不代表没设上。2026-10-28 实测：设 23:45:42 → 23:46:59 State 变为 Stopped。
-        _say(f"实例 {uid} 已保留（{KEEP_MINUTES} 分钟后自动关机兜底）")
+        stopped = _stop_now(cs, uid)
+        # 停机会杀死 ComfyUI → 内存里的 prompt_id / history 全没了。
+        # 断点在 submit/wait 的，续跑时必须重走推理链，否则会去轮询一个
+        # 已不存在的 prompt_id（挂在原地直到超时）。断点在 fetch 之后的，
+        # 产物在磁盘上（停机不丢），标记保留。
+        _invalidate_inmemory_steps(job_id)
+        j = state.load_job(job_id)
+        j.setdefault("instance", {})["stopped_keep"] = bool(stopped)
+        store.atomic_write_json(store.job_file(job_id), j)
+        if stopped:
+            _say(f"实例 {uid} 已停机保留（¥0 · 2 小时后自动销毁 · 唤醒约 12s）")
         _say(f"  续跑：python3 tools/p1/run.py {job_id} --resume")
         _say(f"  放弃：python3 tools/p1/run.py {job_id} --abort")
         return True
     except Exception as e:
         _say(f"  ⚠ 保留实例失败（将走清理路径）：{e}")
         return False
+
+
+_MEMORY_BOUND_STEPS = ("setup", "ready", "submit", "wait")
+
+
+def _invalidate_inmemory_steps(job_id: str) -> None:
+    """停机后作废那些「结果只活在 ComfyUI 进程内存里」的步骤标记。
+
+    判据是**断点位置**，不是失败类型：
+
+      断点在 submit/wait → setup..wait 全部作废（ComfyUI 死了，prompt 没了）
+      断点在 fetch 之后 → 一个都不作废（产物在磁盘上，停机不丢）
+
+    只在断点属于前一类时才动手 —— fetch 之后作废等于逼着重跑推理，
+    白花一遍 GPU 钱。
+    """
+    j = state.load_job(job_id)
+    steps = j.get("steps") or {}
+    nxt = None
+    for name in state.STEP_ORDER:
+        if not (steps.get(name) or {}).get("done"):
+            nxt = name
+            break
+    if nxt not in ("submit", "wait"):
+        return
+    changed = [k for k in _MEMORY_BOUND_STEPS if (steps.get(k) or {}).get("done")]
+    if not changed:
+        return
+    for k in changed:
+        steps[k] = {"done": False, "invalidated_by": "machine_stopped",
+                    "at": dt.datetime.now().astimezone().isoformat(timespec="seconds")}
+    j["steps"] = steps
+    store.atomic_write_json(store.job_file(job_id), j)
+    _say(f"  停机使 ComfyUI 内存态失效：{'+'.join(changed)} 需重做")
 
 
 def _resume(job_id: str, job: dict, opts) -> int:
@@ -1884,9 +2022,9 @@ def _resume(job_id: str, job: dict, opts) -> int:
     _say(f"续跑：{cur} → RESUMING → {target or 'READY'}（断点步骤 {nxt}）")
 
     with _lock(job_id, opts):
-        ctx = _rebuild_ctx(job, getattr(opts, "creds", None))
+        ctx = _rebuild_ctx(job, getattr(opts, "creds", None), wake=True)
         if not ctx.get("uhost_id"):
-            _say("✗ job 里没有 uhost_id，无法续跑（请重新 new 一个作业）")
+            _say("✗ job 里没有 uhost_id，或停机实例无法唤醒（请重新 new 一个作业）")
             return 1
         try:
             # FAILED_* 走 RESUMING 中转；已在中间状态（如进程被杀）则直接继续
@@ -2350,11 +2488,12 @@ def main(argv=None) -> int:
     ap.add_argument("--hours", type=float, default=1.0, help="定时关机兜底小时数")
     ap.add_argument("--wait-stock", type=int, default=0, help="无货时最多等待秒数")
     ap.add_argument("--resume", action="store_true",
-                    help="从 FAILED_* 续跑：按 job.json 的 steps 从断点继续")
+                    help="从 FAILED_* 续跑：按 job.json 的 steps 从断点继续"
+                         "（停机保留的实例会先自动唤醒，约 12 秒）")
     ap.add_argument("--abort", action="store_true", help="放弃续跑，销毁保留的实例")
-    ap.add_argument("--no-keep", action="store_true", help="失败时不保留实例（旧行为）")
+    ap.add_argument("--no-keep", action="store_true", help="失败时不保留实例（直接销毁）")
     ap.add_argument("--keep-on-fail", action="store_true", dest="keep_on_fail",
-                    help="批量模式下失败也保留实例（默认批量模式会释放，避免撞并发上限）")
+                    help="批量模式下失败也保留（停机 ¥0；默认销毁，避免占 5 台配额）")
     ap.add_argument("--from-pool", action="store_true",
                     help="优先复用预热池停机实例（start ~12s），池空回落新建")
     ap.add_argument("--restart", action="store_true",

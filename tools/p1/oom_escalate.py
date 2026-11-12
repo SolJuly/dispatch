@@ -8,7 +8,7 @@
 
     step_wait 探测到 ComfyUI 进程没了
       → raise RunError("疑似显存不足/崩溃", FAILED_RUN)
-      → 保留实例 15 分钟等人工 --resume
+      → 停机保留（¥0，见 _keep_instance）等人工 --resume
       → 人来了，--resume，还是同一张 24G 卡
       → 同样的地方以同样的方式 OOM
 
