@@ -858,7 +858,8 @@ class Handler(BaseHTTPRequestHandler):
                                      run=bool(body.get("run")),
                                      budget=float(budget) if budget not in (None, "") else None,
                                      task_class=body.get("task_class"),
-                                     idle_tier=body.get("idle_tier"))
+                                     idle_tier=body.get("idle_tier"),
+                                     oom_policy=body.get("oom_policy"))
             return _json(data, 201)
         except webapi.ApiError as e:
             return _json({"error": e.msg}, e.code)

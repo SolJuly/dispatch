@@ -343,6 +343,9 @@ def _make_spec(r: dict, *, job_key: str, task_ref: str | None) -> dict:
         "graph_sha256": wf.get("graph_sha256"),
     }
     limits = wf.get("limits") or {}
+    from tools.p1 import oom_escalate as _oom
+    oom_policy = _oom.normalize_policy((wf.get("oom_policy")
+                                        or (model.get("oom_policy"))))
     return {
         "kind": wf["kind"],
         "task_ref": task_ref or f"P2.0-{wf['key']}",
@@ -358,6 +361,8 @@ def _make_spec(r: dict, *, job_key: str, task_ref: str | None) -> dict:
         "budget": {"max_minutes": limits.get("max_minutes", 30),
                    "max_cost": limits.get("max_cost", 1.0)},
         "instance": {"required_gpu": wf.get("required_gpu") or ["4090"]},
+        # OOM 策略：工作流卡可声明默认档，提交时 UI/CLI 可覆盖
+        "oom_policy": oom_policy,
     }
 
 

@@ -73,6 +73,46 @@ class Base(unittest.TestCase):
 
 
 # --------------------------------------------------------------- 判定闸
+class TestPolicy(Base):
+    """oom_policy：用户提交时选的「OOM 之后怎么办」。
+
+    三档的取舍必须让用户看得懂 —— policy_note 就是干这个的。
+    """
+
+    def test_three_policies(self):
+        self.assertEqual(O.POLICIES, ("auto", "stop", "destroy"))
+
+    def test_normalize_valid(self):
+        for v in ("auto", "stop", "destroy", "AUTO", " Stop "):
+            self.assertIn(O.normalize_policy(v), O.POLICIES)
+
+    def test_normalize_invalid_falls_back_to_auto(self):
+        """非法值静默回落 auto，不是报错。
+
+        这个字段只影响"失败之后多花多少钱"，为一个展示性选项
+        丢掉用户刚填好的一整套参数不值得（口径同 task_class）。
+        """
+        for v in (None, "", "nonsense", "escalate", 123, {}):
+            self.assertEqual(O.normalize_policy(v), "auto")
+
+    def test_policy_note_covers_all(self):
+        for p in O.POLICIES:
+            note = O.policy_note(p)
+            self.assertTrue(note and len(note) > 8, f"{p} 的说明太短，用户看不懂")
+
+    def test_cli_no_escalate_beats_job_policy(self):
+        """--no-escalate 是操作员的现场开关，压过用户提交时选的档位。"""
+        import argparse
+        job = {"oom_policy": "auto"}
+        self.assertEqual(O.policy_of(job, argparse.Namespace(no_escalate=True)), "stop")
+        self.assertEqual(O.policy_of(job, argparse.Namespace(no_escalate=False)), "auto")
+
+    def test_missing_policy_is_auto(self):
+        import argparse
+        self.assertEqual(O.policy_of({}, argparse.Namespace(no_escalate=False)), "auto")
+        self.assertEqual(O.policy_of(None, argparse.Namespace(no_escalate=False)), "auto")
+
+
 class TestJudgment(Base):
     """判定闸：只有证据确凿的 OOM 才升卡。"""
 

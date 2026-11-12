@@ -488,6 +488,11 @@ def validate_workflow(d: dict, *, root: Path | None = None, check_graph: bool = 
     rg = d.get("required_gpu", [])
     if not isinstance(rg, list) or not rg:
         e.append("required_gpu 应为非空数组")
+    # OOM 策略（2026-11-12）：卡可以声明默认档。非法值在这里拦 ——
+    # 卡是开发者写的（不是终端用户随手填的），写错就该报错而不是静默回落。
+    op = d.get("oom_policy")
+    if op is not None and op not in ("auto", "stop", "destroy"):
+        e.append(f"oom_policy 应为 auto/stop/destroy，实际 {op!r}")
     return e
 
 

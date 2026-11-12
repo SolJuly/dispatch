@@ -76,6 +76,54 @@ from tools.p2 import gpu_ladder as ladder  # noqa: E402
 
 SCHEMA = "p1.oom_escalation/v1"
 
+# ---------------------------------------------------------------- OOM 策略
+# 用户在提交时选的「OOM 之后怎么办」。三档，各有明确的经济含义（见 policy_note）。
+POLICY_AUTO = "auto"        # 自动升卡（默认）：确诊 OOM → 换更大卡重跑（三道闸）
+POLICY_STOP = "stop"        # 不升卡：失败停机保留（¥0，可 --resume）
+POLICY_DESTROY = "destroy"  # 不升卡：失败直接销毁实例（腾配额，不可续跑）
+POLICIES = (POLICY_AUTO, POLICY_STOP, POLICY_DESTROY)
+
+
+def normalize_policy(v) -> str:
+    """归一到三档之一；非法值回落 auto（不是报错）。
+
+    为什么静默回落而不是 400：这个字段只影响"失败之后多花多少钱"，
+    为一个展示性选项丢掉用户刚填好的一整套参数不值得 —— 与
+    `task_class` 的口径一致（那边也是静默回落 + 回告实际档位）。
+    """
+    raw = str(v or "").strip().lower()
+    return raw if raw in POLICIES else POLICY_AUTO
+
+
+def policy_of(job: dict, opts=None) -> str:
+    """这条作业的 OOM 策略。优先级：CLI `--no-escalate` > job.json > 默认 auto。
+
+    `--no-escalate` 是**操作员**的现场开关（调试/止血用），压过用户提交时
+    选的档位 —— 现场的人比提交时的人更了解此刻的状况。
+    """
+    if getattr(opts, "no_escalate", False):
+        return POLICY_STOP
+    return normalize_policy((job or {}).get("oom_policy"))
+
+
+_POLICY_NOTES = {
+    POLICY_AUTO: "OOM 后自动换更大显存的卡重跑（最多 2 次，预算内）",
+    POLICY_STOP: "OOM 后不升卡：停机保留（¥0），可 --resume 续跑",
+    POLICY_DESTROY: "OOM 后不升卡：直接销毁实例（腾配额，不可续跑）",
+}
+
+
+def policy_note(policy: str) -> str:
+    """给 UI / jobctl show 看的一句话说明 —— 三档的代价必须让用户看得懂。
+
+    第一版写成 `{}.get(policy, policy_note(POLICY_AUTO))` —— 无限递归。
+    `dict.get` 的 default **永远会被求值**，即使命中了键也先把
+    `policy_note(POLICY_AUTO)` 调一遍，而那个调用里又求值一遍……
+    测试当场抓住（test_policy_note_covers_all 爆 RecursionError）。
+    查表就该老老实实 if/else，别把函数调用塞进 `.get` 的默认参数里。
+    """
+    return _POLICY_NOTES.get(policy) or _POLICY_NOTES[POLICY_AUTO]
+
 # 最多升几次。2 次 = 最多 3 次尝试（原卡 + 两档更大的卡）。
 # 定 2 而不是 3：24G → 48G → 80G → 96G 的第四档要 ¥10.75/h，
 # 而能落到那里的作业通常不是显存问题。

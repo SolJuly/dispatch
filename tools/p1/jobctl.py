@@ -267,6 +267,11 @@ def cmd_new(a) -> int:
             # 没勾的作业不带这个字段 —— 它们该等人点「执行」，不该被自动拉起。
             if spec.get("auto_run"):
                 job["auto_run"] = True
+            # OOM 策略（2026-11-12）：用户在提交时选的「OOM 之后怎么办」。
+            # 三档都有值（normalize 保证），不加条件 —— 让 job.json 里
+            # 永远能看到这个字段，UI 才能如实回显用户选了什么。
+            from tools.p1 import oom_escalate as _oom
+            job["oom_policy"] = _oom.normalize_policy(spec.get("oom_policy"))
 
             errs = schema.validate_job(job)
             if errs:
@@ -325,6 +330,9 @@ def cmd_show(a) -> int:
     print(f"  参数 {json.dumps(j.get('params'), ensure_ascii=False)[:110]}")
     print(f"  期望 ≥{j['expect'].get('min_bytes')}B {j['expect'].get('ext')}"
           f" 时长{j['expect'].get('duration_s')}")
+    from tools.p1 import oom_escalate as _oom
+    pol = _oom.normalize_policy(j.get("oom_policy"))
+    print(f"  OOM 策略 {pol} · {_oom.policy_note(pol)}")
     esc = ((j.get("instance") or {}).get("oom_escalation")) or {}
     if esc.get("floor_vram"):
         atts = esc.get("attempts") or []

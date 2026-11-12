@@ -83,6 +83,26 @@
               <span class="lc-why">短任务本身只要 ¥0.08–0.14，保留 2 分钟等于涨价 63%。</span>
             </div>
           </div>
+          <div class="flabel" style="margin-top:14px">OOM 之后怎么办？
+            <span class="hint-inline">只在确认是显存不足时生效</span></div>
+          <label class="lc-tier">
+            <input type="radio" name="oomPolicy" value="auto" checked>
+            <span class="lc-name">自动换大卡（推荐）</span>
+            <span class="lc-note">显存不够就自动换更大的卡重跑，最多两次、预算内。
+              一次升卡通常多花 ¥0.5–3，换来的是任务真的能跑完。</span>
+          </label>
+          <label class="lc-tier">
+            <input type="radio" name="oomPolicy" value="stop">
+            <span class="lc-name">停下不升卡</span>
+            <span class="lc-note">显存不够就停：机器立刻停机（¥0 不计费），
+              可以改参数后续跑。适合想自己控制成本、或知道是参数设大了。</span>
+          </label>
+          <label class="lc-tier">
+            <input type="radio" name="oomPolicy" value="destroy">
+            <span class="lc-name">直接销毁机器</span>
+            <span class="lc-note">显存不够就把机器直接删掉（腾出配额，不可续跑）。
+              适合批量任务里混进一条必然失败的、想让它别占资源。</span>
+          </label>
           <div class="actions">
             <label class="sw" title="勾选后立即占用 GPU 执行并产生费用；不勾只建作业">
               <input type="checkbox" id="runNow">立即执行（花钱）

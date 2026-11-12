@@ -1,0 +1,57 @@
+{
+  "kind": "image",
+  "task_ref": "P2.1",
+  "model": {
+    "key": "sdxl_juggernaut",
+    "workflow": "workflows/sdxl_t2i.api.json",
+    "checkpoint": "juggernautXL_v8Rundiffusion_V8.safetensors",
+    "workflow_sha256": "e86aa55c87aecbfc331d9377a7ba0de95fb6e8b168281be2831914393800e5d3",
+    "registry": {
+      "workflow_key": "sdxl_t2i",
+      "workflow_version": 1,
+      "model_key": "sdxl_juggernaut",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "all",
+      "graph_sha256": "e86aa55c87aecbfc331d9377a7ba0de95fb6e8b168281be2831914393800e5d3"
+    }
+  },
+  "params": {
+    "batch_size": 1,
+    "cfg": 6.0,
+    "height": 1024,
+    "neg_prompt": "",
+    "prompt": "http probe",
+    "sampler": "dpmpp_2m",
+    "scheduler": "karras",
+    "seed": 99,
+    "steps": 25,
+    "width": 1024
+  },
+  "expect": {
+    "black_ratio_max": 0.5,
+    "ext": "png",
+    "height": [
+      1024
+    ],
+    "images": 1,
+    "min_bytes": 20000,
+    "width": [
+      1024
+    ]
+  },
+  "budget": {
+    "max_minutes": 20,
+    "max_cost": 0.8
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  },
+  "oom_policy": "destroy",
+  "task_class": "short",
+  "task_class_source": "default"
+}

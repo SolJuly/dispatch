@@ -666,9 +666,11 @@ async function submitJob() {
   $('#submit').disabled = true;
   try {
     const lc = readLifecycle();
+    const oomPick = document.querySelector('input[name=oomPolicy]:checked');
     const res = await post('/jobs', {
       workflow: S.wfKey, params, run: $('#runNow').checked,
       task_class: lc.task_class, idle_tier: lc.idle_tier,
+      oom_policy: oomPick ? oomPick.value : 'auto',
     });
     // 并发满时后端会**降级成"建作业但不执行"**（deferred=true），而不是拒绝 ——
     // 拒绝会丢掉用户刚填好的一整套参数。但也不能显示成"已提交执行"：
@@ -676,6 +678,9 @@ async function submitJob() {
     // 生命周期提示：让用户看到"这条作业跑完后实例会发生什么"。
     // 短任务也要显示 —— 否则用户不知道自己刚勾的框意味着什么。
     const plan = res.lifecycle || {};
+    const oomLine = res.oom_policy_note
+      ? `OOM 策略：<b>${esc(res.oom_policy_note)}</b>`
+      : '';
     const lcLine = plan.idle_after_done_s > 0
       ? `跑完保留 ${plan.idle_after_done_s}s 等下一单（${esc(plan.tier_label || '')}），`
         + ` 然后${esc(plan.stopped_ttl_label || '停机 2 小时')}，超时销毁。`
@@ -687,8 +692,10 @@ async function submitJob() {
          想提前跑就点这条作业右边的「执行」（并发腾出来才会真正启动）。
          不会重复建机，排队期间也不花钱。</div>
          <div class="fdesc" style="margin-top:6px;border-left-color:#2f6b46">${lcLine}</div>`
+         + (oomLine ? `<div class="fdesc" style="margin-top:4px;border-left-color:#7a45b8">${oomLine}</div>` : '')
       : `<span style="color:var(--green)">${esc(res.job_id)} · ${esc(res.state)}</span>
-         <div class="fdesc" style="margin-top:6px;border-left-color:#2f6b46">${lcLine}</div>`;
+         <div class="fdesc" style="margin-top:6px;border-left-color:#2f6b46">${lcLine}</div>`
+         + (oomLine ? `<div class="fdesc" style="margin-top:4px;border-left-color:#7a45b8">${oomLine}</div>` : '');
     $('#submitMsg').innerHTML = note;
     location.hash = '#/result/' + encodeURIComponent(res.job_id);
   } catch (e) {

@@ -175,6 +175,13 @@ def validate_job(d, *, job_id_expected: str | None = None) -> list[str]:
     if ar is not None and not isinstance(ar, bool):
         e.append(f"auto_run 应为布尔值，实际 {ar!r}")
 
+    # OOM 策略（2026-11-12）：三档之一，非法值在建作业时已被 normalize 拦下，
+    # 这里再验一次是防"有人直接改 job.json"——改了也别让 run.py 拿着
+    # 一个不认识的策略往下走。
+    op = d.get("oom_policy")
+    if op is not None and op not in ("auto", "stop", "destroy"):
+        e.append(f"oom_policy 应为 auto/stop/destroy，实际 {op!r}")
+
     return e
 
 

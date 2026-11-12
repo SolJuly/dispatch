@@ -537,7 +537,8 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
                jobs_dir: Path | None = None, spec_dir: Path | None = None,
                jobctl: Path | None = None, spawn=subprocess.Popen,
                force: bool = False, task_class: str | None = None,
-               idle_tier: int | None = None) -> dict:
+               idle_tier: int | None = None,
+               oom_policy: str | None = None) -> dict:
     """校验参数 → 生成 spec → jobctl new →（可选）后台执行。
 
     同一任务的重复提交由 jobctl 的提交锁兜住：进行中的作业幂等复用（返回已有
@@ -606,6 +607,11 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
     if budget is not None and budget > 0:
         spec.setdefault("budget", {})
         spec["budget"]["max_cost"] = min(float(budget), float(spec["budget"].get("max_cost") or budget))
+    # OOM 策略（2026-11-12）：用户在提交表单里选的「OOM 之后怎么办」。
+    # 非法值静默回落 auto（口径同 task_class）—— 但要把实际生效的档位
+    # 回告给前端，UI 如实显示，用户才知道自己选的到底是什么。
+    from tools.p1 import oom_escalate as _oom
+    spec["oom_policy"] = _oom.normalize_policy(oom_policy)
     sd = Path(spec_dir) if spec_dir else SPEC_DIR
     sd.mkdir(parents=True, exist_ok=True)
     # 同一秒两个请求不能互相覆盖 spec：加 PID + 微秒
@@ -658,6 +664,8 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
             "deferred": bool(defer_reason),
             "deferred_reason": defer_reason,
             # 生命周期实算结果：UI 直接渲染，别在前端再算一遍（数字会漂移）
+            "oom_policy": spec["oom_policy"],
+            "oom_policy_note": _oom.policy_note(spec["oom_policy"]),
             "lifecycle": lifecycle.describe({"task_class": tc,
                                              "task_class_source": tsrc,
                                              "idle_tier": tier}),

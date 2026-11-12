@@ -2282,9 +2282,14 @@ def _try_escalate(job_id: str, job: dict, opts, ctx: dict, err: RunError) -> boo
       ③ 释放成功才落盘升卡决定（否则 job.json 说"下次用 48G"，
          而那台 24G 机器还在计费，两件事对不上）
     """
-    if getattr(opts, "no_escalate", False):
-        return False
     from tools.p1 import oom_escalate as oom
+
+    # 用户在提交时选的策略压过一切默认（--no-escalate 在 policy_of 里处理）
+    policy = oom.policy_of(job, opts)
+    if policy != oom.POLICY_AUTO:
+        if err.oom_cls == "certain" or oom.attempt_count(job):
+            _say(f"  OOM 策略 = {policy}（用户选定）：{oom.policy_note(policy)}")
+        return False
 
     current = err.gpu or str((ctx.get("inst") or {}).get("GpuType")
                              or (job.get("instance") or {}).get("gpu") or "")
@@ -2438,6 +2443,26 @@ def _run_inner(job_id: str, opts) -> int:
                 # 显存不足 → 换更大的卡重跑（唯一会继续循环的出口）
                 if _try_escalate(job_id, job, opts, ctx, e):
                     continue
+                # 用户选了 destroy：OOM 后直接销毁实例，**不留停机实例**
+                #（腾配额，不可续跑 —— 用户提交时看过这三个字的代价）
+                from tools.p1 import oom_escalate as _oom
+                if (e.oom_cls == "certain"
+                        and _oom.policy_of(job, opts) == _oom.POLICY_DESTROY
+                        and ctx.get("uhost_id")):
+                    ctx["force_release"] = True
+                    try:
+                        cur = state.load_job(job_id).get("state")
+                        if cur in state.FAIL_BRANCH:
+                            state.transition(job_id, state.RELEASING,
+                                              reason=f"OOM 策略=destroy：销毁 {ctx.get('uhost_id')}")
+                            step_release(job, opts, ctx)
+                            state.transition(job_id, state.FAILED, reason="OOM 后按策略销毁")
+                    except Exception as e3:                 # noqa: BLE001
+                        _say(f"  ⚠ 按策略销毁失败（{type(e3).__name__}: {e3}）")
+                    finally:
+                        ctx.pop("force_release", None)
+                    _say("  已按 oom_policy=destroy 销毁实例（不留停机实例，不可续跑）")
+                    return 1
                 # 断点续跑：失败时**保留实例**，靠定时关机兜底，等 --resume 或 --abort
                 kept = _keep_instance(job_id, ctx, opts)
                 if kept:

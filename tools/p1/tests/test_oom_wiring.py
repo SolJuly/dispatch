@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -84,6 +85,74 @@ class TestGpuCandidatesHonoursFloor(unittest.TestCase):
         j = _job()
         j["instance"]["oom_escalation"] = {"floor_vram": "abc"}
         self.assertEqual(run._gpu_candidates(j, _opts()), ["4090", "4090_48G"])
+
+
+class TestPolicyWiring(unittest.TestCase):
+    """用户选的 oom_policy 必须真的改变行为 —— 只加字段不改逻辑等于没做。"""
+
+    def _err(self, cls="certain"):
+        return run.RunError("boom: CUDA out of memory", "FAILED_RUN",
+                            oom_cls=cls, oom_text="CUDA out of memory", gpu="4090")
+
+    def _with_job(self, policy, fn):
+        """_try_escalate 会读 job.json → 给它一个临时作业。"""
+        import json, tempfile
+        from tools.p1 import store
+        with tempfile.TemporaryDirectory() as t:
+            d = Path(t) / "jobs" / "p1-x"
+            d.mkdir(parents=True)
+            (d / "job.json").write_text(json.dumps(
+                {"job_id": "p1-x", "state": "FAILED_RUN", "state_seq": 5,
+                 "model": {"key": "m"}, "params": {}, "expect": {},
+                 "params_hash": "sha256:" + "a" * 64,
+                 "budget": {"max_cost": 99.0, "max_minutes": 40},
+                 "oom_policy": policy,
+                 "instance": {"gpu": "4090", "hourly": 2.15,
+                              "required_gpu": ["4090"]}}), encoding="utf-8")
+            with mock.patch.object(store, "JOBS_DIR", Path(t) / "jobs"):
+                return fn()
+
+    def test_stop_policy_blocks_escalation(self):
+        """用户选 stop → 不升卡，即使证据确凿、预算够、有货。"""
+        from tools.p1 import oom_escalate as O
+        with mock.patch.object(O, "plan", wraps=O.plan) as m:
+            got = self._with_job("stop", lambda: run._try_escalate(
+                "p1-x", {"oom_policy": "stop"}, _opts(),
+                {"uhost_id": "u1"}, self._err()))
+        self.assertFalse(got, "stop 策略必须拦下升卡")
+        self.assertEqual(m.call_count, 0, "拦在策略这一关，plan() 不该被调到")
+
+    def test_auto_policy_allows_escalation_to_plan(self):
+        """auto → 进入 plan()（plan 自己还有三道闸，这里只验策略放行）。"""
+        from tools.p1 import oom_escalate as O
+        with mock.patch.object(O, "plan",
+                               return_value={"ok": False, "reason": "x", "targets": []}) as m:
+            self._with_job("auto", lambda: run._try_escalate(
+                "p1-x", {"oom_policy": "auto"}, _opts(),
+                {"uhost_id": "u1"}, self._err()))
+        self.assertEqual(m.call_count, 1, "auto 策略必须把决定交给 plan()")
+
+    def test_destroy_path_in_run_inner(self):
+        """destroy 策略 → OOM 后走强制销毁，不留停机实例。
+
+        用源码断言：行为测试要 mock 整个九步链，成本高且测不到接线。
+        这条守的是"destroy 分支存在且在 _keep_instance 之前"。
+        """
+        import inspect
+        src = inspect.getsource(run._run_inner)
+        i_destroy = src.find("policy_of(job, opts) == _oom.POLICY_DESTROY")
+        i_keep = src.find("_keep_instance(job_id, ctx, opts)")
+        self.assertGreater(i_destroy, 0, "run.py 里没有 destroy 策略分支")
+        self.assertLess(i_destroy, i_keep,
+                        "destroy 分支必须在 _keep_instance 之前 —— "
+                        "否则会先停机保留，与用户选的「直接销毁」矛盾")
+
+    def test_policy_note_no_recursion(self):
+        """第一版 policy_note 用 .get(k, self()) 写法爆栈 —— 锁住别再犯。"""
+        from tools.p1 import oom_escalate as O
+        for p in O.POLICIES:
+            self.assertTrue(O.policy_note(p))
+        self.assertEqual(O.policy_note("garbage"), O.policy_note("auto"))
 
 
 class TestGrabFallbackRespectsFloor(unittest.TestCase):
