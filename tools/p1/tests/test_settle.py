@@ -167,3 +167,66 @@ class TestBackfill(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+class TestAttributionDetail(unittest.TestCase):
+    """归因四分类：job / operator / provision / idle。
+
+    ## 为什么必须测
+
+    原来只有 job / idle 两档，判据是 `any(k in ("job","create","terminate","cost"))`。
+    但账本里 `ssh_exec` 有 1731 条，是 `job`（83 条）的 20 倍 —— 手动排障、
+    验证工作流、调环境全程在 ssh，却一条都不算"有活动"。
+
+    实测后果（2026-11-12）：一天 4 轮真机验证花 ¥4.68，其中 job 只有 ¥0.18，
+    其余全记成 idle。看起来像"96% 空转"，实际 ¥2.87 是实验开销，
+    真正可省的 idle 只有 ¥1.63。
+
+    结论被高估的代价很实在：会让人去优化一个不在的问题（"为什么机器老空转"），
+    而真正该看的（实验花了多少钱）被藏起来了。
+    """
+
+    def setUp(self):
+        from tools import cost_snapshot
+        self.m = cost_snapshot
+
+    def test_job_wins_over_everything(self):
+        for kinds in (["job"], ["job", "ssh_exec"], ["cost"], ["job", "create"],
+                      ["job", "ssh_exec", "terminate"]):
+            with self.subTest(kinds=kinds):
+                self.assertEqual(self.m._attribute(kinds), "job")
+
+    def test_ssh_is_operator_not_idle(self):
+        """ssh_exec 是人工操作，不是"什么都没干"。"""
+        self.assertEqual(self.m._attribute(["ssh_exec"]), "operator")
+        self.assertEqual(self.m._attribute(["ssh_exec", "pull"]), "operator")
+
+    def test_operator_beats_provision(self):
+        """人工操作时顺手建机/停机的，算 operator —— 主体是在调试。"""
+        self.assertEqual(self.m._attribute(["ssh_exec", "create"]), "operator")
+        self.assertEqual(self.m._attribute(["pull", "terminate"]), "operator")
+
+    def test_provision_alone(self):
+        for kinds in (["create"], ["terminate"], ["stop"], ["schedule_stop"]):
+            with self.subTest(kinds=kinds):
+                self.assertEqual(self.m._attribute(kinds), "provision")
+
+    def test_truly_idle(self):
+        """真的什么都没干才算 idle —— 这是唯一可省的那类。"""
+        for kinds in ([], ["lab_group"], ["balance"]):
+            with self.subTest(kinds=kinds):
+                self.assertEqual(self.m._attribute(kinds), "idle")
+
+    def test_unknown_events_do_not_count_as_job(self):
+        """没见过的事件类型不能默认算成 job（那会掩盖空转）。"""
+        self.assertEqual(self.m._attribute(["some_future_event"]), "idle")
+
+    def test_build_records_uses_new_attribution(self):
+        """build_records 必须真的用 _attribute，不是自己另写一份判断。"""
+        prev = {"balance": 10.0, "ts": 1000, "at": "2026-11-08 01:00:00"}
+        recs = self.m.build_records(9.5, prev, activity=["ssh_exec"], now=1600)
+        self.assertEqual(recs[1]["attribution"], "operator",
+                         f"ssh_exec 应归 operator，实际 {recs[1]['attribution']}")
+
+
+if __name__ == "__main__":
+    unittest.main()

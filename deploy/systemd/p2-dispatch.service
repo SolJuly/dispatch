@@ -1,5 +1,14 @@
 # P2 队列调度器（领取队列作业并真正建机执行）
 #
+# ⚠⚠ 本 unit 当前**不可用，请勿启用**（2026-11-12）⚠⚠
+#
+# 队列已禁用（tools/p2/jobqueue.py 的 ENABLED = False），本服务启动后会立刻
+# 报 QueueDisabled 退出。而且 Restart=always + RestartSec=15 会把它变成
+# **每 15 秒重启一次的死循环**（调度器是"队列空就退出"）。
+#
+# 自动补位已由 tools/p1/autostart.py 承担：事件驱动、零延迟、不需要常驻进程。
+# 要恢复本服务，先看 tools/p2/scheduler.py 模块 docstring 的「要恢复需要三步」。
+#
 # 2026-11-09 重写：原 unit 的 WorkingDirectory 是 /root/wt-ui —— 那个 worktree
 # 已被删除，服务却靠 systemd 的 cwd 句柄继续"运行"了一周（active 但跑的是
 # 内存里那份早已不存在的代码，日志里一直在刷同一句熔断）。
@@ -16,7 +25,7 @@ Environment=P2_DISPATCH_DAEMON=1
 Environment=PYTHONUNBUFFERED=1
 # 当日预算熔断：账本当日花费（含 settle 真实扣费）达到这个数就停止领取
 ExecStart=/usr/bin/python3 /root/智云视频工作流/tools/p2/batchctl.py run --slots 1 --poll 5 --daily-budget 3
-Restart=always
+Restart=on-failure
 RestartSec=15
 KillSignal=SIGTERM
 TimeoutStopSec=180

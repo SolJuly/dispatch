@@ -117,15 +117,53 @@ def build_records(bal: float, prev: dict | None, *, now: float | None = None,
         "ts": int(now), "at": at, "event": "settle",
         "amount": delta, "from": round(prev_bal, 4), "to": round(bal, 4),
         "prev_at": prev.get("at"), "gap_s": gap,
-        # 归因线索：有作业活动 → 差额含作业；完全无活动 → 只可能是日结/存储费
+        # 归因线索：有没有人在这段时间动过这台机器
         "activity": kinds,
-        "attribution": ("job" if any(k in ("job", "create", "terminate", "cost") for k in kinds)
-                        else "idle"),
+        "attribution": _attribute(kinds),
     }
     if gap > MAX_GAP_S:
         rec["gap"] = True
     recs.append(rec)
     return recs
+
+
+# 归因分类：把「钱花在什么上」分成 4 类，而不是二元 job/idle。
+#
+# ## 为什么必须改
+#
+# 原来只有两种：`job`（有 job/create/terminate/cost 事件）或 `idle`（其余全部）。
+# 但账本里 `ssh_exec` 有 1731 条，是 `job`（83 条）的 20 倍 —— 手动排障、
+# 验证工作流、调环境，全程都在 ssh，却一条都不算"有活动"。
+#
+# 实测后果（2026-11-12）：一天做了 4 轮真机验证，花了 ¥4.68，
+# 其中 `job` 只有 ¥0.18，其余全被记成 `idle`。
+# 看起来像"96% 空转"，实际是实验开销。
+# 交接单里那个"65% 的钱花在空转上"的结论，很可能也被同样高估了。
+#
+# ## 四类的区别（关系到能不能省）
+#
+#   job      跑作业            该花的，是产出
+#   operator 人工操作（ssh/拉取）  该花的，是调试/实验成本
+#   provision 建机/停机/定时关机   该花的，是生命周期开销
+#   idle     真的什么都没干       **唯一可省的**
+#
+# `01:10` 每天固定的镜像存储费会落进 `idle`（那段时间确实没活动），
+# 但它是**必然支出**，不是浪费 —— 靠 `gap_s` 和金额能区分（固定 ¥0.55 左右）。
+_ATTR_JOB = ("job", "cost")
+_ATTR_OPERATOR = ("ssh_exec", "pull")
+_ATTR_PROVISION = ("create", "terminate", "stop", "schedule_stop")
+
+
+def _attribute(kinds: list[str]) -> str:
+    """按"谁在动这台机器"归类。多类同时出现时按 job > operator > provision 取。"""
+    ks = set(kinds or ())
+    if ks & set(_ATTR_JOB):
+        return "job"
+    if ks & set(_ATTR_OPERATOR):
+        return "operator"
+    if ks & set(_ATTR_PROVISION):
+        return "provision"
+    return "idle"
 
 
 def main(argv: list[str] | None = None) -> int:

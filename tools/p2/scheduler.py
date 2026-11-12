@@ -2,6 +2,36 @@
 # -*- coding: utf-8 -*-
 """P2 批量调度器：从 queue.db 领作业 → 起 `run.py --batch` 子进程 → 收尾/重排/回收。
 
+## ⚠ 本模块当前处于「不可用」状态（2026-11-12）
+
+**队列已禁用**（`tools/p2/jobqueue.py` 的 `ENABLED = False`），所以本调度器
+启动后会立刻报 `QueueDisabled` 退出。
+
+### 为什么禁
+
+队列没有生产者：`jobqueue.enqueue()` 有完整实现，但全库零调用方 ——
+UI 提交的作业直接写 `reports/p1/jobs/`，从不进 queue.db。
+于是 queue.db 从 2026-11-01 起就没再写入过。
+
+它唯一还起作用的地方是**让界面数字互相矛盾**：
+「已完成花费 ¥7.35」来自 queue.db 的 8 条历史残留，
+「失败 26 / 完成 20」来自 job.json 的 47 条 —— 真实花费是 ¥3.86。
+
+### 自动补位已经由别的模块承担
+
+`tools/p1/autostart.py` 做同样的事，但**事件驱动**而不是常驻轮询：
+作业进入终态时扫一遍，把排队的 `auto_run` 作业拉起来。
+延迟是 0 秒（实测：前一条 DONE 的同一秒启动了后一条），且不需要任何常驻进程。
+
+### 要恢复需要三步
+
+1. 接上生产者：在 `webui/api.py` 的 `create_job()` 里，`jobctl new` 之后
+   调 `queue.submit(...)`
+2. 把 `jobqueue.ENABLED` 改成 `True`（或设环境变量 `P2_QUEUE_ENABLED=1`）
+3. **先修这个 unit 的坑**：`deploy/systemd/p2-dispatch.service` 配的是
+   `Restart=always` + `RestartSec=15`，而本调度器"队列空就退出" ——
+   两者叠加会变成每 15 秒重启一次的死循环。改成 `on-failure` 或让它空闲不退出。
+
 设计（见 P2 计划 §5.5）：
   - 一实例一 job：每个 worker = 一次 run.py 子进程（subprocess 隔离，最稳）
   - 槽位 = min(--slots, 账户剩余配额)，不硬上

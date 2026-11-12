@@ -16,9 +16,11 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[3]
@@ -462,3 +464,60 @@ class TestDispatchUnitFile(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TestDynamicParallel(unittest.TestCase):
+    """并发上限要跟余额联动 —— 只向下调，不向上放开。
+
+    ## 为什么只向下
+
+    上限的主要约束是**显存**不是钱：实测两条视频作业并行时 4090 上的
+    ComfyUI 会抢显存，第二条 OOM（FAILED_RUN），钱照扣。
+    所以余额充足也**不该**自动往上抬 —— 那不是省钱，是制造失败。
+
+    余额只用来收紧：撑不住 2 台降到 1，撑不住 1 台降到 0（拒绝建机）。
+
+    ## 为什么需要这条
+
+    实测 2026-11-12：余额从 ¥19 降到 ¥14.44，`MAX_PARALLEL` 一直是 2，
+    两者毫无关系。余额继续降下去，2 台并行会在几小时内烧穿，
+    而系统仍认为"开 2 台是安全的"。
+    """
+
+    def _cap(self, bal, env=None):
+        from tools.p2 import concurrency as conc
+        patches = [mock.patch("tools.p1.money_guard.balance", return_value=bal)]
+        if env is not None:
+            patches.append(mock.patch.dict("os.environ", env))
+        for p in patches:
+            p.start()
+        try:
+            return conc.max_parallel()
+        finally:
+            for p in reversed(patches):
+                p.stop()
+
+    def test_rich_balance_does_not_exceed_configured(self):
+        """余额再多也不超过配置值 —— 显存是硬约束。"""
+        self.assertEqual(self._cap(1000), 2)
+
+    def test_low_balance_tightens(self):
+        self.assertEqual(self._cap(5.0), 1)
+
+    def test_very_low_balance_refuses(self):
+        """撑不住一台就返回 0，调用方据此拒绝建机。"""
+        self.assertEqual(self._cap(3.0), 0)
+        self.assertEqual(self._cap(0.5), 0)
+
+    def test_unreadable_balance_falls_back_to_configured(self):
+        """读不到余额不能瞎扣 —— 那是"不知道"，不是"没钱"。"""
+        self.assertEqual(self._cap(None), 2)
+
+    def test_env_can_raise_configured_but_still_capped_by_money(self):
+        """P21_MAX_PARALLEL 调大时，余额仍然说了算。"""
+        self.assertEqual(self._cap(1000, {"P21_MAX_PARALLEL": "5"}), 5)
+        self.assertEqual(self._cap(8.0, {"P21_MAX_PARALLEL": "5"}), 2)
+
+    def test_env_does_not_bypass_money_guard(self):
+        """环境变量调大不能绕过余额保护。"""
+        self.assertEqual(self._cap(3.0, {"P21_MAX_PARALLEL": "10"}), 0)
+

@@ -57,16 +57,73 @@ DEFAULT_MAX_PARALLEL = 2
 
 
 def max_parallel() -> int:
-    """并发上限。环境变量可覆盖，非法值回落到默认（不改成 0 —— 0 会锁死整个系统）。"""
+    """并发上限 = min(配置值, 余额能撑住的台数)。
+
+    环境变量 `P21_MAX_PARALLEL` 覆盖**配置值**，非法值回落到默认
+    （不改成 0 —— 0 会锁死整个系统）。
+
+    ## 为什么要和余额联动
+
+    实测（2026-11-12）：余额从 ¥19 一路降到 ¥14.44，而 `MAX_PARALLEL` 一直是 2，
+    两者没有任何关系。余额再降下去，2 台并行会在几小时内烧穿，
+    而系统仍然认为"开 2 台是安全的"。
+
+    ## 为什么只向下调，不向上放开
+
+    上限的**主要**约束是显存，不是钱：
+
+      · 单任务锁时代实测：两条视频作业并行时，4090 上 ComfyUI 抢显存，
+        第二条 OOM 失败（FAILED_RUN），钱照扣。
+      · 所以 `DEFAULT_MAX_PARALLEL = 2` 是"4090 上安全"的数，
+        余额充足也**不该**自动往上抬 —— 那不是省钱，是制造失败。
+
+    余额只用来**收紧**：撑不住 2 台时降到 1，撑不住 1 台时降 0（拒绝建机）。
+
+    ## 怎么算"撑得住"
+
+        hours_needed = 单作业预估时长（默认 45 分钟，与 _make_spec 一致）
+        price        = 单机每小时（默认 ¥2.15，从最近一次建机记录读）
+        safe         = 余额 / (price × hours_needed/60) / SAFETY
+
+    `SAFETY = 2`：留一倍的余量。理由是一个作业可能因为排队/重跑跑两轮，
+    留一倍能保证"即使全部重跑一次也不会透支"。
+    """
     raw = os.environ.get("P21_MAX_PARALLEL")
+    configured = DEFAULT_MAX_PARALLEL
     if raw:
         try:
             v = int(raw)
             if v >= 1:
-                return v
+                configured = v
         except ValueError:
             pass
-    return DEFAULT_MAX_PARALLEL
+
+    by_money = _affordable_parallel()
+    if by_money is None:
+        return configured          # 读不到余额 → 只按配置值（不瞎扣）
+    return max(0, min(configured, by_money))
+
+
+# 单作业默认预估：与 jobctl.SPEC_DEFAULTS["budget"]["max_minutes"] 对齐。
+# 不 import jobctl（它会拉起 argparse 副作用），两边改一处记得改另一处。
+_PLAN_MINUTES = 45
+_PRICE_PER_HOUR = 2.15
+SAFETY = 2
+
+
+def _affordable_parallel() -> int | None:
+    """余额能同时撑住几台。读不到余额返回 None（不是 0 —— 0 会锁死系统）。"""
+    try:
+        from tools.p1 import money_guard
+        bal = money_guard.balance()
+    except Exception:                      # noqa: BLE001
+        return None
+    if bal is None:
+        return None
+    per_job = _PRICE_PER_HOUR * (_PLAN_MINUTES / 60.0) * SAFETY
+    if per_job <= 0:
+        return None
+    return int(bal // per_job)
 
 
 def _load(path: Path) -> dict:
