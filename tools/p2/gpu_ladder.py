@@ -167,18 +167,34 @@ def classify_oom(text: str) -> str:
     """返回 `certain` / `likely` / `no`。
 
     `likely` 用于「进程消失但没留下证据」的场景，由调用方决定要不要升卡。
-    判据里先查 `_OOM_NOT`：一个 `use_missing_models` 错误里恰好带了
-    `out of memory` 字样（权重名里可能就有），不该被当成 OOM。
+
+    ## 判定规则（2026-11-12 修过一次）
+
+    **按行判，从最后一行往前找；一行之内"不是 OOM"的字样优先。**
+
+    为什么按行、为什么从后往前 —— 第一版是对**整段文本**先查 `_OOM_NOT`
+    再查 `_OOM_CERTAIN`，于是：
+
+        use_missing_models: 'foo_out_of_memory.safetensors' not in list   ← 旧的错
+        torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 GiB  ← 真的爆了
+
+    整段判 → 命中 `use_missing_models` → 返回 `no` → **不升卡**。
+    但日志是按时间写的，杀死本次作业的是**最后那条**错误。
+    旧错误裹着 "out of memory" 字样（权重名里就有）把真 OOM 盖住了。
+
+    为什么一行之内 NOT 仍然优先 —— 单行同时含两种字样时
+    （`use_missing_models: ... out of memory checkpoint.safetensors`），
+    这条错误的**本质**是缺模型，不是显存。这个方向没变。
     """
     m = (text or "").lower()
     if not m:
         return "no"
-    if any(k in m for k in _OOM_NOT):
-        return "no"
-    if any(k in m for k in _OOM_CERTAIN):
-        return "certain"
+    for ln in reversed([l for l in m.splitlines() if l.strip()]):
+        if any(k in ln for k in _OOM_NOT):
+            return "no"
+        if any(k in ln for k in _OOM_CERTAIN):
+            return "certain"
     return "no"
-
 
 
 def oom_line(text: str, *, limit: int = 240) -> str:

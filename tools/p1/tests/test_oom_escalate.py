@@ -105,6 +105,44 @@ class TestJudgment(Base):
         p = self.plan(_job(), cls="no", text="use_missing_models")
         self.assertFalse(p["ok"])
 
+    def test_old_error_does_not_mask_new_oom(self):
+        """日志里旧错误不能盖住新的真 OOM（2026-11-12 修的判定方向）。
+
+        第一版对**整段文本**先查"不是 OOM"再查"是 OOM"：
+
+            use_missing_models: 'foo_out_of_memory.safetensors' not in list
+            torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 GiB
+
+        整段判 → 命中 use_missing_models → 返回 no → **不升卡**。
+        但日志按时间写，杀死本次作业的是**最后那条**错误 ——
+        旧错误（权重名里恰好带 out of memory 字样）把真 OOM 盖住了。
+
+        你定修这条的：误判成"不是显存问题" → 升卡不触发 →
+        明明换张大卡就能跑的作业，原地失败等人工。
+        """
+        text = ("use_missing_models: 'foo_out_of_memory.safetensors' not in list\n"
+                "[INFO] got prompt\n"
+                "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 GiB")
+        self.assertEqual(ladder.classify_oom(text), "certain")
+
+    def test_new_non_oom_error_beats_old_oom(self):
+        """反方向：新的缺模型错误盖住旧的 OOM，应判 no。
+
+        同一条规则的两个方向都要锁 —— 只锁一边，下次有人"优化"判定
+        顺序时另一边就悄悄坏了。
+        """
+        text = ("torch.OutOfMemoryError: CUDA out of memory\n"
+                "[INFO] retry\n"
+                "use_missing_models: 'x.safetensors' not in list")
+        self.assertEqual(ladder.classify_oom(text), "no")
+
+    def test_multiline_oom_message_is_certain(self):
+        """ComfyUI 的 OOM 报错是三行 —— 第二行才带 "out of memory" 字样。"""
+        text = ("KSamplerAdvanced: Allocation on device \n"
+                "This error means you ran out of memory on your GPU.\n"
+                "\nTIPS: If the workflow worked before...")
+        self.assertEqual(ladder.classify_oom(text), "certain")
+
     def test_kernel_image_mismatch_is_not_oom(self):
         """架构不匹配（cu130 编的库跑在 cu128 上）换大卡没用。"""
         self.assertEqual(ladder.classify_oom(
