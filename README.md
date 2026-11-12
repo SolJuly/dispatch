@@ -98,6 +98,14 @@ crontab -l | tail -3                  # 确认
 
 ## 6. 已知的坑（踩过，已处理）
 
+> **这一节只管平台 API 层。**
+> 工作流侧的坑（绑反、缺参数、类型不匹配…）见
+> [`docs/新增工作流手册.md`](docs/新增工作流手册.md)；
+> 镜像升级侧的坑（`memfd_create`、PEP 668、GitHub 不可达、软链烤进镜像…）
+> 和两条完整流程见
+> [`docs/升级与新增工作流-坑与正确流程.md`](docs/升级与新增工作流-坑与正确流程.md)。
+
+
 - 定时关机接口参数名是 **`SchedulerStopTime`**（不是 `StopTime`），且**强制要 `ProjectId`**（工具自动补），并要求 ≥ 当前+300 秒；Spot 实例不支持定时关机。
 - `DescribeCompShareInstance` **不返回** `SchedulerStopTime`/`InstancePrice`，所以工具把定时关机时间记在本地 `.compshare/stop_at.json`，单价用价格接口按配置换算（带缓存）。
 - `GetCompShareInstanceMonitor` 用表单编码会报 `Missing params [UHostIds]`，必须走 **JSON body**；工具内置了 JSON 签名通道。

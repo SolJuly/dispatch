@@ -302,10 +302,20 @@ def image_node_classes() -> set[str]:
 
 
 def find_compatible(model_key: str, workflow_key: str, *, nodes: set[str] | None = None,
-                    assets: set[str] | None = None) -> tuple[Slot | None, str]:
+                    assets: set[str] | None = None,
+                    min_vram: int = 0) -> tuple[Slot | None, str]:
     """找一台可以接这个工作流的现成实例。返回 (slot|None, 理由)。
 
-    挑选顺序：同 model_key → 兼容 → 当前空闲作业数最少 → 最近用过。
+    挑选顺序：同 model_key → 兼容 → 显存够 → 当前空闲作业数最少 → 最近用过。
+
+    `min_vram`（2026-11-12 加）：显存下限，来自 `oom_escalate.floor_vram()`。
+    这条**必须**在复用路径上生效，否则升卡是个笑话：
+
+        24G 卡 OOM → 决定升到 48G → 释放 24G 实例 → 下一轮建机前先看槽位
+        → 槽位里有另一台同模型的 24G 实例正空闲 → 复用它 → 再次 OOM
+
+    复用是为了省装载时间（SDXL ~21s / Qwen ~53s），但省 53 秒换一轮失败
+    不划算。所以显存不够的槽位直接不参与复用 —— 宁可新建一台 48G。
     """
     if nodes is None or assets is None:
         n2, a2 = workflow_needs(workflow_key, model_key)
@@ -316,6 +326,15 @@ def find_compatible(model_key: str, workflow_key: str, *, nodes: set[str] | None
              if s.model_key == model_key and s.state == "running"]
     if not cands:
         return None, f"没有 {model_key} 的可用实例"
+    if min_vram:
+        from tools.p2 import gpu_ladder
+        big = [s for s in cands if gpu_ladder.vram_of(s.gpu_type) >= min_vram]
+        if not big:
+            got = ", ".join(f"{s.uid}({s.gpu_type} "
+                            f"{gpu_ladder.vram_of(s.gpu_type) or '?'}G)" for s in cands[:3])
+            return None, (f"{len(cands)} 台 {model_key} 实例显存都不足 {min_vram}G"
+                          f"（{got}）—— 不复用，新建大卡")
+        cands = big
     image_nodes = image_node_classes()
     ok_any = []
     why = []

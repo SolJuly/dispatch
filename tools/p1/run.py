@@ -70,11 +70,25 @@ def _cs(creds: dict[str, str] | None = None):
 
 
 class RunError(Exception):
-    """执行失败，带目标失败态。"""
+    """执行失败，带目标失败态。
 
-    def __init__(self, msg: str, fail_state: str):
+    `oom_cls` / `oom_text`（2026-11-12 加）：显存不足的**证据等级**与原文。
+    以前「ComfyUI 进程没了」和「显存不够」是一句话，所以升卡无从下手 ——
+    `_run_inner` 只知道失败了，不知道该换更大的卡还是该放弃。
+    现在失败异常自己带着证据，由 `oom_escalate.plan()` 决定要不要升卡。
+
+        oom_cls = "certain"  日志/报错里确诊显存不足
+        oom_cls = "likely"   进程没了但没有 OOM 字样（默认不升卡）
+        oom_cls = "no"       明确不是显存问题（缺模型、类型错…）
+    """
+
+    def __init__(self, msg: str, fail_state: str, *,
+                 oom_cls: str = "no", oom_text: str = "", gpu: str = ""):
         super().__init__(msg)
         self.fail_state = fail_state
+        self.oom_cls = oom_cls
+        self.oom_text = oom_text
+        self.gpu = gpu
 
 
 # ---------------------------------------------------------------- 孤儿实例兜底
@@ -340,7 +354,19 @@ def _pick_image(cs, opts, job: dict) -> dict:
 
 
 def _gpu_candidates(job: dict, opts) -> list[str]:
-    """候选卡型：--gpu 指定则只它一个，否则按 required_gpu 顺序去重。"""
+    """候选卡型：--gpu 指定则只它一个，否则按 required_gpu 顺序去重。
+
+    再按 `oom_escalate` 记下的**显存下限**过滤一道（2026-11-12 加）。
+
+    为什么下限要在这里生效而不是在"升卡那一刻"：
+    升卡发生在 `_run_inner` 的失败分支里，而真正建机是下一轮 `step_provision`
+    调 `_pick_gpu()` → 本函数。把下限检查放在本函数，意味着
+    **首次运行、--resume、--restart、升卡重跑** 四条路径全都自动遵守它 ——
+    否则 `--resume` 会悄悄回到 24G 卡上，把已经证伪的配置再跑一遍。
+
+    下限只提高不放宽：`required_gpu=["4090","4090_48G"]` + floor=48
+    → `["4090_48G"]`；floor=0（没升过卡）→ 原样返回，行为与旧版完全一致。
+    """
     if getattr(opts, "gpu", None):
         return [opts.gpu]
     raw = (job.get("instance") or {}).get("required_gpu") or ["4090_48G"]
@@ -348,7 +374,30 @@ def _gpu_candidates(job: dict, opts) -> list[str]:
     for g in raw:
         if g and g not in out:
             out.append(str(g))
-    return out or ["4090_48G"]
+    out = out or ["4090_48G"]
+
+    try:
+        from tools.p1 import oom_escalate
+        floor = oom_escalate.floor_vram(job)
+    except Exception:                     # noqa: BLE001
+        floor = 0
+    if not floor:
+        return out
+
+    from tools.p2 import gpu_ladder as ladder
+    kept = ladder.filter_by_floor(out, floor)
+    if kept:
+        # 原列表里有足够大的卡：保持用户写的顺序（他可能有偏好）
+        if kept != out:
+            _say(f"显存下限 {floor}G（曾因 OOM 升卡）→ 候选 {out} 收窄为 {kept}")
+        return kept
+
+    # 原列表里全都太小：从阶梯表里补够大的，按价格升序（够用就好，先试便宜的）
+    extra = sorted(
+        (g for g in ladder.VRAM_GB if ladder.vram_of(g) >= floor),
+        key=lambda g: (ladder.hourly_of(g), ladder.vram_of(g)))
+    _say(f"显存下限 {floor}G：声明列表 {out} 全都不够，改用阶梯候选 {extra[:4]}")
+    return extra or out
 
 
 def _pick_gpu(cs, job: dict, opts) -> str:
@@ -419,7 +468,15 @@ def _try_borrow_slot(job: dict, opts) -> dict | None:
     except Exception:                  # noqa: BLE001
         return None
 
-    slot, why = slots.find_compatible(str(mk), str(wk))
+    # 显存下限：OOM 升过卡就只复用 ≥ 下限的实例（见 find_compatible 的注释）
+    need_vram = 0
+    try:
+        from tools.p1 import oom_escalate
+        need_vram = oom_escalate.floor_vram(job)
+    except Exception:                  # noqa: BLE001
+        pass
+
+    slot, why = slots.find_compatible(str(mk), str(wk), min_vram=need_vram)
     if not slot:
         _say(f"  槽位：{why}")
         return None
@@ -905,6 +962,27 @@ def _comfy_error_detail(out: str, limit: int = 900) -> str:
     return text[:limit]
 
 
+def _ctx_gpu(job: dict, ctx: dict) -> str:
+    """本作业当前跑的卡型。**不读 job.json**（那会在测试/回放场景下抛异常）。
+
+    取自三个地方，按可信度：
+      1. `ctx["inst"]["GpuType"]` —— 建机时平台返回的实例描述（最权威）
+      2. `job["instance"]["gpu"]`  —— 建机时我们自己记的
+      3. `""`                     —— 都不知道就不猜（`plan()` 会因此拒绝升卡）
+
+    第一版这里写的是 `state.load_job(job["job_id"])`，结果
+    `tools/p20/tests/test_run_hooks.py` 里那几条只构造内存 job 的测试全炸了
+    （`FileNotFoundError: 作业不存在`）。那个测试测的是「进程死了能不能快速失败」，
+    和显存判断无关 —— 但它因此看不见自己测的东西了。
+    """
+    inst = ctx.get("inst") if isinstance(ctx, dict) else None
+    if isinstance(inst, dict):
+        g = str(inst.get("GpuType") or "")
+        if g:
+            return g
+    return str(((job.get("instance") or {}).get("gpu")) or "")
+
+
 def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
     """轮询 history 直到完成，返回远端文件列表。
 
@@ -963,7 +1041,14 @@ def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
                     _say(f"推理完成：{len(files)} 个文件，耗时 {int(time.time()-t0)}s")
                     return sorted(files)
                 if st == "error":
-                    raise RunError(f"推理失败：{p20comfy.extract_error(ent)}", state.FAILED_RUN)
+                    err = p20comfy.extract_error(ent)
+                    from tools.p2 import gpu_ladder
+                    cls = gpu_ladder.classify_oom(err)
+                    raise RunError(
+                        f"推理失败：{err}", state.FAILED_RUN,
+                        oom_cls=cls,
+                        oom_text=gpu_ladder.oom_line(err) if cls == "certain" else "",
+                        gpu=_ctx_gpu(job, ctx))
         else:
             # 查询失败可能是 ssh 抖动，也可能是 ComfyUI 挂了（OOM/崩溃）。
             # 以前这里只会一直等到 max_minutes（45 分钟）白烧 GPU：
@@ -972,9 +1057,14 @@ def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
             if fail_streak % 6 == 1:
                 alive = _comfy_alive(host, port, pwd)
                 if alive is False:
+                    # 进程没了 ≠ 显存不够。真去读日志再判 —— 判错的代价是
+                    # "升到 48G 卡，然后在同一个地方以同样的方式失败"（¥3.80/h）。
+                    cls, ev = _oom_evidence(host, port, pwd)
+                    gpu = _ctx_gpu(job, ctx)
+                    detail = f"（{ev}）" if ev else "（日志里没有显存不足的证据）"
                     raise RunError(
-                        f"ComfyUI 进程已退出（第 {int(time.time()-t0)}s，疑似显存不足/崩溃）",
-                        state.FAILED_RUN)
+                        f"ComfyUI 进程已退出（第 {int(time.time()-t0)}s）{detail}",
+                        state.FAILED_RUN, oom_cls=cls, oom_text=ev, gpu=gpu)
         elapsed = int(time.time() - t0)
         if elapsed - last_note >= 120:
             spent = hourly * elapsed / 3600 if hourly > 0 else None
@@ -992,6 +1082,42 @@ def step_wait(job: dict, opts, ctx: dict) -> list[tuple[str, str]]:
 
 
 _COMFY_PROC_RE = re.compile(r"[m]ain\.py")
+
+# ComfyUI 日志可能落在这些位置（不同镜像是不同的启动脚本起的）：
+#   /root/comfy_run.log          —— instance_setup.sh 的 `csctl start --detach --log`
+#   /root/ComfyUI/comfy.log      —— 手工 `nohup python -u main.py > comfy.log`
+#   /root/ComfyUI/comfyui_8188.log —— 平台 entrypoint 的旧命名（phase0 实测存在过）
+_COMFY_LOGS = ("/root/comfy_run.log", "/root/ComfyUI/comfy.log",
+               "/root/ComfyUI/comfyui_8188.log", "/root/comfy.out")
+
+
+def _oom_evidence(host: str, port: str, pwd: str, *, tail: int = 200) -> tuple[str, str]:
+    """从远端日志里找显存不足的证据。返回 (cls, 摘录)。
+
+    为什么要真去读日志，而不是靠「进程没了」下结论：
+    进程消失的原因至少有四种（CUDA OOM / 被系统 OOM killer 杀 / 段错误 /
+    我们自己的代码抛异常退出），**只有前两种换大卡有用**。把四种当成一种，
+    升卡的代价是 ¥3.80/h 重跑一遍然后在同一点以同样方式失败。
+
+    只读末尾 `tail` 行：日志可能几百 MB（跑了一小时的视频作业），
+    整读会卡住 ssh。
+    """
+    from tools.p2 import gpu_ladder
+    paths = " ".join(_COMFY_LOGS)
+    rc, out = _ssh_run(
+        host, port, pwd,
+        f"for f in {paths}; do [ -f \"$f\" ] && echo \"=== $f\" && tail -n {int(tail)} \"$f\"; done; "
+        f"dmesg 2>/dev/null | grep -i 'killed process' | tail -3; true",
+        timeout=90)
+    if not out:
+        return "likely", ""
+    cls = gpu_ladder.classify_oom(out)
+    if cls == "certain":
+        return cls, gpu_ladder.oom_line(out)
+    # 没确诊：如果是被系统 OOM killer 杀的（dmesg 有 Killed process），也算显存吃紧
+    if "killed process" in out.lower():
+        return "certain", "dmesg: Killed process（系统内存不足被杀）"
+    return "likely", ""
 
 
 def _parse_comfy_alive(out: str, rc: int) -> bool | None:
@@ -1192,6 +1318,38 @@ def step_persist(job: dict, opts, ctx: dict, res: dict, arts: list[Path]) -> dic
     return manifest
 
 
+def _terminate_with_retry(uid: str, opts, *, why: str) -> None:
+    """销毁实例，8903 过渡期自动重试。失败抛 RunError。
+
+    单独抽出来的理由不只是复用：`step_release` 的三条"保留"分支
+    （长任务空转 / 借来的槽位 / 预热池）必须排在**唯一那条真正销毁的分支之前**，
+    而这条不变量是两个既有测试靠 `body.index("cs.terminate(")` 的位置守住的。
+
+    我 2026-11-12 加升卡功能时，把一段带 `cs.terminate(uid)` 的代码直接插在
+    `step_release` 最前面 —— 功能是对的，但那两个测试立刻红了，因为
+    "第一个 terminate 出现在保留分支之前"意味着"长任务和借来的实例都会被销毁"。
+    测试的判断方向没错（它守的正是这个语义），错的是我的插入方式：
+    **强制销毁是一个独立动作，不该在同一个函数体里和保留分支抢位置。**
+    """
+    from compshare.cs import CompShareError
+    cs = _cs(getattr(opts, "creds", None))
+    last = None
+    for attempt in range(1, RETRY_8903 + 1):
+        try:
+            cs.terminate(uid)
+            _say(f"已销毁 {uid}（{why}）" if why else f"已提交销毁 {uid}")
+            return
+        except CompShareError as e:
+            msg = str(e)
+            last = msg
+            if "8903" in msg or "in the task" in msg.lower():
+                _say(f"  8903 过渡期拒绝（{attempt}/{RETRY_8903}），{RETRY_8903_WAIT}s 后重试")
+                time.sleep(RETRY_8903_WAIT)
+                continue
+            raise RunError(f"销毁失败：{msg[:200]}", state.FAILED) from e
+    raise RunError(f"销毁连续 {RETRY_8903} 次被拒：{str(last)[:200]}", state.FAILED)
+
+
 def step_release(job: dict, opts, ctx: dict) -> None:
     """释放实例。**短任务销毁、长任务留空转窗口**（2026-11-10 生命周期定版）。
 
@@ -1214,6 +1372,22 @@ def step_release(job: dict, opts, ctx: dict) -> None:
     uid = ctx.get("uhost_id")
     if not uid:
         _say("无实例可销毁")
+        return
+
+    # ---- 强制释放（OOM 升卡）----
+    # 升卡时那台机器**已经证明跑不了这个作业**，三条"保留"语义都不适用：
+    #   · 长任务空转窗口 → 留着它等于让一台跑不了作业的机器按 ¥2.15/h 空转
+    #   · 借来的槽位      → 留着它下一单还会复用它，然后再次 OOM
+    #   · 预热池          → 下次从池里取出来还是这张小卡
+    # 所以这条分支必须在所有"保留"判断**之前** return，且走真销毁。
+    if ctx.get("force_release"):
+        _terminate_with_retry(uid, opts, why="升卡：这台机器已证明显存不足")
+        if ctx.get("borrowed"):
+            try:
+                from tools.p2 import instance_slots as slots_f
+                slots_f.remove(uid)
+            except Exception:                      # noqa: BLE001
+                pass
         return
 
     # ---- 长任务：留空转窗口，不销毁 ----
@@ -1762,6 +1936,94 @@ def _with_autostart(job_id: str, rc: int) -> int:
     return rc
 
 
+def _oom_stock(cs, job: dict, opts) -> dict[str, int]:
+    """候选卡型的实时库存。读不到就返回 {}（让 plan() 不做库存过滤）。
+
+    为什么要预取整张表而不是逐个 `cs.stock()`：`stock()` 每次都会调一次
+    `DescribeCompShareGpuInventory`（无缓存），升卡时逐个查要 11 次 API 往返。
+    一次拿整张表，顺便能把日志里的"有货：4090_48G×2、A100×1"打出来。
+    """
+    try:
+        inv = cs.inventory()
+        zid = cs._zone_id(cs.zone)                     # noqa: SLF001 与 stock() 同口径
+        return {str(k): int(v or 0)
+                for k, v in ((inv.get("Exclusive") or {}).get(zid) or {}).items()}
+    except Exception as e:                             # noqa: BLE001
+        _say(f"  ⚠ 库存读取失败（{type(e).__name__}: {e}），升卡不做库存过滤")
+        return {}
+
+
+def _try_escalate(job_id: str, job: dict, opts, ctx: dict, err: RunError) -> bool:
+    """显存不足 → 换更大的卡重跑。返回 True 表示"已安排好，请重跑主循环"。
+
+    只在 `err.oom_cls == "certain"` 时才会真的升卡（见 oom_escalate 的三道闸）。
+    任何一步没成（没货 / 超预算 / 到次数上限 / 已关闭）都返回 False，
+    调用方照旧走"保留实例等 --resume"的老路径 —— **不改变既有语义**。
+
+    顺序是刻意的：
+      ① 先算计划（纯计算，不花钱、不动实例）
+      ② 计划通过才释放实例（释放会丢掉续跑机会，不能先做）
+      ③ 释放成功才落盘升卡决定（否则 job.json 说"下次用 48G"，
+         而那台 24G 机器还在计费，两件事对不上）
+    """
+    if getattr(opts, "no_escalate", False):
+        return False
+    from tools.p1 import oom_escalate as oom
+
+    current = err.gpu or str((ctx.get("inst") or {}).get("GpuType")
+                             or (job.get("instance") or {}).get("gpu") or "")
+    job_now = state.load_job(job_id)
+    stock = _oom_stock(_cs(getattr(opts, "creds", None)), job_now, opts) if current else {}
+    p = oom.plan(job_now, current_gpu=current, oom_text=err.oom_text,
+                 stock=stock or None, cls=err.oom_cls)
+    if not p.get("ok"):
+        # 只在"确实想升但升不了"时说一句 —— 普通失败（oom_cls=no）不必提示
+        if err.oom_cls == "certain" or oom.attempt_count(job_now):
+            _say(f"  升卡未执行：{p.get('reason')}")
+        return False
+
+    g, v, h = p["target"]
+    _say(f"  ⤴ 显存不足，准备升卡：{p['reason']}")
+    _say(f"    目标 {g}（{v}G ¥{h:.2f}/h）· 已升 {oom.attempt_count(job_now)}/{oom.max_escalations()} 次")
+    if h > 0:
+        _say(f"    注意：单价从 ¥{oom._hourly_of(job_now):.2f}/h 涨到 ¥{h:.2f}/h"  # noqa: SLF001
+             f"，同样的活会贵 {h / max(0.01, oom._hourly_of(job_now)):.1f} 倍")     # noqa: SLF001
+
+    # ② 释放当前实例。走 step_release 而不是直接 terminate：
+    #    借来的槽位实例 / 预热池实例各有各的归还语义，硬 terminate 会把它们弄坏。
+    #    但升卡路径**必须**真销毁 —— 所以打 force_release 标记，由 step_release
+    #    跳过"长任务空转窗口"和"借来的不销毁"两条分支（见该函数的首段）。
+    cur = state.load_job(job_id).get("state")
+    ctx["force_release"] = True
+    try:
+        if cur in state.FAIL_BRANCH:
+            state.transition(job_id, state.RELEASING, reason=f"升卡：释放 {current}")
+            step_release(job_now, opts, ctx)
+            state.transition(job_id, state.FAILED, reason=f"升卡前释放（{current} 已证伪）")
+        else:
+            step_release(job_now, opts, ctx)
+        ctx.pop("uhost_id", None)
+        ctx.pop("host", None)
+        ctx.pop("port", None)
+        ctx.pop("password", None)
+    except Exception as e:                             # noqa: BLE001
+        _say(f"  ⚠ 释放旧实例失败（{type(e).__name__}: {e}），放弃升卡，按原路径保留")
+        return False
+    finally:
+        ctx.pop("force_release", None)
+
+    # ③ 落盘：清断点、抬显存下限、记下本轮花了多少
+    oom.apply(job_id, current_gpu=current, target=p["target"], oom_text=err.oom_text)
+    try:
+        state.transition(job_id, state.RESUMING, reason=f"OOM 升卡到 {g}")
+        state.transition(job_id, state.PROVISIONING, reason=f"OOM 升卡重跑（{g}）")
+    except Exception as e:                             # noqa: BLE001
+        _say(f"  ⚠ 状态转移失败（{type(e).__name__}: {e}），放弃升卡")
+        return False
+    _say(f"  ⟳ 从 provision 重跑（{g}，{v}G）。本次作业累计已花 ¥{oom.spent_so_far(state.load_job(job_id)):.2f}")
+    return True
+
+
 def _run_inner(job_id: str, opts) -> int:
     global _LOG_PREFIX
     if getattr(opts, "batch", False):
@@ -1770,6 +2032,22 @@ def _run_inner(job_id: str, opts) -> int:
     _say(f"作业 {job_id} · 模型 {job['model']['key']} · 预算 ¥{job['budget'].get('max_cost')}")
     _start_heartbeat(job_id, opts)
     _install_orphan_guard(job_id, opts)
+
+    if getattr(opts, "reset_escalation", False):
+        # 人工声明「这次 OOM 是参数写错了，不是显存不够」→ 回到声明卡型重跑。
+        # 不自动做：升卡记录的唯一用途就是防止"再跑一遍小卡"，随便清等于自废。
+        try:
+            from tools.p1 import oom_escalate
+            _say(f"清除升卡状态：{oom_escalate.describe(job)}")
+            oom_escalate.reset(job_id)
+            job = state.load_job(job_id)
+        except Exception as e:                     # noqa: BLE001
+            _say(f"⚠ 清除升卡状态失败：{type(e).__name__}: {e}")
+        if getattr(opts, "restart", False) or opts.resume:
+            pass                                    # 继续走各自的续跑路径
+        else:
+            _say("（只清了记录；要真重跑加 --restart 或 --resume）")
+            return 0
 
     if opts.dry_run:
         _say("--dry-run：只走状态机，不建机、不花钱")
@@ -1815,57 +2093,80 @@ def _run_inner(job_id: str, opts) -> int:
 
     with _lock(job_id, opts):
         ctx: dict = {}
-        try:
-            _execute(job_id, job, opts, ctx)
-            state.transition(job_id, state.DONE, reason="闭环完成")
-            step_done(job, opts, ctx, ctx["man"])
-            _say("✓ 闭环完成")
-            _ledger(job_id, (ctx["man"].get("cost") or {}).get("amount", 0),
-                    uhost=ctx.get("uhost_id"), model=job["model"]["key"])
-            return 0
+        # 升卡重跑：正常只有一轮。显存不足且证据确凿时才多绕一圈。
+        # 上限由 oom_escalate.max_escalations() 控制（默认 2），这里多留 2 个
+        # 余量是因为 `_try_escalate` 自己也会判次数 —— 双重保险，防的是
+        # "闸门被环境变量调大后主循环还卡在旧上限"这种不一致。
+        rounds = 2 + _escalation_budget()
+        for _round in range(rounds):
+            if _round:
+                job = state.load_job(job_id)     # 升卡后重载：显存下限变了
+                ctx = {}
+            try:
+                _execute(job_id, job, opts, ctx)
+                state.transition(job_id, state.DONE, reason="闭环完成")
+                step_done(job, opts, ctx, ctx["man"])
+                _say("✓ 闭环完成")
+                _ledger(job_id, (ctx["man"].get("cost") or {}).get("amount", 0),
+                        uhost=ctx.get("uhost_id"), model=job["model"]["key"])
+                return 0
 
-        except RunError as e:
-            _say(f"✗ {e}")
-            cur = state.load_job(job_id).get("state")
-            if cur not in state.TERMINAL:
-                try:
-                    state.transition(job_id, e.fail_state, reason=str(e)[:200])
-                except Exception as e2:
-                    _say(f"  进入 {e.fail_state} 失败：{e2}")
-            # 断点续跑：失败时**保留实例**，靠定时关机兜底，等 --resume 或 --abort
-            kept = _keep_instance(job_id, ctx, opts)
-            if kept:
-                return 1
-            # 未保留（例如建机都没成功）→ 走原有清理路径
-            cur = state.load_job(job_id).get("state")
-            if cur in state.FAIL_BRANCH:
-                try:
-                    state.transition(job_id, state.RELEASING, reason="失败后清理")
-                    step_release(job, opts, ctx)
-                    state.transition(job_id, state.FAILED, reason="失败收尾")
-                except Exception as e3:
-                    _say(f"  清理失败：{e3}")
-            return 1
-        except Exception as e:
-            from compshare.cs import CompShareError
-            if isinstance(e, CompShareError):
-                _say(f"✗ 平台错误：{str(e)[:200]}")
-                cur2 = state.load_job(job_id).get("state")
-                if cur2 not in state.TERMINAL:
+            except RunError as e:
+                _say(f"✗ {e}")
+                cur = state.load_job(job_id).get("state")
+                if cur not in state.TERMINAL:
                     try:
-                        state.transition(job_id, state.FAILED_PROVISION, reason=str(e)[:150])
-                        state.transition(job_id, state.RELEASING, reason="失败清理")
+                        state.transition(job_id, e.fail_state, reason=str(e)[:200])
+                    except Exception as e2:
+                        _say(f"  进入 {e.fail_state} 失败：{e2}")
+                # 显存不足 → 换更大的卡重跑（唯一会继续循环的出口）
+                if _try_escalate(job_id, job, opts, ctx, e):
+                    continue
+                # 断点续跑：失败时**保留实例**，靠定时关机兜底，等 --resume 或 --abort
+                kept = _keep_instance(job_id, ctx, opts)
+                if kept:
+                    return 1
+                # 未保留（例如建机都没成功）→ 走原有清理路径
+                cur = state.load_job(job_id).get("state")
+                if cur in state.FAIL_BRANCH:
+                    try:
+                        state.transition(job_id, state.RELEASING, reason="失败后清理")
                         step_release(job, opts, ctx)
                         state.transition(job_id, state.FAILED, reason="失败收尾")
-                    except Exception as e2:
-                        _say(f"  失败收尾异常：{e2}")
+                    except Exception as e3:
+                        _say(f"  清理失败：{e3}")
                 return 1
-            _say(f"✗ 未预期异常：{type(e).__name__}: {e}")
-            try:
-                step_release(job, opts, ctx)
-            except Exception:
-                pass
-            return 1
+            except Exception as e:
+                from compshare.cs import CompShareError
+                if isinstance(e, CompShareError):
+                    _say(f"✗ 平台错误：{str(e)[:200]}")
+                    cur2 = state.load_job(job_id).get("state")
+                    if cur2 not in state.TERMINAL:
+                        try:
+                            state.transition(job_id, state.FAILED_PROVISION, reason=str(e)[:150])
+                            state.transition(job_id, state.RELEASING, reason="失败清理")
+                            step_release(job, opts, ctx)
+                            state.transition(job_id, state.FAILED, reason="失败收尾")
+                        except Exception as e2:
+                            _say(f"  失败收尾异常：{e2}")
+                    return 1
+                _say(f"✗ 未预期异常：{type(e).__name__}: {e}")
+                try:
+                    step_release(job, opts, ctx)
+                except Exception:
+                    pass
+                return 1
+        _say("✗ 升卡轮次已用尽，作业未完成")
+        return 1
+
+
+def _escalation_budget() -> int:
+    """主循环还需要几轮。import 失败时按 0（= 老行为，不重跑）。"""
+    try:
+        from tools.p1 import oom_escalate
+        return oom_escalate.max_escalations() if oom_escalate.enabled() else 0
+    except Exception:                          # noqa: BLE001
+        return 0
 
 
 def main(argv=None) -> int:
@@ -1896,6 +2197,12 @@ def main(argv=None) -> int:
                     help="排队等单任务锁的最大秒数（0=拿不到立刻退出；控制台提交用 14400）")
     ap.add_argument("--salvage", action="store_true",
                     help="产物已在 artifacts/：只重跑校验+收尾，不建机、不销毁")
+    # 显存不足自动升卡（2026-11-12）。默认开 —— 但只对**证据确凿**的 OOM 生效，
+    # 进程崩了没留下 OOM 证据时仍然按老路保留实例等人。
+    ap.add_argument("--no-escalate", action="store_true",
+                    help="关闭 OOM 自动升卡（失败即停，行为回到 2026-11-12 之前）")
+    ap.add_argument("--reset-escalation", action="store_true", dest="reset_escalation",
+                    help="清除本作业的升卡状态，回到 required_gpu 声明的小卡")
     # BYOK：让客户用自己的云账号付费。env 变量优先于 credentials.env，
     # 所以这两个参数只是"把凭证送进环境"的显式入口。
     ap.add_argument("--public-key", help="BYOK：客户自己的 CS_PUBLIC_KEY")
