@@ -85,3 +85,6 @@ reports/p2/p21/us3-check.sh
 # 运行态快照：cron 每 10 分钟覆盖（tools/p2/status2.py），
 # 入库会让工作区永远不干净，直接阻塞 scripts/repo-guard.sh 的部署守卫。
 reports/p2/status2.json
+
+# UI/HTTP 探测留下的 spec（每次提交都会新增，只在本地有用）
+reports/p2/p21/specs/sdxl_t2i-*
