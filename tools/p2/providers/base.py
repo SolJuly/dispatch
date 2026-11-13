@@ -207,6 +207,21 @@ class Provider:
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Provider {self.name}>"
 
+    def ready(self) -> None:
+        """本机**现在**能不能真的调这家云。默认「能」（无凭证的 provider 也满足）。
+
+        为什么把「能构造」和「能用」分开：
+
+          `capabilities()` 是纯静态声明，跟有没有凭证无关 —— 能力矩阵要能展示它，
+          否则文档里就少一行，而「这家能做什么」恰恰是选型时最该看的东西。
+          但 `available()` 的语义是「本机真能调」，没凭证的云列进去会让
+          `cost_snapshot` 之类的巡检工具每次都去撞 401。
+
+        所以：构造不校验凭证；`ready()` 才校验。需要凭证的适配器覆写它，
+        并抛 `ProviderError(AUTH)`。
+        """
+        return None
+
     # ---- 实例生命周期
     def create(self, *, image: str, gpu_type: str, gpu: int = 1, cpu: int = 16,
                memory_gb: int = 64, disk_gb: int = 100, data_disk_gb: int = 0,

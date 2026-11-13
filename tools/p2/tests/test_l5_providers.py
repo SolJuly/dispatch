@@ -42,8 +42,12 @@ class TestProviderContract(unittest.TestCase):
                 "price", "balance", "resolve_image", "images", "stock")
 
     def _instances(self):
+        from tools.p2.providers.ppio import PPIOProvider
+        # ppio 用空 transport 构造：零网络、零凭证。它也要过同一套契约。
+        ppio = PPIOProvider(api_key="sk_contract", transport=lambda *a: (200, {}))
         return [FakeProvider(),
-                LocalProvider(host="127.0.0.1", port="22", password="x")]
+                LocalProvider(host="127.0.0.1", port="22", password="x"),
+                ppio]
 
     def test_all_methods_implemented(self):
         for p in self._instances():

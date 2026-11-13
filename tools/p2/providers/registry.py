@@ -23,7 +23,7 @@ from .base import (  # noqa: F401  (re-export 给上层统一 import)
     Capabilities, InstanceView, Provider, ProviderError, SSHEndpoint, classify,
 )
 
-_BUILTIN = ("compshare", "local", "fake")
+_BUILTIN = ("compshare", "ppio", "local", "fake")
 
 
 # ------------------------------------------------------------------ 工厂
@@ -33,9 +33,11 @@ def get_provider(name: str | None = None, *,
     """按名字取一个 provider 实例。
 
     参数：
-      name          compshare / local / fake；None → 读 env DSH_PROVIDER → credentials.env
-      credentials   BYOK：客户自己的 {CS_PUBLIC_KEY, CS_PRIVATE_KEY}；
-                    只对 compshare 有意义，其它 provider 忽略
+      name          compshare / ppio / local / fake；None → 读 env DSH_PROVIDER → 默认
+      credentials   BYOK：客户自己的凭证
+                    compshare → {CS_PUBLIC_KEY, CS_PRIVATE_KEY}
+                    ppio      → {api_key}（也认 PPIO_API_KEY）
+                    其它 provider 忽略
       kwargs        透传给具体适配器（如 local 的 host/port/password）
 
     刻意**不做实例缓存**：provider 持有连接与价格缓存，跨作业复用会让
@@ -46,6 +48,9 @@ def get_provider(name: str | None = None, *,
     if name == "compshare":
         from .compshare import CompShareProvider
         return CompShareProvider(credentials) if credentials else CompShareProvider(**kwargs)
+    if name == "ppio":
+        from .ppio import PPIOProvider
+        return PPIOProvider(credentials, **kwargs)
     if name == "local":
         from .local import LocalProvider
         return LocalProvider(**{**({"password": credentials.get("password")}
@@ -73,14 +78,19 @@ def _default_name() -> str:
 
 
 def available() -> list[str]:
-    """当前环境**真的能用**的 provider 列表。
+    """当前环境**真的能用**的 provider 列表（构造成功 **且** `ready()` 不抛）。
 
-    「能用」= 构造不抛异常。cost_snapshot 之类的巡检工具用它决定该查谁。
+    「能用」的判据从「构造不抛」升级成「ready() 不抛」，因为两者是不同的问题：
+    能力声明不该被凭证挡住（矩阵要展示 PPIO 能做什么），但巡检工具不该去查一个
+    必然撞 401 的云。没凭证的 ppio 现在会出现在 `capability_matrix()` 里，
+    但不会出现在 `available()` 里 —— 这是对的。
+
+    `cost_snapshot` 之类的巡检工具用它决定该查谁。
     """
     out: list[str] = []
     for n in _BUILTIN:
         try:
-            get_provider(n)
+            get_provider(n).ready()
         except Exception:
             continue
         out.append(n)
@@ -89,19 +99,31 @@ def available() -> list[str]:
 
 # ------------------------------------------------------------------ 能力矩阵
 def capability_matrix() -> list[dict]:
-    """所有可用 provider 的能力对照，用于跨云选型与文档。
+    """所有**内置** provider 的能力对照，用于跨云选型与文档。
+
+    刻意遍历 `_BUILTIN` 而不是 `available()`：能力声明是静态事实，跟本机有没有
+    凭证无关。用 available() 会让「这台机器没配 PPIO」变成「文档里没有 PPIO」，
+    而选型最需要的恰恰是这一行。
 
     返回的是**声明值**，不是实测值。声明错了要改 `capabilities()`，
     不要在这里打补丁。
     """
     rows = []
-    for n in available():
+    for n in _BUILTIN:
         try:
-            cap = get_provider(n).capabilities()
+            p = get_provider(n)          # 只构造一次：构造可能读文件/建客户端
+            row = p.capabilities().as_dict()
         except Exception as e:
             rows.append({"provider": n, "error": f"{type(e).__name__}: {e}"})
             continue
-        rows.append(cap.as_dict())
+        # 声明之外再标一个「本机能不能调」——否则矩阵里分不出
+        # 「这家支持」和「这家在这台机器上配好了」。
+        try:
+            p.ready()
+            row["ready"] = True
+        except Exception:
+            row["ready"] = False
+        rows.append(row)
     return rows
 
 
