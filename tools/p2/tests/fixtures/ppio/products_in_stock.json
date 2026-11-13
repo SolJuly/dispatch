@@ -1,0 +1,287 @@
+{
+ "data": [
+  {
+   "id": "4090.16c62g.os",
+   "name": "RTX 4090 24GB",
+   "type": "gpu",
+   "category": "instance",
+   "region_ids": [
+    "as-ae-1",
+    "as-in-1",
+    "eu-gb-1",
+    "sa-br-1",
+    "as-sgp-2",
+    "eu-ger-2",
+    "jp-tyo-2",
+    "oc-au-1",
+    "af-za-1",
+    "us-ca-6",
+    "cn-south-1"
+   ],
+   "resource_spec": {
+    "gpu": {
+     "spec_id": "4090",
+     "name": "RTX 4090 24GB",
+     "memory_gb": 24,
+     "min": 1,
+     "max": 8,
+     "available": 1,
+     "max_available": 1
+    },
+    "cpu": 16,
+    "memory_gb": 62,
+    "rootfs": {
+     "min_gb": 10,
+     "max_gb": 2652,
+     "free_gb": 130
+    }
+   },
+   "pricing": {
+    "precision": 10,
+    "postpaid": {
+     "base_price": 231000,
+     "final_price": 231000,
+     "unit": ""
+    },
+    "spot": {
+     "base_price": 116000,
+     "final_price": 116000,
+     "unit": ""
+    },
+    "prepaid": [
+     {
+      "spec_id": "monthly-gpu_instance-4090-11",
+      "duration_months": 1,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-11",
+      "duration_months": 2,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-11",
+      "duration_months": 3,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-11",
+      "duration_months": 4,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-11",
+      "duration_months": 5,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-12",
+      "duration_months": 6,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-12",
+      "duration_months": 7,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-12",
+      "duration_months": 8,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-12",
+      "duration_months": 9,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-12",
+      "duration_months": 10,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-12",
+      "duration_months": 11,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-13",
+      "duration_months": 12,
+      "final_price": 137182000,
+      "base_price": 137182000
+     }
+    ],
+    "storage_price_per_gb": 1000
+   },
+   "billing_methods": [
+    "postpaid",
+    "spot",
+    "prepaid"
+   ],
+   "inventory_state": "normal",
+   "deployable": true,
+   "activity": {
+    "is_activity_product": false,
+    "active": false,
+    "purchasable": true
+   },
+   "created_at": "1747118126"
+  },
+  {
+   "id": "4090.16c62g",
+   "name": "RTX 4090 24GB",
+   "type": "gpu",
+   "category": "instance",
+   "region_ids": [
+    "cn-south-1",
+    "cn-hongkong-1",
+    "as-sgp-2",
+    "eu-ger-2",
+    "jp-tyo-2",
+    "eu-is-1",
+    "eu-gb-1",
+    "oc-au-1",
+    "sa-br-1",
+    "us-ca-5",
+    "us-ca-6",
+    "us-ca-7",
+    "cn-beijing-nas-1",
+    "cn-east-nas-2",
+    "26"
+   ],
+   "resource_spec": {
+    "gpu": {
+     "spec_id": "4090",
+     "name": "RTX 4090 24GB",
+     "memory_gb": 24,
+     "min": 1,
+     "max": 8,
+     "available": 1,
+     "max_available": 1
+    },
+    "cpu": 16,
+    "memory_gb": 62,
+    "rootfs": {
+     "min_gb": 10,
+     "max_gb": 2652,
+     "free_gb": 130
+    }
+   },
+   "pricing": {
+    "precision": 10,
+    "postpaid": {
+     "base_price": 231000,
+     "final_price": 231000,
+     "unit": ""
+    },
+    "spot": {
+     "base_price": 116000,
+     "final_price": 116000,
+     "unit": ""
+    },
+    "prepaid": [
+     {
+      "spec_id": "monthly-gpu_instance-4090-4",
+      "duration_months": 1,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-4",
+      "duration_months": 2,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-4",
+      "duration_months": 3,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-4",
+      "duration_months": 4,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-4",
+      "duration_months": 5,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-5",
+      "duration_months": 6,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-5",
+      "duration_months": 7,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-5",
+      "duration_months": 8,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-5",
+      "duration_months": 9,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-5",
+      "duration_months": 10,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-5",
+      "duration_months": 11,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-6",
+      "duration_months": 12,
+      "final_price": 137182000,
+      "base_price": 137182000
+     }
+    ],
+    "storage_price_per_gb": 1000
+   },
+   "billing_methods": [
+    "postpaid",
+    "spot",
+    "prepaid"
+   ],
+   "inventory_state": "normal",
+   "deployable": true,
+   "activity": {
+    "is_activity_product": false,
+    "active": false,
+    "purchasable": true
+   },
+   "created_at": "1742798536"
+  }
+ ],
+ "next_cursor": "",
+ "has_more": false,
+ "total": 2
+}

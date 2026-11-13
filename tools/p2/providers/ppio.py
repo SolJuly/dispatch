@@ -27,12 +27,19 @@ PPIO 的 v2 API 是唯一一个把 **price + stock + OCI + 自定义端口** 四
    18c62g / 16c125g 等多个 SKU），所以要按 `gpu + cpu + memory` 三元组挑 SKU，
    而不是像智云那样直接把 cpu/memory 塞进建机参数。
 
-## 待实测（写代码时无从确认，真机必须回答）
+## 真机实测结论（2026-11-13 21:53~22:02，实例 9c109a3b31cf9b03，花费 ¥0.04）
 
-- `status.status` 的完整枚举（官方只给了 `running` 一个例子）
-- 计费起算点：计费页说「运行中开始」，FAQ 说「拉取镜像阶段开始」——两处自相矛盾
-- 停止后重新启动的成功率（官方明说「可能无法正常启动」）
-- `typical_boot_s`
+- **状态枚举**：`running` / `exited`（停机后是 `exited`，不是 `stopped`）/ `starting`。
+  见 `_STATE_MAP` 里的注释 —— 原先漏了 `exited`，会让 state 掉进 unknown。
+- **耗时**：create → running 4s；stop → start 3s。
+- **停机后能重新开机**（官方说「可能无法正常启动」，本次实测成功）。
+- **stop→start 后 SSH 端口与密码不变**（`36221` / 同密码）。
+- **计费**：不是实时扣，是整点 + 关机时扣。运行 90s 余额不动，整点掉 ¥0.04。
+- **SSH 连不上**：`kex_exchange_identification: Connection reset`。
+  官方 2026-09-24 公告：TCP 端口映射（含 SSH）必须提交**访问源 IP 白名单**。
+  这是平台策略，不是适配器问题 —— 但意味着 `ssh_ready()` 在配白名单前必然失败。
+- **建机必须显式给 `candidate_regions`**：不传会得到
+  `400 VALIDATOR_PARAM: the region is not active`。不是「平台自动调度」。
 
 **路径存在性在无凭证下无法探测**：PPIO 网关在路由之前就做鉴权，随便编一个
 `/gpus/v2/zzz-nonexistent` 也返回 401 `UNAUTHORIZED`（实测 2026-11-13）。
@@ -61,6 +68,11 @@ BASE_URL = "https://api.ppio.com"
 # 写映射，未知值一律落 unknown 并原样留在 raw 里 —— 抛异常会让 reaper 把在跑的机器
 # 当异常处理，那是最贵的一类错误。
 _STATE_MAP = {
+    # ⚠️ 实测（2026-11-13 21:55，真机）：停机后的状态是 **`exited`**，
+    # 不是文档里暗示的 `stopped`。没这一条时 state 会掉进 unknown，
+    # 上层 reaper 会把一台正常的停机实例当成异常 —— 这正是「未知状态保留而不抛」
+    # 设计要兜住的情况，但兜住不等于正确。
+    "exited": "stopped",
     "creating": "starting",
     "pending": "starting",
     "starting": "starting",
@@ -95,13 +107,36 @@ _ROOTFS_YUAN_PER_GB_DAY = 0.01
 _UA = "zhiyun-p2-ppio/1.0"
 
 
-def _norm(s: str) -> str:
-    """归一化型号名：小写 + 去掉所有非字母数字。
+# 型号名里的「噪音词」：厂商前缀 + 容量后缀。
+#
+# 实测 PPIO **同一个型号有两套写法**，出现在不同接口里：
+#   products → `RTX 4090 24GB`、`NVIDIA L40S 48GB`、`H100 SXM 80GB`
+#   regions  → `NVIDIA GeForce RTX 4090 24GB`、`RTX 4090 24GB`、`A100 SXM 80GB`
+# 不剥掉这些词，`stock("NVIDIA GeForce RTX 4090 24GB")` 会 NOT_FOUND，
+# 而这个字符串是**官方接口原样返回的** —— 上层照抄就会踩。
+_VENDOR_WORDS = ("nvidia", "geforce", "amd", "企业级")
 
-    `RTX 4090` / `rtx-4090` / `4090.16c62g` 都要能对上同一个产品，
-    否则上层传 `4090` 就查不到货 —— 这是最容易踩的一脚。
+
+def _norm(s: str) -> str:
+    """归一化型号名：小写 + 去非字母数字（保留字母数字，其它全删）。
+
+    `RTX 4090` / `rtx-4090` / `4090.16c62g` 都能对上同一个产品。
     """
     return re.sub(r"[^a-z0-9]", "", str(s or "").lower())
+
+
+def _norm_model(s: str) -> str:
+    """型号名归一化：在 `_norm` 之上再剥掉厂商前缀与「SXM/Ada/Generation」这类代号。
+
+    `NVIDIA GeForce RTX 4090 24GB` 与 `RTX 4090 24GB` → 同一个 key。
+    显存容量**保留**（`24GB` vs `48GB` 是不同产品，不能混）。
+    """
+    t = str(s or "").lower()
+    for w in _VENDOR_WORDS:
+        t = t.replace(w, " ")
+    for w in ("sxm", "generation", "ada", "pcie", "nvlink"):
+        t = t.replace(w, " ")
+    return re.sub(r"[^a-z0-9]", "", t)
 
 
 # 金额除数：⚠️ **实测推翻了文档**，固定 1e5。
@@ -254,8 +289,8 @@ class PPIOProvider(Provider):
             supports_spot=True,
             supports_custom_image=True,
             free_system_disk_gb=_ROOTFS_FREE_GB,
-            # ⚠️ 待实测。已知「运行中」不代表 sshd 就绪（各家通病），不猜。
-            typical_boot_s=None,
+            # 实测 2026-11-13：create → running 在 4s 内，stop→start 约 3s。
+            typical_boot_s=5,
             notes={
                 "bills_disk_when_stopped": "系统盘 130GB 内 0 元；超出 0.01 元/GB/天，"
                                            "计费时长是「创建→释放」，停机也收",
@@ -267,7 +302,8 @@ class PPIOProvider(Provider):
                               "在候选 SKU 里挑最接近的一个，实际值见返回的 InstanceView",
                 "data_disk": "create() 不收本地数据盘大小；持久化靠云存储挂载（volumes）",
                 "spot": "按量价 5 折，1 小时保护期，回收前 1 小时通知，可读 spot_reclaim_time",
-                "typical_boot_s": "未实测",
+                "typical_boot_s": "实测 create→running 4s、stop→start 3s；"
+                                  "但 running ≠ sshd 就绪（TCP 探测另有白名单限制）",
             },
         )
 
@@ -364,27 +400,28 @@ class PPIOProvider(Provider):
 
         档 1 命中就不再往下走，这样 `4090` 与 `4090D` 永远不会互相污染。
         """
-        want = _norm(gpu_type)
-        if not want:
+        if not _norm_model(gpu_type):
             return products
 
         def gpu_keys(p: dict) -> list[str]:
+            """型号名 + spec_id，都过 `_norm_model`（剥厂商前缀）。"""
             spec = (p.get("resource_spec") or {}).get("gpu") or {}
-            return [k for k in (_norm(spec.get("name")), _norm(spec.get("spec_id"))) if k]
+            return [k for k in (_norm_model(spec.get("name")),
+                                _norm_model(spec.get("spec_id"))) if k]
 
         def all_keys(p: dict) -> list[str]:
             return [k for k in gpu_keys(p)
-                    + [_norm(p.get("id")), _norm(p.get("name"))] if k]
+                    + [_norm_model(p.get("id")), _norm_model(p.get("name"))] if k]
 
+        want = _norm_model(gpu_type)
         for tier in (gpu_keys, all_keys):
             exact = [p for p in products if want in tier(p)]
             if exact:
                 return exact
 
         fuzzy = [p for p in products if any(want in k for k in gpu_keys(p) or all_keys(p))]
-        return sorted(fuzzy, key=lambda p: len(_norm((p.get("resource_spec") or {})
-                                                    .get("gpu", {}).get("name")
-                                                    or p.get("name"))))
+        return sorted(fuzzy, key=lambda p: len(_norm_model(
+            (p.get("resource_spec") or {}).get("gpu", {}).get("name") or p.get("name"))))
 
     @staticmethod
     def _pick_sku(cands: list[dict], cpu: int, memory_gb: int) -> dict:

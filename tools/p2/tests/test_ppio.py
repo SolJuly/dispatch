@@ -342,6 +342,62 @@ class TestRealResponses(unittest.TestCase):
         self.assertGreater(len(out), 5)
         self.assertTrue(all(i["image_id"] for i in out))
 
+    def test_real_inventory_is_nonzero_when_funded(self):
+        """余额到账后 stock 立刻变非零 —— 证明之前全 0 是「没余额不报库存」。
+
+        真机 2026-11-13 21:50：充值到 ¥5 后，9 个 SKU 里只有 2 个 4090 有货各 1 张，
+        其余仍是 `deployable: false` / `inventory_state: "none"`。
+        """
+        payload = fixture("products_in_stock.json")
+        p = self._p(payload)
+        self.assertEqual(p.stock("RTX 4090 24GB"), 1)
+        self.assertEqual(p.stock("4090"), 1)
+        it = payload["data"][0]
+        self.assertTrue(it["deployable"])
+        self.assertEqual(it["inventory_state"], "normal")
+
+    def test_real_model_name_variants_all_match(self):
+        """PPIO 同一个卡有两种写法，都在官方响应里原样出现过。
+
+        products → `RTX 4090 24GB`；regions → `NVIDIA GeForce RTX 4090 24GB`。
+        上层照抄任意一种都必须能查到，否则「型号名写错」和「真的没货」分不开。
+        """
+        p = self._p(fixture("products_in_stock.json"))
+        for name in ("RTX 4090 24GB", "NVIDIA GeForce RTX 4090 24GB", "4090",
+                     "rtx-4090", "GeForce RTX 4090"):
+            self.assertEqual(p.stock(name), 1, f"{name!r} 应能匹配到 4090")
+
+    def test_real_regions_list_gpus_not_in_catalog(self):
+        """regions 的 GPU 列表比 products 更宽（含 A100 / 5090 / RTX 6000 Ada）。
+
+        这不是 bug：regions 报的是「该地域机器上有什么卡」，products 报的是
+        「当前可下单的 SKU」。所以 stock() 对 regions 独有型号抛 NOT_FOUND 是对的
+        —— 不能说「A100 有货」，因为根本没有可下单的产品。
+        """
+        regs = fixture("regions.json")["data"]
+        names = {g for r in regs for g in (r.get("gpus") or [])}
+        self.assertIn("A100 SXM 80GB", names)
+        self.assertIn("NVIDIA GeForce RTX 4090 24GB", names)
+        self.assertIn("RTX 4090 24GB", names, "同一卡两种写法")
+
+        p = self._p(fixture("products_in_stock.json"))
+        with self.assertRaises(P.ProviderError) as cm:
+            p.stock("A100 SXM 80GB")
+        self.assertEqual(cm.exception.kind, P.ProviderError.NOT_FOUND)
+
+    def test_real_stopped_state_is_exited(self):
+        """真机停机后的状态是 `exited`，不是文档暗示的 `stopped`。
+
+        2026-11-13 实测：stop() 之后 status.status == "exited"。
+        漏了这一条 → state 落 unknown → reaper 把正常停机实例当异常。
+        """
+        inst = dict(INSTANCE, status={"status": "exited", "error": "", "message": ""})
+        p = provider({("GET", "/gpus/v2/instances/x"): (200, inst),
+                      ("GET", "/gpus/v2/products"): (200, {"data": PRODUCTS})})
+        v = p.get("x")
+        self.assertEqual(v.state, "stopped")
+        self.assertFalse(v.billing)
+
     def test_real_instances_empty_list(self):
         p = provider({("GET", "/gpus/v2/instances"):
                       (200, fixture("instances_empty.json"))})
@@ -359,18 +415,21 @@ class TestContract(unittest.TestCase):
         for m in self.REQUIRED:
             self.assertTrue(callable(getattr(p, m, None)), f"ppio 缺方法 {m}")
 
-    def test_capabilities_has_no_unexplained_none(self):
-        """交接单验收第 6 条：capabilities() 里不许有未说明的 None。
+    def test_capabilities_has_no_none_anymore(self):
+        """真机测完之后，capabilities() 里**一个 None 都不该有**。
 
-        `typical_boot_s=None` 是**唯一**允许的 None（真机没测过，不猜），
-        它的理由必须写在 notes 里 —— 否则上层看到 None 只知道「未知」，
-        不知道是「没测」还是「忘了填」。
+        原先 `typical_boot_s=None`（没测过，不猜）。2026-11-13 真机测到
+        create→running 4s、stop→start 3s，已填成 5。
+        这条测试从「允许 None 但必须在 notes 里解释」升级成「不许有 None」。
         """
         cap = provider().capabilities()
         d = cap.as_dict()
-        for k, v in d.items():
-            if v is None and k != "notes":
-                self.assertIn(k, cap.notes, f"{k} 是 None 但 notes 里没解释")
+        nones = {k: v for k, v in d.items() if v is None and k != "notes"}
+        self.assertEqual(nones, {}, f"真机已测完，不应再有 None：{nones}")
+
+    def test_typical_boot_s_is_measured(self):
+        """真机测过就填真值，别留 None。上层拿它定超时。"""
+        self.assertEqual(provider().capabilities().typical_boot_s, 5)
 
     def test_capabilities_honest_flags(self):
         cap = provider().capabilities()
