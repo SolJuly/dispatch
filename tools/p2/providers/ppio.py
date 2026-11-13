@@ -217,6 +217,9 @@ def classify_ppio(status: int, payload: Any, message: str = "") -> tuple[str, bo
     if status in (401, 403) or any(k in reason.upper() for k in ("UNAUTHORIZED", "FORBIDDEN")):
         return ProviderError.AUTH, False
     if status == 429 or "RATE_LIMIT" in reason.upper() or "too many" in text:
+        # 实测（2026-11-13）：连续删 4 台实例时第 2 台起就 429。
+        # 归 TRANSIENT 是对的（退避后能成功），但**退避必须够长** ——
+        # 立刻重试只会继续 429。提示里点明，别让上层以为是网络抖动。
         return ProviderError.TRANSIENT, True
     if status >= 500:
         return ProviderError.TRANSIENT, True
@@ -573,8 +576,31 @@ class PPIOProvider(Provider):
         self._call("PUT", f"/gpus/v2/instances/{uid}/stop", body={})
 
     def terminate(self, uid: str) -> None:
-        """删除实例。与 AutoDL 不同，PPIO 的 DELETE 不要求先关机。"""
-        self._call("DELETE", f"/gpus/v2/instances/{uid}")
+        """删除实例。与 AutoDL 不同，PPIO 的 DELETE 不要求先关机。
+
+        **带退避重试**：实测连续删除多次会触发 429 `RATE_LIMIT_EXCEEDED`
+        （2026-11-13：删第 2 台起）。删除失败意味着实例还在计费，
+        所以这里不能像别的调用那样「失败就抛」—— 必须退避后重试几次。
+        与其他方法不同，`terminate` 重试是**安全且必要**的：
+        删一个已不存在的实例只会得到 NOT_FOUND，不会像 create 那样多花钱。
+        """
+        delay = 3.0
+        last: ProviderError | None = None
+        for attempt in range(4):
+            try:
+                self._call("DELETE", f"/gpus/v2/instances/{uid}")
+                return
+            except ProviderError as e:
+                last = e
+                # 只在「限流 / 网络类」失败时重试；NOT_FOUND 说明已经删掉了，直接当成功
+                if e.kind == ProviderError.NOT_FOUND:
+                    return
+                if e.kind not in (ProviderError.TRANSIENT, ProviderError.BUSY):
+                    raise
+                if attempt < 3:
+                    time.sleep(delay)
+                    delay *= 2
+        raise last if last else ProviderError(f"{uid} 删除失败", ProviderError.TRANSIENT)
 
     def ssh_endpoint(self, uid: str) -> SSHEndpoint:
         """从 `tools.ssh` 取连接信息。
@@ -599,18 +625,40 @@ class PPIOProvider(Provider):
     def ssh_ready(self, uid: str, *, timeout: int = 180) -> SSHEndpoint:
         """等 sshd 真的能收命令。
 
-        `running` ≠ sshd 就绪，这是各家通病（智云实测差 20~40s）。先探 TCP，
-        有 sshpass 再真连一次；没有 sshpass 就当就绪，交给上层真连时报错。
+        ⚠️ **在 PPIO 上大概率失败**，原因已定位（2026-11-13 实测）：
+
+          - sshd 不是镜像提供的，是平台 sidecar（`pod-<id>-ssh`），日志显示启动成功
+          - TCP 三次握手能完成 → 说明有监听
+          - 但**发出任何字节都会立刻 RST**（发 SSH 版本串 / HTTP 请求 / 纯字节都一样）
+          - 只有「完全不发数据」时连接保持
+
+        这是**代理层的来源放行**问题，不是 SSH 协议被封、也不是镜像没起 sshd。
+        官方公告（2026-09-24）：TCP 端口映射（含 SSH）必须提交访问源 IP 白名单。
+
+        所以这里重试到底也不会通。探测失败时直接把原因说出来，
+        让上层知道该去配白名单，而不是以为「再等等就好」。
         """
         ep = self.ssh_endpoint(uid)
         t0 = time.time()
         last = ""
+        rst_seen = False
         while time.time() - t0 < timeout:
             try:
-                with socket.create_connection((ep.host, int(ep.port)), timeout=5):
-                    if _ssh_probe(ep):
-                        return ep
-                    last = "TCP 通但 ssh 未就绪"
+                with socket.create_connection((ep.host, int(ep.port)), timeout=5) as sock:
+                    # 主动发一个字节：PPIO 的代理在收到数据后会立刻 RST，
+                    # 只完成握手的「假连通」骗不过这一关，也骗不过我们自己。
+                    try:
+                        sock.sendall(b"SSH-2.0-probe\r\n")
+                        data = sock.recv(64)
+                        if data:
+                            last = "收到 banner，sshd 就绪"
+                            if _ssh_probe(ep):
+                                return ep
+                    except ConnectionResetError:
+                        rst_seen = True
+                        last = "TCP 通但代理层立刻 RST"
+                    except socket.timeout:
+                        last = "TCP 通但无响应"
             except OSError as e:
                 last = str(e)
             time.sleep(5)
@@ -618,7 +666,10 @@ class PPIOProvider(Provider):
                 ep = self.ssh_endpoint(uid)
             except ProviderError:
                 pass
-        raise ProviderError(f"{uid} sshd {timeout}s 内未就绪（{last}）",
+
+        hint = ("；该端口发任何数据都被 RST，按官方公告需提交 TCP 访问源 IP 白名单"
+                "（工单或客户经理）" if rst_seen else "")
+        raise ProviderError(f"{uid} sshd {timeout}s 内未就绪（{last}）{hint}",
                             ProviderError.TRANSIENT)
 
     def scheduled_stop(self, uid: str, at_epoch: int) -> None:

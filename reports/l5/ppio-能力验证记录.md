@@ -134,7 +134,99 @@ start()  → starting → running   3 秒
 
 ---
 
-## 四、`ssh_ready()` 为什么失败：平台策略，不是适配器问题
+## 四、`ssh_ready()` 失败原因：已定位到精确层级（2026-11-13 22:45 补充实验）
+
+上一版这里只写了「平台策略，IP 白名单」。补做实验后**结论更精确了**，
+而且顺带发现 `command` 的真实语义。以下全部是实测，不是推测。
+
+### 4.1 分层探测：TCP 通、协议协商被打断
+
+对同一个 SSH 端口 `54786` 做三层探测，三次全部一致：
+
+```
+[1] TCP 握手成功
+    发 SSH 版本串后 RST（代理层拒绝）
+[2] TCP 握手成功
+    发 SSH 版本串后 RST
+[3] TCP 握手成功
+    发 SSH 版本串后 RST
+```
+
+**这排除了「实例内没起 sshd」**：如果 ssd 没起来，TCP 根本连不上
+（端口映射后面没有监听）。现在 TCP 能通，说明有东西在听。
+
+### 4.2 再分层：是不是只拦 SSH 协议？
+
+同一个端口，发不同内容：
+
+| 发出内容 | 结果 |
+|---|---|
+| `SSH-2.0-probe\r\n` | RST |
+| `GET / HTTP/1.1...` | RST |
+| `\x00\x01\x02\x03`（纯字节） | RST |
+| **什么都不发** | 收到 0B（连接保持） |
+
+**所有内容都被 RST，只有「不发数据」时连接保持。**
+
+这不是「SSH 协议被封」，是**代理层在没有通过某些检查前不接受任何上行数据**。
+结合官方公告「TCP 端口映射必须提交访问源 IP 白名单」，
+最合理的解释是：**TCP 映射在当前账号/源 IP 下未放行**，代理只完成 TCP 握手，
+一旦收到数据就判定来源未授权并 RST。
+
+### 4.3 官方 sys 日志证明 sshd 是独立 sidecar，且启动成功
+
+```
+create container pod-<id>-ssh success
+start  container pod-<id>-ssh success
+create container pod-<id>-webterm success
+```
+
+PPIO 的 SSH 不是镜像提供的，是平台 sidecar 容器。所以：
+
+- ✅ **镜像里有没有 sshd 不重要**（换 pytorch / cuda / fooocus 都一样）
+- ✅ sidecar 启动成功，sshd 在跑
+- ❌ 但连不上 —— 卡在代理层
+
+**这解释了为什么换镜像、重启实例都无效**：问题不在实例内。
+
+---
+
+## 四·补：`command` 参数的真实语义（文档没说，实测踩到）
+
+`create(command=...)` 文档只写「覆盖镜像构建时设置的 CMD」。
+实测它**不是 shell 字符串，被按空格切成 argv 传给 supervisord**：
+
+```
+command="python3 -m http.server 8188"
+  → Error: positional arguments are not supported: ['python3', '-m', 'http.server', '8188']
+     For help, use /usr/bin/supervisord -h
+
+command="bash -c 'python3 -m http.server 8188'"
+  → Error: positional arguments are not supported: ['bash', '-c', 'python3 -m http.server 8188']
+```
+
+**supervisord 不接受带位置参数的 argv。** 所以 `command` 只能是
+**一个无参数的可执行文件**（或依赖镜像内的入口脚本自己解析环境变量）。
+
+后果：想「在实例内起个服务」不能靠 `command` 传一条命令行。
+可行路径只有：
+1. 镜像自带入口（如官方 fooocus / ComfyUI 模板）
+2. 用 `envs` 传配置，让镜像内的 entrypoint 自己决定
+3. 配好 SSH/IP 白名单后走 SSH 推命令
+
+### 顺带：HTTP 端口映射的认证表现（已实测）
+
+```
+无 header    → HTTP 401 Unauthorized     ← 网关认证层在工作
+Bearer key   → HTTP 502 Bad Gateway      ← 认证通过，但后端没服务
+```
+
+**401 证明网关是通的、Key 是有效的**；502 是因为 8188 上没有服务（`command` 起不来）。
+也就是说 **HTTP 端口映射本身可用**，只要有服务在监听。
+
+---
+
+## 四·原：`ssh_ready()` 为什么失败：平台策略，不是适配器问题
 
 ```
 kex_exchange_identification: read: Connection reset by peer
@@ -223,8 +315,25 @@ HTTP 端口映射也要带 API Key：
 唯一失败的 `ssh_ready()` 是平台网络策略（IP 白名单），不是 API 能力缺失 ——
 同一个实例的 SSH **参数**是对的（host/port/password 全部解析正确），只是连接被网关重置。
 
-**但这对我们的出片链路是硬阻断**：`provision.sh` 全靠 SSH，ComfyUI 全靠 8080/8188。
-在拿到 IP 白名单和改完 `lab/*.py` 的 header 之前，
-**PPIO 只能跑「建机 → 通过 HTTP+Key 访问」，不能跑「建机 → SSH 推环境」**。
+**对出片链路的实际影响（精确版）：**
+
+| 环节 | PPIO 现状 |
+|---|---|
+| 建机 / 改配 / 删除 | ✅ 全通（API） |
+| 把 ComfyUI 镜像跑起来 | ✅ 建机时指定镜像 |
+| **推 provision.sh（装环境）** | ❌ SSH 不通 → 推不进去 |
+| **访问 ComfyUI 界面** | ⚠️ HTTP 端口可用（401→502 已证明网关通），但要带 `Authorization: Bearer` |
+| **在实例内跑任意命令** | ❌ 目前无路（SSH 不通、`command` 不支持带参数） |
+
+**所以答案是：不完全只能 HTTP，但当前只有 HTTP 这一条路真正通了；
+而这恰好是「执行命令」最难的那部分。**
+
+要打通「在实例内执行命令」，有两条路：
+1. **工单加 IP 白名单** → 恢复 SSH（这是官方支持的正常路径）
+2. **自己做镜像**：把启动逻辑写进镜像 entrypoint，用 `envs` 传参，
+   服务自己起 —— 不依赖 SSH，也不需要 `command` 带参数
+
+第 2 条与「镜像路线四选一」（`reports/p20/镜像路线四选一-待决.md`）其实是同一件事：
+**如果确定长期用 PPIO，镜像必须自带入口，不能指望 SSH 推脚本。**
 
 这个结论与下线风险无关，是纯粹的当前能力边界。

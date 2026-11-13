@@ -764,6 +764,33 @@ class TestSSH(unittest.TestCase):
         self.assertEqual(ep.password, "S3cret!")
         self.assertEqual(ep.user, "root")
 
+    def test_ssh_ready_reports_rst_hint(self):
+        """PPIO 的 SSH 端口会立刻 RST，报错必须点明白名单，而不是笼统「未就绪」。
+
+        实测：TCP 能握手，但发任何字节都被 RST —— 重试到底也不会通。
+        """
+        import tools.p2.providers.ppio as m
+        p = provider({("GET", "/gpus/v2/instances/x"): (200, INSTANCE),
+                      ("GET", "/gpus/v2/products"): (200, {"data": PRODUCTS})})
+
+        class RstSock:
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def sendall(self, b): raise ConnectionResetError()
+            def recv(self, n): raise ConnectionResetError()
+
+        orig_conn, orig_sleep = m.socket.create_connection, m.time.sleep
+        m.socket.create_connection = lambda *a, **k: RstSock()
+        m.time.sleep = lambda *_: None
+        try:
+            with self.assertRaises(P.ProviderError) as cm:
+                p.ssh_ready("x", timeout=1)
+        finally:
+            m.socket.create_connection, m.time.sleep = orig_conn, orig_sleep
+        msg = str(cm.exception)
+        self.assertIn("RST", msg)
+        self.assertIn("白名单", msg, "必须指出这是白名单问题，不是「再等等」")
+
     def test_endpoint_not_cached(self):
         """端口和密码 stop→start 后可能变；缓存「大多数时候能用」是最危险的 bug。"""
         seen = {"n": 0}
@@ -794,6 +821,41 @@ class TestSSH(unittest.TestCase):
 
 # ------------------------------------------------------------------ 生命周期
 class TestLifecycle(unittest.TestCase):
+    def test_terminate_retries_on_rate_limit(self):
+        """删实例遇到 429 必须退避重试 —— 删不掉意味着实例还在计费。
+
+        实测 2026-11-13：连续删多台时第 2 台起触发 RATE_LIMIT_EXCEEDED。
+        """
+        calls = {"n": 0}
+
+        def route(body, query):
+            calls["n"] += 1
+            if calls["n"] < 3:
+                return 429, {"code": 429, "reason": "RATE_LIMIT_EXCEEDED",
+                             "message": "too many requests"}
+            return 200, {}
+
+        import tools.p2.providers.ppio as m
+        p = provider({("DELETE", "/gpus/v2/instances/x"): route,
+                      ("GET", "/gpus/v2/products"): (200, {"data": PRODUCTS})})
+        orig = m.time.sleep
+        m.time.sleep = lambda *_: None
+        try:
+            p.terminate("x")
+        finally:
+            m.time.sleep = orig
+        self.assertEqual(calls["n"], 3, "应在第 3 次成功")
+
+    def test_terminate_treats_not_found_as_success(self):
+        """已经删掉的实例再删 = NOT_FOUND，应当当成功（幂等）。"""
+        p = provider({
+            ("DELETE", "/gpus/v2/instances/x"):
+                (400, {"code": 400, "reason": "RESOURCE_NOT_FOUND",
+                       "message": "instance not found"}),
+            ("GET", "/gpus/v2/products"): (200, {"data": PRODUCTS}),
+        })
+        p.terminate("x")      # 不抛
+
     def test_stop_and_start_paths(self):
         cap: list = []
 
