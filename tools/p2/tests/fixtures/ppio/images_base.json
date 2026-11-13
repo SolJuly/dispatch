@@ -1,0 +1,233 @@
+{
+ "data": [
+  {
+   "id": "1",
+   "name": "pytorch",
+   "image": "pytorch",
+   "type": "base",
+   "status": {
+    "status": "normal",
+    "error": "",
+    "message": ""
+   },
+   "created_at": "1706788233",
+   "tags": [
+    {
+     "id": "3",
+     "tag": "v2",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/pytorch:v2"
+    },
+    {
+     "id": "95",
+     "tag": "2.3.0-cuda12.1-cudnn8-devel",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/pytorch:2.3.0-cuda12.1-cudnn8-devel"
+    },
+    {
+     "id": "96",
+     "tag": "2.2.2-cuda11.8-cudnn8-devel",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/pytorch:2.2.2-cuda11.8-cudnn8-devel"
+    },
+    {
+     "id": "360",
+     "tag": "2.3.1-cuda11.8-cudnn8-devel",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/pytorch:2.3.1-cuda11.8-cudnn8-devel"
+    },
+    {
+     "id": "1195",
+     "tag": "2.4.0-cuda12.4-ubunyu22.04",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/pytorch:2.4.0-cuda12.4-ubunyu22.04"
+    },
+    {
+     "id": "1196",
+     "tag": "2.6.0-cuda12.4-devel-ubuntu22.04",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/pytorch:2.6.0-cuda12.4-devel-ubuntu22.04"
+    },
+    {
+     "id": "1218",
+     "tag": "2.7.1-cuda12.8",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/pytorch:2.7.1-cuda12.8"
+    },
+    {
+     "id": "1355",
+     "tag": "2.1.2-cuda12.1-cudnn8-devel",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/pytorch:2.1.2-cuda12.1-cudnn8-devel"
+    },
+    {
+     "id": "1357",
+     "tag": "2.5.1-cuda12.4-cudnn9-devel",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/pytorch:2.5.1-cuda12.4-cudnn9-devel"
+    },
+    {
+     "id": "1359",
+     "tag": "2.8.0-cuda12.8-cudnn9-devel",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/pytorch:2.8.0-cuda12.8-cudnn9-devel"
+    }
+   ]
+  },
+  {
+   "id": "3",
+   "name": "tensorflow",
+   "image": "tensorflow",
+   "type": "base",
+   "status": {
+    "status": "normal",
+    "error": "",
+    "message": ""
+   },
+   "created_at": "1706856230",
+   "tags": [
+    {
+     "id": "4",
+     "tag": "v1",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/tensorflow:v1"
+    },
+    {
+     "id": "97",
+     "tag": "2.16.1-gpu",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/tensorflow:2.16.1-gpu"
+    }
+   ]
+  },
+  {
+   "id": "8",
+   "name": "fooocus",
+   "image": "fooocus",
+   "type": "base",
+   "status": {
+    "status": "normal",
+    "error": "",
+    "message": ""
+   },
+   "created_at": "1708342389",
+   "tags": [
+    {
+     "id": "9",
+     "tag": "v1",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/fooocus:v1"
+    },
+    {
+     "id": "1173",
+     "tag": "test",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/fooocus:test"
+    }
+   ]
+  },
+  {
+   "id": "9",
+   "name": "cuda",
+   "image": "cuda",
+   "type": "base",
+   "status": {
+    "status": "normal",
+    "error": "",
+    "message": ""
+   },
+   "created_at": "1708502246",
+   "tags": [
+    {
+     "id": "92",
+     "tag": "12.2.2-devel-ubuntu22.04",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/cuda:12.2.2-devel-ubuntu22.04"
+    },
+    {
+     "id": "94",
+     "tag": "11.8.0-devel-ubuntu22.04",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/cuda:11.8.0-devel-ubuntu22.04"
+    },
+    {
+     "id": "817",
+     "tag": "12.1.0-devel-centos7-conda",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/cuda:12.1.0-devel-centos7-conda"
+    },
+    {
+     "id": "1197",
+     "tag": "12.4.1-ubuntu22.04-devel",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/cuda:12.4.1-ubuntu22.04-devel"
+    },
+    {
+     "id": "1216",
+     "tag": "12.6.3-ubuntu22.04-devel",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/cuda:12.6.3-ubuntu22.04-devel"
+    },
+    {
+     "id": "1217",
+     "tag": "12.8.1-ubuntu22.04-devel",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/cuda:12.8.1-ubuntu22.04-devel"
+    },
+    {
+     "id": "1360",
+     "tag": "12.3.2-cudnn9-devel-ubuntu22.04",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/cuda:12.3.2-cudnn9-devel-ubuntu22.04"
+    },
+    {
+     "id": "1361",
+     "tag": "12.5.1-cudnn-devel-ubuntu22.04",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/cuda:12.5.1-cudnn-devel-ubuntu22.04"
+    },
+    {
+     "id": "1362",
+     "tag": "12.9.0-cudnn-devel-ubuntu22.04",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/cuda:12.9.0-cudnn-devel-ubuntu22.04"
+    },
+    {
+     "id": "1530",
+     "tag": "12.1.0-cudnn8-devel-ubuntu22.04",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/cuda:12.1.0-cudnn8-devel-ubuntu22.04"
+    },
+    {
+     "id": "3973",
+     "tag": "13.3.0-tensorrt-devel-ubuntu24.04",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/cuda:13.3.0-tensorrt-devel-ubuntu24.04"
+    }
+   ]
+  },
+  {
+   "id": "11",
+   "name": "chatglm3-6b",
+   "image": "chatglm3-6b",
+   "type": "base",
+   "status": {
+    "status": "normal",
+    "error": "",
+    "message": ""
+   },
+   "created_at": "1709893042",
+   "tags": [
+    {
+     "id": "12",
+     "tag": "v1",
+     "owner_id": "1",
+     "full_image_name": "image.ppinfra.com/prod-gpucloudpublic/chatglm3-6b:v1"
+    }
+   ]
+  }
+ ],
+ "next_cursor": "NQ==",
+ "has_more": true,
+ "total": 135
+}

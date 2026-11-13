@@ -15,6 +15,7 @@
 """
 from __future__ import annotations
 
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -31,23 +32,42 @@ from tools.p2.providers.ppio import (  # noqa: E402
 
 
 # ------------------------------------------------------------------ fixtures
-# 形状照官方文档的 OpenAPI schema 抄，值做脱敏。刻意保留真实结构上的怪癖：
-#   - 价格是「整数 × 精度」
-#   - 列表信封有 next_cursor
-#   - status 是嵌套对象
-def product(pid, name, gpu, cpu, mem, price, *, precision=3, spot=None,
+_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "ppio"
+
+
+def fixture(name: str) -> dict:
+    """读真实响应（2026-11-13 用真 key 打回来的，原样存）。
+
+    为什么用真响应而不是照文档编：文档和真实结构不一致的地方已经被实测抓到两处
+    （`precision` 字段不可用、镜像地址在 `tags[].full_image_name` 里），
+    照文档编的 fixture 会把错误一起固化进测试。
+    """
+    with open(_FIXTURES / name, encoding="utf-8") as f:
+        return json.load(f)
+
+
+# 合成用的产品模板：真实响应里全 `available: 0`（余额 0 时拿不到真实库存），
+# 所以「有货」的场景只能靠合成。字段名与真实响应严格一致。
+SCALE = 100000          # 真实响应里的除数（见 ppio._MONEY_SCALE 的证据链）
+
+
+def product(pid, name, gpu, cpu, mem, price, *, spot=None,
             available=6, deployable=True, inventory="normal",
             billing=("postpaid", "prepaid", "spot"), regions=("cn-north-1",)):
-    pricing = {"precision": precision,
-               "postpaid": {"base_price": int(price * 10 ** precision),
-                            "final_price": int(price * 10 ** precision),
-                            "unit": "per_hour"},
-               "spot": None if spot is None else {
-                   "base_price": int(spot * 10 ** precision),
-                   "final_price": int(spot * 10 ** precision),
-                   "unit": "per_hour"},
+    """合成一个产品记录。金额按真实响应的口径编码（元 × 1e5）。
+
+    `precision` 字段刻意写成真实响应里那种**不可信**的值（10 或 0），
+    而不是一个「正确的」精度 —— 这样测试会持续证明适配器没有去信它。
+    """
+    milliyuan = int(round(price * SCALE))
+    pricing = {"precision": 10,
+               "postpaid": {"base_price": milliyuan, "final_price": milliyuan,
+                            "unit": ""},
                "prepaid": [],
-               "storage_price_per_gb": 50 if precision == 3 else 5}
+               "storage_price_per_gb": 1000}      # 1000/1e5 = 0.01 元/GB/天
+    if spot is not None:
+        sp = int(round(spot * SCALE))
+        pricing["spot"] = {"base_price": sp, "final_price": sp, "unit": ""}
     return {
         "id": pid, "name": name, "type": "gpu", "category": "instance",
         "description": f"NVIDIA {gpu}",
@@ -131,15 +151,33 @@ def provider(routes=None, **kw) -> PPIOProvider:
 
 # ------------------------------------------------------------------ 纯函数
 class TestHelpers(unittest.TestCase):
-    def test_money_uses_response_precision(self):
-        """精度来自响应，不是硬编码 1000 —— 写错就是算错钱。"""
-        self.assertAlmostEqual(_money(12600, 3), 12.6, 6)
-        self.assertAlmostEqual(_money(1980, 3), 1.98, 6)
-        self.assertAlmostEqual(_money(198, 2), 1.98, 6)      # 精度 2 的平台
-        self.assertAlmostEqual(_money(198000, 4), 19.8, 6)   # 精度 4 的平台
-        self.assertAlmostEqual(_money("18000", 3), 18.0, 6)  # 字符串数字
-        self.assertEqual(_money(None, 3), 0.0)
-        self.assertEqual(_money("oops", 3), 0.0)
+    def test_money_uses_1e5_not_precision_field(self):
+        """除数固定 1e5。**用真实响应里出现过的数字**验。
+
+        `precision` 字段实测不可用（同一批产品里 4090 给 10、L40S 给 0），
+        这三条都是从真响应抄下来的原值：
+          · 4090 按量 231000 → 2.31 元/时
+          · 4090 spot 116000 → 1.16 元/时（与第三方监测一致）
+          · storage   1000  → 0.01 元/GB/天（与官方计费页一致）
+        """
+        self.assertAlmostEqual(_money(231000), 2.31, 6)
+        self.assertAlmostEqual(_money(116000), 1.16, 6)
+        self.assertAlmostEqual(_money(1000), 0.01, 6)
+        self.assertAlmostEqual(_money(396000), 3.96, 6)      # L40S
+        self.assertAlmostEqual(_money(2376000), 23.76, 6)    # H100 SXM
+        self.assertAlmostEqual(_money("231000"), 2.31, 6)    # 字符串数字
+
+    def test_money_ignores_bogus_precision_argument(self):
+        """传什么 precision 都不影响结果 —— 它已被证伪，不能参与计算。"""
+        for p in (None, 0, 3, 10):
+            self.assertAlmostEqual(_money(231000, p), 2.31, 6, f"precision={p} 改变了结果")
+
+    def test_money_clamps_absurd_values(self):
+        """口径又变时返回 0（未知价），而不是把荒谬数字塞进成本账。"""
+        self.assertEqual(_money(396000 * 1000), 0.0)   # 换算后 3960 元/时，不可能
+        self.assertEqual(_money(-5), 0.0)
+        self.assertEqual(_money(None), 0.0)
+        self.assertEqual(_money("oops"), 0.0)
 
     def test_norm_collapses_model_names(self):
         for s in ("RTX 4090", "rtx-4090", "rtx4090", "4090"):
@@ -197,6 +235,117 @@ class TestHelpers(unittest.TestCase):
                             {"message": "余额不足"}, {"message": "sold out"}):
                 kind, _ = classify_ppio(st, payload)
                 self.assertIn(kind, allowed, f"{st}/{payload} 产出了闭集合外的 kind")
+
+
+# ------------------------------------------------------------------ 真响应
+class TestRealResponses(unittest.TestCase):
+    """直接喂真实响应（2026-11-13 用真 key 打回来的原样 JSON）。
+
+    这一组存在的理由：文档和真实结构已经实测不一致两处，
+    照文档编的 fixture 会把错误固化进测试。这组是「文档漂移探测器」。
+    """
+
+    def _p(self, payload, path="/gpus/v2/products"):
+        return PPIOProvider(api_key="sk_t", transport=Transport({
+            ("GET", path): (200, payload),
+            # 真实响应里没有 instances，涉及 get() 的测试单独编
+            ("GET", "/gpus/v2/images"): (200, fixture("images_base.json")),
+        }))
+
+    def test_real_products_parse(self):
+        prods = self._p(fixture("products.json")).products()
+        self.assertEqual(len(prods), 9, "真实响应是 9 个产品（真机 2026-11-13）")
+        for p in prods:
+            self.assertIn("resource_spec", p)
+            self.assertIn("pricing", p)
+            self.assertIn(p["inventory_state"], ("none", "low", "normal", "high"))
+
+    def test_real_4090_price_is_2_31(self):
+        """真响应 4090 postpaid final_price=231000 → ¥2.31/时。
+
+        这直接证明除数是 1e5：第三方监测（rentgpu.link）报 PPIO 4090 Spot ¥1.16，
+        真响应 spot=116000，116000/1e5=1.16 完全吻合。
+        """
+        d = self._p(fixture("products.json")).price(
+            gpu_type="RTX 4090 24GB", cpu=16, memory_gb=62)
+        self.assertAlmostEqual(d["hourly_instance"], 2.31, 4)
+        self.assertAlmostEqual(d["daily_disk"], 0.0, 4)
+
+    def test_real_4090_spot_price(self):
+        d = self._p(fixture("products.json")).price(
+            gpu_type="RTX 4090 24GB", cpu=16, memory_gb=62, charge_type="Spot")
+        self.assertAlmostEqual(d["hourly_instance"], 1.16, 4)
+
+    def test_real_storage_price_matches_official_rate(self):
+        """storage_price_per_gb=1000 → 0.01 元/GB/天，与官方计费页一字不差。"""
+        prods = self._p(fixture("products.json")).products()
+        rates = {p["pricing"]["storage_price_per_gb"] for p in prods}
+        self.assertEqual(rates, {1000})
+        self.assertAlmostEqual(_money(1000), 0.01, 6)
+
+    def test_real_precision_field_is_not_trusted(self):
+        """真响应里 4090 给 precision=10、L40S 给 0 —— 用它算会差几个数量级。
+
+        这条是回归护栏：哪天真有人「修正」成用 precision，这里立刻红。
+        """
+        prods = self._p(fixture("products.json")).products()
+        seen = {p["pricing"]["precision"] for p in prods}
+        self.assertEqual(seen, {0, 10},
+                         "真实响应里 precision 就是这两档不可信的值")
+        # 而价格必须仍然正确
+        d = self._p(fixture("products.json")).price(
+            gpu_type="NVIDIA L40S 48GB", cpu=22, memory_gb=125)
+        self.assertAlmostEqual(d["hourly_instance"], 3.96, 4)
+
+    def test_real_stock_is_zero_when_balance_is_zero(self):
+        """余额 0 时真响应里 available 全 0、deployable 全 False。
+
+        记下来：这说明「看不到库存」可能只是没余额，不能据此断言平台无货。
+        """
+        prods = self._p(fixture("products.json")).products()
+        self.assertTrue(all(p["resource_spec"]["gpu"]["available"] == 0 for p in prods))
+        self.assertTrue(all(p["deployable"] is False for p in prods))
+        self.assertEqual(self._p(fixture("products.json")).stock("RTX 4090 24GB"), 0)
+
+    def test_real_balance_shape(self):
+        p = provider({("GET", "/openapi/v1/billing/balance/detail"):
+                      (200, fixture("balance.json"))})
+        self.assertEqual(p.balance(), 0.0)
+
+    def test_real_image_address_lives_in_tags(self):
+        """文档说 `image` 是镜像地址，实际是短名；真地址在 tags[].full_image_name。"""
+        payload = fixture("images_base.json")
+        first = payload["data"][0]
+        self.assertEqual(first["image"], "pytorch", "短名，不能直接拿去 create")
+        self.assertTrue(first["tags"][0]["full_image_name"].startswith("image.ppinfra.com/"))
+
+        p = self._p(payload)
+        out = p.resolve_image("pytorch")
+        self.assertEqual(out["image_id"],
+                         "image.ppinfra.com/prod-gpucloudpublic/pytorch:v2")
+        self.assertEqual(out["tag"], "v2")
+
+    def test_real_image_tag_selection(self):
+        p = self._p(fixture("images_base.json"))
+        out = p.resolve_image("pytorch:2.3.0-cuda12.1-cudnn8-devel")
+        self.assertEqual(out["image_id"],
+                         "image.ppinfra.com/prod-gpucloudpublic/pytorch:2.3.0-cuda12.1-cudnn8-devel")
+
+    def test_real_image_missing_tag_raises(self):
+        with self.assertRaises(P.ProviderError) as cm:
+            self._p(fixture("images_base.json")).resolve_image("pytorch:no-such-tag")
+        self.assertEqual(cm.exception.kind, P.ProviderError.NOT_FOUND)
+
+    def test_real_images_expand_all_tags(self):
+        """一个镜像名下多个 tag，各给一条 —— create() 要的是带 tag 的完整地址。"""
+        out = self._p(fixture("images_base.json")).images()
+        self.assertGreater(len(out), 5)
+        self.assertTrue(all(i["image_id"] for i in out))
+
+    def test_real_instances_empty_list(self):
+        p = provider({("GET", "/gpus/v2/instances"):
+                      (200, fixture("instances_empty.json"))})
+        self.assertEqual(p.list_instances(), [])
 
 
 # ------------------------------------------------------------------ 契约

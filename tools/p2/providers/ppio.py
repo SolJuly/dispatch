@@ -19,8 +19,10 @@ PPIO 的 v2 API 是唯一一个把 **price + stock + OCI + 自定义端口** 四
 
 1. **它用正经 HTTP 状态码**（401/403/400/429/500 + `{code, reason, message}`），
    不像 AutoDL「永远 200 + code 字符串」。所以分类可以按状态码走，比文案匹配可靠。
-2. **金额是「整数 × 精度」**：`{"precision": 3, "final_price": 12600}` = ¥12.600/时。
-   不要写成 `/1000` 这种硬编码，精度是响应里给的。
+2. **金额固定 ÷1e5**：`final_price: 231000` = ¥2.31/时。
+   ⚠️ 官方 spec 说除数是响应里的 `pricing.precision`，**实测该字段不可用**
+   （同一批产品里 4090 给 10、L40S 给 0，而 storage 单价都是 1000）。
+   三条独立证据锁定 1e5，详见 `_MONEY_SCALE` 的注释。
 3. **创建不是单一大参数**：CPU/内存由「产品规格」决定（4090 有 8c62g / 16c62g /
    18c62g / 16c125g 等多个 SKU），所以要按 `gpu + cpu + memory` 三元组挑 SKU，
    而不是像智云那样直接把 cpu/memory 塞进建机参数。
@@ -102,17 +104,46 @@ def _norm(s: str) -> str:
     return re.sub(r"[^a-z0-9]", "", str(s or "").lower())
 
 
-def _money(raw: Any, precision: Any) -> float:
-    """整数 × 精度 → 元。精度来自响应，不要硬编码 1000。"""
+# 金额除数：⚠️ **实测推翻了文档**，固定 1e5。
+#
+# 官方 OpenAPI spec 说价格是「整数 × `pricing.precision`」，我第一版就是照它写的
+# （`_money(raw, precision)`）。2026-11-13 拿真 key 打 `/gpus/v2/products`，
+# `precision` 字段一测就废：同一批产品里 4090 给 `precision: 10`、L40S 给 `precision: 0`，
+# 而两者的 `storage_price_per_gb` 都是 1000。
+#
+# 按 precision 算会得到两个荒谬结果：
+#   4090  231000 / 10**10 = 0.0000231 元/时
+#   L40S  396000 / 10**0  = 396000    元/时
+#
+# 除数是 1e5，三条互相独立的证据：
+#   ① storage_price_per_gb=1000 → 1000/1e5 = 0.01，正是官方计费页的「0.01 元/GB/天」
+#   ② 4090 spot=116000 → 1.16 元/时，与第三方监测（rentgpu.link）的「4090 Spot ¥1.16/h」一致
+#   ③ 4090 按量=231000 → 2.31 元/时；包月 12 月 137182000/1e5/720h = 1.905 元/时，
+#      包月比按量便宜 17%，符合「长租有折扣」的常识
+#
+# 所以不用 precision 字段，固定 1e5。**这是实测值，不是可配置项** ——
+# 写进 response 里的 precision 已经证明不可信，再让它影响算账只会错得更隐蔽。
+_MONEY_SCALE = 100000.0
+
+
+def _money(raw: Any, precision: Any = None) -> float:
+    """金额整数 → 元。除数固定 1e5（见 `_MONEY_SCALE` 的证据链）。
+
+    `precision` 参数保留只为兼容旧调用点，**不再参与计算** ——
+    它是错的，用它算等于把 ¥2.31 报成两个数量级之外的数。
+
+    做一次合理性夹取：PPIO 的实例价不可能超过 ¥200/时（最贵的 H100 SXM 是 ¥23.76），
+    算出来超出这个范围说明口径又变了，返回 0 让上层按「未知价格」处理，
+    而不是把一个明显错的数字塞进成本账。
+    """
     try:
         v = float(raw or 0)
     except (TypeError, ValueError):
         return 0.0
-    try:
-        p = int(precision)
-    except (TypeError, ValueError):
-        p = 3
-    return round(v / (10 ** p), 6)
+    yuan = v / _MONEY_SCALE
+    if yuan < 0 or yuan > 200:
+        return 0.0
+    return round(yuan, 6)
 
 
 def _items(payload: Any) -> list[dict]:
@@ -582,10 +613,9 @@ class PPIOProvider(Provider):
         prod = self._pick_sku(cands, cpu, memory_gb)
 
         pricing = prod.get("pricing") or {}
-        precision = pricing.get("precision")
         slot = pricing.get(mode) or {}
-        unit_price = _money(slot.get("final_price"), precision)
-        base_price = _money(slot.get("base_price"), precision)
+        unit_price = _money(slot.get("final_price"))
+        base_price = _money(slot.get("base_price"))
         if not unit_price:                      # 该计费方式不可用
             raise ProviderError(
                 f"PPIO {prod.get('name')} 不支持 {charge_type} 计费"
@@ -630,36 +660,73 @@ class PPIOProvider(Provider):
     def resolve_image(self, spec: str) -> dict:
         """镜像 spec → 可传给 create() 的 image 地址。
 
-        两种输入：
-          - 已经是地址（含 `/`，如 `registry.cn-.../x/y:tag`）→ 原样返回
-          - 是名字 → 在 `/gpus/v2/images` 里找（base / community / private 三类）
+        ⚠️ 真实响应结构与文档不一致（2026-11-13 实测）：
+          文档说镜像记录有 `image`（镜像标识，字符串）。
+          实际 `image` 是**短名**（`pytorch`），真正的仓库地址在
+          `tags[].full_image_name`（`image.ppinfra.com/prod-gpucloudpublic/pytorch:v2`）。
+          直接把 `image` 塞进 create() 会拿到一个拉不动的名字。
+
+        所以解析优先级：
+          ① 含 `/` 的地址 → 原样返回（自己 push 的镜像走这条）
+          ② `名字:tag` → 在 tags 里精确找 tag
+          ③ 纯名字 → 找该镜像的默认 tag（列表第一个，官方把 `v2`/`v1` 排在首位）
         """
         s = str(spec or "").strip()
         if not s:
             raise ProviderError("镜像 spec 为空", ProviderError.NOT_FOUND)
-        if "/" in s or ":" in s:
+        if "/" in s:
             return {"image_id": s, "name": s, "type": "address", "raw": {}}
 
+        want_name, _, want_tag = s.partition(":")
         for typ in ("private", "community", "base"):
             payload = self._call("GET", "/gpus/v2/images",
-                                 query={"type": typ, "name": s, "limit": 100})
+                                 query={"type": typ, "name": want_name, "limit": 100})
             for it in _items(payload):
-                if _norm(it.get("name")) == _norm(s) or _norm(it.get("id")) == _norm(s):
-                    return {"image_id": str(it.get("image") or it.get("id") or s),
-                            "name": str(it.get("name") or s),
-                            "type": str(it.get("type") or typ), "raw": it}
+                if _norm(it.get("name")) != _norm(want_name) and _norm(it.get("id")) != _norm(want_name):
+                    continue
+                tags = it.get("tags") or []
+                if want_tag:
+                    hit = next((t for t in tags if str(t.get("tag") or "") == want_tag), None)
+                    if not hit:
+                        continue
+                else:
+                    hit = tags[0] if tags else None
+                full = str((hit or {}).get("full_image_name") or "")
+                if not full:
+                    # 没有 tags 的历史记录：退回 `image` 字段（可能仍是短名，
+                    # 但至少有值，让 create() 报出真实错误而不是在这里凭空失败）
+                    full = str(it.get("image") or "")
+                return {"image_id": full,
+                        "name": want_name,
+                        "tag": str((hit or {}).get("tag") or ""),
+                        "type": str(it.get("type") or typ),
+                        "raw": it}
         raise ProviderError(f"PPIO 找不到镜像 {s!r}", ProviderError.NOT_FOUND)
 
     def images(self, keyword: str = "") -> list[dict]:
+        """列出镜像。每条按 tag 展开 —— 一个镜像名下有多个 tag，各有各的完整地址。
+
+        展开而不是压平，是因为 `create()` 要的是**带 tag 的完整地址**，
+        只给名字等于让调用方自己去拼（而拼法只有官方知道）。
+        """
         out: list[dict] = []
         for typ in ("base", "community", "private"):
             payload = self._call("GET", "/gpus/v2/images",
                                  query={"type": typ, "name": keyword, "limit": 100})
             for it in _items(payload):
-                out.append({"image_id": str(it.get("image") or it.get("id") or ""),
-                            "name": str(it.get("name") or ""),
-                            "type": str(it.get("type") or typ),
-                            "raw": it})
+                name = str(it.get("name") or "")
+                tags = it.get("tags") or []
+                if not tags:
+                    out.append({"image_id": str(it.get("image") or ""),
+                                "name": name, "tag": "",
+                                "type": str(it.get("type") or typ), "raw": it})
+                    continue
+                for t in tags:
+                    out.append({"image_id": str(t.get("full_image_name") or ""),
+                                "name": name,
+                                "tag": str(t.get("tag") or ""),
+                                "type": str(it.get("type") or typ),
+                                "raw": it})
         if keyword:
             kw = _norm(keyword)
             out = [i for i in out if kw in _norm(i["name"]) or kw in _norm(i["image_id"])]
@@ -694,6 +761,8 @@ class PPIOProvider(Provider):
         best = 0
         for p in cands:
             spec = (p.get("resource_spec") or {}).get("gpu") or {}
+            # 注意 `pricing` 里 spot 可能是**缺省键**而不是 null（实测：L40S 只有 postpaid）。
+            # 只看 `billing_methods` 是权威来源，不要去读 pricing.spot 的存在性。
             if spot and "spot" not in (p.get("billing_methods") or []):
                 continue
             if p.get("deployable") is False:
@@ -708,8 +777,8 @@ class PPIOProvider(Provider):
         与 `products()` 的区别，以及为什么允许这里缓存：
 
           `products()` 是价格/库存的**决策输入**，必须每次现取（调价后按旧价估价 = 算错钱）。
-          `_catalog()` 只用把 `product_id` 翻成展示名、把价格精度问出来 —— 这些是
-          元数据，一次对象生命周期内不会变，而 `get()` 在 wait_state 里每 5 秒调一次，
+          `_catalog()` 只用来把 `product_id` 翻成展示名 —— 这是元数据，
+          一次对象生命周期内不会变，而 `get()` 在 wait_state 里每 5 秒调一次，
           每次都拉一遍目录纯属浪费。
 
         跨对象不复用（registry 刻意不做 provider 实例缓存），所以不会「旧价跨作业」。
@@ -720,22 +789,6 @@ class PPIOProvider(Provider):
             except ProviderError:
                 self._catalog_cache = []
         return self._catalog_cache
-
-    def _precision(self) -> int:
-        """价格精度。优先取 products 里的 `pricing.precision`。
-
-        退回 3 有证据、不是拍脑袋：官方 get-instance 示例里
-        `rootfs_storage_price: 10` 对应「系统盘 0.01 元/GB/天」，
-        10 / 1000 = 0.01 —— 只有精度 3 成立。
-        """
-        for p in self._catalog():
-            pr = (p.get("pricing") or {}).get("precision")
-            if pr is not None:
-                try:
-                    return int(pr)
-                except (TypeError, ValueError):
-                    pass
-        return 3
 
     def _product_label(self, product_id: str) -> str:
         """`product_id` → 展示名（如 `RTX 4090`）。查不到就原样返回 id。"""
@@ -757,9 +810,8 @@ class PPIOProvider(Provider):
 
         spec = d.get("resource_specs") or {}
         pricing = d.get("pricing") or {}
-        # 详情里的价格同样是「整数 × 精度」。精度不在每个实例响应里，
-        # 所以走 _catalog()（对象内记忆一次，见该函数注释）。
-        price = _money(pricing.get("instance_price"), self._precision())
+        # 详情里的价格同样固定 ÷1e5（见 _MONEY_SCALE 的证据链）。
+        price = _money(pricing.get("instance_price"))
         # 磁盘按天计，不折算进 hourly（见 price() 的说明）；这里恒为 0。
         return InstanceView(
             uid=str(d.get("id") or ""),

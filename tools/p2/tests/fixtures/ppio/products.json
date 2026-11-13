@@ -1,0 +1,1096 @@
+{
+ "data": [
+  {
+   "id": "L40S.22c125g",
+   "name": "NVIDIA L40S 48GB",
+   "type": "gpu",
+   "category": "instance",
+   "region_ids": [
+    "28",
+    "29",
+    "af-za-1",
+    "as-ae-1",
+    "as-in-1",
+    "as-sgp-2",
+    "cn-hongkong-1",
+    "eu-gb-1",
+    "eu-ger-2",
+    "jp-tyo-2",
+    "sa-br-1",
+    "oc-au-1",
+    "us-ca-6",
+    "cn-south-1"
+   ],
+   "resource_spec": {
+    "gpu": {
+     "spec_id": "L40S",
+     "name": "NVIDIA L40S 48GB",
+     "memory_gb": 48,
+     "min": 1,
+     "max": 8,
+     "available": 0,
+     "max_available": 0
+    },
+    "cpu": 22,
+    "memory_gb": 125,
+    "rootfs": {
+     "min_gb": 10,
+     "max_gb": 6144,
+     "free_gb": 130
+    }
+   },
+   "pricing": {
+    "precision": 0,
+    "postpaid": {
+     "base_price": 396000,
+     "final_price": 396000,
+     "unit": ""
+    },
+    "prepaid": [],
+    "storage_price_per_gb": 1000
+   },
+   "billing_methods": [
+    "postpaid"
+   ],
+   "inventory_state": "none",
+   "deployable": false,
+   "activity": {
+    "is_activity_product": false,
+    "active": false,
+    "purchasable": true
+   },
+   "created_at": "1778659985"
+  },
+  {
+   "id": "H100-80GB.16c128g",
+   "name": "H100 SXM 80GB",
+   "type": "gpu",
+   "category": "instance",
+   "region_ids": [
+    "eu-ger-2",
+    "jp-tyo-2",
+    "us-ca-6",
+    "cn-south-1",
+    "as-sgp-2",
+    "cn-north-2",
+    "us-ca-7",
+    "eu-is-1",
+    "cn-south-nas-2"
+   ],
+   "resource_spec": {
+    "gpu": {
+     "spec_id": "H100-80GB",
+     "name": "H100 SXM 80GB",
+     "memory_gb": 80,
+     "min": 1,
+     "max": 8,
+     "available": 0,
+     "max_available": 0
+    },
+    "cpu": 16,
+    "memory_gb": 128,
+    "rootfs": {
+     "min_gb": 10,
+     "max_gb": 6144,
+     "free_gb": 130
+    }
+   },
+   "pricing": {
+    "precision": 10,
+    "postpaid": {
+     "base_price": 2376000,
+     "final_price": 2376000,
+     "unit": ""
+    },
+    "spot": {
+     "base_price": 1188000,
+     "final_price": 1188000,
+     "unit": ""
+    },
+    "prepaid": [
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-1",
+      "duration_months": 1,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-1",
+      "duration_months": 2,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-1",
+      "duration_months": 3,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-1",
+      "duration_months": 4,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-1",
+      "duration_months": 5,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-2",
+      "duration_months": 6,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-2",
+      "duration_months": 7,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-2",
+      "duration_months": 8,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-2",
+      "duration_months": 9,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-2",
+      "duration_months": 10,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-2",
+      "duration_months": 11,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-3",
+      "duration_months": 12,
+      "final_price": 1408586000,
+      "base_price": 1408586000
+     }
+    ],
+    "storage_price_per_gb": 1000
+   },
+   "billing_methods": [
+    "postpaid",
+    "spot",
+    "prepaid"
+   ],
+   "inventory_state": "none",
+   "deployable": false,
+   "activity": {
+    "is_activity_product": false,
+    "active": false,
+    "purchasable": true
+   },
+   "created_at": "1750929915"
+  },
+  {
+   "id": "L40S.28c125g",
+   "name": "L40S 48GB",
+   "type": "gpu",
+   "category": "instance",
+   "region_ids": [
+    "eu-gb-1",
+    "as-ae-1",
+    "as-sgp-2",
+    "as-in-1",
+    "sa-br-1",
+    "oc-au-1",
+    "jp-tyo-2",
+    "eu-ger-2",
+    "us-ca-6",
+    "cn-south-1"
+   ],
+   "resource_spec": {
+    "gpu": {
+     "spec_id": "L40S",
+     "name": "L40S 48GB",
+     "memory_gb": 48,
+     "min": 1,
+     "max": 8,
+     "available": 0,
+     "max_available": 0
+    },
+    "cpu": 28,
+    "memory_gb": 125,
+    "rootfs": {
+     "min_gb": 10,
+     "max_gb": 6144,
+     "free_gb": 130
+    }
+   },
+   "pricing": {
+    "precision": 0,
+    "postpaid": {
+     "base_price": 396000,
+     "final_price": 396000,
+     "unit": ""
+    },
+    "spot": {
+     "base_price": 198000,
+     "final_price": 198000,
+     "unit": ""
+    },
+    "prepaid": [],
+    "storage_price_per_gb": 1000
+   },
+   "billing_methods": [
+    "postpaid",
+    "spot"
+   ],
+   "inventory_state": "none",
+   "deployable": false,
+   "activity": {
+    "is_activity_product": false,
+    "active": false,
+    "purchasable": true
+   },
+   "created_at": "1747987179"
+  },
+  {
+   "id": "4090.16c96g.v2",
+   "name": "RTX 4090 24GB",
+   "type": "gpu",
+   "category": "instance",
+   "region_ids": [
+    "af-za-1",
+    "as-ae-1",
+    "as-in-1",
+    "as-sgp-2",
+    "eu-gb-1",
+    "eu-ger-2",
+    "jp-tyo-2",
+    "oc-au-1",
+    "sa-br-1",
+    "us-ca-6",
+    "cn-south-1",
+    "cn-south-nas-1",
+    "us-ca-nas-2"
+   ],
+   "resource_spec": {
+    "gpu": {
+     "spec_id": "4090",
+     "name": "RTX 4090 24GB",
+     "memory_gb": 24,
+     "min": 1,
+     "max": 8,
+     "available": 0,
+     "max_available": 0
+    },
+    "cpu": 16,
+    "memory_gb": 96,
+    "rootfs": {
+     "min_gb": 10,
+     "max_gb": 6144,
+     "free_gb": 130
+    }
+   },
+   "pricing": {
+    "precision": 10,
+    "postpaid": {
+     "base_price": 231000,
+     "final_price": 231000,
+     "unit": ""
+    },
+    "spot": {
+     "base_price": 116000,
+     "final_price": 116000,
+     "unit": ""
+    },
+    "prepaid": [
+     {
+      "spec_id": "monthly-gpu_instance-4090-17",
+      "duration_months": 1,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-17",
+      "duration_months": 2,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-17",
+      "duration_months": 3,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-17",
+      "duration_months": 4,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-17",
+      "duration_months": 5,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-18",
+      "duration_months": 6,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-18",
+      "duration_months": 7,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-18",
+      "duration_months": 8,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-18",
+      "duration_months": 9,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-18",
+      "duration_months": 10,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-18",
+      "duration_months": 11,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-19",
+      "duration_months": 12,
+      "final_price": 137182000,
+      "base_price": 137182000
+     }
+    ],
+    "storage_price_per_gb": 1000
+   },
+   "billing_methods": [
+    "postpaid",
+    "spot",
+    "prepaid"
+   ],
+   "inventory_state": "none",
+   "deployable": false,
+   "activity": {
+    "is_activity_product": false,
+    "active": false,
+    "purchasable": true
+   },
+   "created_at": "1747982544"
+  },
+  {
+   "id": "4090.16c62g.os",
+   "name": "RTX 4090 24GB",
+   "type": "gpu",
+   "category": "instance",
+   "region_ids": [
+    "as-ae-1",
+    "as-in-1",
+    "eu-gb-1",
+    "sa-br-1",
+    "as-sgp-2",
+    "eu-ger-2",
+    "jp-tyo-2",
+    "oc-au-1",
+    "af-za-1",
+    "us-ca-6",
+    "cn-south-1"
+   ],
+   "resource_spec": {
+    "gpu": {
+     "spec_id": "4090",
+     "name": "RTX 4090 24GB",
+     "memory_gb": 24,
+     "min": 1,
+     "max": 8,
+     "available": 0,
+     "max_available": 0
+    },
+    "cpu": 16,
+    "memory_gb": 62,
+    "rootfs": {
+     "min_gb": 10,
+     "max_gb": 6144,
+     "free_gb": 130
+    }
+   },
+   "pricing": {
+    "precision": 10,
+    "postpaid": {
+     "base_price": 231000,
+     "final_price": 231000,
+     "unit": ""
+    },
+    "spot": {
+     "base_price": 116000,
+     "final_price": 116000,
+     "unit": ""
+    },
+    "prepaid": [
+     {
+      "spec_id": "monthly-gpu_instance-4090-11",
+      "duration_months": 1,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-11",
+      "duration_months": 2,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-11",
+      "duration_months": 3,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-11",
+      "duration_months": 4,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-11",
+      "duration_months": 5,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-12",
+      "duration_months": 6,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-12",
+      "duration_months": 7,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-12",
+      "duration_months": 8,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-12",
+      "duration_months": 9,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-12",
+      "duration_months": 10,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-12",
+      "duration_months": 11,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-13",
+      "duration_months": 12,
+      "final_price": 137182000,
+      "base_price": 137182000
+     }
+    ],
+    "storage_price_per_gb": 1000
+   },
+   "billing_methods": [
+    "postpaid",
+    "spot",
+    "prepaid"
+   ],
+   "inventory_state": "none",
+   "deployable": false,
+   "activity": {
+    "is_activity_product": false,
+    "active": false,
+    "purchasable": true
+   },
+   "created_at": "1747118126"
+  },
+  {
+   "id": "H100-80GB.22c150g",
+   "name": "H100 SXM 80GB",
+   "type": "gpu",
+   "category": "instance",
+   "region_ids": [
+    "as-ae-1",
+    "as-in-1",
+    "eu-gb-1",
+    "sa-br-1",
+    "as-sgp-2",
+    "eu-ger-2",
+    "jp-tyo-2",
+    "oc-au-1",
+    "af-za-1",
+    "us-ca-6",
+    "cn-south-1",
+    "cn-south-nas-2"
+   ],
+   "resource_spec": {
+    "gpu": {
+     "spec_id": "H100-80GB",
+     "name": "H100 SXM 80GB",
+     "memory_gb": 80,
+     "min": 1,
+     "max": 8,
+     "available": 0,
+     "max_available": 0
+    },
+    "cpu": 22,
+    "memory_gb": 150,
+    "rootfs": {
+     "min_gb": 10,
+     "max_gb": 6144,
+     "free_gb": 130
+    }
+   },
+   "pricing": {
+    "precision": 10,
+    "postpaid": {
+     "base_price": 2376000,
+     "final_price": 2376000,
+     "unit": ""
+    },
+    "spot": {
+     "base_price": 1188000,
+     "final_price": 1188000,
+     "unit": ""
+    },
+    "prepaid": [
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-7",
+      "duration_months": 1,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-7",
+      "duration_months": 2,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-7",
+      "duration_months": 3,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-7",
+      "duration_months": 4,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-7",
+      "duration_months": 5,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-8",
+      "duration_months": 6,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-8",
+      "duration_months": 7,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-8",
+      "duration_months": 8,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-8",
+      "duration_months": 9,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-8",
+      "duration_months": 10,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-8",
+      "duration_months": 11,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-9",
+      "duration_months": 12,
+      "final_price": 1408586000,
+      "base_price": 1408586000
+     }
+    ],
+    "storage_price_per_gb": 1000
+   },
+   "billing_methods": [
+    "postpaid",
+    "spot",
+    "prepaid"
+   ],
+   "inventory_state": "none",
+   "deployable": false,
+   "activity": {
+    "is_activity_product": false,
+    "active": false,
+    "purchasable": true
+   },
+   "created_at": "1747117948"
+  },
+  {
+   "id": "H100-80GB.20c236g",
+   "name": "H100 SXM 80GB",
+   "type": "gpu",
+   "category": "instance",
+   "region_ids": [
+    "33",
+    "cn-south-1",
+    "as-sgp-2"
+   ],
+   "resource_spec": {
+    "gpu": {
+     "spec_id": "H100-80GB",
+     "name": "H100 SXM 80GB",
+     "memory_gb": 80,
+     "min": 1,
+     "max": 8,
+     "available": 0,
+     "max_available": 0
+    },
+    "cpu": 20,
+    "memory_gb": 236,
+    "rootfs": {
+     "min_gb": 10,
+     "max_gb": 6144,
+     "free_gb": 130
+    }
+   },
+   "pricing": {
+    "precision": 10,
+    "postpaid": {
+     "base_price": 2376000,
+     "final_price": 2376000,
+     "unit": ""
+    },
+    "spot": {
+     "base_price": 1188000,
+     "final_price": 1188000,
+     "unit": ""
+    },
+    "prepaid": [
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-4",
+      "duration_months": 1,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-4",
+      "duration_months": 2,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-4",
+      "duration_months": 3,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-4",
+      "duration_months": 4,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-4",
+      "duration_months": 5,
+      "final_price": 1596398000,
+      "base_price": 1596398000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-5",
+      "duration_months": 6,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-5",
+      "duration_months": 7,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-5",
+      "duration_months": 8,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-5",
+      "duration_months": 9,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-5",
+      "duration_months": 10,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-5",
+      "duration_months": 11,
+      "final_price": 1496623000,
+      "base_price": 1496623000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-H100-80GB-6",
+      "duration_months": 12,
+      "final_price": 1408586000,
+      "base_price": 1408586000
+     }
+    ],
+    "storage_price_per_gb": 1000
+   },
+   "billing_methods": [
+    "postpaid",
+    "spot",
+    "prepaid"
+   ],
+   "inventory_state": "none",
+   "deployable": false,
+   "activity": {
+    "is_activity_product": false,
+    "active": false,
+    "purchasable": true
+   },
+   "created_at": "1745485461"
+  },
+  {
+   "id": "4090.16c62g",
+   "name": "RTX 4090 24GB",
+   "type": "gpu",
+   "category": "instance",
+   "region_ids": [
+    "cn-south-1",
+    "cn-hongkong-1",
+    "as-sgp-2",
+    "eu-ger-2",
+    "jp-tyo-2",
+    "eu-is-1",
+    "eu-gb-1",
+    "oc-au-1",
+    "sa-br-1",
+    "us-ca-5",
+    "us-ca-6",
+    "us-ca-7",
+    "cn-beijing-nas-1",
+    "cn-east-nas-2",
+    "26"
+   ],
+   "resource_spec": {
+    "gpu": {
+     "spec_id": "4090",
+     "name": "RTX 4090 24GB",
+     "memory_gb": 24,
+     "min": 1,
+     "max": 8,
+     "available": 0,
+     "max_available": 0
+    },
+    "cpu": 16,
+    "memory_gb": 62,
+    "rootfs": {
+     "min_gb": 10,
+     "max_gb": 6144,
+     "free_gb": 130
+    }
+   },
+   "pricing": {
+    "precision": 10,
+    "postpaid": {
+     "base_price": 231000,
+     "final_price": 231000,
+     "unit": ""
+    },
+    "spot": {
+     "base_price": 116000,
+     "final_price": 116000,
+     "unit": ""
+    },
+    "prepaid": [
+     {
+      "spec_id": "monthly-gpu_instance-4090-4",
+      "duration_months": 1,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-4",
+      "duration_months": 2,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-4",
+      "duration_months": 3,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-4",
+      "duration_months": 4,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-4",
+      "duration_months": 5,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-5",
+      "duration_months": 6,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-5",
+      "duration_months": 7,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-5",
+      "duration_months": 8,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-5",
+      "duration_months": 9,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-5",
+      "duration_months": 10,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-5",
+      "duration_months": 11,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-6",
+      "duration_months": 12,
+      "final_price": 137182000,
+      "base_price": 137182000
+     }
+    ],
+    "storage_price_per_gb": 1000
+   },
+   "billing_methods": [
+    "postpaid",
+    "spot",
+    "prepaid"
+   ],
+   "inventory_state": "none",
+   "deployable": false,
+   "activity": {
+    "is_activity_product": false,
+    "active": false,
+    "purchasable": true
+   },
+   "created_at": "1742798536"
+  },
+  {
+   "id": "4090.16c125g",
+   "name": "RTX 4090 24GB",
+   "type": "gpu",
+   "category": "instance",
+   "region_ids": [
+    "28",
+    "as-ae-1",
+    "af-za-1",
+    "as-in-1",
+    "as-sgp-2",
+    "cn-hongkong-1",
+    "cn-south-1",
+    "eu-ger-2",
+    "jp-tyo-2",
+    "eu-is-1",
+    "oc-au-1",
+    "sa-br-1",
+    "us-ca-6"
+   ],
+   "resource_spec": {
+    "gpu": {
+     "spec_id": "4090",
+     "name": "RTX 4090 24GB",
+     "memory_gb": 24,
+     "min": 1,
+     "max": 8,
+     "available": 0,
+     "max_available": 0
+    },
+    "cpu": 16,
+    "memory_gb": 125,
+    "rootfs": {
+     "min_gb": 10,
+     "max_gb": 6144,
+     "free_gb": 130
+    }
+   },
+   "pricing": {
+    "precision": 10,
+    "postpaid": {
+     "base_price": 231000,
+     "final_price": 231000,
+     "unit": ""
+    },
+    "spot": {
+     "base_price": 116000,
+     "final_price": 116000,
+     "unit": ""
+    },
+    "prepaid": [
+     {
+      "spec_id": "monthly-gpu_instance-4090-1",
+      "duration_months": 1,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-1",
+      "duration_months": 2,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-1",
+      "duration_months": 3,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-1",
+      "duration_months": 4,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-1",
+      "duration_months": 5,
+      "final_price": 155473000,
+      "base_price": 155473000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-2",
+      "duration_months": 6,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-2",
+      "duration_months": 7,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-2",
+      "duration_months": 8,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-2",
+      "duration_months": 9,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-2",
+      "duration_months": 10,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-2",
+      "duration_months": 11,
+      "final_price": 145756000,
+      "base_price": 145756000
+     },
+     {
+      "spec_id": "monthly-gpu_instance-4090-3",
+      "duration_months": 12,
+      "final_price": 137182000,
+      "base_price": 137182000
+     }
+    ],
+    "storage_price_per_gb": 1000
+   },
+   "billing_methods": [
+    "postpaid",
+    "spot",
+    "prepaid"
+   ],
+   "inventory_state": "none",
+   "deployable": false,
+   "activity": {
+    "is_activity_product": false,
+    "active": false,
+    "purchasable": true
+   },
+   "created_at": "1742798424"
+  }
+ ],
+ "next_cursor": "",
+ "has_more": false,
+ "total": 9
+}
