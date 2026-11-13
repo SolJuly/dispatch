@@ -1,0 +1,27 @@
+Warning: Permanently added '[js4.blockelite.cn]:13124' (ED25519) to the list of known hosts.
+=== provision.sh --dry-run ===
+     [dry] git -C /root/ComfyUI/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler checkout -q 4490bd1f482e026674543386bb2a4d176da245b9
+     · ComfyUI-SeedVR2_VideoUpscaler      4490bd1f
+     [dry] git clone --filter=blob:none https://github.com/chflame163/ComfyUI_LayerStyle /root/ComfyUI/custom_nodes/ComfyUI_LayerStyle
+     [dry] git -C /root/ComfyUI/custom_nodes/ComfyUI_LayerStyle checkout -q c7b8f73af0badaf2a59bee6111ecdd004be15ab3
+     · ComfyUI_LayerStyle                 c7b8f73a
+     [dry] git clone --filter=blob:none https://github.com/ssitu/ComfyUI_UltimateSDUpscale /root/ComfyUI/custom_nodes/ComfyUI_UltimateSDUpscale
+     [dry] git -C /root/ComfyUI/custom_nodes/ComfyUI_UltimateSDUpscale checkout -q a5547db9e1d07d3318bb21e9e9c474f4c1e9c8df
+     · ComfyUI_UltimateSDUpscale          a5547db9
+     [dry] git clone --filter=blob:none https://github.com/cubiq/ComfyUI_essentials /root/ComfyUI/custom_nodes/ComfyUI_essentials
+     [dry] git -C /root/ComfyUI/custom_nodes/ComfyUI_essentials checkout -q 9d9f4bedfc9f0321c19faf71855e228c93bd0dc9
+     · ComfyUI_essentials                 9d9f4bed
+     [dry] git clone --filter=blob:none https://github.com/ComfyNodePRs/PR-comfyui_face_parsing-d39afaa9.git /root/ComfyUI/custom_nodes/comfyui_face_parsing
+     [dry] git -C /root/ComfyUI/custom_nodes/comfyui_face_parsing checkout -q f9f89b3faa2b240257e6a6102469d0a33d031d6d
+     · comfyui_face_parsing               f9f89b3f
+     [32m✓[0m 10 个节点处理完毕
+[36m[07][0m 禁用 ComfyUI-Manager
+     [32m✓[0m 不存在或已禁用
+[36m[08][0m 模型目录
+     [33m![0m /model 不存在 —— 权重需要在其它地方挂载/下载
+     [33m![0m 智云上是自动挂载的 UPFS；别家云请挂 NAS/OSS/COS，或设 MODEL_ROOT 指向下载目录
+[36m[09][0m 验证
+     [33m![0m ComfyUI 未在 8188 监听 —— 请先启动：
+     source /root/miniconda3/bin/activate 2>/dev/null || true; cd /root/ComfyUI && COMFYUI_MANAGER_OFFLINE=1 python -u main.py --listen 0.0.0.0 --port 8188
+
+  启动后再跑：bash /root/provision.sh --verify-only

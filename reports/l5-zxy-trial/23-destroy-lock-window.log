@@ -1,0 +1,31 @@
+建机时刻 t=0
+running at t=22s
+t=60s 开始试销毁（机器已稳定）
+  t=60s [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  t=80s [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  t=101s [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  t=121s [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  t=141s [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  t=161s [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+当前 Ctime: 1794546749
+按 Ctime 算，已过 190s
+  建成后 190s busy
+  建成后 211s busy
+  建成后 231s busy
+  建成后 251s busy
+  建成后 271s busy
+  建成后 291s busy
+  建成后 312s 成功！
+
+=== 全部实例状态 ===
+  e31d_u0_c0 terminated   Status=0 Ctime=1794546749
+  113b_u0_c0 terminated   Status=0 Ctime=1794546430
+  a06e_u0_c0 terminated   Status=0 Ctime=1794546099
+  349c_u0_c1 terminated   Status=0 Ctime=1794544692
+  349c_u0_c0 terminated   Status=0 Ctime=1794544349
+  0e57_u0_c0 terminated   Status=0 Ctime=1794542012
+  7649_u1_c0 terminated   Status=0 Ctime=1794534616
+  7be5_u0_c0 terminated   Status=0 Ctime=1794533551
+  baca_u0_c0 terminated   Status=0 Ctime=1794533081
+
+现金: 14.2396 券: 0.5

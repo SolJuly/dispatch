@@ -1,0 +1,33 @@
+=== 当前状态 ===
+现金: 7.0512 券: 0.0
+  bf88_u0_c0 running      Status=1 IsAbnormal=0
+  e892_u0_c0 running      Status=1 IsAbnormal=0
+  ab70_u0_c0 running      Status=1 IsAbnormal=3
+  eb6e_u1_c0 terminated   Status=0 IsAbnormal=0
+  e31d_u0_c0 terminated   Status=0 IsAbnormal=0
+  113b_u0_c0 terminated   Status=0 IsAbnormal=0
+  a06e_u0_c0 terminated   Status=0 IsAbnormal=0
+  349c_u0_c1 terminated   Status=0 IsAbnormal=0
+  349c_u0_c0 terminated   Status=0 IsAbnormal=0
+  0e57_u0_c0 terminated   Status=0 IsAbnormal=0
+  7649_u1_c0 terminated   Status=0 IsAbnormal=0
+  7be5_u0_c0 terminated   Status=0 IsAbnormal=0
+  baca_u0_c0 terminated   Status=0 IsAbnormal=0
+
+=== 删除两个测试镜像（退租退费）===
+  l5-synctest: 可退 ¥2.8461
+  l5-comfy-test: 可退 ¥2.7245
+
+=== 清理 3 台运行中的实例 ===
+  ✓ bf88_u0_c0 已销毁 234s
+  ✓ e892_u0_c0 已销毁 1s
+  ✓ ab70_u0_c0 已销毁 3s
+
+=== 删除测试镜像（退费）===
+  ✓ 删除 l5-synctest: {'raw': 'success'}
+  ✓ 删除 l5-comfy-test: {'raw': 'success'}
+
+=== 最终状态 ===
+现金: 7.0512 券: 6.1486 合计: 13.1998
+实例: 13 台（全部 terminated）
+镜像: 2 个

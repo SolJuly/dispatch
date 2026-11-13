@@ -1,0 +1,8 @@
+= bake_marker =
+size=32
+IMAGE_BAKE_MARKER_v1 1794585531
+= sync_marker =
+size=24
+SYNC_TEST_v2_1794557056
+= blob =
+75486a62fb97c85d18b254dc45f32b87  /root/big_blob.bin

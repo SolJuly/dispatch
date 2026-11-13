@@ -23,7 +23,13 @@ from .base import (  # noqa: F401  (re-export 给上层统一 import)
     Capabilities, InstanceView, Provider, ProviderError, SSHEndpoint, classify,
 )
 
+# zhixingyun 于 2026-11-13 暂停接入（成本不划算，见 reports/L5-智星云*）。
+# 适配器与测试全部保留，但**不放进默认可用列表** —— available() 会把它
+# 当成可查对象，cost_snapshot 之类的巡检就会去打真实云。
+# 恢复方式：把下面这行改回 ("compshare", "zhixingyun", "local", "fake")
+# 并设 ZXY_ENABLE=1（适配器层还有一道硬拦截）。
 _BUILTIN = ("compshare", "local", "fake")
+_SUSPENDED = ("zhixingyun",)
 
 
 # ------------------------------------------------------------------ 工厂
@@ -33,9 +39,11 @@ def get_provider(name: str | None = None, *,
     """按名字取一个 provider 实例。
 
     参数：
-      name          compshare / local / fake；None → 读 env DSH_PROVIDER → credentials.env
-      credentials   BYOK：客户自己的 {CS_PUBLIC_KEY, CS_PRIVATE_KEY}；
-                    只对 compshare 有意义，其它 provider 忽略
+      name          compshare / zhixingyun / local / fake；None → 读 env DSH_PROVIDER
+                    → 有智云凭证则 compshare → 否则 local
+      credentials   BYOK：客户自己的云凭证，只对这一家有意义：
+                      compshare   {CS_PUBLIC_KEY, CS_PRIVATE_KEY}
+                      zhixingyun  {ZXY_API_KEY, ZXY_API_SECRET}（也接受 apikey/apisecret）
       kwargs        透传给具体适配器（如 local 的 host/port/password）
 
     刻意**不做实例缓存**：provider 持有连接与价格缓存，跨作业复用会让
@@ -43,9 +51,20 @@ def get_provider(name: str | None = None, *,
     """
     name = (name or os.environ.get("DSH_PROVIDER") or _default_name()).strip().lower()
 
+    # 搁置的 provider 必须在任何分支**之前**拦下，否则下面的具体分支先命中，
+    # 这个检查永远走不到（刚才就这么错过一次）。
+    if name in _SUSPENDED:
+        from .zhixingyun import DISABLED_MSG
+        raise ProviderError(DISABLED_MSG, ProviderError.UNSUPPORTED)
+
     if name == "compshare":
         from .compshare import CompShareProvider
         return CompShareProvider(credentials) if credentials else CompShareProvider(**kwargs)
+    if name == "zhixingyun":
+        from .zhixingyun import ZhiXingYunProvider
+        # 传了 credentials 就走 BYOK；没传则适配器自己读 env/.zxy/credentials.env。
+        # 注意空 dict 不等价于 BYOK：那会让它以为「用户故意给了空凭证」。
+        return ZhiXingYunProvider(credentials or None, **kwargs)
     if name == "local":
         from .local import LocalProvider
         return LocalProvider(**{**({"password": credentials.get("password")}

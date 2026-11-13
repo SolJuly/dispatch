@@ -1,0 +1,11 @@
+=== 实例费用 ===
+Ctime: 1794548022 Due_time: 1794555222
+运行时长: 117.7 分钟
+费用汇总: {"addCpuCost": 0, "addDiskCost": 0, "addMemoryCost": 0, "bandwidthCost": 0, "diskKeeppedCost": 0, "otherCost": 0, "refundCost": 0, "renewCost": 0, "rentCost": 1.463, "totalCost": 1.463}
+当前余额: 13.2766 券: 0.0
+
+=== 销毁 ===
+销毁 3s
+Status: 0
+现金: 13.2766 券: 0.0278 合计: 13.3044
+累计净花费: 1.6956

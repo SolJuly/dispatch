@@ -1,0 +1,8 @@
+uid: 10000000000_lyg2031_8906f6f95a5641c6a3479774c07bbaca_u0_c0
+[   0.1s] Status=4 IsAbnormal=0 state=starting Url=js4.blockelite.cn SshPort=0 msg=开始启动!
+[   5.3s] Status=4 IsAbnormal=0 state=starting Url=js4.blockelite.cn SshPort=0 msg=[processing]启动kvm成功!
+[  10.4s] Status=4 IsAbnormal=0 state=starting Url=js4.blockelite.cn SshPort=0 msg=[processing]启动kvm成功!
+[  15.6s] Status=4 IsAbnormal=0 state=starting Url=js4.blockelite.cn SshPort=0 msg=[processing]启动kvm成功!
+[  20.7s] Status=1 IsAbnormal=0 state=running Url=js4.blockelite.cn SshPort=13124 msg=[success]服务启动成功!
+最终 state: running | 计费: True
+创建到 running 用时: 20.9s

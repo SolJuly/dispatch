@@ -1,0 +1,8 @@
+起始 现金: 13.2766 券: 0.0278
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "/root/zhiyun-l5-zx/tools/p2/providers/zhixingyun.py", line 412, in create
+    data = self.call("store/create_kvm_instance", params, timeout=90)
+  File "/root/zhiyun-l5-zx/tools/p2/providers/zhixingyun.py", line 252, in call
+    raise ProviderError(f"{path}: {msg}（code={code}）", kind,
+tools.p2.providers.base.ProviderError: [out_of_stock] store/create_kvm_instance: 没有可用的gpu资源（code=4000）

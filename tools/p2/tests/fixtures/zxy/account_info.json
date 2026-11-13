@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "code": "2000",
+  "message": "",
+  "data": {
+    "Create_time": 1683819234,
+    "CreditMoneyQuota": 90000,
+    "CustomDiscount": 0.95,
+    "Last_login_time": 1794360000,
+    "Money": 128.5,
+    "Name": "demo",
+    "Phone": "138****0000",
+    "PowerMoney": 5000.0,
+    "VipLevel": 1
+  }
+}

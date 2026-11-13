@@ -1,0 +1,64 @@
+整点后 10:01:14 Status=8 KeeppedDiskCost=0.0431 diskKeeppedCost=0.0431 total=0.0578 现金=14.2396 券=0.6233
+复核 10:03:14 Status=8 KeeppedDiskCost=0.0431 diskKeeppedCost=0.0431 total=0.0578 现金=14.2396 券=0.6233
+release_kept_disk OK
+释放后 10:03:30 Status=0 KeeppedDiskCost=0.0483 diskKeeppedCost=0.048299999999999996 total=0.063 现金=14.2396 券=0.6181
+{
+ "list": [
+  {
+   "CreateTime": "2026-11-13 10:03:15",
+   "DiffMoney": 0,
+   "DiffPower": -0.0052,
+   "EndAt": "2026-11-13 10:03:15",
+   "Id": 23547836,
+   "InstanceId": 702603,
+   "PayTypeFirst": "",
+   "Remark": "保留实例释放结算(磁盘)",
+   "StartAt": "2026-11-13 10:03:15",
+   "Type": 72,
+   "UserId": 111938
+  },
+  {
+   "CreateTime": "2026-11-13 10:00:31",
+   "DiffMoney": 0,
+   "DiffPower": -0.0431,
+   "EndAt": "2026-11-13 10:00:31",
+   "Id": 23546680,
+   "InstanceId": 702603,
+   "PayTypeFirst": "",
+   "Remark": "保留实例定时扣费(磁盘)",
+   "StartAt": "2026-11-13 10:00:31",
+   "Type": 71,
+   "UserId": 111938
+  },
+  {
+   "CreateTime": "2026-11-13 09:37:51",
+   "DiffMoney": 0,
+   "DiffPower": 0.1521,
+   "EndAt": "2026-11-13 09:37:51",
+   "Id": 23546394,
+   "InstanceId": 702603,
+   "PayTypeFirst": "",
+   "Remark": "实例提前退租:退费至算力账户",
+   "StartAt": "2026-11-13 09:37:51",
+   "Type": 19,
+   "UserId": 111938
+  },
+  {
+   "CreateTime": "2026-11-13 09:32:33",
+   "DiffMoney": -0.0142,
+   "DiffPower": -0.1526,
+   "EndAt": "2026-11-13 09:32:33",
+   "Id": 23546349,
+   "InstanceId": 702603,
+   "PayTypeFirst": "",
+   "Remark": "租用实例费用",
+   "StartAt": "2026-11-13 09:32:33",
+   "Type": 10,
+   "UserId": 111938
+  }
+ ],
+ "current_page": 1,
+ "page_count": 1,
+ "has_more": false,
+ "total_count": 4
+}

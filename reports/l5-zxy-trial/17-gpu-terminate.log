@@ -1,0 +1,5 @@
+退租前 现金: 14.2396 券: 0.0
+退租完成 317s
+Status: 0 state: terminated DiskReleaseTime: 1794534997
+现金: 14.2396 券: 0.6664
+汇总: {"addCpuCost": 0, "addDiskCost": 0, "addMemoryCost": 0, "bandwidthCost": 0, "diskKeeppedCost": 0, "otherCost": 0, "refundCost": 0.6664, "renewCost": 0, "rentCost": 0.7315, "totalCost": 0.0651}

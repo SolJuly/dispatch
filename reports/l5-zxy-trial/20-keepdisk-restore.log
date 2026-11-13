@@ -1,0 +1,78 @@
+起始 现金: 14.2396 券: 0.5721
+uid: 15085768804_lyg0389_c889db89365a4786a929037e6d2e349c_u0_c0
+running: running DueMode: 1
+ssh: js3.blockelite.cn 24944
+写标记: MARKER_1794573186
+
+=== 退租（留盘）===
+退租 259s
+Status: 8 state: terminated DiskReleaseTime: 0 DueMode: 1
+现金: 14.2396 券: 0.5581
+
+=== 从保留磁盘启动询价 ===
+ERR [unknown] instance/create_kvm_instance_from_keepped_disk_query_price: gpu数量参数解析失败!strconv.Atoi: parsing "": invalid syntax（code=4000）
+
+=== 从保留磁盘启动（真机）===
+响应: {"Id": 702755, "Container_name": "15085768804_lyg0389_c889db89365a4786a929037e6d2e349c_u0_c1", "ContainerStartId": "15085768804_c889db89365a4786a929037e6d2e349c", "ContainerType": "kvm", "Status": 4, "IsAbnormal": 0, "CheckStatus": 0, "CheckRemark": "", "CheckUser": "", "Cost_per_time": 0.1668, "DiskKeepped_Cost_per_time": 0, "Total_cost": 0.1668, "AddDiskCost": 0, "KeeppedDiskCost": 0, "BandwidthCost": 0, "UserTotalCost": 0, "ReturnMoney": 0, "ApikeyTotalCost": 0, "PayTypeFirst": "power", "PartnerId": 0, "PartnerRatio": 0, "PartnerIncome": 0, "SaleId": 54026, "SaleRatio": 0.1, "SaleIncome": 0
+  [   0s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [   5s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  10s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  15s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  20s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  25s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  31s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  36s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  41s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  46s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  51s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  56s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  61s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  67s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  72s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  77s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  82s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  87s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  92s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [  98s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [ 103s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [ 108s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [ 113s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [ 118s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [ 123s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [ 129s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [ 134s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [ 139s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [ 144s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+  [ 149s] Status=0 IsAbnormal=0 state=terminated SshPort=24944
+恢复用时: 155s
+=== 新实例状态 ===
+  [   0s] Status=1 IsAbnormal=0 state=running SshPort=24944 Url=js3.blockelite.cn
+新实例到 running: 0s
+
+=== 磁盘数据是否还在 ===
+原标记: MARKER_1794573186
+恢复后读盘:
+MARKER_1794573186
+---
+up 2 minutes
+/dev/vda1       199G   29G  171G   15% /
+
+=== 成本对比 ===
+运行 1h: 0.1668 元
+恢复后详情: Status 1 DueMode 1 KeeppedDiskCost 0
+保留磁盘状态实例的成本（实测）: 0.0431 元/整点 + 释放尾款 0.0052
+
+=== 保留磁盘实例 vs 运行实例 ===
+  留盘停放: ¥0.0431/h（约等于运行的 1/4）
+  运行中  : ¥0.1668/h
+  停机态  : ¥0.1668/h（实测，等于运行）
+
+当前账: 14.2396 券: 0.39
+实例: [('9c_u0_c1', 'running', 1), ('9c_u0_c0', 'terminated', 0), ('57_u0_c0', 'terminated', 0), ('49_u1_c0', 'terminated', 0), ('e5_u0_c0', 'terminated', 0), ('ca_u0_c0', 'terminated', 0)]
+
+=== 清理 ===
+新实例退租 109s
+旧实例(已Status=0) 退租 OK
+实例: [('9c_u0_c1', 'terminated', 0), ('9c_u0_c0', 'terminated', 0), ('57_u0_c0', 'terminated', 0), ('49_u1_c0', 'terminated', 0), ('e5_u0_c0', 'terminated', 0), ('ca_u0_c0', 'terminated', 0)]
+现金 14.2396 券 0.5431 合计 14.7827
+累计净花费: 0.2173

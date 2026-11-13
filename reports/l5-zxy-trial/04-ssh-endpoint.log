@@ -1,0 +1,3 @@
+Init_passwd: '<PWD_INIT>'
+LastInitPasswd: ''
+endpoint: js4.blockelite.cn 13124 user= root pwd= '<PWD_INIT>'

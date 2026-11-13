@@ -1,0 +1,7 @@
+kvm+ShowInRent 镜像数: 41
+  ubuntu24_nvram_base: 有 ubuntu 200 GB
+  ubuntu22_nvram_base: 有 ubuntu 200 GB
+  ubuntu20_nvram_base: 有 ubuntu 200 GB
+  centos_stream9_nvram_base: 有 centos_stream 200 GB
+  rocky9_nvram_base: 有 rocky_linux 200 GB
+resolve_image('ubuntu') -> ubuntu24_nvram_base

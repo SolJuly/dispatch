@@ -1,0 +1,357 @@
+{
+  "success": true,
+  "code": "2000",
+  "message": "",
+  "data": {
+    "BandwidthPricePerHour": 0.003,
+    "CpuPricePerHour": 0.02,
+    "DiskPricePerHour": 0.0006,
+    "GpuConfigsMap": {
+      "GeForce GTX 1080 Ti": {
+        "GpuName": "GeForce GTX 1080 Ti",
+        "GpuMemory": 11,
+        "GpuMemorySize": 11019,
+        "KvmPriceHour": 0.77,
+        "DockerPriceHour": 0.77,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "GeForce RTX 2080 Ti": {
+        "GpuName": "GeForce RTX 2080 Ti",
+        "GpuMemory": 11,
+        "GpuMemorySize": 11019,
+        "KvmPriceHour": 0.77,
+        "DockerPriceHour": 0.77,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "GeForce RTX 3060": {
+        "GpuName": "GeForce RTX 3060",
+        "GpuMemory": 12,
+        "GpuMemorySize": 12019,
+        "KvmPriceHour": 0.77,
+        "DockerPriceHour": 0.77,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "GeForce RTX 3080": {
+        "GpuName": "GeForce RTX 3080",
+        "GpuMemory": 10,
+        "GpuMemorySize": 10019,
+        "KvmPriceHour": 0.77,
+        "DockerPriceHour": 0.66,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "GeForce RTX 3090": {
+        "GpuName": "GeForce RTX 3090",
+        "GpuMemory": 24,
+        "GpuMemorySize": 24019,
+        "KvmPriceHour": 1.1,
+        "DockerPriceHour": 1.1,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "GeForce RTX 4090": {
+        "GpuName": "GeForce RTX 4090",
+        "GpuMemory": 24,
+        "GpuMemorySize": 24019,
+        "KvmPriceHour": 1.65,
+        "DockerPriceHour": 1.65,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "GeForce RTX 4090PLUS": {
+        "GpuName": "GeForce RTX 4090PLUS",
+        "GpuMemory": 48,
+        "GpuMemorySize": 49152,
+        "KvmPriceHour": 2.53,
+        "DockerPriceHour": 2.53,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "GeForce RTX 5090": {
+        "GpuName": "GeForce RTX 5090",
+        "GpuMemory": 32,
+        "GpuMemorySize": 32019,
+        "KvmPriceHour": 3.16,
+        "DockerPriceHour": 3.16,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "Iluvatar BI-V150": {
+        "GpuName": "Iluvatar BI-V150",
+        "GpuMemory": 32,
+        "GpuMemorySize": 32768,
+        "KvmPriceHour": 2.2,
+        "DockerPriceHour": 2.2,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "NVIDIA A100-PCIE-40GB": {
+        "GpuName": "NVIDIA A100-PCIE-40GB",
+        "GpuMemory": 40,
+        "GpuMemorySize": 40536,
+        "KvmPriceHour": 2.75,
+        "DockerPriceHour": 2.75,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "NVIDIA A100-SXM4-40GB": {
+        "GpuName": "NVIDIA A100-SXM4-40GB",
+        "GpuMemory": 40,
+        "GpuMemorySize": 40536,
+        "KvmPriceHour": 2.75,
+        "DockerPriceHour": 2.75,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "NVIDIA A100-SXM4-80GB": {
+        "GpuName": "NVIDIA A100-SXM4-80GB",
+        "GpuMemory": 80,
+        "GpuMemorySize": 81251,
+        "KvmPriceHour": 8,
+        "DockerPriceHour": 8,
+        "MaxGpuNum": 8,
+        "MaxMemory": 992
+      },
+      "NVIDIA A30": {
+        "GpuName": "NVIDIA A30",
+        "GpuMemory": 24,
+        "GpuMemorySize": 24258,
+        "KvmPriceHour": 1.1,
+        "DockerPriceHour": 1.1,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "NVIDIA A40": {
+        "GpuName": "NVIDIA A40",
+        "GpuMemory": 48,
+        "GpuMemorySize": 45634,
+        "KvmPriceHour": 2.2,
+        "DockerPriceHour": 2.2,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "NVIDIA A800-SXM4-40GB": {
+        "GpuName": "NVIDIA A800-SXM4-40GB",
+        "GpuMemory": 40,
+        "GpuMemorySize": 40960,
+        "KvmPriceHour": 2.31,
+        "DockerPriceHour": 2.31,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "NVIDIA H100 80GB HBM3": {
+        "GpuName": "NVIDIA H100 80GB HBM3",
+        "GpuMemory": 80,
+        "GpuMemorySize": 81559,
+        "KvmPriceHour": 9.79,
+        "DockerPriceHour": 9.79,
+        "MaxGpuNum": 8,
+        "MaxMemory": 960
+      },
+      "NVIDIA RTX PRO 5000 72G": {
+        "GpuName": "NVIDIA RTX PRO 5000 72G",
+        "GpuMemory": 72,
+        "GpuMemorySize": 73728,
+        "KvmPriceHour": 6,
+        "DockerPriceHour": 6,
+        "MaxGpuNum": 8,
+        "MaxMemory": 880
+      },
+      "NVIDIA RTX PRO 6000 96GB": {
+        "GpuName": "NVIDIA RTX PRO 6000 96GB",
+        "GpuMemory": 96,
+        "GpuMemorySize": 98304,
+        "KvmPriceHour": 9,
+        "DockerPriceHour": 9,
+        "MaxGpuNum": 8,
+        "MaxMemory": 880
+      },
+      "NVIDIA RTX PRO 6000D 84G": {
+        "GpuName": "NVIDIA RTX PRO 6000D 84G",
+        "GpuMemory": 84,
+        "GpuMemorySize": 86016,
+        "KvmPriceHour": 7,
+        "DockerPriceHour": 7,
+        "MaxGpuNum": 8,
+        "MaxMemory": 880
+      },
+      "RTX A5000": {
+        "GpuName": "RTX A5000",
+        "GpuMemory": 24,
+        "GpuMemorySize": 24256,
+        "KvmPriceHour": 1.62,
+        "DockerPriceHour": 1.62,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "RTX A6000": {
+        "GpuName": "RTX A6000",
+        "GpuMemory": 48,
+        "GpuMemorySize": 48685,
+        "KvmPriceHour": 2.4,
+        "DockerPriceHour": 2.4,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "Tesla V100-16GB": {
+        "GpuName": "Tesla V100-16GB",
+        "GpuMemory": 16,
+        "GpuMemorySize": 16019,
+        "KvmPriceHour": 1.1,
+        "DockerPriceHour": 1.1,
+        "MaxGpuNum": 8,
+        "MaxMemory": 480
+      },
+      "Tesla V100-32GB": {
+        "GpuName": "Tesla V100-32GB",
+        "GpuMemory": 32,
+        "GpuMemorySize": 32019,
+        "KvmPriceHour": 1.32,
+        "DockerPriceHour": 1.32,
+        "MaxGpuNum": 8,
+        "MaxMemory": 256
+      }
+    },
+    "MemoryPricePerHour": 0.0078125,
+    "PerformanceDockerExcessivePrice": {
+      "high": 0.1,
+      "normal": 0
+    },
+    "PerformanceKvmExcessivePrice": {
+      "high": 0.18,
+      "normal": 0
+    },
+    "PriceDocker": {
+      "GeForce GTX 1080 Ti": 0.77,
+      "GeForce RTX 2080 Ti": 0.77,
+      "GeForce RTX 3060": 0.77,
+      "GeForce RTX 3080": 0.66,
+      "GeForce RTX 3090": 1.1,
+      "GeForce RTX 4090": 1.65,
+      "GeForce RTX 4090PLUS": 2.53,
+      "GeForce RTX 5090": 3.16,
+      "Iluvatar BI-V150": 2.2,
+      "NVIDIA A100-PCIE-40GB": 2.75,
+      "NVIDIA A100-SXM4-40GB": 2.75,
+      "NVIDIA A100-SXM4-80GB": 8,
+      "NVIDIA A30": 1.1,
+      "NVIDIA A40": 2.2,
+      "NVIDIA A800-SXM4-40GB": 2.31,
+      "NVIDIA H100 80GB HBM3": 9.79,
+      "NVIDIA RTX PRO 5000 72G": 6,
+      "NVIDIA RTX PRO 6000 96GB": 9,
+      "NVIDIA RTX PRO 6000D 84G": 7,
+      "RTX A5000": 1.62,
+      "RTX A6000": 2.4,
+      "Tesla V100-16GB": 1.1,
+      "Tesla V100-32GB": 1.32
+    },
+    "PriceDockerOriginal": {
+      "GeForce GTX 1080 Ti": 0.77,
+      "GeForce RTX 2080 Ti": 0.77,
+      "GeForce RTX 3060": 0.77,
+      "GeForce RTX 3080": 0.66,
+      "GeForce RTX 3090": 1.1,
+      "GeForce RTX 4090": 1.65,
+      "GeForce RTX 4090PLUS": 2.53,
+      "GeForce RTX 5090": 3.16,
+      "Iluvatar BI-V150": 2.2,
+      "NVIDIA A100-PCIE-40GB": 2.75,
+      "NVIDIA A100-SXM4-40GB": 2.75,
+      "NVIDIA A100-SXM4-80GB": 8,
+      "NVIDIA A30": 1.1,
+      "NVIDIA A40": 2.2,
+      "NVIDIA A800-SXM4-40GB": 2.31,
+      "NVIDIA H100 80GB HBM3": 9.79,
+      "NVIDIA RTX PRO 5000 72G": 6,
+      "NVIDIA RTX PRO 6000 96GB": 9,
+      "NVIDIA RTX PRO 6000D 84G": 7,
+      "RTX A5000": 1.62,
+      "RTX A6000": 2.4,
+      "Tesla V100-16GB": 1.1,
+      "Tesla V100-32GB": 1.32
+    },
+    "PriceKvm": {
+      "GeForce GTX 1080 Ti": 0.77,
+      "GeForce RTX 2080 Ti": 0.77,
+      "GeForce RTX 3060": 0.77,
+      "GeForce RTX 3080": 0.77,
+      "GeForce RTX 3090": 1.1,
+      "GeForce RTX 4090": 1.65,
+      "GeForce RTX 4090PLUS": 2.53,
+      "GeForce RTX 5090": 3.16,
+      "Iluvatar BI-V150": 2.2,
+      "NVIDIA A100-PCIE-40GB": 2.75,
+      "NVIDIA A100-SXM4-40GB": 2.75,
+      "NVIDIA A100-SXM4-80GB": 8,
+      "NVIDIA A30": 1.1,
+      "NVIDIA A40": 2.2,
+      "NVIDIA A800-SXM4-40GB": 2.31,
+      "NVIDIA H100 80GB HBM3": 9.79,
+      "NVIDIA RTX PRO 5000 72G": 6,
+      "NVIDIA RTX PRO 6000 96GB": 9,
+      "NVIDIA RTX PRO 6000D 84G": 7,
+      "RTX A5000": 1.62,
+      "RTX A6000": 2.4,
+      "Tesla V100-16GB": 1.1,
+      "Tesla V100-32GB": 1.32
+    },
+    "PriceKvmOriginal": {
+      "GeForce GTX 1080 Ti": 0.77,
+      "GeForce RTX 2080 Ti": 0.77,
+      "GeForce RTX 3060": 0.77,
+      "GeForce RTX 3080": 0.77,
+      "GeForce RTX 3090": 1.1,
+      "GeForce RTX 4090": 1.65,
+      "GeForce RTX 4090PLUS": 2.53,
+      "GeForce RTX 5090": 3.16,
+      "Iluvatar BI-V150": 2.2,
+      "NVIDIA A100-PCIE-40GB": 2.75,
+      "NVIDIA A100-SXM4-40GB": 2.75,
+      "NVIDIA A100-SXM4-80GB": 8,
+      "NVIDIA A30": 1.1,
+      "NVIDIA A40": 2.2,
+      "NVIDIA A800-SXM4-40GB": 2.31,
+      "NVIDIA H100 80GB HBM3": 9.79,
+      "NVIDIA RTX PRO 5000 72G": 6,
+      "NVIDIA RTX PRO 6000 96GB": 9,
+      "NVIDIA RTX PRO 6000D 84G": 7,
+      "RTX A5000": 1.62,
+      "RTX A6000": 2.4,
+      "Tesla V100-16GB": 1.1,
+      "Tesla V100-32GB": 1.32
+    },
+    "RefundServiceFeePercent": 5,
+    "SharedDiskPricePerHour": 0.0006,
+    "VipLevels": [
+      {
+        "VipLevel": 0,
+        "VipDiscount": 1,
+        "VipText": "普通会员"
+      },
+      {
+        "VipLevel": 1,
+        "VipDiscount": 0.98,
+        "VipText": "铜牌会员"
+      },
+      {
+        "VipLevel": 2,
+        "VipDiscount": 0.97,
+        "VipText": "银牌会员"
+      },
+      {
+        "VipLevel": 3,
+        "VipDiscount": 0.95,
+        "VipText": "金牌会员"
+      },
+      {
+        "VipLevel": 4,
+        "VipDiscount": 0.94,
+        "VipText": "钻石会员"
+      }
+    ]
+  }
+}

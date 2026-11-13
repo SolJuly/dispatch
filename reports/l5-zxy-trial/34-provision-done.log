@@ -1,0 +1,23 @@
+Warning: Permanently added '[js1.blockelite.cn]:15212' (ED25519) to the list of known hosts.
+=== 实测耗时 ===
+2075 秒
+=== torch ===
+2.8.0+cu128 True
+=== ComfyUI ===
+custom_nodes
+nodes=10
+=== provision 尾部 ===
+     · comfyui_face_parsing               f9f89b3f
+ERROR: Could not open constraint file: [Errno 2] 没有那个文件或目录: '//docker/constraints.txt'
+     [33m![0m comfyui_face_parsing requirements 安装失败（不阻塞，先跑完再补）
+     [32m✓[0m 10 个节点处理完毕
+[36m[07][0m 禁用 ComfyUI-Manager
+     [32m✓[0m 不存在或已禁用
+[36m[08][0m 模型目录
+     [33m![0m /model 不存在 —— 权重需要在其它地方挂载/下载
+     [33m![0m 智云上是自动挂载的 UPFS；别家云请挂 NAS/OSS/COS，或设 MODEL_ROOT 指向下载目录
+[36m[09][0m 验证
+     [33m![0m ComfyUI 未在 8188 监听 —— 请先启动：
+     source /root/miniconda3/bin/activate 2>/dev/null || true; cd /root/ComfyUI && COMFYUI_MANAGER_OFFLINE=1 python -u main.py --listen 0.0.0.0 --port 8188
+
+  启动后再跑：bash /root/provision.sh --verify-only

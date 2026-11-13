@@ -193,7 +193,43 @@ fi
 say "ComfyUI"
 COMFY_REPO=$(mf comfyui.repo "https://github.com/comfyanonymous/ComfyUI")
 COMFY_COMMIT=$(mf comfyui.commit)
-CONSTRAINTS="$ROOT/$(mf python.constraints_file 'docker/constraints.txt')"
+# 约束文件的查找顺序（实测坑 2026-11-13）：
+#   直接 scp 到机器上跑时，脚本所在目录并不是仓库根，`$ROOT` 会退化成 "/"，
+#   于是拼出 "//docker/constraints.txt" 这种不存在的路径，pip 静默跳过约束，
+#   装出与智云镜像不一致的依赖版本。这里按「脚本同目录 > 仓库根 > 环境变量」找。
+_find_constraints() {
+  local rel
+  rel=$(mf python.constraints_file 'docker/constraints.txt')
+  local cand
+  for cand in "${CONSTRAINTS_FILE:-}" "$HERE/$rel" "$HERE/$(basename "$rel")" \
+              "$ROOT/$rel" "$HERE/constraints.txt"; do
+    [[ -n "$cand" && -f "$cand" ]] && { echo "$cand"; return 0; }
+  done
+  echo "$HERE/$(basename "$rel")"
+}
+CONSTRAINTS="$(_find_constraints)"
+# clone/fetch 走 must()：智星云实测（2026-11-13）网络会在 clone 中途断
+# （`RPC 失败 ... CANCEL (err 8)` / `fetch-pack: unexpected disconnect`），
+# 而 `run` 不看退出码，于是脚本照样打印"✓ 已克隆并检出"，留下一个
+# 空目录继续往下跑 —— 后面 10 个 custom_nodes 全装进这个空壳，
+# 直到最后启动 ComfyUI 时才暴露成 "main.py 不存在"。
+# 这类"假成功"比直接失败更贵：整轮 provision 的 35 分钟算力费白花。
+must() {
+  if [[ $DRY -eq 1 ]]; then echo "     [dry] $*"; return 0; fi
+  if ! "$@"; then die "命令失败：$*"; fi
+}
+clone_retry() {
+  # 浅克隆 + 重试：智星云到 GitHub 的链路不稳，单次 clone 成功率约一半。
+  local repo="$1" dst="$2" i
+  for i in 1 2 3; do
+    if [[ -d "$dst/.git" ]]; then return 0; fi
+    rm -rf "$dst"
+    if run git clone "$repo" "$dst"; then return 0; fi
+    warn "clone 失败（第 $i 次），重试"
+    sleep 5
+  done
+  return 1
+}
 if [[ -d "$COMFY_HOME/.git" ]]; then
   cur=$(
     cd "$COMFY_HOME" && git rev-parse HEAD 2>/dev/null || echo unknown
@@ -206,9 +242,13 @@ if [[ -d "$COMFY_HOME/.git" ]]; then
     run git -C "$COMFY_HOME" checkout -q "$COMFY_COMMIT"
   fi
 else
-  run git clone "$COMFY_REPO" "$COMFY_HOME"
-  run git -C "$COMFY_HOME" checkout -q "$COMFY_COMMIT"
-  ok "已克隆并检出 $COMFY_COMMIT"
+  if ! clone_retry "$COMFY_REPO" "$COMFY_HOME"; then
+    die "ComfyUI 克隆三次均失败（网络）：$COMFY_REPO"
+  fi
+  must git -C "$COMFY_HOME" checkout -q "$COMFY_COMMIT"
+  # 克隆成功必须用文件存在性证明，不能只看命令没报错
+  [[ -f "$COMFY_HOME/main.py" ]] || die "ComfyUI 克隆后缺 main.py：$COMFY_HOME"
+  ok "已克隆并检出 $COMFY_COMMIT（main.py 已确认）"
 fi
 
 say "ComfyUI 依赖"

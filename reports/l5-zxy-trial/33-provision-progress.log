@@ -1,0 +1,23 @@
+Warning: Permanently added '[js1.blockelite.cn]:15212' (ED25519) to the list of known hosts.
+=== prov.log 进度（2 分钟）===
+  Downloading torchvision-0.23.0%2Bcu128-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (6.1 kB)
+Requirement already satisfied: filelock in ./anaconda3/lib/python3.11/site-packages (from torch==2.8.0+cu128) (3.13.1)
+Collecting typing-extensions>=4.10.0 (from torch==2.8.0+cu128)
+  Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting sympy>=1.13.3 (from torch==2.8.0+cu128)
+  Downloading sympy-1.14.0-py3-none-any.whl.metadata (12 kB)
+Requirement already satisfied: networkx in ./anaconda3/lib/python3.11/site-packages (from torch==2.8.0+cu128) (3.1)
+Requirement already satisfied: jinja2 in ./anaconda3/lib/python3.11/site-packages (from torch==2.8.0+cu128) (3.1.3)
+Requirement already satisfied: fsspec in ./anaconda3/lib/python3.11/site-packages (from torch==2.8.0+cu128) (2023.10.0)
+Collecting nvidia-cuda-nvrtc-cu12==12.8.93 (from torch==2.8.0+cu128)
+  Downloading nvidia_cuda_nvrtc_cu12-12.8.93-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl (88.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 88.0/88.0 MB 3.6 MB/s  0:00:24
+Collecting nvidia-cuda-runtime-cu12==12.8.90 (from torch==2.8.0+cu128)
+  Downloading nvidia_cuda_runtime_cu12-12.8.90-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (954 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 954.8/954.8 kB 3.4 MB/s  0:00:00
+Collecting nvidia-cuda-cupti-cu12==12.8.90 (from torch==2.8.0+cu128)
+  Downloading nvidia_cuda_cupti_cu12-12.8.90-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (10.2 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.2/10.2 MB 3.5 MB/s  0:00:02
+Collecting nvidia-cudnn-cu12==9.10.2.21 (from torch==2.8.0+cu128)
+  Downloading nvidia_cudnn_cu12-9.10.2.21-py3-none-manylinux_2_27_x86_64.whl (706.8 MB)
+RUNNING

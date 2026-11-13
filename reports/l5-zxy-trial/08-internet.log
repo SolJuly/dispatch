@@ -1,0 +1,19 @@
+Warning: Permanently added '[js4.blockelite.cn]:13124' (ED25519) to the list of known hosts.
+=== DNS 解析 ===
+20.205.243.166  github.com
+=== 出网连通性 ===
+https://pypi.org -> 200
+https://github.com -> 200
+https://registry-1.docker.io -> 404
+=== pip ===
+global.index-url='https://pypi.tuna.tsinghua.edu.cn/simple'
+
+[notice] A new release of pip is available: 24.0 -> 26.3
+[notice] To update, run: pip install --upgrade pip
+=== docker ===
+/usr/bin/docker
+Digest: sha256:cf1b20a0c89a666b6950fecda7ccbc1b1a86520e7c53f908f3a21e79d0d60458
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+=== nvidia ===
+/usr/bin/nvidia-smi

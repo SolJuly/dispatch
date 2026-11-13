@@ -1,0 +1,5 @@
+75486a62fb97c85d18b254dc45f32b87  /root/big_blob.bin
+fc6e4ab51099c8f6fb1ed9735e998208  /root/sync_marker.txt
+--- synced ---
+75486a62fb97c85d18b254dc45f32b87  /root/big_blob.bin
+SYNC_TEST_v2_1794557056

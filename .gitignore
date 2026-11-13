@@ -90,3 +90,8 @@ reports/p2/status2.json
 # P2.1 实验作业的 spec（run_experimental.py 每次生成，可由参数重建）
 # 不用逐模型列文件名：任何 <模型>-<时间戳>-<id>.json 都由参数重建
 reports/p2/p21/specs/
+
+# 智星云 OpenAPI 凭证（AK/SK，绝不入库）
+.zxy/
+# 抓取下来的智星云接口文档缓存（可由 .zxapi 重新抓，不入库）
+.zxapi/

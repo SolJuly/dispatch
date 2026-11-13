@@ -1,0 +1,269 @@
+{
+  "success": true,
+  "code": "2000",
+  "message": "",
+  "data": {
+    "Specifications": [
+      {
+        "CpuNum": 2,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 0,
+        "HourPrice": 0.1756,
+        "Memory": 2,
+        "NeedMigrate": false,
+        "SpecName": "ecs.c1.base"
+      },
+      {
+        "CpuNum": 4,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 0,
+        "HourPrice": 0.2113,
+        "Memory": 4,
+        "NeedMigrate": false,
+        "SpecName": "ecs.c2.base"
+      },
+      {
+        "CpuNum": 4,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 0,
+        "HourPrice": 0.2825,
+        "Memory": 8,
+        "NeedMigrate": false,
+        "SpecName": "ecs.c4.base"
+      },
+      {
+        "CpuNum": 8,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 0,
+        "HourPrice": 0.325,
+        "Memory": 16,
+        "NeedMigrate": false,
+        "SpecName": "ecs.c8.base"
+      },
+      {
+        "CpuNum": 8,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 1,
+        "HourPrice": 0,
+        "Memory": 16,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g1.base"
+      },
+      {
+        "CpuNum": 8,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 1,
+        "HourPrice": 0.0625,
+        "Memory": 24,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g1.large"
+      },
+      {
+        "CpuNum": 16,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 1,
+        "HourPrice": 0.0875,
+        "Memory": 32,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g1.xlarge"
+      },
+      {
+        "CpuNum": 16,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 1,
+        "HourPrice": 0.1,
+        "Memory": 48,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g1.2xlarge"
+      },
+      {
+        "CpuNum": 16,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 2,
+        "HourPrice": 0,
+        "Memory": 32,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g2.base"
+      },
+      {
+        "CpuNum": 16,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 2,
+        "HourPrice": 0.125,
+        "Memory": 48,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g2.large"
+      },
+      {
+        "CpuNum": 32,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 2,
+        "HourPrice": 0.2,
+        "Memory": 64,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g2.xlarge"
+      },
+      {
+        "CpuNum": 32,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 2,
+        "HourPrice": 0.25,
+        "Memory": 96,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g2.2xlarge"
+      },
+      {
+        "CpuNum": 32,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 4,
+        "HourPrice": 0,
+        "Memory": 64,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g4.base"
+      },
+      {
+        "CpuNum": 32,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 4,
+        "HourPrice": 0.125,
+        "Memory": 96,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g4.large"
+      },
+      {
+        "CpuNum": 48,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 4,
+        "HourPrice": 0.25,
+        "Memory": 128,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g4.xlarge"
+      },
+      {
+        "CpuNum": 64,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 4,
+        "HourPrice": 0.35,
+        "Memory": 160,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g4.2xlarge"
+      },
+      {
+        "CpuNum": 64,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 4,
+        "HourPrice": 0.375,
+        "Memory": 192,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g4.3xlarge"
+      },
+      {
+        "CpuNum": 48,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 6,
+        "HourPrice": 0,
+        "Memory": 96,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g6.base"
+      },
+      {
+        "CpuNum": 72,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 6,
+        "HourPrice": 0.125,
+        "Memory": 144,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g6.large"
+      },
+      {
+        "CpuNum": 96,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 6,
+        "HourPrice": 0.25,
+        "Memory": 192,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g6.xlarge"
+      },
+      {
+        "CpuNum": 96,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 6,
+        "HourPrice": 0.35,
+        "Memory": 240,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g6.2xlarge"
+      },
+      {
+        "CpuNum": 64,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 8,
+        "HourPrice": 0,
+        "Memory": 128,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g8.base"
+      },
+      {
+        "CpuNum": 64,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 8,
+        "HourPrice": 0.1,
+        "Memory": 192,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g8.large"
+      },
+      {
+        "CpuNum": 64,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 8,
+        "HourPrice": 0.2,
+        "Memory": 256,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g8.xlarge"
+      },
+      {
+        "CpuNum": 128,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 8,
+        "HourPrice": 0.3,
+        "Memory": 320,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g8.2xlarge"
+      },
+      {
+        "CpuNum": 128,
+        "Disabled": false,
+        "DisabledReason": "",
+        "GpuNum": 8,
+        "HourPrice": 0.4,
+        "Memory": 384,
+        "NeedMigrate": false,
+        "SpecName": "gcs.g8.3xlarge"
+      }
+    ]
+  }
+}

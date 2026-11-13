@@ -1,0 +1,10 @@
+Warning: Permanently added '[js4.blockelite.cn]:13124' (ED25519) to the list of known hosts.
+whoami=root host=ubuntu
+2
+               total        used        free      shared  buff/cache   available
+内存：             1           0           0           0           0           1
+文件系统        大小  已用  可用 已用% 挂载点
+/dev/vda1       199G   29G  171G   15% /
+/dev/vda1       199G   29G  171G   15% /
+PRETTY_NAME="Ubuntu 24.04 LTS"
+NAME="Ubuntu"

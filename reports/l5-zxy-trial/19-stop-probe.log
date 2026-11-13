@@ -1,0 +1,122 @@
+404  instance/stop_instance
+404  instance/shutdown
+404  instance/power_off
+404  instance/close
+404  instance/halt
+404  instance/stop_kvm_instance
+404  instance/instance_shutdown
+404  instance/shutdown_instance
+404  instance/stop_kvm
+
+--- restart_instance 语义（是否短暂关机）---
+restart OK
+  [0s] Status=5 IsAbnormal=0 state=rebooting
+  [4s] Status=5 IsAbnormal=0 state=rebooting
+  [8s] Status=1 IsAbnormal=0 state=running
+  [12s] Status=1 IsAbnormal=0 state=running
+  [16s] Status=1 IsAbnormal=0 state=running
+  [20s] Status=1 IsAbnormal=0 state=running
+  [24s] Status=1 IsAbnormal=0 state=running
+  [28s] Status=1 IsAbnormal=0 state=running
+
+=== 机器内关机（shutdown -h）会不会变成 IsAbnormal=2 ===
+endpoint: js1.blockelite.cn 26120
+shutdown 命令: 255
+  [   0s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [  10s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [  20s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [  30s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [  40s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [  50s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [  60s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [  71s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [  81s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [  91s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 101s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 111s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 121s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 132s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 142s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 152s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 162s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 172s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 182s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 192s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 203s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 213s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 223s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+  [ 233s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e9689ca08
+
+=== 机器是否真的关机了 ===
+rc= 255 out=  err= kex_exchange_identification: read: Connection reset by peer
+Connection reset by 180.127.11.169 port 
+
+=== 机器内关机后的云端状态 ===
+  [   0s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [  10s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [  20s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [  30s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [  40s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [  50s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [  60s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [  71s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [  81s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [  91s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [ 101s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [ 111s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [ 122s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [ 132s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [ 142s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [ 152s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [ 162s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [ 172s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [ 182s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+  [ 193s] Status=1 IsAbnormal=0 state=running SshPort=26120 msg=[success]重启成功!15085768804_4e9689ca085f4f
+
+计费: {'addCpuCost': 0, 'addDiskCost': 0, 'addMemoryCost': 0, 'bandwidthCost': 0, 'diskKeeppedCost': 0, 'otherCost': 0, 'refundCost': 0, 'renewCost': 0, 'rentCost': 0.1668, 'totalCost': 0.1668}
+
+=== 再探 SSH（5 分钟后再看）===
+rc= 0
+out: alive
+up 7 minutes
+shutdown system down  6.8.0-31-generic Wed Jun  5 16:01 - 16:02  (00:00)
+shutdown system down  6.8.0-31-generic Tue Apr 30 12:53 - 12:53  (00:00)
+err: Warning: Permanently added '[js1.blockelite.cn]:26120' (ED25519) to the list of known hosts.
+
+=== poweroff -f 后再观察 10 分钟 ===
+rc= 0 issued
+  [   0s] Status=1 IsAbnormal=0 state=running msg=[success]重启成功!15085768804_4e96
+  [  30s] Status=1 IsAbnormal=2 state=stopped msg=[success]重启成功!15085768804_4e96
+  → 进入关机态!
+
+=== 关机态是否计费（观察 6 分钟）===
+  [00s] Status=1 IsAbnormal=2 state=stopped rentCost=0.1668 total=0.1668 券=0.4513
+  [10s] Status=1 IsAbnormal=2 state=stopped rentCost=0.1668 total=0.1668 券=0.4513
+  [20s] Status=1 IsAbnormal=2 state=stopped rentCost=0.1668 total=0.1668 券=0.4513
+  [30s] Status=1 IsAbnormal=2 state=stopped rentCost=0.1668 total=0.1668 券=0.4513
+  [40s] Status=1 IsAbnormal=2 state=stopped rentCost=0.1668 total=0.1668 券=0.4513
+  [50s] Status=1 IsAbnormal=2 state=stopped rentCost=0.1668 total=0.1668 券=0.4513
+  [60s] Status=1 IsAbnormal=2 state=stopped rentCost=0.1668 total=0.1668 券=0.4513
+
+=== 从关机态唤醒（restart_instance_from_shutdown，即 provider.start）===
+  [   0s] Status=5 IsAbnormal=2 state=rebooting SshPort=26120
+  [   6s] Status=5 IsAbnormal=2 state=rebooting SshPort=26120
+  [  11s] Status=5 IsAbnormal=2 state=rebooting SshPort=26120
+  [  16s] Status=1 IsAbnormal=0 state=running SshPort=26120
+唤醒到 running: 16s
+sshd ready: js1.blockelite.cn 26120 累计 18s
+
+=== 租期是否在关机期间照常消耗 ===
+Ctime: 1794542012 Due_time: 1794545612
+现在: 1794542999 → 剩余租期: 43.5 分钟
+
+=== 退租询价（此时的价值）===
+可退: 0.1211 | 剩余小时: 0.726
+
+=== 账单 ===
+  2026-11-13 11:53:34 租用实例费用 0 -0.1668
+
+=== 清理 ===
+退租 1s
+Status: 0 state: terminated
+现金: 14.2396 券: 0.5721

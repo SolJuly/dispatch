@@ -1,0 +1,8 @@
+Warning: Permanently added '[js1.blockelite.cn]:15212' (ED25519) to the list of known hosts.
+torch 2.2.2 True
+/usr/bin/git
+/root/anaconda3/bin/ffmpeg
+ls: 无法访问 '/root/ComfyUI': 没有那个文件或目录
+ls: 无法访问 '/model': 没有那个文件或目录
+/dev/vda1       199G   29G  171G   15% /
+NVIDIA GeForce RTX 3080, 10240 MiB

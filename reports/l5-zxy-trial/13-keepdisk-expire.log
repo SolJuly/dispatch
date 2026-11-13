@@ -1,0 +1,22 @@
+现金 BEFORE: 14.8332 券: 0.1526
+uid: 10000000000_lyg2031_344f18b7b4e14452bc040bd1418b7be5_u0_c0
+state: running DueMode: 1 Status: 1
+现金 AFTER建机: 14.819
+汇总: {"addCpuCost": 0, "addDiskCost": 0, "addMemoryCost": 0, "bandwidthCost": 0, "diskKeeppedCost": 0, "otherCost": 0, "refundCost": 0, "renewCost": 0, "rentCost": 0.1668, "totalCost": 0.1668}
+券: 0.0 现金: 14.819
+退租完成 289s
+[0s] Status=8 state=terminated DueMode=1 DiskReleaseTime=0 KeeppedDiskCost=0
+现金: 14.819 券: 0.1521
+汇总: {"addCpuCost": 0, "addDiskCost": 0, "addMemoryCost": 0, "bandwidthCost": 0, "diskKeeppedCost": 0, "otherCost": 0, "refundCost": 0.1521, "renewCost": 0, "rentCost": 0.1668, "totalCost": 0.0147}
+
+=== 保留磁盘计费观察（每 60s 一次，共 8 分钟）===
+[   0s] Status=8 KeeppedDiskCost=0 diskKeeppedCost=0 total=0.0147 券=0.1521
+[  60s] Status=8 KeeppedDiskCost=0 diskKeeppedCost=0 total=0.0147 券=0.1521
+[ 121s] Status=8 KeeppedDiskCost=0 diskKeeppedCost=0 total=0.0147 券=0.1521
+[ 181s] Status=8 KeeppedDiskCost=0 diskKeeppedCost=0 total=0.0147 券=0.1521
+[ 242s] Status=8 KeeppedDiskCost=0 diskKeeppedCost=0 total=0.0147 券=0.1521
+[ 302s] Status=8 KeeppedDiskCost=0 diskKeeppedCost=0 total=0.0147 券=0.1521
+[ 363s] Status=8 KeeppedDiskCost=0 diskKeeppedCost=0 total=0.0147 券=0.1521
+[ 423s] Status=8 KeeppedDiskCost=0 diskKeeppedCost=0 total=0.0147 券=0.1521
+[ 484s] Status=8 KeeppedDiskCost=0 diskKeeppedCost=0 total=0.0147 券=0.1521
+费用明细: {"list": [{"CreateTime": "2026-11-13 09:37:51", "DiffMoney": 0, "DiffPower": 0.1521, "EndAt": "2026-11-13 09:37:51", "Id": 23546394, "InstanceId": 702603, "PayTypeFirst": "", "Remark": "实例提前退租:退费至算力账户", "StartAt": "2026-11-13 09:37:51", "Type": 19, "UserId": 111938}, {"CreateTime": "2026-11-13 09:32:33", "DiffMoney": -0.0142, "DiffPower": -0.1526, "EndAt": "2026-11-13 09:32:33", "Id": 23546349, "InstanceId": 702603, "PayTypeFirst": "", "Remark": "租用实例费用", "StartAt": "2026-11-13 09:32:33", "Type": 10, "UserId": 111938}], "current_page": 1, "page_count": 1, "has_more": false, "total_count": 2}

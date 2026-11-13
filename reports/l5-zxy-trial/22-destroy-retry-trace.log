@@ -1,0 +1,20 @@
+running, 现在开始逐次尝试销毁并记录云侧回什么：
+  [    0s] 第1次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [   15s] 第2次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [   31s] 第3次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [   46s] 第4次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [   61s] 第5次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [   76s] 第6次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [   91s] 第7次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [  106s] 第8次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [  122s] 第9次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [  137s] 第10次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [  152s] 第11次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [  167s] 第12次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [  182s] 第13次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [  197s] 第14次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [  213s] 第15次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [  228s] 第16次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [  243s] 第17次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [  258s] 第18次: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+  [  274s] 第19次: 成功

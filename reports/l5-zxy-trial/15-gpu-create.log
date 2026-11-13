@@ -1,0 +1,12 @@
+建 GPU 前 现金: 14.819 券: 0.1521
+询价: gcs.g1.base ¥ 0.7315 /h
+uid: 10000000000_lyg0103_0f6c912b2a1742bea5a250831ee67649_u1_c0
+[  0.1s] Status=4 state=starting Url=js1.blockelite.cn SshPort=0 msg=开始启动!
+[  5.3s] Status=4 state=starting Url=js1.blockelite.cn SshPort=0 msg=[processing]磁盘创建成功!
+[ 10.4s] Status=4 state=starting Url=js1.blockelite.cn SshPort=0 msg=[processing]磁盘创建成功!
+[ 15.7s] Status=4 state=starting Url=js1.blockelite.cn SshPort=0 msg=[processing]启动kvm成功!
+[ 20.8s] Status=4 state=starting Url=js1.blockelite.cn SshPort=0 msg=[processing]启动kvm成功!
+[ 26.0s] Status=4 state=starting Url=js1.blockelite.cn SshPort=0 msg=[processing]启动kvm成功!
+[ 31.2s] Status=4 state=starting Url=js1.blockelite.cn SshPort=0 msg=[processing]启动kvm成功!
+[ 36.3s] Status=1 state=running Url=js1.blockelite.cn SshPort=21316 msg=[success]服务启动成功!
+GPU 建机到 running: 36s

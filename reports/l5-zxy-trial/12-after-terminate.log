@@ -1,0 +1,9 @@
+Status: 0 | state: terminated | IsAbnormal: 0
+DueMode: -1 | DiskReleaseTime: 1794533390 | End_time: 1794533389
+Message: [success]服务启动成功!
+KeeppedDiskCost: 0 | AddDiskCost: 0
+汇总: {"addCpuCost": 0, "addDiskCost": 0, "addMemoryCost": 0, "bandwidthCost": 0, "diskKeeppedCost": 0, "otherCost": 0, "refundCost": 0.1526, "renewCost": 0, "rentCost": 0.1668, "totalCost": 0.0142}
+现金: 14.8332
+实例列表: [('10000000000_lyg2031_8906', 'terminated')]
+balance_detail: {'money': 14.8332, 'power': 0.1526, 'total': 14.9858, 'vip_level': 0, 'custom_discount': 0.95}
+余额变更明细: {"list": [{"CreateTime": "2026-11-13 09:29:51", "DataFrom": "instance_bill", "DataIdStr": "10000000000_lyg2031_8906f6f95a5641c6a3479774c07bbaca_u0_c0", "DiffMoney": 0, "DiffPower": 0.1526, "Id": 23102705, "MoneyLeft": 14.8332, "MoneyPrev": 14.8332, "PayTypeFirst": "", "PowerLeft": 0.1526, "PowerPrev": 0, "Remark": "实例提前结束退费", "SubType": 55, "Type": 4, "UserId": 111938}, {"CreateTime": "2026-11-13 09:24:42", "DataFrom": "instance_bill", "DataIdStr": "10000000000_lyg2031_8906f6f95a5641c6a3479774c07bbaca_u0_c0", "DiffMoney": -0.1668, "DiffPower": 0, "Id": 23102659, "MoneyLeft": 14.8332, "MoneyPrev": 15, "PayTypeFirst": "", "PowerLeft": 0, "PowerPrev": 0, "Remark": "租用实例", "SubType": 40, "Type": 4, "UserId": 111938}, {"CreateTime": "2026-11-12 12:04:34", "DataFrom": "order_info", "DataIdStr": "1794456262726", "DiffMoney": 15, "DiffPower": 0, "Id": 23061802, "MoneyLeft": 15, "MoneyPrev": 0, "PayTypeFirst": "", "PowerLeft": 0, "PowerPrev": 0, "Remark": "用户充值", "SubType": 11, "Type": 1, "UserId": 111938}], "current_page": 1, "page_count": 1, "has_more": false, "total_count": 3}

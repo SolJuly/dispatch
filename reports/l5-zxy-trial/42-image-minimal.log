@@ -1,0 +1,63 @@
+起始 现金: 13.2766 券: 0.0278
+uid: 15085768804_lyg2036_11a8ab0b34284cd685aae2ee74d7ab70_u0_c0
+running 39s
+ssh: js4.blockelite.cn 13648 用时 41s
+
+=== 1) 先看能不能直接做镜像（运行中）===
+按预期被拒: [unknown] images/create_image_from_instance: [参数检查]镜像名称不能为空!（code=4000）
+
+=== 2) 挂起实例 ===
+suspend OK
+挂起后 state: running Status: 1 IsAbnormal: 3
+
+=== 3) 可制作镜像实例列表 ===
+[{'ContainerStartId': '15085768804_11a8ab0b34284cd685aae2ee74d7ab70', 'ContainerType': 'kvm', 'Container_name': '15085768804_lyg2036_11a8ab0b34284cd685aae2ee74d7ab70_u0_c0', 'Ctime': 1794556697, 'DiskReleaseTime': 0, 'DueMode': -1, 'Due_time': 1794563897, 'End_time': 0, 'Gpu_num': 0, 'Gpu_type': 'CPU', 'Image': 'ubuntu24_nvram_base', 'ImageInfo': {'ImageValue': 'ubuntu24_nvram_base', 'ShortDisplayName': 'ubuntu24二代', 'LongDisplayName': '', 'Type': 'kvm', 'Label': 'AI云主机', 'System': 'ubuntu', 'MirrorExplain': ['docker', 'anaconda', 'pytorch', '显卡驱动', 'python3.11'], 'Score': 9, 'NoScheduleHosts': ['lyg0053', 'lyg0106', 'lyg0094', 'lyg1050', 'lyg2029', 'lyg0102', 'lyg1057', 'lyg1112', 'lyg0163'], 'NoScheduleGPUs': ['NVIDIA A100-PCIE-40GB', 'NVIDIA A100-SXM-64GB', 'NVIDIA A100-SXM4-40GB', 'NVIDIA A100-SXM4-80GB', 'NVIDIA A40', 'NVIDIA A30', 'NVIDIA A800 80G NVLINK', 'NVIDIA A800 80GB PCIE', 'NVIDIA A800-PCIE-80G', 'RTX A5000', 'RTX A6000', 'Tesla V100-16GB', 'Tesla V100-32GB', 'NVIDIA A800-SXM4-40GB', 'GeForce RTX 5090', 'NVIDIA RTX PRO 6000 96GB', 'NVIDIA RTX PRO 5000 72G', 'NVIDIA RTX PRO 6000D 84G'], 'ImageSize': 200, 'CanUsePlugin': True, 'ShowInRent': True, 'ShowInChangeSystem': True, 'ShowInCopyStart': False, 'SystemVersion': '24.04', 'BadgeLabel': '', 'Brief': '支持插件的ubuntu24二代', 'BaseImage': '', 'MinCpuLimit': 0, 'MinMemLimit': 0}, 'ImageName': '', 'InstanceAutorenew': None, 'IsAbnormal': 3, 'IsLatestCopy': True, 'IsSaveDiskState': False, 'KvmDataDiskSize': 0, 'KvmDataUseSsd': 1, 'MountedSharedDisk': [], 'Performance': 'compatible', 'SpecName': 'ecs.c1.base', 'Status': 1, 'SubAccount': None, 'SubAccountName': '', 'TheLatestCopyName': '15085768804_lyg2036_11a8ab0b34284cd685aae2ee74d7ab70_u0_c0'}]
+
+=== 4) 创建镜像（1天租期，先看扣费）===
+询价: 2.736 元
+ERR: [unknown] images/create_image_from_instance: [参数检查]镜像名称不能为空!（code=4000）
+余额: 12.9708 券: 0.0
+
+=== 5) 镜像列表 ===
+{"ImageValue": "ubuntu24_nvram_base_uimg.11a8ab.v2611131600", "ShortDisplayName": "l5-comfy-test", "ImageSize": 200, "BadgeLabel": null, "Status": 0, "Due_time": null, "Due_time_Format": null}
+
+=== 6) 镜像扣费明细 ===
+{"data": [{"Amount": 200, "BillAt": "2026-11-13T16:00:34+08:00", "CreateTime": "2026-11-13T16:00:34+08:00", "DiffMoney": -2.736, "DiffPower": 0, "EndAt": "2026-11-14T16:00:34+08:00", "Id": 29800, "ImageId": 2439, "ImageValue": "ubuntu24_nvram_base_uimg.11a8ab.v2611131600", "PayTypeFirst": "", "PriceDetailInfo": "{\"PriceInfoSheet\":{\"ResourceType\":\"image\",\"Type\":\"image_save\",\"Title\":\"自定义镜像存储:200GB\",\"SingleHourPrice\":0.0006,\"Amount\":200,\"HourLen\":24,\"VipLevel\":0,\"VipDiscount\":1,\"CustomDiscount\":0.95,\"PackDiscount\":1,\"FinalDiscount\":0.95,\"FinalSingleHourPriceEqual\":0.00057,\"TotalCost\":2.736,\"CouponOff\":0,\"FinalCost\":2.736,\"PayTypeFirst\":\"power\",\"FinalCostMoney\":2.736,\"FinalCostPower\":0,\"DiffMoney\":-2.736,\"DiffPower\":-0,\"Formula\":\"SingleHourP
+
+=== 7) 用自定义镜像建机（验证启动速度）===
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+  File "/root/zhiyun-l5-zx/tools/p2/providers/zhixingyun.py", line 412, in create
+    data = self.call("store/create_kvm_instance", params, timeout=90)
+  File "/root/zhiyun-l5-zx/tools/p2/providers/zhixingyun.py", line 252, in call
+    raise ProviderError(f"{path}: {msg}（code={code}）", kind,
+tools.p2.providers.base.ProviderError: [unknown] store/create_kvm_instance: 镜像不可用!（code=4000）
+
+=== 等镜像制作完成 ===
+[   0s] Status=0 Due=None Progress=None
+[  20s] Status=0 Due=None Progress=None
+[  40s] Status=1 Due=None Progress=None
+最终: {"Id": 2439, "ImageValue": "ubuntu24_nvram_base_uimg.11a8ab.v2611131600", "ShortDisplayName": "l5-comfy-test", "Brief": "L5 镜像流程验证", "ImageSize": 200, "CreateStatus": 1, "Status": 1, "StatusMessage": "success", "StatusProgress": 100, "StatusTime": "2026-11-13 16:01:34", "System": "ubuntu", "SystemVersion": "24.04", "CreateTime": "2026-11-13 16:00:34", "DueTime": "2026-11-14 16:00:34", "TotalCost":
+
+=== 7) 用自定义镜像建机 ===
+uid: 15085768804_lyg0127_aec074df5c084412b05b65e77e2ee892_u0_c0
+→ running: 36s
+→ sshd: 38s  js1.blockelite.cn:23728
+
+=== 诊断：为什么文件内容丢了 ===
+
+旧实例（制作镜像前）：
+  写了 bake_marker.txt = "IMAGE_BAKE_MARKER_v1 1794585531"（非空）
+  然后调 suspend → create_image
+
+新实例（从镜像启）：
+  文件名在、目录结构在、时间戳在（23:58:51，是旧实例上写入的时刻）
+  但**内容全是 0 字节**
+
+结论：暂停实例时磁盘 page cache 没来得及 flush 到块设备，
+      镜像快照抓到了 inode 和元数据，但数据块还是空的。
+
+这对 ComfyUI 是致命的：
+  ComfyUI 源码、torch wheel 解出来的 .so、custom_nodes ，
+  全都属于"刚写入没多久"的文件 —— 大概率全变 0 字节。
+

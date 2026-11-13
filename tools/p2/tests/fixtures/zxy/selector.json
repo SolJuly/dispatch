@@ -1,0 +1,746 @@
+{
+  "success": true,
+  "code": "2000",
+  "message": "",
+  "data": {
+    "all_districts": [
+      "js",
+      "lyg",
+      "js4",
+      "500"
+    ],
+    "all_gputypes": [
+      "GeForce GTX 1080 Ti",
+      "GeForce RTX 2080 Ti",
+      "GeForce RTX 3080",
+      "GeForce RTX 3090",
+      "GeForce RTX 4090",
+      "GeForce RTX 4090PLUS",
+      "GeForce RTX 5090",
+      "NVIDIA A100-SXM4-40GB",
+      "NVIDIA A100-SXM4-80GB",
+      "NVIDIA A30",
+      "NVIDIA A40",
+      "NVIDIA A800-SXM4-40GB",
+      "NVIDIA RTX PRO 5000 72G",
+      "NVIDIA RTX PRO 6000D 84G",
+      "RTX A5000",
+      "RTX A6000",
+      "Tesla V100-16GB",
+      "Tesla V100-32GB"
+    ],
+    "district_gputypes": {
+      "500": [],
+      "js": [
+        "GeForce RTX 4090PLUS",
+        "GeForce RTX 3090",
+        "GeForce RTX 2080 Ti",
+        "GeForce RTX 4090",
+        "NVIDIA A100-SXM4-40GB",
+        "GeForce RTX 3080",
+        "NVIDIA A100-SXM4-80GB",
+        "NVIDIA RTX PRO 6000D 84G",
+        "GeForce RTX 5090",
+        "NVIDIA A800-SXM4-40GB",
+        "Tesla V100-32GB",
+        "GeForce GTX 1080 Ti",
+        "NVIDIA RTX PRO 5000 72G",
+        "Tesla V100-16GB",
+        "RTX A6000",
+        "NVIDIA A30",
+        "NVIDIA A40",
+        "RTX A5000"
+      ],
+      "js4": [],
+      "lyg": [
+        "NVIDIA A100-SXM4-40GB"
+      ]
+    },
+    "gpu_resource_map": {
+      "GeForce GTX 1080 Ti": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": false,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 0.77,
+        "DockerPriceHour": 0.77,
+        "GpuMem": 11
+      },
+      "GeForce RTX 2080 Ti": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [
+          "ubuntu24_cuda13.0",
+          "win10_ai_cuda12.4",
+          "win10_MultiFracs_cuda11.1",
+          "win10_DigitalHuman_cuda12.8",
+          "ubuntu22_nvram_base",
+          "ubuntu24_nvram_base",
+          "ubuntu20_nvram_base",
+          "ubuntu22_cuda12.4",
+          "ubuntu18_amber18gromacs2020",
+          "ubuntu20_cuda11.8",
+          "ubuntu22_cuda11.8",
+          "ubuntu18_amber18gromacs20.6vasp6.3",
+          "ubuntu22.04_base",
+          "ubuntu20.04_server_base",
+          "ubuntu22.04_vits",
+          "ubuntu18_cuda11.0",
+          "ubuntu18_cuda10.1",
+          "centos7_base",
+          "centos7_cuda11.0",
+          "centos_stream9_nvram_base",
+          "rocky9_nvram_base",
+          "win10_yuyi",
+          "win10_render",
+          "win10_sd_webui",
+          "win10_d5",
+          "win10_gromacs2021.6",
+          "win10_ue5",
+          "win10_MatDEM",
+          "win10_matlabR2021b",
+          "win10_ai_cuda11.1",
+          "win10_dflyun_comfyui",
+          "deepin_nvram_base"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": true,
+          "2": true,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 0.77,
+        "DockerPriceHour": 0.77,
+        "GpuMem": 11
+      },
+      "GeForce RTX 3080": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [
+          "ubuntu24_cuda13.0",
+          "win10_ai_cuda12.4",
+          "win10_MultiFracs_cuda11.1",
+          "win10_DigitalHuman_cuda12.8",
+          "ubuntu22_nvram_base",
+          "ubuntu24_nvram_base",
+          "ubuntu20_nvram_base",
+          "ubuntu22_cuda12.4",
+          "ubuntu18_amber18gromacs2020",
+          "ubuntu20_cuda11.8",
+          "ubuntu22_cuda11.8",
+          "ubuntu18_amber18gromacs20.6vasp6.3",
+          "ubuntu22.04_base",
+          "ubuntu20.04_server_base",
+          "ubuntu22.04_vits",
+          "ubuntu18_cuda11.0",
+          "ubuntu18_cuda10.1",
+          "centos7_base",
+          "centos7_cuda11.0",
+          "centos_stream9_nvram_base",
+          "rocky9_nvram_base",
+          "win10_yuyi",
+          "win10_render",
+          "win10_sd_webui",
+          "win10_d5",
+          "win10_gromacs2021.6",
+          "win10_ue5",
+          "win10_MatDEM",
+          "win10_matlabR2021b",
+          "win10_ai_cuda11.1",
+          "win10_dflyun_comfyui",
+          "deepin_nvram_base"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": true,
+          "2": true,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 0.77,
+        "DockerPriceHour": 0.66,
+        "GpuMem": 10
+      },
+      "GeForce RTX 3090": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [
+          "ubuntu24_cuda13.0",
+          "win10_minmaxH3",
+          "win10_ai_cuda12.4",
+          "win10_MultiFracs_cuda11.1",
+          "win10_DigitalHuman_cuda12.8",
+          "ubuntu22_nvram_base",
+          "ubuntu24_nvram_base",
+          "ubuntu20_nvram_base",
+          "ubuntu22_cuda12.4",
+          "ubuntu18_amber18gromacs2020",
+          "ubuntu20_cuda11.8",
+          "ubuntu22_cuda11.8",
+          "ubuntu18_amber18gromacs20.6vasp6.3",
+          "ubuntu22.04_base",
+          "ubuntu20.04_server_base",
+          "ubuntu22.04_vits",
+          "ubuntu18_cuda11.0",
+          "ubuntu18_cuda10.1",
+          "centos7_base",
+          "centos7_cuda11.0",
+          "centos_stream9_nvram_base",
+          "rocky9_nvram_base",
+          "win10_yuyi",
+          "win10_render",
+          "win10_sd_webui",
+          "win10_d5",
+          "win10_gromacs2021.6",
+          "win10_ue5",
+          "win10_MatDEM",
+          "win10_matlabR2021b",
+          "win10_ai_cuda11.1",
+          "win10_dflyun_comfyui",
+          "deepin_nvram_base"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": false,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 1.1,
+        "DockerPriceHour": 1.1,
+        "GpuMem": 24
+      },
+      "GeForce RTX 4090": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [
+          "ubuntu24_cuda13.0",
+          "win10_minmaxH3",
+          "win10_ai_cuda12.4",
+          "win10_MultiFracs_cuda11.1",
+          "win10_Toonflow",
+          "win10_DigitalHuman_cuda12.8",
+          "ubuntu22_nvram_base",
+          "ubuntu24_nvram_base",
+          "ubuntu20_nvram_base",
+          "ubuntu22_cuda12.4",
+          "ubuntu18_amber18gromacs2020",
+          "ubuntu20_cuda11.8",
+          "ubuntu22_cuda11.8",
+          "ubuntu18_amber18gromacs20.6vasp6.3",
+          "ubuntu22.04_base",
+          "ubuntu20.04_server_base",
+          "ubuntu22.04_vits",
+          "ubuntu18_cuda11.0",
+          "ubuntu18_cuda10.1",
+          "centos7_base",
+          "centos7_cuda11.0",
+          "centos_stream9_nvram_base",
+          "rocky9_nvram_base",
+          "win10_yuyi",
+          "win10_render",
+          "win10_sd_webui",
+          "win10_d5",
+          "win10_gromacs2021.6",
+          "win10_ue5",
+          "win10_MatDEM",
+          "win10_matlabR2021b",
+          "win10_ai_cuda11.1",
+          "win10_dflyun_comfyui",
+          "deepin_nvram_base",
+          "ubuntu24_comfyui"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": false,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 1.65,
+        "DockerPriceHour": 1.65,
+        "GpuMem": 24
+      },
+      "GeForce RTX 4090PLUS": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [
+          "ubuntu24_cuda13.0",
+          "win10_minmaxH3",
+          "win10_ai_cuda12.4",
+          "win10_MultiFracs_cuda11.1",
+          "win10_Toonflow",
+          "win10_DigitalHuman_cuda12.8",
+          "ubuntu22_nvram_base",
+          "ubuntu24_nvram_base",
+          "ubuntu20_nvram_base",
+          "ubuntu22_cuda12.4",
+          "ubuntu18_amber18gromacs2020",
+          "ubuntu20_cuda11.8",
+          "ubuntu22_cuda11.8",
+          "ubuntu18_amber18gromacs20.6vasp6.3",
+          "ubuntu22.04_base",
+          "ubuntu20.04_server_base",
+          "ubuntu22.04_vits",
+          "ubuntu18_cuda11.0",
+          "ubuntu18_cuda10.1",
+          "centos7_base",
+          "centos7_cuda11.0",
+          "centos_stream9_nvram_base",
+          "rocky9_nvram_base",
+          "win10_yuyi",
+          "win10_render",
+          "win10_sd_webui",
+          "win10_d5",
+          "win10_gromacs2021.6",
+          "win10_ue5",
+          "win10_MatDEM",
+          "win10_matlabR2021b",
+          "win10_ai_cuda11.1",
+          "win10_dflyun_comfyui",
+          "deepin_nvram_base",
+          "ubuntu24_comfyui"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": true,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 2.53,
+        "DockerPriceHour": 2.53,
+        "GpuMem": 48
+      },
+      "GeForce RTX 5090": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [
+          "ubuntu24_5090",
+          "ubuntu24_5090_comfyui",
+          "ubuntu24_cuda13.0",
+          "ubuntu22_5090_cuda13.2"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": false,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 3.16,
+        "DockerPriceHour": 3.16,
+        "GpuMem": 32
+      },
+      "NVIDIA A100-SXM4-40GB": {
+        "ValidDistricts": [
+          "js",
+          "lyg"
+        ],
+        "ValidImages": [
+          "win10_axilie",
+          "win10_axilie_Openclaw",
+          "rocky9.7_axilie",
+          "ubuntu24_5090_comfyui",
+          "ubuntu24_cuda13.0",
+          "win10_axilie_MatDEM",
+          "win10_axilie_minmaxH3",
+          "win10_axilie_Hermes",
+          "win10_axilie_lingBot-world",
+          "ubuntu22_cuda12.4",
+          "ubuntu18_amber18gromacs2020",
+          "ubuntu20_cuda11.8",
+          "ubuntu22_cuda11.8",
+          "ubuntu18_amber18gromacs20.6vasp6.3",
+          "ubuntu22.04_base",
+          "ubuntu20.04_server_base",
+          "ubuntu22.04_vits",
+          "ubuntu18_cuda11.0",
+          "ubuntu18_cuda10.1",
+          "centos7_base",
+          "centos7_cuda11.0"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": true,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 2.75,
+        "DockerPriceHour": 2.75,
+        "GpuMem": 40
+      },
+      "NVIDIA A100-SXM4-80GB": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [
+          "win10_axilie",
+          "win10_axilie_Openclaw",
+          "rocky9.7_axilie",
+          "ubuntu24_cuda13.0",
+          "win10_axilie_MatDEM",
+          "win10_axilie_minmaxH3",
+          "win10_axilie_Hermes",
+          "win10_axilie_lingBot-world",
+          "ubuntu22_cuda12.4",
+          "ubuntu18_amber18gromacs2020",
+          "ubuntu20_cuda11.8",
+          "ubuntu22_cuda11.8",
+          "ubuntu18_amber18gromacs20.6vasp6.3",
+          "ubuntu22.04_base",
+          "ubuntu20.04_server_base",
+          "ubuntu22.04_vits",
+          "ubuntu18_cuda11.0",
+          "ubuntu18_cuda10.1",
+          "centos7_base",
+          "centos7_cuda11.0"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": true,
+          "2": true,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 992,
+        "KvmPriceHour": 8,
+        "DockerPriceHour": 8,
+        "GpuMem": 80
+      },
+      "NVIDIA A30": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": false,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 1.1,
+        "DockerPriceHour": 1.1,
+        "GpuMem": 24
+      },
+      "NVIDIA A40": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": false,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 2.2,
+        "DockerPriceHour": 2.2,
+        "GpuMem": 48
+      },
+      "NVIDIA A800-SXM4-40GB": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [
+          "win10_axilie",
+          "win10_axilie_Openclaw",
+          "rocky9.7_axilie",
+          "ubuntu24_cuda13.0",
+          "win10_axilie_MatDEM",
+          "win10_axilie_minmaxH3",
+          "win10_axilie_Hermes",
+          "win10_axilie_lingBot-world",
+          "ubuntu22_cuda12.4",
+          "ubuntu18_amber18gromacs2020",
+          "ubuntu20_cuda11.8",
+          "ubuntu22_cuda11.8",
+          "ubuntu18_amber18gromacs20.6vasp6.3",
+          "ubuntu22.04_base",
+          "ubuntu20.04_server_base",
+          "ubuntu22.04_vits",
+          "ubuntu18_cuda11.0",
+          "ubuntu18_cuda10.1",
+          "centos7_base",
+          "centos7_cuda11.0",
+          "win10_render",
+          "win10_d5",
+          "win10_ue5"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": false,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 2.31,
+        "DockerPriceHour": 2.31,
+        "GpuMem": 40
+      },
+      "NVIDIA RTX PRO 5000 72G": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [
+          "ubuntu24_cuda13.0",
+          "win10_axilie_lingBot-world"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": true,
+          "2": true,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 880,
+        "KvmPriceHour": 6,
+        "DockerPriceHour": 6,
+        "GpuMem": 72
+      },
+      "NVIDIA RTX PRO 6000D 84G": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [
+          "ubuntu24_cuda13.0",
+          "win10_axilie_lingBot-world"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": false,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 880,
+        "KvmPriceHour": 7,
+        "DockerPriceHour": 7,
+        "GpuMem": 84
+      },
+      "RTX A5000": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": false,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 1.62,
+        "DockerPriceHour": 1.62,
+        "GpuMem": 24
+      },
+      "RTX A6000": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": false,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 2.4,
+        "DockerPriceHour": 2.4,
+        "GpuMem": 48
+      },
+      "Tesla V100-16GB": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [
+          "win10_axilie",
+          "rocky9.7_axilie",
+          "win10_axilie_MatDEM",
+          "win10_axilie_minmaxH3",
+          "win10_axilie_Hermes",
+          "ubuntu22_cuda12.4",
+          "ubuntu18_amber18gromacs2020",
+          "ubuntu20_cuda11.8",
+          "ubuntu22_cuda11.8",
+          "ubuntu18_amber18gromacs20.6vasp6.3",
+          "ubuntu22.04_base",
+          "ubuntu20.04_server_base",
+          "ubuntu22.04_vits",
+          "ubuntu18_cuda11.0",
+          "ubuntu18_cuda10.1",
+          "centos7_base",
+          "centos7_cuda11.0"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": false,
+          "2": false,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 480,
+        "KvmPriceHour": 1.1,
+        "DockerPriceHour": 1.1,
+        "GpuMem": 16
+      },
+      "Tesla V100-32GB": {
+        "ValidDistricts": [
+          "js"
+        ],
+        "ValidImages": [
+          "win10_axilie",
+          "rocky9.7_axilie",
+          "win10_axilie_MatDEM",
+          "win10_axilie_minmaxH3",
+          "win10_axilie_Hermes",
+          "ubuntu22_cuda12.4",
+          "ubuntu18_amber18gromacs2020",
+          "ubuntu20_cuda11.8",
+          "ubuntu22_cuda11.8",
+          "ubuntu18_amber18gromacs20.6vasp6.3",
+          "ubuntu22.04_base",
+          "ubuntu20.04_server_base",
+          "ubuntu22.04_vits",
+          "ubuntu18_cuda11.0",
+          "ubuntu18_cuda10.1",
+          "centos7_base",
+          "centos7_cuda11.0"
+        ],
+        "ValidImagesU": [],
+        "ValidCardsRentable": {
+          "1": true,
+          "2": true,
+          "3": false,
+          "4": false,
+          "5": false,
+          "6": false,
+          "7": false,
+          "8": false
+        },
+        "MaxGpuNum": 8,
+        "MaxMemory": 256,
+        "KvmPriceHour": 1.32,
+        "DockerPriceHour": 1.32,
+        "GpuMem": 32
+      }
+    },
+    "last_refresh_time": "2026-11-13 00:44:12"
+  }
+}

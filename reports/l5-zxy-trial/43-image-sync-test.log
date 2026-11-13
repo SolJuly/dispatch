@@ -1,0 +1,58 @@
+旧实例 state: running Status: 1 IsAbnormal: 3
+
+=== 恢复挂起实例 ===
+resume OK
+恢复后 Status: 1 IsAbnormal: 0 SshPort: 13648
+ssh: js4.blockelite.cn 13648
+
+=== 1) 现有文件是否还在 ===
+32 /root/bake_marker.txt
+IMAGE_BAKE_MARKER_v1 1794585531
+
+=== 2) 写新数据 + sync 落盘 ===
+75486a62fb97c85d18b254dc45f32b87  /root/big_blob.bin
+fc6e4ab51099c8f6fb1ed9735e998208  /root/sync_marker.txt
+--- synced ---
+75486a62fb97c85d18b254dc45f32b87  /root/big_blob.bin
+SYNC_TEST_v2_1794557056
+
+=== 3) 挂起前强制 sync + drop cache ===
+flush done
+
+=== 4) 再挂起 + 做第二个镜像 ===
+挂起后 IsAbnormal: 3 state: running
+镜像: ubuntu24_nvram_base_uimg.11a8ab.v2611131604 | Id: 2440
+余额: 9.954
+
+=== 5) 等第二个镜像完成 ===
+[0s] Status=0
+[15s] Status=0
+[30s] Status=1 完成
+
+=== 6) 用它建机验证内容 ===
+Traceback (most recent call last):
+  File "<stdin>", line 13, in <module>
+  File "/root/zhiyun-l5-zx/tools/p2/providers/zhixingyun.py", line 412, in create
+    data = self.call("store/create_kvm_instance", params, timeout=90)
+  File "/root/zhiyun-l5-zx/tools/p2/providers/zhixingyun.py", line 252, in call
+    raise ProviderError(f"{path}: {msg}（code={code}）", kind,
+tools.p2.providers.base.ProviderError: [unknown] store/create_kvm_instance: 所选镜像到期时间早于实例到期时间，请先续费镜像!（code=4000）
+ubuntu24_nvram_base_uimg.11a8ab.v2611131604 | l5-synctest | Due: 2026-11-13 17:04:34 | Status: 1
+ubuntu24_nvram_base_uimg.11a8ab.v2611131600 | l5-comfy-test | Due: 2026-11-14 16:00:34 | Status: 1
+
+=== 续费第二个镜像到 1 天 ===
+续费询价: 2.736
+续费结果: {'Id': 2440, 'FromType': 1, 'ImageId': 'img-99c5ba74384a', 'Type': 'kvm', 'Label': 'AI云主机', 'ImageValue': 'ubuntu24_nvram_base_uimg.11a8ab.v2611131604', 'System': 'ubuntu', 'SystemVersion': '24.04', 'ImageSize': 200, 'MinCpuLimit': 0, 'MinMemLimit': 0, 'ShortDisplayName': 'l5-synctest', 'LongDisplay
+余额: 7.218
+
+=== 6) 用 sync 后的镜像建机 ===
+→ running 40s
+→ sshd 42s
+= bake_marker =
+size=32
+IMAGE_BAKE_MARKER_v1 1794585531
+= sync_marker =
+size=24
+SYNC_TEST_v2_1794557056
+= blob =
+75486a62fb97c85d18b254dc45f32b87  /root/big_blob.bin

@@ -1,0 +1,15 @@
+退租前 现金: 14.8332
+退租前 汇总: {'addCpuCost': 0, 'addDiskCost': 0, 'addMemoryCost': 0, 'bandwidthCost': 0, 'diskKeeppedCost': 0, 'otherCost': 0, 'refundCost': 0, 'renewCost': 0, 'rentCost': 0.1668, 'totalCost': 0.1668}
+Traceback (most recent call last):
+  File "<stdin>", line 8, in <module>
+  File "/root/zhiyun-l5-zx/tools/p2/providers/zhixingyun.py", line 466, in terminate
+    self.call("instance/stop_instance_with_refund", {
+  File "/root/zhiyun-l5-zx/tools/p2/providers/zhixingyun.py", line 249, in call
+    raise ProviderError(f"{path}: {msg}（code={code}）", kind,
+tools.p2.providers.base.ProviderError: [busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000）
+退租前 现金: 14.8332
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+  File "/root/zhiyun-l5-zx/tools/p2/providers/zhixingyun.py", line 490, in terminate
+    raise ProviderError(
+tools.p2.providers.base.ProviderError: [busy] 10000000000_lyg2031_8906f6f95a5641c6a3479774c07bbaca_u0_c0 退租重试 5 次仍失败（最后一次：[busy] instance/stop_instance_with_refund: 操作频繁#10001（code=4000））

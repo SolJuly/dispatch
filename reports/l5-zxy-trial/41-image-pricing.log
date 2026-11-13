@@ -1,0 +1,42 @@
+=== 自定义镜像存储价目（真机询价接口）===
+公式: 0.0006 元/GB·h × 200GB × 小时数 × 0.95 折扣
+
+1 hour : ¥  0.1140  (Due_time=2026-11-13 16:46:40)  折前 0.114
+3 hour : ¥  0.3420  (Due_time=2026-11-13 18:46:40)  折前 0.342
+1 day  : ¥  2.7360  (Due_time=2026-11-14 15:46:40)  折前 2.736
+7 day  : ¥ 19.1520  (Due_time=2026-11-20 15:46:41)  折前 19.152
+30 day  : ¥ 82.0800  (Due_time=2026-12-13 15:46:41)  折前 82.08
+
+=== 换算 ===
+单价 0.0006 元/GB·h（折后 0.00057）
+200GB 每天 ¥2.736
+200GB 每月 ¥82.08
+折合每 GB 每月 ¥0.4104
+
+=== 两家镜像存储费对比 ===
+项目                                         优云智算            智星云
+----------------------------------------------------------------
+单价 元/GB·月                                0.2360         0.4104
+  30GB 镜像月费                               7.080         12.312
+  100GB 镜像月费                             23.600         41.040
+  200GB 镜像月费                             47.200         82.080
+
+智星云按「租期」计费：1小时/3小时/1天/7天/30天 可选，到期不续费自动释放
+优云智算按月计费，每天 01:10 结算
+
+=== 200GB 镜像年费 ===
+优云智算: ¥566.40/年
+智星云  : ¥984.96/年
+
+=== 通过 provider 接口验证 ===
+   1 hour : ¥0.1140 | 单价 0.00057/GB·h | 月费 0.4104/GB
+   1 day  : ¥2.7360 | 单价 0.00057/GB·h | 月费 0.4104/GB
+  30 day  : ¥82.0800 | 单价 0.00057/GB·h | 月费 0.4104/GB
+自定义镜像: 0 个
+Traceback (most recent call last):
+  File "<stdin>", line 8, in <module>
+  File "/root/zhiyun-l5-zx/tools/p2/providers/zhixingyun.py", line 602, in create_image_available
+    d = self.call("images/get_create_available_instance_list",
+  File "/root/zhiyun-l5-zx/tools/p2/providers/zhixingyun.py", line 252, in call
+    raise ProviderError(f"{path}: {msg}（code={code}）", kind,
+tools.p2.providers.base.ProviderError: [unknown] images/get_create_available_instance_list: page_size参数超限!（code=4000）

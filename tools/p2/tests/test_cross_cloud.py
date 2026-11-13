@@ -143,6 +143,26 @@ class TestProvisionScript(unittest.TestCase):
         # 应该列出 10 个节点
         self.assertEqual(p.stdout.count("·"), 10, "dry-run 应列出 10 个 custom_nodes")
 
+    def test_clone_failure_is_fatal_not_fake_success(self):
+        """clone 失败必须 die，不能打印"✓ 已克隆并检出"。
+
+        实测（2026-11-13 智星云）：网络中途断（CANCEL err 8），旧代码
+        无条件打印成功，留下空目录，10 个 node 全装进空壳，最后启动才炸 ——
+        这一轮 35 分钟算力费白花。这条测试锁住 clone_retry/must 的存在。
+        """
+        body = PROVISION.read_text(encoding="utf-8")
+        self.assertIn("clone_retry", body, "缺 clone 重试")
+        self.assertIn("must git -C", body, "checkout 没有检查退出码")
+        self.assertIn("缺 main.py", body, "没有用文件存在性证明克隆成功")
+        # 旧的无条件成功文案必须消失
+        self.assertNotIn('  ok "已克隆并检出 $COMFY_COMMIT"', body)
+
+    def test_constraints_resolved_relative_to_script(self):
+        """constraints 路径不能拼成 //docker/... —— 实测踩过，pip 会静默跳过约束。"""
+        body = PROVISION.read_text(encoding="utf-8")
+        self.assertIn("_find_constraints", body)
+        self.assertIn("CONSTRAINTS_FILE", body, "缺环境变量覆盖口")
+
     def test_refuses_on_deploy_host(self):
         """部署机（有 .git/.share_token/tools）不是目标机 —— 必须拒绝。
 

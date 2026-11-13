@@ -42,8 +42,15 @@ class TestProviderContract(unittest.TestCase):
                 "price", "balance", "resolve_image", "images", "stock")
 
     def _instances(self):
+        """三家 provider 都要过同一套契约。
+
+        智星云这里用**空凭证**构造：契约是否齐全与有没有 AK/SK 无关，
+        而且构造必须不抛异常（registry.available() 靠这个判定可用性）。
+        """
+        from tools.p2.providers.zhixingyun import ZhiXingYunProvider
         return [FakeProvider(),
-                LocalProvider(host="127.0.0.1", port="22", password="x")]
+                LocalProvider(host="127.0.0.1", port="22", password="x"),
+                ZhiXingYunProvider({})]
 
     def test_all_methods_implemented(self):
         for p in self._instances():
@@ -126,6 +133,29 @@ class TestCapabilities(unittest.TestCase):
         self.assertTrue(rows)
         names = {r.get("name") or r.get("provider") for r in rows}
         self.assertIn("fake", names)
+
+    def test_suspended_provider_is_not_advertised(self):
+        """智星云 2026-11-13 暂停接入：适配器保留但**不进可用列表**。
+
+        为什么必须从 available() 里摘掉：cost_snapshot 之类巡检靠它决定查谁，
+        留着就会去打真实云。适配器层另有一道硬拦截（ZXY_ENABLE）。
+        """
+        self.assertNotIn("zhixingyun", P.available())
+        with self.assertRaises(P.ProviderError):
+            P.get_provider("zhixingyun")
+
+    def test_zhixingyun_capabilities_not_copied_from_compshare(self):
+        """两家云的回收语义相反：智云能停机保状态，智星云只能提前退租。
+
+        这条断言防的是「新 provider 直接复制粘贴旧的能力声明」——
+        上层会照声明决策，抄错的声明比没声明更贵。
+        """
+        from tools.p2.providers.zhixingyun import ZhiXingYunProvider
+        # 搁置后 registry 封了入口，但适配器仍在 —— 直接构造验能力声明
+        zxy = ZhiXingYunProvider({}).capabilities()
+        self.assertFalse(zxy.can_stop_instance)
+        self.assertTrue(zxy.bills_disk_when_stopped)
+        self.assertFalse(zxy.has_shared_weight_mount)
 
 
 class TestErrorClassification(unittest.TestCase):
