@@ -1153,9 +1153,14 @@ function artifactCard(a, jobId, index = 0) {
     ? `<img src="${thumb}" alt="${esc(a.name)}" loading="lazy" decoding="async"
          class="zoomable" data-full="${url}" title="点击查看原图">`
     : `<img src="${url}" alt="${esc(a.name)}" loading="lazy">`;
+  // 视频的 poster = 后端抽的封面帧（0.5s 处，避开首帧全黑）。
+  // 没有 poster 时，preload="none" 的第二路视频在平板上就是一个灰块 ——
+  // 用户根本看不出「这里有内容」，只会觉得坏了。
+  // 后端 _artifacts 已经给每个视频生成了 thumb_url，直接拿来当 poster。
+  const poster = thumb ? ` poster="${thumb}"` : '';
   const body = isVid
     ? `<video controls preload="${pre}" playsinline webkit-playsinline
-         src="${url}" data-idx="${index}"></video>`
+         src="${url}"${poster} data-idx="${index}"></video>`
     : isImg ? imgTag
     : `<div class="pad mono">${esc(a.name)}</div>`;
   return `<div class="m1">${body}

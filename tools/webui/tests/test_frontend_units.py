@@ -659,3 +659,36 @@ class TestOpenApiContract(unittest.TestCase):
                     with self.subTest(path=path, method=m):
                         self.assertIn("x-status", op,
                                       f"{m.upper()} {path} 缺 x-status")
+
+
+class TestArtifactCardPoster(unittest.TestCase):
+    """视频必须有 poster —— 否则 preload=none 的第二路视频显示灰块。
+
+    2026-11-14 用户反馈：两个视频时只有一个能显现，另一个是灰色。
+    根因：preload="none" 且没有 poster，平板不会去解第一帧。
+    """
+
+    def _js(self):
+        return (PROJ / "web" / "dist" / "app.js").read_text(encoding="utf-8")
+
+    def test_video_has_poster_attribute(self):
+        js = self._js()
+        i = js.index("function artifactCard")
+        body = js[i:i + 2000]
+        self.assertIn("poster=", body,
+                      "视频标签必须带 poster，否则第二路视频是灰块")
+
+    def test_poster_uses_thumb_url(self):
+        js = self._js()
+        i = js.index("const poster")
+        line = js[i:i + 120]
+        self.assertIn("thumb", line,
+                      "poster 必须复用后端生成的缩略图，不要另开接口")
+
+    def test_image_uses_thumbnail_first(self):
+        js = self._js()
+        i = js.index("function artifactCard")
+        body = js[i:i + 2000]
+        self.assertIn("data-full", body,
+                      "图片必须先出缩略图，data-full 存原图地址供点击加载")
+        self.assertIn("zoomable", body)
