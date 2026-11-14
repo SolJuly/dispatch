@@ -644,7 +644,11 @@ def create_job(workflow: str, params: dict, *, run: bool = False, budget: float 
             # 第二个人提交会静默排队最多 QUEUE_WAIT_S（4 小时）后超时失败，
             # 而 UI 显示的是"提交成功"。run.py 里早就有 --batch 分支，只是没接。
             # --wait-lock：前面还有作业在跑时排队等锁，而不是直接退出把作业扔在 CREATED
+            # --from-pool：优先复用预热池的停机实例（start ~12s），池空自动回落新建。
+            #   不在命令里传这个参数的话，run.py 的整个池分支会被跳过 ——
+            #   池子建得再好也用不上（2026-11-14 审计发现：池代码齐全但从未生效）。
             spawn([sys.executable, str(RUN_PY), job_id, "--no-keep", "--batch",
+                   "--from-pool",
                    "--wait-lock", str(QUEUE_WAIT_S), "--wait-stock", str(STOCK_WAIT_S)],
                   stdout=fh, stderr=subprocess.STDOUT, start_new_session=True, cwd=str(ROOT))
 

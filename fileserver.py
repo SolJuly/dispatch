@@ -46,6 +46,15 @@ sys.path.insert(0, str(PROJ))
 
 TEXT_EXT = {".md", ".py", ".sh", ".txt", ".json", ".yml", ".yaml", ".cfg", ".ini", ".log", ".csv", ".env"}
 IMG_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
+# 视频/音频：走流式 + Range 分支，**绝不 read_bytes()**。
+# 1.4MB 的 mp4 全量读进内存再发，浏览器必须等下完才能播第一帧；
+# 而 Range 缺失又让拖动进度条变成不可能（用户看到的是一直播不出来）。
+# 判据用扩展名而不是 Content-Type：mimetypes 对 .m4v 之类可能返回 None。
+MEDIA_EXT = {".mp4", ".m4v", ".mov", ".webm", ".mkv", ".avi",
+             ".mp3", ".wav", ".flac", ".m4a", ".ogg", ".aac"}
+# 流式发送的分块大小。64KB 是 HTTP/1.1 下吞吐与内存的常见折中；
+# 太小会 syscall 过多，太大在小内存机上会让 RSS 抖。
+STREAM_CHUNK = 64 * 1024
 CODE_EXT = {".py", ".sh", ".json", ".yml", ".yaml", ".cfg", ".ini", ".txt", ".csv", ".log"}
 
 # 前端构建产物根目录（Vite 的 web/dist）。不入库，缺失时 /ui/ 返回可读的构建提示，
@@ -425,6 +434,103 @@ class Handler(BaseHTTPRequestHandler):
         self._send(code, page(f"{code}", f"<p class='hint'>{html.escape(msg)}</p>",
                               back=f"{BASE}/{TOKEN}/"))
 
+    # ---------------- 媒体流式发送（Range 支持）
+    @staticmethod
+    def _parse_range(header: str, size: int) -> tuple[int, int] | None | str:
+        """解析 HTTP Range 头。返回 (start, end) / None（该整份）/ "invalid"（416）。
+
+        只支持单区间 —— 多区间（`bytes=0-99,200-299`）应答必须是
+        multipart/byteranges，浏览器视频播放器从不用它，实现复杂度不值。
+        按 RFC 9110：越界要回 416，而不是静默截断成 200。
+        """
+        if not header:
+            return None
+        h = header.strip()
+        if not h.lower().startswith("bytes="):
+            return None                      # 未知单位 → 忽略，按整份发
+        spec = h[6:].split(",")[0].strip()   # 多区间只取第一段
+        if "-" not in spec:
+            return "invalid"
+        a, _, b = spec.partition("-")
+        a, b = a.strip(), b.strip()
+        try:
+            if not a:                        # bytes=-N（末尾 N 字节）
+                n = int(b)
+                if n <= 0:
+                    return "invalid"
+                start = max(0, size - n)
+                end = size - 1
+            else:
+                start = int(a)
+                end = int(b) if b else size - 1
+        except ValueError:
+            return "invalid"
+        if start > end or start >= size:
+            return "invalid"
+        return start, min(end, size - 1)
+
+    def _send_media(self, path: Path, ctype: str, headers: dict | None = None,
+                    inline: bool = True) -> None:
+        """流式发送媒体文件，支持 Range。**不把文件读进内存。**
+
+        为什么必须流式：视频动辄上百 MB，`read_bytes()` 会让
+        (a) 首字节延迟 = 整个文件读完的耗时；(b) 并发几个请求 RSS 就打满。
+        """
+        try:
+            size = path.stat().st_size
+        except OSError:
+            return self._err(404, "文件不存在")
+
+        hdrs = dict(headers or {})
+        hdrs.setdefault("Accept-Ranges", "bytes")
+        hdrs.setdefault("Cache-Control", "no-store")
+        if inline:
+            hdrs.setdefault("Content-Disposition", "inline")
+
+        rng = self._parse_range(self.headers.get("Range", ""), size)
+        if rng == "invalid":
+            hdrs["Content-Range"] = f"bytes */{size}"
+            body = b""
+            self.send_response(416)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", "0")
+            for k, v in hdrs.items():
+                self.send_header(k, v)
+            self.end_headers()
+            return
+        if rng is None:
+            start, end = 0, size - 1
+            self.send_response(200)
+        else:
+            start, end = rng
+            self.send_response(206)
+            hdrs["Content-Range"] = f"bytes {start}-{end}/{size}"
+
+        length = end - start + 1
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(length))
+        for k, v in hdrs.items():
+            self.send_header(k, v)
+        self.end_headers()
+
+        if self.command == "HEAD":
+            return
+        # 分块发送：sendfile 不可用（BaseHTTPRequestHandler 包的是 wfile），
+        # 用 seek + 定长 read，避免大文件一次性进内存。
+        try:
+            with path.open("rb") as f:
+                f.seek(start)
+                remaining = length
+                while remaining > 0:
+                    chunk = f.read(min(STREAM_CHUNK, remaining))
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    remaining -= len(chunk)
+        except (BrokenPipeError, ConnectionResetError):
+            # 用户在播放中途拖进度条/关页面 → 正常的连接中断，不该冒泡成 500
+            pass
+
     def _safe(self, rel: str) -> Path | None:
         rel = urllib.parse.unquote(rel).lstrip("/")
         p = (ROOT / rel).resolve()
@@ -591,18 +697,26 @@ class Handler(BaseHTTPRequestHandler):
         """GET /<token>/pub/<rel>：等价于 nginx 的 `/pub/`，读 PUB_ROOT（/srv/dsh-pub）。
 
         控制台缩略图用的是 `/<token>/pub/jobs/<id>/<file>`，没有这条路由就会 404。
+
+        媒体文件（mp4/webm/…）走 `_send_media`：流式 + Range。
+        以前这里对什么都 `p.read_bytes()`，导致视频必须整个下完才开始播，
+        而且拖动进度条直接失效（浏览器发 Range，服务端回 200 整份）。
         """
         rel = urllib.parse.unquote("/".join(parts)).lstrip("/")
         p = (PUB_ROOT / rel).resolve()
         if not str(p).startswith(str(PUB_ROOT)) or not p.is_file():
             return self._err(404, "文件不存在")
         ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
+        ext = p.suffix.lower()
+        if ext in MEDIA_EXT and not force_dl:
+            return self._send_media(p, ctype, inline=True)
         headers = {}
         if force_dl:
             fn = p.name.encode("ascii", "ignore").decode() or "file"
             headers["Content-Disposition"] = (
                 "attachment; filename=\"%s\"; filename*=UTF-8''%s"
                 % (fn, urllib.parse.quote(p.name)))
+            return self._send_media(p, ctype, headers, inline=False)
         return self._send(200, p.read_bytes(), ctype, headers)
 
     def _file(self, rel: str, inline: bool, force_dl: bool):
@@ -642,12 +756,20 @@ class Handler(BaseHTTPRequestHandler):
             })
         if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT):
             if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT):
-                data = p.read_bytes()
+                # 媒体在下载时也走流式：几百 MB 的片子 read_bytes() 会直接把内存打满
                 ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
                 fn = p.name
                 disp = ("attachment; filename=\"%s\"; filename*=UTF-8''%s"
-                        % (fn.encode("ascii", "ignore").decode() or "file", urllib.parse.quote(fn)))
-                return self._send(200, data, ctype, {"Content-Disposition": disp})
+                        % (fn.encode("ascii", "ignore").decode() or "file",
+                           urllib.parse.quote(fn)))
+                if ext in MEDIA_EXT:
+                    return self._send_media(p, ctype,
+                                            {"Content-Disposition": disp}, inline=False)
+                return self._send(200, p.read_bytes(), ctype, {"Content-Disposition": disp})
+        # 媒体在线预览（inline）：Range + 流式，浏览器可边下边播、可拖进度条
+        if ext in MEDIA_EXT and not force_dl:
+            ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
+            return self._send_media(p, ctype, inline=True)
         if ext in IMG_EXT or inline:
             data = p.read_bytes()
             ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
