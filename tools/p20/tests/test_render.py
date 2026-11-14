@@ -53,6 +53,31 @@ def _diff(a: dict, b: dict) -> list[str]:
     return out
 
 
+def _slot_written_names(wf: dict, model: dict) -> set[tuple[str, str, str]]:
+    """模型卡会写进图的 (node, input, value) 三元组。"""
+    out = set()
+    slots = (wf.get("model") or {}).get("slots") or {}
+    files = model.get("files") or {}
+    for role, slot in slots.items():
+        f = files.get(role) or {}
+        name = f.get("name")
+        if name:
+            out.add((str(slot.get("node")), str(slot.get("input")), str(name)))
+    return out
+
+
+def _is_slot_diff(diff: str, slots: set[tuple[str, str, str]]) -> bool:
+    """这条差异是不是「模型槽位写入」造成的？"""
+    if ":" not in diff:
+        return False
+    left = diff.split(":", 1)[0].strip()      # 形如 "lora.lora_name"
+    if "." not in left:
+        return False
+    node, _, field = left.partition(".")
+    # 只要这个 (node, field) 被模型卡写过，就认为差异来自槽位覆盖
+    return any(n == node and f == field for n, f, _ in slots)
+
+
 class TestEquivalence(unittest.TestCase):
     def test_registry_render_equals_legacy_for_all_workflows(self):
         for key, params in CASES.items():
@@ -66,7 +91,19 @@ class TestEquivalence(unittest.TestCase):
                 g1, _ = render.render(wf, model, params, "JOB123")
                 legacy = p1run._render_workflow(
                     json.loads(json.dumps(wf["graph_obj"])), params, "JOB123")
-                self.assertEqual(_diff(_norm_numeric(g1), _norm_numeric(legacy)), [])
+                diffs = _diff(_norm_numeric(g1), _norm_numeric(legacy))
+                # 模型卡声明的槽位**本来就该**让两条路径分叉：
+                # registry 渲染会把 files.<role>.name 写进图（这是 registry 存在的意义），
+                # 而 legacy 渲染器只换 {{占位符}}、不碰模型名，保留图上的硬编码值。
+                #
+                # 2026-11-15：给 h3 加了 lora 槽位（PDD Acc-8Step 加速 LoRA）之后，
+                # 这条测试开始报 lora.lora_name 不一致 —— 那不是 bug，是 registry
+                # 正确地覆盖了图里的旧名字。所以把「模型槽位覆盖的名字」从比对里排除，
+                # 其余字段仍要求逐字一致。
+                slot_names = _slot_written_names(wf, model)
+                diffs = [d for d in diffs
+                         if not _is_slot_diff(d, slot_names)]
+                self.assertEqual(diffs, [])
 
     def test_ltxv_noise_seed_is_int_not_string(self):
         wf = registry.get_workflow("ltxv_2b_t2v")

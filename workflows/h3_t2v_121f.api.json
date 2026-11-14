@@ -23,7 +23,7 @@
   "class_type": "MiniMaxH3SigmaShift",
   "inputs": {
    "model": [
-    "unet",
+    "lora",
     0
    ],
    "shift_video": 12.0,
@@ -124,6 +124,20 @@
    "filename_prefix": "{{OUTPUT_PREFIX}}",
    "format": "mp4",
    "codec": "h264"
+  }
+ },
+ "lora": {
+  "_meta": {
+   "title": "PDD Acc LoRA"
+  },
+  "class_type": "LoraLoaderModelOnly",
+  "inputs": {
+   "lora_name": "minimax/MiniMax-H3-FL2VA-Acc-8Step_pruned_comfy.safetensors",
+   "strength_model": 0.0,
+   "model": [
+    "unet",
+    0
+   ]
   }
  }
 }

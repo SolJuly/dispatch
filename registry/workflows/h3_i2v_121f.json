@@ -42,6 +42,10 @@
    "vae": {
     "input": "vae_name",
     "node": "vae"
+   },
+   "lora": {
+    "node": "lora",
+    "input": "lora_name"
    }
   }
  },
@@ -157,8 +161,8 @@
      "node": "ks"
     }
    ],
-   "default": 20,
-   "description": "采样步数。步数越多细节越好但线性变慢；蒸馏版模型（名字带 distilled / fast / 8 步）刻意用很少的步数换速度，不要随意调高。",
+   "default": 8,
+   "description": "采样步数。**默认 8 步**：配 PDD Acc-8Step 蒸馏 LoRA（阿里 PAI 的并行解码蒸馏）实测 220s vs 20 步 409s，提速 46%，画质肉眼无差异（2026-11-15 实测，同 seed 同提示词同 768×768 对比）。去掉 LoRA 的话要改回 20 步以上。",
    "max": 50,
    "min": 1,
    "type": "int"

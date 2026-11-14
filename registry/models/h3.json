@@ -33,6 +33,14 @@
    "match": {
     "contains": "minimax_h3_video_vae_fp16"
    }
+  },
+  "lora": {
+   "name": "minimax/MiniMax-H3-FL2VA-Acc-8Step_pruned_comfy.safetensors",
+   "loader": "LoraLoaderModelOnly",
+   "input": "lora_name",
+   "match": {
+    "contains": "Acc-8Step_pruned_comfy"
+   }
   }
  },
  "defaults": {
@@ -72,6 +80,10 @@
    {
     "link": "/root/ComfyUI/models/vae/minimax_h3_video_vae_fp16.safetensors",
     "target": "/model/ModelScope/Comfy-Org/MiniMax-H3/vae/minimax_h3_video_vae_fp16.safetensors"
+   },
+   {
+    "link": "/root/ComfyUI/models/loras/minimax",
+    "target": "/model/comfyui/models/loras/minimax"
    }
   ]
  },

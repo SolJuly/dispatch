@@ -132,6 +132,24 @@ NEG = ""
 # 所以用同一张图（由 qwen_image_t2i 生成，见 reports/p2/p21/inputs/in-silverice.png）
 REF_IMG = "in-silverice.png"
 
+# 社区加速 LoRA（阿里 PAI 的 PDD 并行解码蒸馏，8 步档）。
+# 机器上 ComfyUI 版已在 /model/comfyui/models/loras/minimax/ 下，
+# 文件名带 _pruned_comfy 后缀，说明已按 ComfyUI 的键名重排过，可直接 Load。
+# FL2VA 用于文本/首尾帧驱动；Ref2VA 用于参考图驱动。
+# **必须带子目录前缀 minimax/**（2026-11-15 实测踩到）：
+# 文件物理路径是 models/loras/minimax/xxx.safetensors，
+# ComfyUI 的 LoraLoaderModelOnly 列的是相对 loras/ 的路径，
+# 少了 minimax/ 会被判 value_not_in_list：
+#     prompt_outputs_failed_validation → node_errors.lora
+PDD_LORA_FL2VA = "minimax/MiniMax-H3-FL2VA-Acc-8Step_pruned_comfy.safetensors"
+
+# PDD LoRA 是阿里按**官方 FL2VA 结构**训的蒸馏权重。
+# 当前卡用的 DasiwaHybridV2 是第三方混合模型（改过结构/键名），
+# 硬套官方 LoRA 会被 ComfyUI 判 value_not_in_list 或静默不生效。
+# 所以用官方 pruned int8 模型配它。
+OFFICIAL_FL2VA = "minimax/10Eros_Max_h3_fl2va_pruned_int8_convrot.safetensors"
+PDD_LORA_REF2VA = "minimax/MiniMax-H3-Ref2VA-Acc-8Step_pruned_comfy.safetensors"
+
 # 哪些提示词需要参考图 → 用哪个工作流
 IMAGE_PROMPTS = {"p4": "pack_video_minimax_h3_r2v", "p5": "h3_i2v_121f"}
 
@@ -149,6 +167,46 @@ def apply_sampler(graph: dict, name: str, sched: str) -> None:
         if n.get("class_type") == "KSampler":
             n["inputs"]["sampler_name"] = name
             n["inputs"]["scheduler"] = sched
+
+
+def apply_unet(graph: dict, name: str) -> None:
+    for n in graph.values():
+        if n.get("class_type") == "UNETLoader":
+            n["inputs"]["unet_name"] = name
+
+
+def apply_lora(graph: dict, name: str, strength: float = 1.0) -> None:
+    """把 PDD 加速 LoRA 接进链路：UNETLoader → LoraLoaderModelOnly → SigmaShift。
+
+    为什么接在这里而不是替换 unet：LoraLoaderModelOnly 是**旁挂**权重，
+    不改基础模型文件，卸载后立刻回 20 步基线，天然可回滚。
+    """
+    node = graph.get("lora")
+    if node is None:
+        lora_id = "lora"
+        graph[lora_id] = {
+            "_meta": {"title": "PDD Acc LoRA"},
+            "class_type": "LoraLoaderModelOnly",
+            "inputs": {"lora_name": name, "strength_model": strength,
+                       "model": ["unet", 0]},
+        }
+    else:
+        graph["lora"]["inputs"]["lora_name"] = name
+        graph["lora"]["inputs"]["strength_model"] = strength
+    for n in graph.values():
+        if n.get("class_type") in ("MiniMaxH3SigmaShift", "MiniMaxH3Shift"):
+            n["inputs"]["model"] = ["lora", 0]
+
+
+def drop_lora(graph: dict) -> None:
+    """摘掉 LoRA，链路回到 unet → shift。用于 baseline 对照。"""
+    if "lora" not in graph:
+        return
+    for n in graph.values():
+        if n.get("class_type") in ("MiniMaxH3SigmaShift", "MiniMaxH3Shift"):
+            if n["inputs"].get("model") == ["lora", 0]:
+                n["inputs"]["model"] = ["unet", 0]
+    graph.pop("lora", None)
 
 
 def apply_cfg(graph: dict, cfg: float) -> None:
@@ -172,16 +230,29 @@ def apply_vae(graph: dict, name: str) -> None:
 # ---- 变体表 -------------------------------------------------------------
 # 每个变体 = 一组图/参数改动。baseline 是改动前的原始配置，
 # 用来和修好之后的版本并排看。
+# 变体对 **params** 的覆盖。必须同时改 params 和 graph：
+# render 的 apply_params 会按卡上 schema 把 params 写进图，
+# 只改 graph 会被这一步覆盖回去（实测设 8 步跑成 20 步）。
+VARIANTS_PARAMS = {
+    "pdd8": {"steps": 8},
+    "pdd8off": {"steps": 8},
+    "pdd4": {"steps": 4},
+    "steps32": {"steps": 32},
+}
+
+
 VARIANTS = {
     "baseline": {
         "note": "改动前：shift 5/1 · euler/simple · int8 VAE · 20 步",
-        "graph": lambda g: (apply_shift(g, 5.0, 1.0),
+        "graph": lambda g: (drop_lora(g),
+                            apply_shift(g, 5.0, 1.0),
                             apply_sampler(g, "euler", "simple"),
                             apply_vae(g, "minimax_h3_video_vae_int8_convrot-v2.safetensors")),
     },
     "fixed": {
-        "note": "改动后：shift 12/3 · res_multistep · fp16 VAE · 20 步",
-        "graph": lambda g: (apply_shift(g, 12.0, 3.0),
+        "note": "改动后：shift 12/3 · res_multistep · fp16 VAE · 20 步（无 LoRA）",
+        "graph": lambda g: (drop_lora(g),
+                            apply_shift(g, 12.0, 3.0),
                             apply_sampler(g, "res_multistep", "simple"),
                             apply_vae(g, "minimax_h3_video_vae_fp16.safetensors")),
     },
@@ -204,6 +275,30 @@ VARIANTS = {
                             apply_vae(g, "minimax_h3_video_vae_fp16.safetensors"),
                             apply_steps(g, 32)),
     },
+    "pdd8off": {
+        "note": "官方 FL2VA int8 + PDD Acc-8Step LoRA（8 步，保质提速）",
+        "graph": lambda g: (apply_shift(g, 12.0, 3.0),
+                            apply_sampler(g, "res_multistep", "simple"),
+                            apply_vae(g, "minimax_h3_video_vae_fp16.safetensors"),
+                            apply_lora(g, PDD_LORA_FL2VA, 1.0),
+                            apply_steps(g, 8)),
+    },
+    "pdd4": {
+        "note": "PDD LoRA + 4 步（极限提速，看画质掉多少）",
+        "graph": lambda g: (apply_shift(g, 12.0, 3.0),
+                            apply_sampler(g, "res_multistep", "simple"),
+                            apply_vae(g, "minimax_h3_video_vae_fp16.safetensors"),
+                            apply_lora(g, PDD_LORA_FL2VA, 1.0),
+                            apply_steps(g, 4)),
+    },
+    "pdd8": {
+        "note": "改动后 + PDD Acc-8Step LoRA（并行解码蒸馏，8 步出片）",
+        "graph": lambda g: (apply_shift(g, 12.0, 3.0),
+                            apply_sampler(g, "res_multistep", "simple"),
+                            apply_vae(g, "minimax_h3_video_vae_fp16.safetensors"),
+                            apply_lora(g, PDD_LORA_FL2VA),
+                            apply_steps(g, 8)),
+    },
     "resmulti": {
         "note": "只改 res_multistep（其余同 baseline）",
         "graph": lambda g: (apply_shift(g, 5.0, 1.0),
@@ -211,6 +306,66 @@ VARIANTS = {
                             apply_vae(g, "minimax_h3_video_vae_int8_convrot-v2.safetensors")),
     },
 }
+
+
+# H3 官方硬约束（UnifiedForge/h3.c + FlowForgeLab 8GB 工作流两份来源一致）：
+#   短边 <= 768、面积 <= 768x1344、宽高都是 32 的倍数。
+# 超过短边 768 画质反而下降 —— 训练区间就在 768p。
+H3_SHORT_MAX = 768
+H3_AREA_MAX = 768 * 1344
+
+
+def _snap(v: int) -> int:
+    return max(32, int(round(v / 32.0)) * 32)
+
+
+def fit_resolution(ref_w: int, ref_h: int, mode: str, wf: int, hf: int) -> tuple[int, int]:
+    """把参考图比例压进 H3 的合规区间，尽量取最大像素。
+
+    为什么必须保持参考图比例（2026-11-15 实测踩到）：
+    p5 的参考图是 1024x1024（1:1），却按 768x512（3:2）出片 ——
+    人物被横向拉扁，用户一眼就看出来"比例不对"。
+
+    为什么上限是短边 768 而不是往大里堆：
+    H3 是 768p 模型，短边超过 768 会离开训练区间，画质反而下降
+    （FlowForgeLab 8GB 工作流里明确记着这个）。
+    """
+    if wf and hf:
+        return wf, hf
+    if mode == "square768":
+        return 768, 768
+    if mode == "hd":
+        return 1024, 768
+    if mode == "same":
+        return _snap(ref_w), _snap(ref_h)
+
+    # max：保持比例，短边钉到 768，再按面积上限收
+    ar = ref_w / ref_h
+    if ref_w >= ref_h:          # 横版或正方：高是短边
+        h = H3_SHORT_MAX
+        w = _snap(h * ar)
+    else:                       # 竖版：宽是短边
+        w = H3_SHORT_MAX
+        h = _snap(w / ar)
+    # 面积超限就等比缩
+    if w * h > H3_AREA_MAX:
+        scale = (H3_AREA_MAX / (w * h)) ** 0.5
+        w, h = _snap(w * scale), _snap(h * scale)
+    return w, h
+
+
+def _ref_size() -> tuple[int, int]:
+    """读参考图宽高（PNG 头，不依赖 PIL）。"""
+    p = ROOT / "reports" / "p2" / "p21" / "inputs" / REF_IMG
+    try:
+        head = p.read_bytes()[:33]
+        if head[:8] == b"\x89PNG\r\n\x1a\n":
+            import struct
+            w, h = struct.unpack(">II", head[16:24])
+            return int(w), int(h)
+    except Exception:
+        pass
+    return 1024, 1024
 
 
 def make_spec(wf_key: str, prompt: str, variant: str, wf: int, hf: int):
@@ -238,6 +393,14 @@ def make_spec(wf_key: str, prompt: str, variant: str, wf: int, hf: int):
         })
         if wf_key == "h3_i2v_121f":
             params["image"] = REF_IMG
+    # 变体对 params 的覆盖**必须在 resolve 之前**：
+    # steps/cfg 都是卡上 schema 的字段，resolve 会按 schema 校验并生成 spec，
+    # 之后再改 params 不会进 spec；只改 graph 又会被 render 的 apply_params
+    # 覆盖回去（2026-11-15 实测：想跑 8 步，实际跑了 20 步）。
+    for _k, _v in (VARIANTS_PARAMS.get(variant) or {}).items():
+        if _k in (registry.get_workflow(wf_key).get("params") or {}):
+            params[_k] = _v
+
     res = registry.resolve(wf_key, params=params, allow_experimental=True)
     spec = p20cli._make_spec(res, job_key=wf_key, task_ref="H3-画质实验")
     tc, src = lifecycle.normalize_task_class("short")
@@ -269,8 +432,14 @@ def main(argv=None) -> int:
     ap.add_argument("--workflow", default="",
                     help="工作流 key；留空时按提示词自动选"
                          "（p4→r2v、p5→i2v、其余 t2v）")
-    ap.add_argument("--width", type=int, default=768)
-    ap.add_argument("--height", type=int, default=512)
+    ap.add_argument("--width", type=int, default=0,
+                    help="留空则按参考图比例算（i2v 保持首帧比例）")
+    ap.add_argument("--height", type=int, default=0)
+    ap.add_argument("--res", default="max",
+                    choices=["max", "square768", "same", "hd"],
+                    help="分辨率档：max=保持原比例的最高合规档；"
+                         "square768=768×768；same=参考图原始尺寸（可能超限）；"
+                         "hd=1024×768（横版）")
     ap.add_argument("--dry-run", action="store_true", help="只建 spec 不跑")
     ap.add_argument("--yes", action="store_true")
     a = ap.parse_args(argv)
@@ -289,7 +458,11 @@ def main(argv=None) -> int:
     # 参考图类提示词必须用对应的工作流，否则 image/image_2 参数根本不存在
     wf = a.workflow or IMAGE_PROMPTS.get(a.prompt) or "h3_t2v_121f"
 
-    spec, gpath = make_spec(wf, PROMPTS[a.prompt], a.variant, a.width, a.height)
+    rw, rh = _ref_size()
+    w, h = fit_resolution(rw, rh, a.res, a.width, a.height)
+    print(f"参考图 {rw}x{rh} → 输出 {w}x{h}"
+          f"（{w*h/1e6:.2f}MP，短边 {min(w,h)}）")
+    spec, gpath = make_spec(wf, PROMPTS[a.prompt], a.variant, w, h)
     print(f"工作流 {wf}")
     print(f"变体 {a.variant}：{VARIANTS[a.variant]['note']}")
     print(f"提示词 {a.prompt}（{len(PROMPTS[a.prompt])} 字符）")
