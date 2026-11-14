@@ -104,6 +104,92 @@ class TestGrade(unittest.TestCase):
         self.assertEqual(Q._grade(0), "D")
 
 
+class TestCoverageCap(unittest.TestCase):
+    """覆盖率封顶：画面过半是空的要比"稍微糊"判得重。
+
+    2026-11-14 加这条判据的直接原因：h3_t2v_121f 人眼判定"质量非常差"，
+    旧评分给 32 分 D，但 issue 只说"边缘能量 0.56 偏低"——
+    听起来像"稍微糊"，实际是 86% 的画面块什么都没画。
+    """
+
+    def test_empty_frame_capped_below_blurry(self):
+        empty, why_e = Q._bucket_cap(2.0, 5.0, 120, 240, 0.1, cover_bad=0.86)
+        blurry, _ = Q._bucket_cap(0.56, 5.0, 120, 240, 0.1)
+        self.assertIsNotNone(empty)
+        self.assertIn("cover", why_e)
+        # 空画面比糊更严重：糊至少还是一幅完整的画。
+        self.assertLess(empty, blurry, "覆盖率封顶必须比模糊封顶更严")
+
+    def test_mostly_full_frame_not_capped(self):
+        cap, _ = Q._bucket_cap(2.0, 5.0, 120, 240, 0.1, cover_bad=0.05)
+        self.assertIsNone(cap, "95% 有内容的画面不该被覆盖率封顶")
+
+    def test_tolerance_band_not_capped(self):
+        """15% 以内的空块（天空/水面/纯色背景）是合法构图。"""
+        cap, _ = Q._bucket_cap(2.0, 5.0, 120, 240, 0.1, cover_bad=0.14)
+        self.assertIsNone(cap)
+
+
+class TestBrokenFrames(unittest.TestCase):
+    """崩坏帧：突然变成纯色/黑块的帧。
+
+    2026-11-14 实测：minimax_multiframe 末尾 4 帧整屏纯蓝，旧评分 82.1 A。
+    """
+
+    def test_few_broken_frames_capped_to_c(self):
+        """2–5 帧封 C：主体可用，裁掉尾巴就能用。"""
+        cap, why = Q._bucket_cap(2.0, 5.0, 120, 240, 0.1, broken_n=4)
+        self.assertEqual(cap, 52)
+        self.assertIn("崩坏帧", why)
+
+    def test_many_broken_frames_capped_to_d(self):
+        cap, why = Q._bucket_cap(2.0, 5.0, 120, 240, 0.1, broken_n=12)
+        self.assertEqual(cap, 32)
+        self.assertIn("大段", why)
+
+    def test_one_broken_frame_tolerated(self):
+        cap, _ = Q._bucket_cap(2.0, 5.0, 120, 240, 0.1, broken_n=1)
+        self.assertIsNone(cap, "1 帧容忍（编码边缘情况）")
+
+    def test_broken_frames_detects_solid_color(self):
+        """`_broken_frames` 必须靠中位数判，而不是均值。"""
+        # 40 帧正常（约 2.4）+ 2 帧纯色（0.01）
+        edge = [2.4] * 38 + [0.01, 0.03]
+        r = Q._broken_frames(edge)
+        self.assertIsNotNone(r)
+        self.assertEqual(r["broken_frames"], 2)
+        self.assertLess(r["threshold"], 0.5)
+
+    def test_broken_frames_ignores_uniformly_dark_video(self):
+        """全片均匀偏暗不是"崩坏帧" —— 那是整体欠曝，由 luma 判据负责。"""
+        edge = [0.7] * 40
+        r = Q._broken_frames(edge)
+        self.assertIsNotNone(r)
+        self.assertEqual(r["broken_frames"], 0,
+                         "均匀偏暗不该被判成崩坏帧")
+
+    def test_too_few_samples_abstains(self):
+        self.assertIsNone(Q._broken_frames([1.0, 2.0]))
+
+
+class TestMotionScaleInvariance(unittest.TestCase):
+    """运动量必须与采样间隔无关 —— 这是 2026-11-14 发现的最严重的标定错误。
+
+    旧实现 every=3（每 3 帧取 1），YDIF 量的是"相邻**被采样**帧的差异"，
+    跳帧等于把时间跨度放大 3 倍，同一段动作被算成 3 倍运动量：
+
+        同一条 s2v 片子  every=1 → 1.12    every=3 → 1.97（虚高 75%）
+
+    后果：旧评分系统性高估运动，导致"几乎不动"的片子也拿高分。
+    这条测试钉住 every=1 这个前提。
+    """
+
+    def test_default_every_is_one(self):
+        import inspect
+        sig = inspect.signature(Q._stats_series)
+        self.assertEqual(sig.parameters["every"].default, 1,
+                         "必须是全帧采样，否则 YDIF 会虚高、且漏掉坏帧")
+
 class TestBucketCap(unittest.TestCase):
     """木桶封顶：这是让分数排序变正确的关键机制，逐条钉住。"""
 
@@ -119,7 +205,9 @@ class TestBucketCap(unittest.TestCase):
         self.assertIn("luma", why)
 
     def test_static_capped_but_looser(self):
-        cap, why = Q._bucket_cap(2.0, 0.5, 100, 200, 0.1)
+        # 2026-11-14：MOTION_STATIC 从 0.6 改成 0.5（every=1 全帧重标），
+        # 所以这里用 0.2 而不是贴边的 0.5 —— 贴边的常数会在阈值微调时假失败。
+        cap, why = Q._bucket_cap(2.0, 0.2, 100, 200, 0.1)
         self.assertIsNotNone(cap)
         self.assertIn("motion", why)
         # 静帧可能是用户要的（定格/照片风），封顶比"糊"宽松
