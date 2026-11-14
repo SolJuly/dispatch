@@ -27,6 +27,24 @@ PORT = int(os.environ.get("SHARE_PORT", "8081"))
 TOKEN_FILE = Path(os.environ.get("SHARE_TOKEN_FILE", ROOT.parent / ".share_token"))
 BIND = os.environ.get("SHARE_BIND", "127.0.0.1")
 MAX_UPLOAD = int(os.environ.get("SHARE_MAX_UPLOAD_MB", "200")) * 1024 * 1024
+
+def _sweep_link() -> str:
+    """最新一次全量实测结果页的导航按钮（没有就返回空串）。
+
+    为什么不写死文件名：sweep 页按日期命名（sweep-20261114.html），
+    写死会让下次跑出来的页面在导航上消失，而"生成了但没人找得到"
+    和没生成是一样的。
+    """
+    try:
+        lab = Path(__file__).resolve().parent / "reports" / "lab"
+        pages = sorted(lab.glob("sweep-*.html"))
+        if not pages:
+            return ""
+        return (f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/"
+                f"{pages[-1].name}'>🧪 全量实测</a>")
+    except Exception:
+        return ""
+
 BASE = os.environ.get("SHARE_BASE", "/files")  # nginx 反代的路径前缀
 PROJ = ROOT.parent
 # 产物/文档的发布根：nginx 用 /pub/ 直接静态服务，这里再给 /files/<token>/pub/ 一条等价路由，
@@ -702,7 +720,10 @@ class Handler(BaseHTTPRequestHandler):
             f"<a class='btn' href='{BASE}/{TOKEN}/risk'>🛡️ 风险监控</a>"
             f"<a class='btn' href='{BASE}/{TOKEN}/arch'>🗺️ 实时架构图</a>"
             f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/gallery-inline.html'>🖼️ 画廊</a>"
-            f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/REPORT.md'>📋 数据表</a>"
+            # 全量实测结果页（2026-11-14）：37 个产物一页看完，含 17 条不可用的根因。
+            # 用通配取最新的一个，而不是写死日期 —— 下次再跑 sweep 不用改这里。
+            + (_sweep_link() or "")
+            + f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/REPORT.md'>📋 数据表</a>"
             "</div>" + ("".join(rows) or "<p class='hint'>空目录</p>")
         )
         body += (f"<div class='hint'>共 {len(files)} 个文件 · {human(total)} · "
