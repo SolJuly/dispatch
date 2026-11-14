@@ -46,10 +46,17 @@ VARIANT_NOTE = {
     "resmulti": ("只改采样器", "res_multistep，其余同改动前"),
     "steps32": ("32 步", "改动后 + 32 步"),
 }
+KIND_NOTE = {
+    "p1": "文生视频", "p2": "文生视频", "p3": "文生视频",
+    "p4": "参考图生视频", "p5": "图生视频",
+}
+
 PROMPT_NOTE = {
     "p1": "高难度动作场景（剑、能量特效、多镜头切换）",
     "p2": "情绪特写（含泪、抬头、微表情）",
     "p3": "人像特写（指定痣的位置、手部动作）",
+    "p4": "参考图生视频（绕脸旋转、冰晶反光）— r2v 工作流",
+    "p5": "图生视频（缓慢推近、冰面裂纹）— i2v 工作流",
 }
 
 CSS = """
@@ -158,7 +165,8 @@ def main() -> int:
       "社区实测 <code>VHS_VideoCombine(crf=12)</code> 可达 10393 kb/s。</div>")
 
     for pr in sorted(by_prompt):
-        A(f"<h2>提示词 {pr} · {PROMPT_NOTE.get(pr, '')}</h2>")
+        A(f"<h2>{KIND_NOTE.get(pr, '')} · 提示词 {pr}</h2>")
+        A(f"<div class='sub'>{PROMPT_NOTE.get(pr, '')}</div>")
         A("<div class='row'>")
         for var, f in sorted(by_prompt[pr]):
             info = probe(f)

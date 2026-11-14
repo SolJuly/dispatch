@@ -75,6 +75,30 @@ PROMPTS = {
         "focusing entirely on her facial micro-expressions. High-quality drama "
         "aesthetic, slow motion feel, poignant atmosphere."
     ),
+    "p4": (
+        "Reference-based character: silver-haired anime girl with pale flawless "
+        "skin, heterochromatic eyes — one crimson-red jewel eye, one cyan-blue "
+        "jewel eye, delicate pink lips, wrapped in translucent shattered ice with "
+        "visible crack lines. Camera slowly orbits around her frozen face, ice "
+        "shards catching glancing light, dust motes floating in cold air, her gaze "
+        "shifting slightly toward the lens. Soft volumetric moonlight, blue-cyan "
+        "and faint warm red accent lighting, subsurface scattering on ice, shallow "
+        "focus, cinematic bokeh, melancholic serene mood, high-fidelity anime 3D "
+        "realism, detailed frost and refraction, fluid graceful movement, 24fps, "
+        "5 seconds."
+    ),
+    "p5": (
+        "Extreme close-up of a silver-haired girl encased in translucent cracked "
+        "ice, her heterochromatic eyes glowing crimson-red and cyan-blue beneath "
+        "the frozen surface. Subtle breathing motion: fine frost particles slowly "
+        "drifting inside the ice, hair strands gently swaying, faint inner light "
+        "pulsing softly across her irises. Slow dolly-in push toward her face, ice "
+        "cracks glinting with cold refracted highlights, tiny bubbles rising. Pale "
+        "moonlight rim light, soft cool blue palette, crystalline subsurface "
+        "scattering, shallow depth of field, dreamy ethereal atmosphere, cinematic "
+        "anime realism, hyper-detailed ice texture, smooth cinematic motion, 24fps, "
+        "5 seconds."
+    ),
     "p3": (
         "A photorealistic, close-up portrait video of a beautiful young woman with "
         "long dark brown hair and soft makeup. She has a distinct small mole under "
@@ -103,6 +127,13 @@ PROMPTS = {
 # 而 MinimaxH3ImageToVideo 的 negative 节点仍然要吃一个 prompt，
 # 喂一段长中文进去会把条件张量带偏，最终解码出黑屏。
 NEG = ""
+
+# 参考图：p4/p5 都描述同一个银发异色瞳少女，
+# 所以用同一张图（由 qwen_image_t2i 生成，见 reports/p2/p21/inputs/in-silverice.png）
+REF_IMG = "in-silverice.png"
+
+# 哪些提示词需要参考图 → 用哪个工作流
+IMAGE_PROMPTS = {"p4": "pack_video_minimax_h3_r2v", "p5": "h3_i2v_121f"}
 
 
 def apply_shift(graph: dict, video: float, audio: float) -> None:
@@ -187,17 +218,26 @@ def make_spec(wf_key: str, prompt: str, variant: str, wf: int, hf: int):
     from tools.p20 import p20ctl as p20cli
     from tools.p20 import registry
 
-    params = {
-        "prompt": prompt,
-        "neg_prompt": NEG,
-        "seed": SEED,
-        "width": wf,
-        "height": hf,
-        "frames": 121,
-        # cfg=2 是唯一被实测验证过的值（p1-20261113T2316-93978b 用的就是 2）。
-        # 卡里的默认 1.0 会出全黑，见 NEG 的注释。
-        "cfg": 2.0,
-    }
+    # 参数必须按**每个工作流自己的契约**给，不能一套打通。
+    # pack_video_minimax_h3_r2v 只接受 image / image_2 / prompt / seed ——
+    # 它没有 width/height/frames/cfg/neg_prompt（尺寸和图都来自参考图本身）。
+    # 多给一个参数会被 resolve 直接拒绝。
+    params: dict = {"prompt": prompt, "seed": SEED}
+    if wf_key == "pack_video_minimax_h3_r2v":
+        params["image"] = REF_IMG
+        params["image_2"] = REF_IMG
+    else:
+        params.update({
+            "neg_prompt": NEG,
+            "width": wf,
+            "height": hf,
+            "frames": 121,
+            # cfg=2 是唯一被实测验证过的值（p1-20261113T2316-93978b 用的就是 2）。
+            # 卡里的默认 1.0 会出全黑，见 NEG 的注释。
+            "cfg": 2.0,
+        })
+        if wf_key == "h3_i2v_121f":
+            params["image"] = REF_IMG
     res = registry.resolve(wf_key, params=params, allow_experimental=True)
     spec = p20cli._make_spec(res, job_key=wf_key, task_ref="H3-画质实验")
     tc, src = lifecycle.normalize_task_class("short")
@@ -226,7 +266,9 @@ def main(argv=None) -> int:
     ap.add_argument("--list", action="store_true", help="列出变体与提示词")
     ap.add_argument("--variant", default="fixed")
     ap.add_argument("--prompt", default="p1", choices=sorted(PROMPTS))
-    ap.add_argument("--workflow", default="h3_t2v_121f")
+    ap.add_argument("--workflow", default="",
+                    help="工作流 key；留空时按提示词自动选"
+                         "（p4→r2v、p5→i2v、其余 t2v）")
     ap.add_argument("--width", type=int, default=768)
     ap.add_argument("--height", type=int, default=512)
     ap.add_argument("--dry-run", action="store_true", help="只建 spec 不跑")
@@ -244,8 +286,11 @@ def main(argv=None) -> int:
         print(f"✗ 没有变体 {a.variant}", file=sys.stderr)
         return 1
 
-    spec, gpath = make_spec(a.workflow, PROMPTS[a.prompt], a.variant,
-                            a.width, a.height)
+    # 参考图类提示词必须用对应的工作流，否则 image/image_2 参数根本不存在
+    wf = a.workflow or IMAGE_PROMPTS.get(a.prompt) or "h3_t2v_121f"
+
+    spec, gpath = make_spec(wf, PROMPTS[a.prompt], a.variant, a.width, a.height)
+    print(f"工作流 {wf}")
     print(f"变体 {a.variant}：{VARIANTS[a.variant]['note']}")
     print(f"提示词 {a.prompt}（{len(PROMPTS[a.prompt])} 字符）")
     print(f"graph → {gpath.relative_to(ROOT)}")
