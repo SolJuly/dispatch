@@ -34,6 +34,74 @@ SSH_PORT = "23"
 DEFAULT_MAX_TOTAL = 4      # 账户 5 台，留 1 个槽给「池空时 fallback 建机」
 STALE_HOURS = 24
 
+# 过渡期拒绝的重试参数。
+#
+# 为什么必须有：实例刚 start 完成、或正在处理上一次 stop 时，平台会拒绝新的
+# 关机/删除请求，返回 226609（"实例正在进行关机相关操作"）或 8903
+# （"UHost is in the task"）。这两者都是**可重试**的，十几秒后就会成功。
+#
+# 2026-11-14 真机踩到：release() 没有重试，一次 226609 就把实例标成 dead，
+# 但云端仍在 Running —— 实例继续按 ¥1.41/h 烧钱，而池子再也不管它。
+# 这是「孤儿实例」最典型的产生路径，也是直接的费用泄漏。
+RETRY_TRANSIENT = 3
+RETRY_TRANSIENT_WAIT = 10
+# 命中这些子串即视为可重试（大小写不敏感）
+TRANSIENT_MARKS = ("226609", "8903", "in the task",
+                   "正在进行关机", "请稍后再试", "please try again")
+# 归还不成功的实例不该标 dead（那等于放弃它），标 orphan 交给 reconcile 兜底销毁
+STATE_ORPHAN = "orphan"
+
+
+def _is_transient(err: BaseException) -> bool:
+    """这个错误等一会儿重试有没有意义？"""
+    msg = str(err).lower()
+    return any(m.lower() in msg for m in TRANSIENT_MARKS)
+
+
+def _stop_with_retry(cs: "CS", uid: str, tries: int | None = None,
+                     wait_s: int | None = None) -> None:
+    """调 stop 并在过渡期拒绝时重试。成功即返回，失败抛最后一次异常。
+
+    注意：**不吞异常**。调用方要据此决定把实例标成什么状态 ——
+    吞掉会让「没停成功」看起来像「停成功了」，正是孤儿实例的温床。
+    """
+    tries = RETRY_TRANSIENT if tries is None else tries
+    wait_s = RETRY_TRANSIENT_WAIT if wait_s is None else wait_s
+    last: BaseException | None = None
+    for attempt in range(1, tries + 1):
+        try:
+            cs.stop(uid)
+            return
+        except Exception as e:                      # noqa: BLE001
+            last = e
+            if not _is_transient(e) or attempt == tries:
+                raise
+            _say(f"  过渡期拒绝（{attempt}/{tries}）：{str(e)[:60]}，{wait_s}s 后重试")
+            time.sleep(wait_s)
+    if last:
+        raise last
+
+
+def _terminate_with_retry(cs: "CS", uid: str, tries: int | None = None,
+                          wait_s: int | None = None) -> None:
+    """同 _stop_with_retry，但调 terminate。"""
+    tries = RETRY_TRANSIENT if tries is None else tries
+    wait_s = RETRY_TRANSIENT_WAIT if wait_s is None else wait_s
+    last: BaseException | None = None
+    for attempt in range(1, tries + 1):
+        try:
+            cs.terminate(uid)
+            return
+        except Exception as e:                      # noqa: BLE001
+            last = e
+            if not _is_transient(e) or attempt == tries:
+                raise
+            _say(f"  过渡期拒绝（{attempt}/{tries}）：{str(e)[:60]}，{wait_s}s 后重试")
+            time.sleep(wait_s)
+    if last:
+        raise last
+
+
 
 def _now() -> float:
     return time.time()
@@ -211,13 +279,17 @@ def acquire(job_id: str, wait_ready_s: int = 180) -> dict | None:
 
 
 def release(uid: str, keep: bool = True) -> None:
-    """作业结束：停机保留（默认）或销毁。"""
+    """作业结束：停机保留（默认）或销毁。
+
+    **失败不标 dead**：dead 在 reconcile 里只被移除记录、不保证云端已销毁，
+    等于放任实例继续烧钱。这里改成 orphan，让 reconcile 明确去 terminate。
+    """
     cs = CS()
     d = load()
     it = next((i for i in d["instances"] if i["uid"] == uid), None)
     try:
         if keep:
-            cs.stop(uid)
+            _stop_with_retry(cs, uid)
             cs.wait_state(uid, {"stopped"}, timeout=600)
             if it:
                 it.update({"state": "idle", "job_id": None, "last_used": _now(),
@@ -230,20 +302,33 @@ def release(uid: str, keep: bool = True) -> None:
                 pass
             _say(f"↩ {uid} 已停机回池")
         else:
-            cs.terminate(uid)
+            _terminate_with_retry(cs, uid)
             if it:
                 it["state"] = "dead"
             _say(f"✗ {uid} 已销毁")
     except Exception as e:
         _say(f"⚠ 归还 {uid} 失败：{type(e).__name__}: {e}")
         if it:
-            it["state"] = "dead"
+            # orphan = 「池子已经不管它了，但云端可能还活着」
+            # reconcile 见到 orphan 会去 terminate，而不是只从表里删掉。
+            it.update({"state": STATE_ORPHAN, "job_id": None,
+                       "orphan_since": _now(), "orphan_reason": str(e)[:200]})
+        _say(f"  → 标记 orphan，等 reconcile 兜底销毁")
     save(d)
 
 
 # ------------------------------------------------------------------ 巡检/清空
 def reconcile() -> dict:
-    """回收 dead / 超期实例；把「云端已 stopped 但池内 busy」纠正为 idle。"""
+    """回收 dead/orphan/超期实例；纠正 busy↔idle；扫描云端孤儿。
+
+    三类回收的语义差异（踩过才分清的）：
+
+      dead    池子主动销毁过，正常情况云端已经没了。若还在，补一次 terminate。
+      orphan  归 还 失 败 —— 池子不管它了，但云端**极可能还在烧钱**。
+              这是 2026-11-14 真机发现的问题：release 撞 226609 后标 dead，
+              而实例仍是 Running，¥1.41/h 一直扣。必须强制 terminate。
+      stale   闲置超过 STALE_HOURS，环境可能漂移，重建比复用便宜。
+    """
     cs = CS()
     d = load()
     changed = []
@@ -257,10 +342,25 @@ def reconcile() -> dict:
             changed.append(f"{uid}:gone")
             continue
         it["cloud_state"] = st
+
+        # orphan 优先处理：它可能是正在烧钱的实例
+        if it["state"] == STATE_ORPHAN:
+            try:
+                _terminate_with_retry(cs, uid)
+                changed.append(f"{uid}:orphan→terminated")
+            except Exception as e:                  # noqa: BLE001
+                # 销毁也失败 → 保留记录，下一轮再试。
+                # **绝不在这里 remove**：记录一删，这台机器就彻底没人管了。
+                it["orphan_reason"] = f"{str(e)[:160]}"
+                changed.append(f"{uid}:orphan-retry-later")
+                continue
+            d["instances"].remove(it)
+            continue
+
         if it["state"] == "dead" or (st == "stopped" and it["state"] == "busy"):
             if it["state"] == "dead":
                 try:
-                    cs.terminate(uid)
+                    _terminate_with_retry(cs, uid)
                 except Exception:
                     pass
                 d["instances"].remove(it)
@@ -271,11 +371,35 @@ def reconcile() -> dict:
         age_h = (_now() - (it.get("last_used") or it.get("created_at") or 0)) / 3600
         if it["state"] == "idle" and age_h > STALE_HOURS:
             try:
-                cs.terminate(uid)
+                _terminate_with_retry(cs, uid)
             except Exception:
                 pass
             d["instances"].remove(it)
             changed.append(f"{uid}:stale({age_h:.0f}h)")
+
+    # ---- 云端孤儿扫描：名字带池前缀、但池里没有记录的实例 ----
+    # 为什么还要扫云端：release 失败时如果进程恰好被杀，pool.json 里连
+    # orphan 记录都没留下，这台机器就成了完全隐形的费用泄漏。
+    known = {i["uid"] for i in d["instances"]}
+    try:
+        for inst in cs.instances():
+            name = str(inst.get("Name") or "")
+            uid = inst.get("UHostId") or ""
+            if not uid or uid in known:
+                continue
+            if not name.startswith(NAME_PREFIX):
+                continue
+            state = str(inst.get("State") or "").lower()
+            if state in ("terminated", "terminating"):
+                continue
+            try:
+                _terminate_with_retry(cs, uid)
+                changed.append(f"{uid}:cloud-orphan({name})→terminated")
+            except Exception as e:                  # noqa: BLE001
+                changed.append(f"{uid}:cloud-orphan-failed:{str(e)[:40]}")
+    except Exception as e:                          # noqa: BLE001
+        changed.append(f"cloud-scan-skipped:{str(e)[:40]}")
+
     save(d)
     return {"changed": changed, **status(d)}
 
