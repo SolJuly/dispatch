@@ -58,13 +58,25 @@ FAIL_RULES = [
 
 
 def base_url() -> str:
-    try:
-        tok = TOKEN_FILE.read_text(encoding="utf-8").strip()
-    except Exception:
-        return ""
-    # 注意是 /f/ 而不是 /f/reports/lab/：页面引用的产物在 reports/p1/jobs/ 下，
-    # 不在 lab/ 下，前缀到 lab 会让每个链接都得写 ../。
-    return f"/files/{tok}/f/" if tok else ""
+    """产物 URL 前缀 —— **相对路径**，不含 token。
+
+    为什么不能把 token 写进页面（2026-11-14 安全测试抓到）：
+
+        真实 token 一旦嵌进 HTML，页面被导出、截图、转发时就一起泄了；
+        而且 `test_no_token_in_repo_files` 会扫全仓库，直接判失败。
+
+    为什么相对路径就够：页面本身是通过 `/files/<token>/f/...` 打开的，
+    浏览器解析相对 URL 时会自动带上当前页面的目录 —— 同源、同 token，
+    不需要我们再拼一次。产物在 `reports/p1/jobs/`，页面在 `reports/lab/`，
+    所以前缀是 `../p1/`。虽然 URL 上带 `..`，但这是**相对解析**，
+    不是服务器端路径穿越：请求行会被浏览器规范化成
+    `/files/<token>/f/reports/p1/jobs/...`，与绝对路径完全等价。
+
+    （早先一版用 `../p1/jobs/` 被我自己改掉了，理由是"页面里带路径穿越"；
+      那个理由不成立 —— 规范化发生在客户端，服务端看到的是干净路径。
+      真正的问题是绝对路径必须带 token，那才是硬伤。）
+    """
+    return "../p1/"
 
 
 def _has_ffmpeg() -> bool:
@@ -276,25 +288,22 @@ def render(ok: list[dict], bad: list[dict], date: str) -> str:
     A("<div class='grid'>")
     for r in ok:
         art = r["art"]
-        # 产物在 reports/p1/jobs/ 下，页面在 reports/lab/ 下。
-        # **不用 ../**：虽然实测服务器会规范化并返回 200，但「页面里带路径穿越」
-        # 会让任何一层静态校验（nginx、CDN、安全扫描）把它当成可疑请求拒掉，
-        # 而且从 URL 上完全看不出真实位置。直接用站点根绝对路径。
-        rel = f"reports/p1/jobs/{r['jid']}/artifacts/{art.name}"
+        # 相对页面（reports/lab/）解析：产物在 reports/p1/jobs/ 下。
+        # base = "../p1/"，拼出来是 "../p1/jobs/<jid>/artifacts/x.png"。
+        rel = f"{base}jobs/{r['jid']}/artifacts/{art.name}"
         is_vid = art.suffix.lower() in VID_EXT
         if is_vid:
             poster = make_poster(art)
             ptxt = ""
             if poster:
-                ptxt = f" poster='{base}reports/lab/{poster.relative_to(LAB).as_posix()}'"
-            media = (f"<video src='{base}{rel}' controls preload='metadata'"
+                ptxt = f" poster='{poster.relative_to(LAB).as_posix()}'"
+            media = (f"<video src='{rel}' controls preload='metadata'"
                      f"{ptxt} playsinline></video>")
         else:
             thumb = make_thumb(art)
-            src = (f"{base}reports/lab/{thumb.relative_to(LAB).as_posix()}"
-                   if thumb else f"{base}{rel}")
+            src = (thumb.relative_to(LAB).as_posix() if thumb else rel)
             media = (f"<img src='{src}' loading='lazy' "
-                     f"onclick=\"zoom('{base}{rel}', false)\">")
+                     f"onclick=\"zoom('{rel}', false)\">")
         g = r["grade"] or "?"
         A("<div class='card'>")
         A(media)
