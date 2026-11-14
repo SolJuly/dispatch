@@ -31,6 +31,8 @@ reports/p1/status.json
 reports/architecture.svg
 reports/architecture.html
 reports/lab/gallery*.html
+reports/lab/sweep-*.html
+reports/lab/.sweep-thumbs/
 
 # P1 运行态补充：锁文件 + 每 10 分钟被 cron 覆盖的风险报告
 reports/p1/.job.lock
