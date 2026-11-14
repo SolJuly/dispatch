@@ -219,3 +219,110 @@ class SendMediaTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class CacheHeaderTest(unittest.TestCase):
+    """媒体响应必须可缓存 —— no-store 会让视频拖动每次都从头拉。"""
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "dsh_fileserver_cache", _ROOT / "fileserver.py")
+        cls.mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.mod)
+
+    def _call(self, path):
+        H = self.mod.Handler
+        inst = H.__new__(H)
+        cap = {"status": None, "headers": {}, "body": b""}
+
+        class W:
+            def write(self, b):
+                cap["body"] += b
+
+            def flush(self):
+                pass
+
+        inst.wfile = W()
+        inst.command = "GET"
+        inst.headers = {}
+        inst.send_response = lambda c, m=None: cap.__setitem__("status", c)
+        inst.send_header = lambda k, v: cap["headers"].__setitem__(k, v)
+        inst.end_headers = lambda: None
+        inst._send_media(path, "video/mp4", inline=True)
+        return cap
+
+    def test_cache_control_is_not_no_store(self):
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
+            f.write(b"x" * 1000)
+            name = f.name
+        try:
+            cap = self._call(Path(name))
+            cc = cap["headers"].get("Cache-Control", "")
+            self.assertNotIn("no-store", cc,
+                             "no-store 会让拖动进度条每次都重新拉整个区间")
+            self.assertIn("max-age", cc.lower())
+        finally:
+            os.unlink(name)
+
+    def test_etag_present(self):
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
+            f.write(b"x" * 1000)
+            name = f.name
+        try:
+            cap = self._call(Path(name))
+            self.assertIn("ETag", cap["headers"])
+        finally:
+            os.unlink(name)
+
+    def test_chunk_size_at_least_128k(self):
+        """64KB 分块在平板上拖进度条会明显卡（syscall 过多）。"""
+        self.assertGreaterEqual(self.mod.STREAM_CHUNK, 128 * 1024)
+
+
+class ImageRangeTest(unittest.TestCase):
+    """大 PNG 也要走流式 + Range（1536² 的图有 2.9MB）。"""
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "dsh_fileserver_img", _ROOT / "fileserver.py")
+        cls.mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.mod)
+
+    def test_png_in_img_ext(self):
+        self.assertIn(".png", self.mod.IMG_EXT)
+
+    def test_send_media_works_for_png(self):
+        H = self.mod.Handler
+        inst = H.__new__(H)
+        cap = {"status": None, "headers": {}, "body": b""}
+
+        class W:
+            def write(self, b):
+                cap["body"] += b
+
+            def flush(self):
+                pass
+
+        inst.wfile = W()
+        inst.command = "GET"
+        inst.headers = {"Range": "bytes=0-99"}
+        inst.send_response = lambda c, m=None: cap.__setitem__("status", c)
+        inst.send_header = lambda k, v: cap["headers"].__setitem__(k, v)
+        inst.end_headers = lambda: None
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+            f.write(b"\x89PNG" + b"z" * 500)
+            name = f.name
+        try:
+            inst._send_media(Path(name), "image/png", inline=True)
+            self.assertEqual(cap["status"], 206)
+            self.assertEqual(len(cap["body"]), 100)
+        finally:
+            os.unlink(name)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

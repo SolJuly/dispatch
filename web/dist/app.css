@@ -336,6 +336,11 @@ input[type=number]{width:130px;background:#12161d;color:var(--fg);border:1px sol
 .res-head .acts>*{flex:0 0 auto}
 .media{display:grid;gap:12px}
 .media .m1{background:#0b0e13;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+/* 缩略图可点：给个手型 + 悬停轻微提亮，暗示「点一下看原图」。
+   加载原图期间保持缩略图占位（浏览器会保留旧帧），不闪白。 */
+.media .m1 img.zoomable{cursor:zoom-in;transition:filter .15s}
+.media .m1 img.zoomable:hover{filter:brightness(1.08)}
+.media .m1 img.zoomed{cursor:default}
 .media .m1 img,.media .m1 video{width:100%;max-height:min(70vh,620px);object-fit:contain;display:block;
   background:#000}
 .media .cap{display:flex;gap:10px;align-items:center;padding:9px 12px;font-family:var(--mono);

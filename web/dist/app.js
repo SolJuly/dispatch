@@ -1049,6 +1049,21 @@ function qualityCard(q) {
 
 function renderResult() {
   const root = $('#result');
+  // 缩略图 → 原图（事件委托，只绑一次）。点过就换掉 src 并去掉标记，
+  // 再点不会重复拉；原图复用同一 <img> 元素，不跳页、不弹窗。
+  if (!root._zoomBound) {
+    root._zoomBound = true;
+    root.addEventListener('click', e => {
+      const img = e.target.closest && e.target.closest('img.zoomable');
+      if (!img || !img.dataset.full) return;
+      const full = img.dataset.full;
+      img.removeAttribute('data-full');
+      img.classList.remove('zoomable');
+      img.classList.add('zoomed');
+      img.removeAttribute('title');
+      img.src = full;
+    });
+  }
   if (S.detailErr) {
     const nf = S.detailErr.status === 404;
     root.innerHTML = `<div class="card"><div class="empty"><span class="big">${nf ? '∅' : '⚠'}</span>
@@ -1130,10 +1145,18 @@ function artifactCard(a, jobId, index = 0) {
   const isImg = /\.(png|jpe?g|webp|gif)$/i.test(a.name || '');
   // 第一个视频 preload=metadata（拿到时长/封面即可播放），其余 none（点播放才加载）
   const pre = index === 0 ? 'metadata' : 'none';
+  // 图片：先出缩略图（~50KB），点一下原地换成原图（2.9MB）。
+  // 以前直接把原图塞进 <img>，1536² 的 PNG 在平板上要转好几秒；
+  // 而且用户往往只是想确认「出图了没有」，没必要每次都拉全分辨率。
+  const thumb = a.thumb_url ? esc(artUrl(a.thumb_url)) : '';
+  const imgTag = (thumb && thumb !== url)
+    ? `<img src="${thumb}" alt="${esc(a.name)}" loading="lazy" decoding="async"
+         class="zoomable" data-full="${url}" title="点击查看原图">`
+    : `<img src="${url}" alt="${esc(a.name)}" loading="lazy">`;
   const body = isVid
     ? `<video controls preload="${pre}" playsinline webkit-playsinline
          src="${url}" data-idx="${index}"></video>`
-    : isImg ? `<img src="${url}" alt="${esc(a.name)}" loading="lazy">`
+    : isImg ? imgTag
     : `<div class="pad mono">${esc(a.name)}</div>`;
   return `<div class="m1">${body}
     <div class="cap"><span>${esc(a.name)} · ${bytes(a.bytes)}${a.width ? ` · ${a.width}×${a.height}` : ''}

@@ -52,9 +52,10 @@ IMG_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
 # 判据用扩展名而不是 Content-Type：mimetypes 对 .m4v 之类可能返回 None。
 MEDIA_EXT = {".mp4", ".m4v", ".mov", ".webm", ".mkv", ".avi",
              ".mp3", ".wav", ".flac", ".m4a", ".ogg", ".aac"}
-# 流式发送的分块大小。64KB 是 HTTP/1.1 下吞吐与内存的常见折中；
-# 太小会 syscall 过多，太大在小内存机上会让 RSS 抖。
-STREAM_CHUNK = 64 * 1024
+# 流式发送的分块大小。256KB 是实测折中：
+# 64KB 时平板拖进度条明显卡（每秒要发几十个 syscall）；
+# 1MB 以上又会让首字节延迟变高（要攒满一块才发）。
+STREAM_CHUNK = 256 * 1024
 CODE_EXT = {".py", ".sh", ".json", ".yml", ".yaml", ".cfg", ".ini", ".txt", ".csv", ".log"}
 
 # 前端构建产物根目录（Vite 的 web/dist）。不入库，缺失时 /ui/ 返回可读的构建提示，
@@ -483,9 +484,32 @@ class Handler(BaseHTTPRequestHandler):
 
         hdrs = dict(headers or {})
         hdrs.setdefault("Accept-Ranges", "bytes")
-        hdrs.setdefault("Cache-Control", "no-store")
+        # **不能 no-store**。视频拖动进度条会反复请求同一区间，
+        # no-store 让浏览器一段都不缓存，每次拖动都从头拉 —— 表现就是
+        # 「能拖但一直转圈」。产物文件不可变（文件名含内容戳），
+        # 所以 private + 强 ETag 是安全且收益最大的组合。
+        hdrs.setdefault("Cache-Control", "private, max-age=3600")
+        try:
+            st = path.stat()
+            hdrs.setdefault("ETag", f'"{int(st.st_mtime)}-{st.st_size:x}"')
+        except OSError:
+            pass
         if inline:
             hdrs.setdefault("Content-Disposition", "inline")
+
+        # 条件请求：客户端带了 If-None-Match 且没带 Range 时，命中就回 304。
+        # 少这一条，max-age 只是让浏览器「可以不发请求」，强行刷新仍会重下整个文件。
+        if not self.headers.get("Range"):
+            inm = (self.headers.get("If-None-Match") or "").strip()
+            et = hdrs.get("ETag", "")
+            if inm and et and et.strip('"') in [t.strip().strip('"') for t in inm.split(",")]:
+                self.send_response(304)
+                for k, v in hdrs.items():
+                    if k.lower() == "content-disposition":
+                        continue
+                    self.send_header(k, v)
+                self.end_headers()
+                return
 
         rng = self._parse_range(self.headers.get("Range", ""), size)
         if rng == "invalid":
@@ -708,7 +732,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._err(404, "文件不存在")
         ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
         ext = p.suffix.lower()
-        if ext in MEDIA_EXT and not force_dl:
+        # 图片也走流式：1536² 的 PNG 有 2.9MB，read_bytes() 让平板等整个文件
+        if (ext in MEDIA_EXT or ext in IMG_EXT) and not force_dl:
             return self._send_media(p, ctype, inline=True)
         headers = {}
         if force_dl:
@@ -768,6 +793,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, p.read_bytes(), ctype, {"Content-Disposition": disp})
         # 媒体在线预览（inline）：Range + 流式，浏览器可边下边播、可拖进度条
         if ext in MEDIA_EXT and not force_dl:
+            ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
+            return self._send_media(p, ctype, inline=True)
+        # 图片同理：大 PNG 全量读内存会让平板白屏很久
+        if ext in IMG_EXT and not force_dl:
             ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
             return self._send_media(p, ctype, inline=True)
         if ext in IMG_EXT or inline:

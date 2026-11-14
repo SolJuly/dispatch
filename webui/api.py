@@ -111,8 +111,14 @@ def _artifacts(job_id: str, jobs_dir: Path | None) -> list[dict]:
                 url = f"/f/reports/p1/jobs/{job_id}/artifacts/{p.name}"
             else:
                 url = f"/pub/jobs/{job_id}/{p.name}"
+            # 缩略图：结果页先出缩略图、点开才拉原图。
+            # 1536² 的 PNG 有 2.9MB，直接塞 <img> 在平板上要转好几秒；
+            # 520px 的 jpg 只有 ~50KB，快 60 倍。
+            t = thumb_for(p, src.parent) if src.parent.name == job_id else None
+            thumb_url = (f"/f/reports/p1/jobs/{job_id}/{THUMB_DIR_NAME}/{t.name}"
+                         if t else "")
             out.append({"name": p.name, "bytes": p.stat().st_size,
-                        "url": url,
+                        "url": url, "thumb_url": thumb_url,
                         "published": (pub / p.name).exists(),
                         "source": "local" if from_local else "published"})
     return out
