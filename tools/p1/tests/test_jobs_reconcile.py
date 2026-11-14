@@ -178,9 +178,36 @@ class TestFailCases(Base):
         r = self.judge(d, insts={})
         self.assertEqual(r.action, "fail_verify")
 
-    def test_no_uhost_no_artifacts_is_fail(self):
+    def test_created_never_started_is_keep_not_fail(self):
+        """CREATED 且无步骤 = 排队等执行，不是僵尸。
+
+        2026-11-14 实测事故：批量提交 22 条图像作业，并发上限 2，其余 19 条
+        停在 CREATED 等槽。cron 的 jobs_reconcile 15 分钟一跑，把它们全判成
+        「run.py 已退出、无实例、无产物、步骤未走完」→ FAILED。之后 run.py
+        真去执行时状态机只允许 FAILED → RESUMING，于是整批 19 条当场
+        IllegalTransition 失败，一条都没跑成。
+        """
         d = _job(self.root, "p1-20260101T0000-aaaaaa", "CREATED",
                  steps=[], arts=0)
+        r = self.judge(d, insts={})
+        self.assertEqual(r.action, "keep")
+        self.assertIn("在等执行", r.reason)
+
+    def test_created_but_has_steps_is_fail(self):
+        """CREATED 但留下步骤痕迹 = 曾经启动过又被打回，那种是真僵尸。
+
+        判据是「CREATED + 无任何步骤记录」，不是「CREATED」——否则真有僵尸
+        时对账会永远放过它。
+        """
+        d = _job(self.root, "p1-20260101T0000-aaaaaa", "CREATED",
+                 steps=["provision"], arts=0, uhost="")
+        r = self.judge(d, insts={})
+        self.assertEqual(r.action, "fail")
+
+    def test_running_no_uhost_no_artifacts_is_fail(self):
+        """RUNNING 卡住、无实例、无产物 —— 这才是原本要抓的僵尸。"""
+        d = _job(self.root, "p1-20260101T0000-aaaaaa", "RUNNING",
+                 steps=["provision", "setup"], arts=0)
         r = self.judge(d, insts={})
         self.assertEqual(r.action, "fail")
 

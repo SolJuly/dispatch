@@ -15,7 +15,7 @@
     "height": [
       512
     ],
-    "min_bytes": 300000,
+    "min_bytes": 100000,
     "width": [
       768
     ]

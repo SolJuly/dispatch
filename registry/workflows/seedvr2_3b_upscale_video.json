@@ -13,7 +13,7 @@
   "key": "seedvr2_3b_upscale_video",
   "kind": "video",
   "limits": {
-    "max_cost": 1.6,
+    "max_cost": 2.66,
     "max_minutes": 40
   },
   "model": {

@@ -13,7 +13,7 @@
   "key": "pack_video_ltx2_3_flf2v",
   "kind": "video",
   "limits": {
-    "max_cost": 1.6,
+    "max_cost": 2.66,
     "max_minutes": 40
   },
   "model": {

@@ -9,7 +9,7 @@
   "key": "pack_image_flux2_klein_image_edit_4b_distilled",
   "kind": "image",
   "limits": {
-    "max_cost": 0.8,
+    "max_cost": 1.33,
     "max_minutes": 20
   },
   "model": {

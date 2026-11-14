@@ -11,7 +11,7 @@
   "key": "seedvr2_3b_upscale",
   "kind": "image",
   "limits": {
-    "max_cost": 1.2,
+    "max_cost": 1.33,
     "max_minutes": 20
   },
   "model": {

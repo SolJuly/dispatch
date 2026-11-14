@@ -14,7 +14,7 @@
   "key": "pack_video_fasth3_ominiref_r2v",
   "kind": "video",
   "limits": {
-    "max_cost": 1.6,
+    "max_cost": 2.66,
     "max_minutes": 40
   },
   "model": {

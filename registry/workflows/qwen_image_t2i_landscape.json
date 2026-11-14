@@ -18,7 +18,7 @@
   "key": "qwen_image_t2i_landscape",
   "kind": "image",
   "limits": {
-    "max_cost": 1.0,
+    "max_cost": 1.99,
     "max_minutes": 30
   },
   "model": {

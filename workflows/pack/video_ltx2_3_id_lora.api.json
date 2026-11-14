@@ -643,7 +643,7 @@
  "276": {
   "class_type": "LoadAudio",
   "inputs": {
-   "audio": "ltx23_reference_audio.mp3"
+   "audio": ""
   },
   "_meta": {
    "title": "LoadAudio"

@@ -72,14 +72,45 @@ class TestConcurrency(unittest.TestCase):
                 conc.os.environ["P21_MAX_PARALLEL"] = old
 
     def test_env_override(self):
+        """环境变量能抬高**配置值**，但余额仍可能把它收紧。
+
+        2026-11-14 实测：余额 ¥10.11 时 `P21_MAX_PARALLEL=4` 返回 3 ——
+        因为 `max_parallel()` 是 `min(配置值, 余额撑得住的台数)`，
+        而 ¥10.11 / (¥2.15 × 0.75h) / SAFETY(2) ≈ 3。
+
+        所以这里断言的是「配置值生效」而不是「返回值等于 4」：
+        把余额函数打桩成"够 4 台"，才能单独验配置值这一层 ——
+        否则这条测试会随账户余额飘（今天 4 明天 3），变成假失败。
+        """
         old = conc.os.environ.get("P21_MAX_PARALLEL")
+        real_afford = conc._affordable_parallel
         try:
             conc.os.environ["P21_MAX_PARALLEL"] = "4"
+            conc._affordable_parallel = lambda: 4      # 余额够 4 台
             self.assertEqual(conc.max_parallel(), 4)
         finally:
+            conc._affordable_parallel = real_afford
             if old is None:
                 conc.os.environ.pop("P21_MAX_PARALLEL", None)
             else:
+                conc.os.environ["P21_MAX_PARALLEL"] = old
+
+    def test_money_only_tightens_never_raises(self):
+        """余额只向下收紧，不能把上限抬到配置值之上。
+
+        理由：上限的主要约束是显存（两条视频并行会 OOM），不是钱。
+        余额充足也不该自动放开 —— 那不是省钱，是制造失败。
+        """
+        old = conc.os.environ.pop("P21_MAX_PARALLEL", None)
+        real_afford = conc._affordable_parallel
+        try:
+            conc._affordable_parallel = lambda: 99     # 余额能撑 99 台
+            self.assertEqual(conc.max_parallel(), conc.DEFAULT_MAX_PARALLEL)
+            conc._affordable_parallel = lambda: 1      # 只够 1 台
+            self.assertEqual(conc.max_parallel(), 1)
+        finally:
+            conc._affordable_parallel = real_afford
+            if old is not None:
                 conc.os.environ["P21_MAX_PARALLEL"] = old
 
     def test_bad_env_falls_back_not_zero(self):

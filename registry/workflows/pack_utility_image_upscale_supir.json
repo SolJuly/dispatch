@@ -9,7 +9,7 @@
   "key": "pack_utility_image_upscale_supir",
   "kind": "image",
   "limits": {
-    "max_cost": 0.8,
+    "max_cost": 1.33,
     "max_minutes": 20
   },
   "model": {

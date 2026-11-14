@@ -25,7 +25,7 @@
   "key": "ltxv_2b_t2v",
   "kind": "video",
   "limits": {
-    "max_cost": 1.0,
+    "max_cost": 1.99,
     "max_minutes": 30
   },
   "model": {

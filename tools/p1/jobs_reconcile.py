@@ -68,6 +68,8 @@ JOBS_DIR = ROOT / "reports" / "p1" / "jobs"
 
 # 与 tools/p1/state.py 保持一致
 TERMINAL = frozenset({"DONE", "FAILED", "ABORTED"})
+# 排队等待执行的状态：这个状态本来就没有进程/实例，对账不得当僵尸处理。
+CREATED = "CREATED"
 
 # 静默超过这个时长才进入候选。60 分钟：
 # 实测最长的一条作业（LTX 2.5 视频 121 帧）推理 226s、整条闭环 5.1 分钟；
@@ -194,6 +196,7 @@ def assess_one(d: Path, procs: set[str], insts: dict[str, str] | None,
             (insts.get(uid) or "").lower() in ("running", "rebooting")
 
     steps = job.get("steps") or {}
+
     # **必须对着 STEP_ORDER 全表查**，不能只查 steps 里出现过的那几个。
     # 踩过：`6b6821` 只跑了 provision/setup/ready/submit 四步就死了，
     # `all(steps.values(), done)` 返回 True —— 把"跑了一半"判成"走完了"。
@@ -205,6 +208,25 @@ def assess_one(d: Path, procs: set[str], insts: dict[str, str] | None,
 
     def v(action: str, reason: str) -> Verdict:
         return Verdict(jid, st, has_proc, uid, inst_alive, idle_h, action, reason)
+
+    steps = job.get("steps") or {}
+
+    # ⓪ **CREATED 且从未启动过 → 队列里排着的作业，对账必须放过它。**
+    #
+    # 2026-11-14 实测事故：批量提交 22 条图像作业，全部停在 CREATED 等并发槽
+    # （并发上限 2），cron 的 jobs_reconcile 15 分钟一跑，把其中 19 条判成
+    # 「run.py 已退出、无实例记录、无产物、步骤未走完 —— 作业已无进展可能」
+    # 并写进 FAILED。等并发腾出来、run.py 真去执行时，状态机拒绝
+    # `FAILED → PROVISIONING`（只允许 RESUMING），于是整批 19 条当场报
+    # `IllegalTransition` 失败，一条都没跑成。
+    #
+    # 判据为什么是「CREATED + 没有任何步骤记录」而不是「CREATED」：
+    #   · CREATED 是"还没开始"的唯一状态，这个状态本来就不该有进程和实例
+    #   · 但如果某个作业曾经启动过又被打回 CREATED（异常路径），steps 会留下
+    #     痕迹，那种才是真僵尸，交给下面的常规判据处理
+    # 静默时长在这里**不能**当判据：排队等槽本来就可能是几十分钟，那不是异常。
+    if st == CREATED and not steps:
+        return v("keep", "CREATED 且未启动过 —— 在等执行，不是僵尸")
 
     # ① 进程还在 → 无论多慢都别动
     if has_proc:
