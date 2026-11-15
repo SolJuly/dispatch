@@ -239,6 +239,63 @@
      "input": "strength_model"
     }
    ]
+  },
+  "style": {
+   "type": "enum",
+   "required": false,
+   "default": "none",
+   "values": [
+    "none",
+    "realism",
+    "cinema",
+    "davham"
+   ],
+   "presets": {
+    "none": {
+     "style_lora": "minimax/h3-realism-people-t2v-i2v-r2v-触发词r34l1sm.safetensors",
+     "style_strength": 0.0
+    },
+    "realism": {
+     "style_lora": "minimax/h3-realism-people-t2v-i2v-r2v-触发词r34l1sm.safetensors",
+     "style_strength": 1.0
+    },
+    "cinema": {
+     "style_lora": "minimax/电影感H3-loraV1.0正式版.safetensors",
+     "style_strength": 1.0
+    },
+    "davham": {
+     "style_lora": "minimax/davham_cinema-h3-Euler-simple-0.8.safetensors",
+     "style_strength": 0.8
+    }
+   },
+   "virtual": true,
+   "description": "画面风格（用户自选）。**只对 H3 有效** —— LoRA 的权重形状由基础模型的层结构决定，H3 的 LoRA 不能用于 Wan/LTX/Qwen 等其他模型族。\n\n· **none**：不加风格 LoRA（默认）。中性写实，招牌文字不会变乱码\n· **realism**：`h3-realism-people`（触发词 r34l1sm）。低角度仰拍、动作更猛、复古霓虹，偏\"打斗片\"质感\n· **cinema**：`电影感H3-loraV1.0`。冷调强对比、青绿霓虹、电影调色。画面信息量最大（实测体积 +30%），但会让招牌文字变乱码\n· **davham**：`davham_cinema-h3`（强度 0.8，作者建议）。偏暖，改动最小，最接近 none\n\n实测依据：2026-11-15 用大幅动作提示词（夜雨天台冲刺/起跳/落地）对比四条，同 seed 同参数。静态画面的片子里这几个 LoRA 肉眼几乎无差别 —— 差异体现在运动模糊、布料褶皱、光影随动。"
+  },
+  "style_lora": {
+   "type": "string",
+   "required": false,
+   "default": "minimax/h3-realism-people-t2v-i2v-r2v-触发词r34l1sm.safetensors",
+   "description": "风格 LoRA 文件名。**一般不用手改** —— style 档会自动设。",
+   "bindings": [
+    {
+     "node": "lora_style",
+     "input": "lora_name"
+    }
+   ]
+  },
+  "style_strength": {
+   "type": "float",
+   "required": false,
+   "default": 0.0,
+   "min": 0.0,
+   "max": 2.0,
+   "description": "风格 LoRA 强度。**一般不用手改** —— style 档会自动设（none=0 关闭、realism/cinema=1.0、davham=0.8）。强度 0 时节点仍在图里但不生效（等价直通）。",
+   "bindings": [
+    {
+     "node": "lora_style",
+     "input": "strength_model"
+    }
+   ]
   }
  },
  "required_gpu": [

@@ -52,10 +52,10 @@ VARIANT_NOTE = {
     "fast": ("档位 fast", "4 步 · PDD LoRA（最快）"),
     "crf2": ("crf=2", "接近无损重编码（验证码率上限）"),
     "res1024": ("1024×1024", "短边超 768，验证是否掉画质"),
-    "nolora": ("画质 LoRA 对照", "无画质 LoRA（只有 PDD 加速）"),
-    "realism": ("realism", "h3-realism-people（触发词 r34l1sm，强度 1.0）"),
-    "cinema": ("电影感 V1.0", "电影感H3-loraV1.0（强度 1.0）"),
-    "davham": ("davham cinema", "davham_cinema-h3（强度 0.8）"),
+    "nolora": ("style=none", "不加风格 LoRA（只有 PDD 加速）—— 默认档"),
+    "realism": ("style=realism", "h3-realism-people（触发词 r34l1sm，强度 1.0）"),
+    "cinema": ("style=cinema", "电影感H3-loraV1.0（强度 1.0）"),
+    "davham": ("style=davham", "davham_cinema-h3（强度 0.8）"),
     "pdd4": ("PDD 4 步", "PDD LoRA + 4 步（极限提速）"),
 }
 KIND_NOTE = {
@@ -172,7 +172,14 @@ def main() -> int:
     A("<div class='sub'>同一提示词、同一 seed（424242）、同样 121 帧 768×512，"
       "只改参数。点开直接播。</div>")
 
-    A("<div class='note'><b>本轮重点：分辨率修正 + PDD 加速 LoRA</b><br>"
+    A("<div class='note'><b>⚠️ LoRA 是模型族专属的，不能跨模型用</b><br>"
+      "机器上 307 个 LoRA 按模型族分目录：minimax 46 / Ltx 39 / "
+      "Zimage 23 / Flux 20 / Qwen 16 / Wan 12 / krea2 18 / Sdxl 7。"
+      "原因是 LoRA 的权重形状由基础模型的**层结构**决定 —— "
+      "H3 是 33B omni-transformer，Wan 是 14B DiT，张量维度对不上，"
+      "强行加载会报 size mismatch 或静默无效。<br>"
+      "所以下面这些风格档只对 H3 有效。<br><br>"
+      "<b>本轮重点：分辨率修正 + PDD 加速 LoRA + 风格 LoRA 档位</b><br>"
       "① <b>比例</b>：之前参考图是 1:1 却输出 768×512（3:2），人物被横向拉扁。"
       "现在按参考图比例算，短边钉到 768 的合规上限 → 1:1 时是 768×768，"
       "像素比原来多 50%。<br>"

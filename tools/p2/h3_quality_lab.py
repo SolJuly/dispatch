@@ -520,6 +520,7 @@ def _ref_size() -> tuple[int, int]:
 
 
 _SPEED_MODE = ""
+_STYLE = ""
 
 
 def make_spec(wf_key: str, prompt: str, variant: str, wf: int, hf: int):
@@ -554,6 +555,9 @@ def make_spec(wf_key: str, prompt: str, variant: str, wf: int, hf: int):
     # 优先级：--speed 显式指定 > 变体自带的 params 覆盖 > 卡默认值。
     # --speed 走的是卡的 presets 展开（render.expand_presets），
     # 所以这里**不能**再塞 steps/lora_strength —— 会被展开前的显式值盖住。
+    if _STYLE:
+        params["style"] = _STYLE
+        params.pop("lora_strength", None)
     if _SPEED_MODE:
         params["speed_mode"] = _SPEED_MODE
         params.pop("steps", None)
@@ -597,6 +601,9 @@ def main(argv=None) -> int:
     ap.add_argument("--width", type=int, default=0,
                     help="留空则按参考图比例算（i2v 保持首帧比例）")
     ap.add_argument("--height", type=int, default=0)
+    ap.add_argument("--style", default="",
+                    help="画面风格（none/realism/cinema/davham），"
+                         "优先于变体里的 LoRA 设定")
     ap.add_argument("--speed", default="",
                     help="直接指定 speed_mode（quality/balanced/fast），"
                          "优先于 --variant 的 steps/lora 设定")
@@ -616,8 +623,9 @@ def main(argv=None) -> int:
         print("\n提示词：", ", ".join(sorted(PROMPTS)))
         return 0
 
-    global _SPEED_MODE
+    global _SPEED_MODE, _STYLE
     _SPEED_MODE = a.speed
+    _STYLE = a.style
     if a.variant not in VARIANTS:
         print(f"✗ 没有变体 {a.variant}", file=sys.stderr)
         return 1

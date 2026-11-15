@@ -103,6 +103,69 @@ class TestSpeedModePresets(unittest.TestCase):
             _resolve("h3_i2v_121f", speed_mode="turbo9000")
 
 
+class TestStylePresets(unittest.TestCase):
+    """画面风格档位：style 必须同时决定 LoRA 文件名和强度。
+
+    背景（2026-11-15）：H3 的 LoRA 是**模型族专属**的 —— 权重形状由基础模型的
+    层结构决定，H3 的 LoRA 不能用于 Wan/LTX/Qwen。所以"选风格"这件事
+    只能在 H3 的工作流里做，而换了风格就要换文件，不是只调强度。
+    """
+
+    EXPECT = {
+        "none":    (0.0, "realism"),   # 强度 0 时文件名无所谓（等价直通）
+        "realism": (1.0, "realism"),
+        "cinema":  (1.0, "电影感"),
+        "davham":  (0.8, "davham"),
+    }
+
+    def test_each_style_sets_strength(self):
+        for style, (strength, _) in self.EXPECT.items():
+            with self.subTest(style=style):
+                r = _resolve("h3_t2v_121f", style=style)
+                self.assertEqual(r["params"]["style_strength"], strength)
+
+    def test_each_style_sets_matching_file(self):
+        for style, (_, marker) in self.EXPECT.items():
+            with self.subTest(style=style):
+                r = _resolve("h3_t2v_121f", style=style)
+                self.assertIn(marker, r["params"]["style_lora"],
+                              f"{style} 应该加载含 {marker!r} 的 LoRA")
+
+    def test_render_binds_style_node(self):
+        """确认真的写进 lora_style 节点（不是只改了 params）。"""
+        for style, (strength, _) in self.EXPECT.items():
+            with self.subTest(style=style):
+                r = _resolve("h3_t2v_121f", style=style)
+                g = render.render(r["workflow"], r["model"], r["params"], "J")[0]
+                node = g.get("lora_style")
+                self.assertIsNotNone(node, "图里必须有 lora_style 节点")
+                self.assertEqual(node["inputs"]["strength_model"], strength)
+
+    def test_none_disables_without_removing_node(self):
+        """none 档不删节点、只把强度设 0。
+
+        为什么保留节点：删节点会让图结构随参数变化，图哈希、等价性测试、
+        缓存全部失效。强度 0 在 LoraLoaderModelOnly 里等价直通，
+        输出与完全不加 LoRA 一致（实测 1829988 vs 1829752 字节，
+        差异来自编码器非确定性，不是 LoRA 影响）。
+        """
+        r = _resolve("h3_t2v_121f", style="none")
+        g = render.render(r["workflow"], r["model"], r["params"], "J")[0]
+        self.assertIn("lora_style", g)
+        self.assertEqual(g["lora_style"]["inputs"]["strength_model"], 0.0)
+
+    def test_style_chain_order(self):
+        """链路必须是 unet → lora(PDD) → lora_style → shift。
+
+        顺序错了（比如 lora_style 接在 unet 上）会让加速 LoRA 失效。
+        """
+        r = _resolve("h3_t2v_121f", style="cinema")
+        g = render.render(r["workflow"], r["model"], r["params"], "J")[0]
+        self.assertEqual(g["lora"]["inputs"]["model"], ["unet", 0])
+        self.assertEqual(g["lora_style"]["inputs"]["model"], ["lora", 0])
+        self.assertEqual(g["shift"]["inputs"]["model"], ["lora_style", 0])
+
+
 class TestOutputEncoding(unittest.TestCase):
     """SaveVideo 的三层子参数必须齐全，否则 crf 被静默忽略。"""
 

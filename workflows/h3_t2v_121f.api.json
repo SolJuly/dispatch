@@ -23,7 +23,7 @@
   "class_type": "MiniMaxH3SigmaShift",
   "inputs": {
    "model": [
-    "lora",
+    "lora_style",
     0
    ],
    "shift_video": 12.0,
@@ -138,6 +138,20 @@
    "strength_model": 0.0,
    "model": [
     "unet",
+    0
+   ]
+  }
+ },
+ "lora_style": {
+  "_meta": {
+   "title": "style LoRA"
+  },
+  "class_type": "LoraLoaderModelOnly",
+  "inputs": {
+   "lora_name": "minimax/h3-realism-people-t2v-i2v-r2v-触发词r34l1sm.safetensors",
+   "strength_model": 0.0,
+   "model": [
+    "lora",
     0
    ]
   }
