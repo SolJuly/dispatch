@@ -237,9 +237,11 @@ JOBS: list[dict] = [
                 "neg_prompt": NEG, "seed": SEED}},
     {"workflow": "pack_video_wan21_scail2_character_replacement", "tier": "video",
      "note": "SCAIL2 角色替换（video + image）",
+     # 负向词曾经抄了正向词的 subject（"A young woman with dark hair"），
+     # 等于让模型别画主角 —— 62 分里有一部分是这条脚本自己造成的。
      "params": {"image": VID_720, "image_2": GIRL_CREEK,
                 "prompt": "A young woman with dark hair, white dress, walking outdoors",
-                "neg_prompt": "A young woman with dark hair"}},
+                "neg_prompt": "blurry, low quality, watermark, deformed hands"}},
     {"workflow": "pack_video_wan21_scail2_character_replacement_int8", "tier": "video",
      "note": "SCAIL2 角色替换 int8",
      # 这个工作流的 schema 只有 prompt / prompt_2，没有 prompt_3

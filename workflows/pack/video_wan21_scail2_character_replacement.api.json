@@ -25,21 +25,13 @@
  "1323": {
   "class_type": "ResizeImageMaskNode",
   "inputs": {
+   "resize_type": "scale longer dimension",
+   "resize_type.longer_size": 896,
+   "scale_method": "area",
    "input": [
     "1340",
     0
-   ],
-   "resize_type.width": [
-    "1343",
-    1
-   ],
-   "resize_type.height": [
-    "1344",
-    1
-   ],
-   "scale_method": "area",
-   "resize_type": "scale dimensions",
-   "resize_type.crop": "center"
+   ]
   },
   "_meta": {
    "title": "Character Replacement (SCAIL-2 Base)"
@@ -61,7 +53,7 @@
   "class_type": "GetImageSize",
   "inputs": {
    "image": [
-    "1323",
+    "1901",
     0
    ]
   },
@@ -230,26 +222,6 @@
    "title": "Character Replacement (SCAIL-2 Base)"
   }
  },
- "1343": {
-  "class_type": "ComfyMathExpression",
-  "inputs": {
-   "values.a": 896,
-   "expression": "a"
-  },
-  "_meta": {
-   "title": "Character Replacement (SCAIL-2 Base)"
-  }
- },
- "1344": {
-  "class_type": "ComfyMathExpression",
-  "inputs": {
-   "values.a": 512,
-   "expression": "a"
-  },
-  "_meta": {
-   "title": "Character Replacement (SCAIL-2 Base)"
-  }
- },
  "1346": {
   "class_type": "ComfyMathExpression",
   "inputs": {
@@ -286,7 +258,7 @@
   "class_type": "SAM3_VideoTrack",
   "inputs": {
    "images": [
-    "1323",
+    "1901",
     0
    ],
    "model": [
@@ -422,7 +394,7 @@
     0
    ],
    "pose_video": [
-    "1323",
+    "1901",
     0
    ],
    "pose_video_mask": [
@@ -518,21 +490,13 @@
  "1365": {
   "class_type": "ResizeImageMaskNode",
   "inputs": {
+   "resize_type": "scale longer dimension",
+   "resize_type.longer_size": 896,
+   "scale_method": "area",
    "input": [
     "1382",
     0
-   ],
-   "resize_type.width": [
-    "1385",
-    1
-   ],
-   "resize_type.height": [
-    "1386",
-    1
-   ],
-   "scale_method": "area",
-   "resize_type": "scale dimensions",
-   "resize_type.crop": "center"
+   ]
   },
   "_meta": {
    "title": "Character Replacement (SCAIL-2 Extend)"
@@ -554,7 +518,7 @@
   "class_type": "GetImageSize",
   "inputs": {
    "image": [
-    "1365",
+    "1902",
     0
    ]
   },
@@ -723,26 +687,6 @@
    "title": "Character Replacement (SCAIL-2 Extend)"
   }
  },
- "1385": {
-  "class_type": "ComfyMathExpression",
-  "inputs": {
-   "values.a": 896,
-   "expression": "a"
-  },
-  "_meta": {
-   "title": "Character Replacement (SCAIL-2 Extend)"
-  }
- },
- "1386": {
-  "class_type": "ComfyMathExpression",
-  "inputs": {
-   "values.a": 512,
-   "expression": "a"
-  },
-  "_meta": {
-   "title": "Character Replacement (SCAIL-2 Extend)"
-  }
- },
  "1388": {
   "class_type": "ComfyMathExpression",
   "inputs": {
@@ -779,7 +723,7 @@
   "class_type": "SAM3_VideoTrack",
   "inputs": {
    "images": [
-    "1365",
+    "1902",
     0
    ],
    "model": [
@@ -962,7 +906,7 @@
     0
    ],
    "pose_video": [
-    "1365",
+    "1902",
     0
    ],
    "pose_video_mask": [
@@ -1173,6 +1117,36 @@
   },
   "_meta": {
    "title": "LoadImage"
+  }
+ },
+ "1901": {
+  "class_type": "ResizeImageMaskNode",
+  "inputs": {
+   "resize_type": "scale to multiple",
+   "resize_type.multiple": 32,
+   "scale_method": "area",
+   "input": [
+    "1323",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2) align 32"
+  }
+ },
+ "1902": {
+  "class_type": "ResizeImageMaskNode",
+  "inputs": {
+   "resize_type": "scale to multiple",
+   "resize_type.multiple": 32,
+   "scale_method": "area",
+   "input": [
+    "1365",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Character Replacement (SCAIL-2) align 32"
   }
  }
 }
