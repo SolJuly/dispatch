@@ -155,15 +155,49 @@ class TestStylePresets(unittest.TestCase):
         self.assertEqual(g["lora_style"]["inputs"]["strength_model"], 0.0)
 
     def test_style_chain_order(self):
-        """链路必须是 unet → lora(PDD) → lora_style → shift。
+        """完整链路（从 2026-11-15 起）：
 
-        顺序错了（比如 lora_style 接在 unet 上）会让加速 LoRA 失效。
+            unet → lora(PDD 加速) → lora_style(风格)
+                 → attn_backend(kitchen) → vsa(块稀疏) → shift
+
+        每一环的**顺序**都有原因：
+          · lora 在 lora_style 前：加速蒸馏是基础修正，风格是叠加在上面
+          · attn_backend 在 lora 之后：它换的是注意力实现，
+            必须在模型权重都加载完之后
+          · vsa 在 attn 之后、shift 之前：块稀疏是对注意力计算的采样，
+            要在后端选定后、sigma shift 之前生效
+
+        顺序错了会让某一环被静默跳过 —— 2026-11-15 实测踩到：
+        `apply_lora` 重连 shift.model 直接指向 lora，把 vsa 和 kitchen
+        挤出链路，融合版从 144s 退回 201s（节点还在图里但不参与）。
         """
         r = _resolve("h3_t2v_121f", style="cinema")
         g = render.render(r["workflow"], r["model"], r["params"], "J")[0]
         self.assertEqual(g["lora"]["inputs"]["model"], ["unet", 0])
         self.assertEqual(g["lora_style"]["inputs"]["model"], ["lora", 0])
-        self.assertEqual(g["shift"]["inputs"]["model"], ["lora_style", 0])
+        self.assertEqual(g["attn_backend"]["inputs"]["model"], ["lora_style", 0])
+        self.assertEqual(g["attn_backend"]["inputs"]["attention"],
+                         "comfy kitchen attention")
+        self.assertEqual(g["vsa"]["inputs"]["model"], ["attn_backend", 0])
+        self.assertEqual(g["shift"]["inputs"]["model"], ["vsa", 0])
+
+    def test_vsa_params_match_reference_workflow(self):
+        """VSA 的写法必须和 pack_video_fastvideo_fasth3_i2v 一致（97.8 分那条）。
+
+        两个易错点（2026-11-15 实测打回）：
+          · `selection.keep_percent` 是**点号路径**，平铺的 keep_percent 会被忽略
+            （不报错，用默认值 10 —— 看起来对，实际没生效）
+          · `extra_tokens` 是 INT，传空串会报 invalid literal for int()
+        """
+        r = _resolve("h3_t2v_121f", style="none")
+        g = render.render(r["workflow"], r["model"], r["params"], "J")[0]
+        ins = g["vsa"]["inputs"]
+        self.assertIn("selection.keep_percent", ins,
+                      "必须是点号路径，平铺写法会被 ComfyUI 静默忽略")
+        self.assertNotIn("keep_percent", ins)
+        self.assertIsInstance(ins["extra_tokens"], int)
+        self.assertEqual(ins["selection"], "vsa")
+        self.assertEqual(ins["sink_conditioning"], "exact_kv_and_rows")
 
 
 class TestOutputEncoding(unittest.TestCase):

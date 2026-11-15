@@ -56,6 +56,12 @@ VARIANT_NOTE = {
     "realism": ("style=realism", "h3-realism-people（触发词 r34l1sm，强度 1.0）"),
     "cinema": ("style=cinema", "电影感H3-loraV1.0（强度 1.0）"),
     "davham": ("style=davham", "davham_cinema-h3（强度 0.8）"),
+    "kitchen": ("+Kitchen 注意力", "ModelAttentionBackend = comfy kitchen attention"),
+    "vsa": ("+VSA 稀疏", "BlockSparseAttention keep=10%（fasth3 是 VSA 训的）"),
+    "nvfp4": ("+nvfp4 CLIP", "文本编码器换 nvfp4_awq"),
+    "kitchen_vsa": ("Kitchen+VSA", "两项加速组合"),
+    "fuse": ("三项全上", "Kitchen + VSA + nvfp4"),
+    "pdd8off": ("完整配置", "固化后默认：PDD 8步 + Kitchen + VSA"),
     "pdd4": ("PDD 4 步", "PDD LoRA + 4 步（极限提速）"),
 }
 KIND_NOTE = {

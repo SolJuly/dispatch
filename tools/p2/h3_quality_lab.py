@@ -191,6 +191,10 @@ PDD_LORA_FL2VA = "minimax/MiniMax-H3-FL2VA-Acc-8Step_pruned_comfy.safetensors"
 # 所以用官方 pruned int8 模型配它。
 OFFICIAL_FL2VA = "minimax/10Eros_Max_h3_fl2va_pruned_int8_convrot.safetensors"
 
+# 从 pack_video_fastvideo_fasth3_i2v（97.8 分最高）学来的三件东西
+CLIP_NVFP4 = "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+CLIP_INT8 = "qwen3vl_32b_minimax_h3_int8_convrot.safetensors"
+
 # 画质/风格 LoRA（都在 /model/comfyui/models/loras/minimax/ 下）
 QUALITY_LORAS = {
     "realism": "minimax/h3-realism-people-t2v-i2v-r2v-触发词r34l1sm.safetensors",
@@ -222,6 +226,82 @@ def apply_unet(graph: dict, name: str) -> None:
     for n in graph.values():
         if n.get("class_type") == "UNETLoader":
             n["inputs"]["unet_name"] = name
+
+
+def apply_kitchen_attn(graph: dict) -> None:
+    """切到 Comfy Kitchen 注意力后端（插在 unet/lora 链和 shift 之间）。
+
+    来源：pack_video_fastvideo_fasth3_i2v（97.8 分，全批最高）用了这个。
+    社区实测在 40/50 系上比 SageAttention 更快更准
+    （FlowForgeLab：4060 上 kitchen 270s vs pytorch 403s）。
+    """
+    # 找到模型链的末端（shift 的 model 输入指向谁），把它插进去
+    shift = None
+    for n in graph.values():
+        if n.get("class_type") in ("MiniMaxH3SigmaShift", "MiniMaxH3Shift"):
+            shift = n
+            break
+    if shift is None:
+        return
+    # 卡里已经接好时直接返回，避免重复插入/重连
+    if "attn_backend" in graph:
+        return
+    upstream = shift["inputs"].get("model")
+    graph["attn_backend"] = {
+        "_meta": {"title": "attention backend"},
+        "class_type": "ModelAttentionBackend",
+        "inputs": {"attention": "comfy kitchen attention", "model": upstream},
+    }
+    shift["inputs"]["model"] = ["attn_backend", 0]
+
+
+def apply_vsa(graph: dict, keep: float = 10.0) -> None:
+    """VSA 块稀疏注意力（FastH3-VSA checkpoint 训练时用 10%）。
+
+    **注意**：只有 FastH3-VSA 系列模型是按这个训的。我们的 Dasiwa 混合模型
+    不是，硬套可能掉画质 —— 所以做成独立变体单独验。
+    """
+    shift = None
+    for n in graph.values():
+        if n.get("class_type") in ("MiniMaxH3SigmaShift", "MiniMaxH3Shift"):
+            shift = n
+            break
+    if shift is None:
+        return
+    # 卡里已经接好时直接返回，避免重复插入/重连
+    if "attn_backend" in graph:
+        return
+    if "vsa" in graph:
+        return
+    upstream = shift["inputs"].get("model")
+    graph["vsa"] = {
+        "_meta": {"title": "VSA block sparse"},
+        "class_type": "BlockSparseAttention",
+        # **写法照抄 pack_video_fastvideo_fasth3_i2v 的 1159 节点**（2026-11-15）：
+        #   · selection 的子参数是**点号路径** `selection.keep_percent`，
+        #     不是平铺的 keep_percent —— 平铺会被 ignore，用默认 10 但不报错
+        #   · extra_tokens 是 INT，推荐 256（不是空串）
+        #   · sink_conditioning 是 COMBO，默认 exact_kv_and_rows（不是布尔）
+        "inputs": {
+            "model": upstream,
+            "selection": "vsa",
+            "selection.keep_percent": keep,
+            "start_percent": 0.2,
+            "end_percent": 1.0,
+            "dense_blocks": "",
+            "min_tokens": 12288,
+            "extra_tokens": 256,
+            "sink_conditioning": "exact_kv_and_rows",
+            "verbose": False,
+        },
+    }
+    shift["inputs"]["model"] = ["vsa", 0]
+
+
+def apply_clip(graph: dict, name: str) -> None:
+    for n in graph.values():
+        if n.get("class_type") == "CLIPLoader":
+            n["inputs"]["clip_name"] = name
 
 
 def apply_style_lora(graph: dict, name: str, strength: float = 1.0) -> None:
@@ -355,15 +435,30 @@ VARIANTS_PARAMS = {
     "realism": {"steps": 8},
     "cinema":  {"steps": 8},
     "davham":  {"steps": 8},
+    "kitchen": {"steps": 8},
+    "vsa":     {"steps": 8},
+    "nvfp4":   {"steps": 8},
+    "fuse":    {"steps": 8},
 }
 
 
 def _pdd(g, steps: int, crf: float | None = None):
-    """PDD LoRA + 指定步数（+ 可选 crf）。多数变体都基于这个组合。"""
+    """PDD LoRA + 指定步数（+ 可选 crf）。多数变体都基于这个组合。
+
+    **不再重连 shift.model**（2026-11-15 修）：
+    `apply_lora` 原来会把 shift.model 指向 lora 节点，这在图里没有
+    vsa/attn_backend 时是对的；但卡里现在已经有
+    `lora_style → attn_backend → vsa → shift` 这条链，再重连就把
+    vsa 和 kitchen 挤出链路了 —— 实测融合版 144s 变回 201s，
+    就是因为这个（图里的 vsa 节点还在，但 shift 不指向它，等于没接）。
+    """
     apply_shift(g, 12.0, 3.0)
     apply_sampler(g, "res_multistep", "simple")
     apply_vae(g, "minimax_h3_video_vae_fp16.safetensors")
-    apply_lora(g, PDD_LORA_FL2VA, 1.0)
+    # 只改强度，不动连线
+    if "lora" in g:
+        g["lora"]["inputs"]["lora_name"] = PDD_LORA_FL2VA
+        g["lora"]["inputs"]["strength_model"] = 1.0
     apply_steps(g, steps)
     if crf is not None:
         apply_savevideo_crf(g, crf)
@@ -446,6 +541,33 @@ VARIANTS = {
         "note": "电影感 LoRA V1.0",
         "graph": lambda g: (_pdd(g, 8, 12),
                             apply_style_lora(g, QUALITY_LORAS["cinema"], 1.0)),
+    },
+    # ---- 从 fasth3_i2v（97.8 分）移植的三项优化 ----
+    "kitchen": {
+        "note": "加 Kitchen 注意力后端（fasth3_i2v 用的，比 pytorch 快）",
+        "graph": lambda g: (_pdd(g, 8, 12), apply_kitchen_attn(g)),
+    },
+    "vsa": {
+        "note": "加 VSA 块稀疏注意力 keep=10%（fasth3 是 VSA 训的，我们不是）",
+        "graph": lambda g: (_pdd(g, 8, 12), apply_vsa(g, 10.0)),
+    },
+    "nvfp4": {
+        # 只改图无效：render 的 apply_model 会按模型卡 files.clip.name 覆盖回 int8。
+        # 所以这个变体在 make_spec 里额外打一个 post-render 补丁标记。
+        "note": "CLIP 换 nvfp4_awq（fasth3_i2v 用的文本编码器）",
+        "graph": lambda g: _pdd(g, 8, 12),
+        "post_clip": CLIP_NVFP4,
+    },
+    "fuse": {
+        "note": "三项全上：Kitchen + VSA + nvfp4 CLIP",
+        "graph": lambda g: (_pdd(g, 8, 12), apply_kitchen_attn(g),
+                            apply_vsa(g, 10.0)),
+        "post_clip": CLIP_NVFP4,
+    },
+    "kitchen_vsa": {
+        "note": "Kitchen + VSA（不含 nvfp4 CLIP，看他俩的组合）",
+        "graph": lambda g: (_pdd(g, 8, 12), apply_kitchen_attn(g),
+                            apply_vsa(g, 10.0)),
     },
     "davham": {
         "note": "davham 电影感 LoRA（原作者建议配 euler/simple 0.8）",
@@ -587,6 +709,12 @@ def make_spec(wf_key: str, prompt: str, variant: str, wf: int, hf: int):
     new_graph = SPEC_DIR / f"graph-{variant}-{wf_key}.json"
     new_graph.write_text(json.dumps(graph, ensure_ascii=False, indent=1), encoding="utf-8")
     spec["model"]["workflow"] = str(new_graph.relative_to(ROOT))
+    # post_* 补丁：apply_model 会按模型卡覆盖 loader 名字，
+    # 所以要在**渲染后的图**上再改一次。做法是把补丁写进 spec，
+    # 由 render_job 在渲染完成后套用（见 post_render_patches）。
+    _pc = VARIANTS[variant].get("post_clip")
+    if _pc:
+        spec["post_render"] = {"clip_name": _pc}
     return spec, new_graph
 
 

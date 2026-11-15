@@ -267,6 +267,12 @@ def cmd_new(a) -> int:
             # 没勾的作业不带这个字段 —— 它们该等人点「执行」，不该被自动拉起。
             if spec.get("auto_run"):
                 job["auto_run"] = True
+            # post_render：实验用的窄口子补丁（{clip_name/vae_name/unet_name/lora_name: 值}）。
+            # 为什么需要：render 的 apply_model 会按模型卡覆盖 loader 名字，
+            # 所以"临时换个 CLIP 做对比"改 spec 图是无效的 —— 渲染完被覆盖回去。
+            # 只有显式给了才落盘，生产作业不带这个字段。
+            if isinstance(spec.get("post_render"), dict) and spec["post_render"]:
+                job["post_render"] = dict(spec["post_render"])
             # OOM 策略（2026-11-12）：用户在提交时选的「OOM 之后怎么办」。
             # 三档都有值（normalize 保证），不加条件 —— 让 job.json 里
             # 永远能看到这个字段，UI 才能如实回显用户选了什么。

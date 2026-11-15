@@ -23,7 +23,7 @@
   "class_type": "MiniMaxH3SigmaShift",
   "inputs": {
    "model": [
-    "lora_style",
+    "vsa",
     0
    ],
    "shift_video": 12.0,
@@ -154,6 +154,40 @@
     "lora",
     0
    ]
+  }
+ },
+ "attn_backend": {
+  "_meta": {
+   "title": "attention backend"
+  },
+  "class_type": "ModelAttentionBackend",
+  "inputs": {
+   "attention": "comfy kitchen attention",
+   "model": [
+    "lora_style",
+    0
+   ]
+  }
+ },
+ "vsa": {
+  "_meta": {
+   "title": "VSA block sparse"
+  },
+  "class_type": "BlockSparseAttention",
+  "inputs": {
+   "model": [
+    "attn_backend",
+    0
+   ],
+   "selection": "vsa",
+   "selection.keep_percent": 10.0,
+   "start_percent": 0.2,
+   "end_percent": 1.0,
+   "dense_blocks": "",
+   "min_tokens": 12288,
+   "extra_tokens": 256,
+   "sink_conditioning": "exact_kv_and_rows",
+   "verbose": false
   }
  }
 }

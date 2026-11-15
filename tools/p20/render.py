@@ -317,6 +317,29 @@ def render_job(job: dict, *, db_path: Path = registry.DB_PATH) -> tuple[dict, di
 
     graph, meta = render(wf, model, res["params"], job["job_id"], graph=base_graph)
     meta["graph_source"] = ("job" if base_graph is not wf.get("graph_obj") else "registry")
+
+    # ---- post_render 补丁 ----
+    # 为什么需要：`apply_model` 会按模型卡 `files.<role>.name` 覆盖 loader 名字
+    # （这是 registry 的权威性），所以"实验时想临时换个 CLIP"改图是没用的 ——
+    # 渲染完会被覆盖回去。实测踩到：spec 图里写了 nvfp4，提交时变回 int8，
+    # 产物与基线字节级一致。
+    #
+    # 语义：job.post_render 是 {输入名: 值}，只允许改**加载器节点的字符串输入**
+    # （白名单见下）。这是给实验用的窄口子，不是通用改图通道。
+    patches = (job.get("post_render") or {})
+    if isinstance(patches, dict) and patches:
+        ALLOWED = {"clip_name", "vae_name", "unet_name", "lora_name"}
+        applied = []
+        for node in graph.values():
+            if not isinstance(node, dict):
+                continue
+            ins = node.get("inputs") or {}
+            for k, v in patches.items():
+                if k in ALLOWED and k in ins and isinstance(v, str):
+                    ins[k] = v
+                    applied.append(f"{node.get('class_type')}.{k}")
+        if applied:
+            meta["post_render_applied"] = applied
     meta.update({
         "compat": res["compat"],
         "defaults_applied": res["defaults_applied"],
