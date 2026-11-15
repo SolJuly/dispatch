@@ -128,6 +128,48 @@ PROMPTS = {
 # 喂一段长中文进去会把条件张量带偏，最终解码出黑屏。
 NEG = ""
 
+
+# ---- 动作提示词（2026-11-15：用户指出静态画面看不出差别）----
+# 设计原则：**大幅度、连续、有物理反馈**。
+# 静态/微动作的片子，几条 LoRA 出来几乎一样 —— 因为差异体现在
+# 运动模糊、布料褶皱、肌肉形变、光影随动这些地方，画面不动就看不到。
+ACT_PROMPTS = {
+    "a1": (
+        "Cinematic action shot, photorealistic. A young woman with long black hair "
+        "in a white tank top and dark cargo pants sprints across a wet rooftop at "
+        "night, then leaps over a ventilation duct, lands in a deep crouch that "
+        "sends water splashing outward, and immediately pivots to her feet while "
+        "drawing a pistol. Rain streaks through the frame, neon signs reflect off "
+        "the wet concrete, fabric whips and clings to her body from the motion. "
+        "Handheld camera tracks her run, then whips around as she lands. "
+        "High shutter speed with visible motion blur on the limbs, dramatic "
+        "rim lighting from the neon, high detail skin texture, 4k, 24fps."
+    ),
+    "a2": (
+        "Dynamic martial arts sequence, cinematic realism. A martial artist in a "
+        "black gi performs a spinning roundhouse kick, then flows into a low sweep "
+        "and rises into a rapid three-punch combination. His body rotates fully, "
+        "the gi fabric snaps and trails through the air with each movement, sweat "
+        "flies off his hair on the spin. Camera orbits him at chest height then "
+        "drops low for the sweep. Hard directional key light from the left creates "
+        "strong shadows across defined muscles, dust rises from the mat, "
+        "hyper-detailed fabric texture and skin, 4k, 24fps."
+    ),
+    "a3": (
+        "High-speed dance sequence, cinematic photorealistic. A woman in a flowing "
+        "red dress performs a fast whirling dance, spinning multiple times with her "
+        "arms extended, the dress flaring into a wide circle and snapping back, her "
+        "hair whipping across her face. She drops into a deep backbend then rises "
+        "sharply. Camera circles her in a smooth arc, then pushes in as she spins. "
+        "Warm side lighting rakes across the moving fabric, catching every fold and "
+        "highlight, motion blur on the trailing dress edges, "
+        "ultra-detailed fabric weave and skin pores, 4k, 24fps."
+    ),
+}
+
+# 动作提示词并入 PROMPTS（放在 ACT_PROMPTS 定义之后）
+PROMPTS.update(ACT_PROMPTS)
+
 # 参考图：p4/p5 都描述同一个银发异色瞳少女，
 # 所以用同一张图（由 qwen_image_t2i 生成，见 reports/p2/p21/inputs/in-silverice.png）
 REF_IMG = "in-silverice.png"
@@ -148,6 +190,13 @@ PDD_LORA_FL2VA = "minimax/MiniMax-H3-FL2VA-Acc-8Step_pruned_comfy.safetensors"
 # 硬套官方 LoRA 会被 ComfyUI 判 value_not_in_list 或静默不生效。
 # 所以用官方 pruned int8 模型配它。
 OFFICIAL_FL2VA = "minimax/10Eros_Max_h3_fl2va_pruned_int8_convrot.safetensors"
+
+# 画质/风格 LoRA（都在 /model/comfyui/models/loras/minimax/ 下）
+QUALITY_LORAS = {
+    "realism": "minimax/h3-realism-people-t2v-i2v-r2v-触发词r34l1sm.safetensors",
+    "cinema":  "minimax/电影感H3-loraV1.0正式版.safetensors",
+    "davham":  "minimax/davham_cinema-h3-Euler-simple-0.8.safetensors",
+}
 PDD_LORA_REF2VA = "minimax/MiniMax-H3-Ref2VA-Acc-8Step_pruned_comfy.safetensors"
 
 # 哪些提示词需要参考图 → 用哪个工作流
@@ -173,6 +222,40 @@ def apply_unet(graph: dict, name: str) -> None:
     for n in graph.values():
         if n.get("class_type") == "UNETLoader":
             n["inputs"]["unet_name"] = name
+
+
+def apply_style_lora(graph: dict, name: str, strength: float = 1.0) -> None:
+    """在 PDD 加速 LoRA **之后**再串一个画质/风格 LoRA。
+
+    链路变成：unet → lora(PDD) → lora_style → SigmaShift
+
+    为什么能串：`LoraLoaderModelOnly` 只动 model 权重（不碰 clip），
+    两个串起来等于对同一份基础权重连续做两次低秩修正 —— 这是 ComfyUI
+    的标准用法，多个 LoRA 叠加就是这样。
+    """
+    lora_node = graph.get("lora")
+    if lora_node is None:
+        raise RuntimeError("先 apply_lora(PDD)，再串画质 LoRA")
+    graph["lora_style"] = {
+        "_meta": {"title": "style LoRA"},
+        "class_type": "LoraLoaderModelOnly",
+        "inputs": {"lora_name": name, "strength_model": strength,
+                   "model": ["lora", 0]},
+    }
+    for n in graph.values():
+        if n.get("class_type") in ("MiniMaxH3SigmaShift", "MiniMaxH3Shift"):
+            n["inputs"]["model"] = ["lora_style", 0]
+
+
+def drop_style_lora(graph: dict) -> None:
+    """摘掉画质 LoRA，链路回到 lora(PDD) → shift。"""
+    if "lora_style" not in graph:
+        return
+    for n in graph.values():
+        if n.get("class_type") in ("MiniMaxH3SigmaShift", "MiniMaxH3Shift"):
+            if n["inputs"].get("model") == ["lora_style", 0]:
+                n["inputs"]["model"] = ["lora", 0]
+    graph.pop("lora_style", None)
 
 
 def apply_lora(graph: dict, name: str, strength: float = 1.0) -> None:
@@ -268,6 +351,10 @@ VARIANTS_PARAMS = {
     "crf2":    {"steps": 8, "crf": 2.0},
     "crf12":   {"steps": 8, "crf": 12.0},
     "res1024": {"steps": 8},
+    "nolora":  {"steps": 8},
+    "realism": {"steps": 8},
+    "cinema":  {"steps": 8},
+    "davham":  {"steps": 8},
 }
 
 
@@ -345,6 +432,25 @@ VARIANTS = {
     "res1024": {
         "note": "PDD 8 步 + crf12 @ 1024×1024（短边超 768，验证是否掉画质）",
         "graph": lambda g: _pdd(g, 8, 12),
+    },
+    "nolora": {
+        "note": "对照组：无画质 LoRA（PDD 8 步 + crf12，与下面三条同基线）",
+        "graph": lambda g: _pdd(g, 8, 12),
+    },
+    "realism": {
+        "note": "写实人像 LoRA（触发词 r34l1sm）",
+        "graph": lambda g: (_pdd(g, 8, 12),
+                            apply_style_lora(g, QUALITY_LORAS["realism"], 1.0)),
+    },
+    "cinema": {
+        "note": "电影感 LoRA V1.0",
+        "graph": lambda g: (_pdd(g, 8, 12),
+                            apply_style_lora(g, QUALITY_LORAS["cinema"], 1.0)),
+    },
+    "davham": {
+        "note": "davham 电影感 LoRA（原作者建议配 euler/simple 0.8）",
+        "graph": lambda g: (_pdd(g, 8, 12),
+                            apply_style_lora(g, QUALITY_LORAS["davham"], 0.8)),
     },
 }
 

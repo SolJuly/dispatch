@@ -284,7 +284,39 @@ def render_job(job: dict, *, db_path: Path = registry.DB_PATH) -> tuple[dict, di
                            allow_experimental=True, db_path=db_path,
                            workflow_version=reg.get("workflow_version"),
                            model_version=reg.get("model_version"))
-    graph, meta = render(wf, model, res["params"], job["job_id"], graph=wf.get("graph_obj"))
+
+    # ---- 支持「作业自带图」----
+    # 默认用 registry 里的图（唯一权威）。但如果 job.model.workflow 指向
+    # **registry 之外**的一个 .json（例如 reports/p20/specs/<lab>/graph-*.json），
+    # 就用那份图作为底图再渲染。
+    #
+    # 为什么需要（2026-11-15 实测）：我给实验脚本加了双 LoRA 串联
+    # （PDD 加速 + 画质 LoRA），改的是 spec 里的图，但 render_job 只认
+    # registry 的图 —— 结果四个"变体"实际跑的是完全相同的图，
+    # 产出文件大小/码率字节级一致，看着像"LoRA 没效果"。
+    #
+    # 为什么允许这个后门而不是"必须改 registry"：
+    #   ① 实验阶段改 registry 会污染生产卡（54 个工作流都从它渲染）
+    #   ② 变体组合很多（3 LoRA × 3 提示词 × 档位），不可能每个都建卡
+    #   ③ 安全边界清楚：只允许 `reports/` 下的路径，且在 params 校验之后，
+    #      参数/槽位仍然走 registry 的契约，只有图结构被替换
+    base_graph = wf.get("graph_obj")
+    wf_path = str((job.get("model") or {}).get("workflow") or "")
+    if wf_path:
+        cand = Path(wf_path)
+        if not cand.is_absolute():
+            cand = ROOT / wf_path
+        try:
+            cand = cand.resolve()
+            allow = (ROOT / "reports").resolve()
+            registered = Path(str(wf.get("graph") or "")).resolve() if wf.get("graph") else None
+            if cand.is_file() and str(cand).startswith(str(allow)) and cand != registered:
+                base_graph = json.loads(cand.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            pass
+
+    graph, meta = render(wf, model, res["params"], job["job_id"], graph=base_graph)
+    meta["graph_source"] = ("job" if base_graph is not wf.get("graph_obj") else "registry")
     meta.update({
         "compat": res["compat"],
         "defaults_applied": res["defaults_applied"],
