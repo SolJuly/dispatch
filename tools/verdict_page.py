@@ -58,16 +58,12 @@ li{margin:5px 0}
 .foot{color:#5d6b7d;font-size:12px;margin-top:36px;padding-top:16px;border-top:1px solid #1d2530}
 """
 
-JS = """
-document.querySelectorAll('video').forEach(v=>{
-  v.muted=true; v.loop=true; v.play().catch(()=>{});
-});
-document.addEventListener('visibilitychange',()=>{
-  document.querySelectorAll('video').forEach(v=>{
-    if(document.hidden) v.pause(); else v.play().catch(()=>{});
-  });
-});
-"""
+
+# 刻意**不用 JS**：报告页走 /f/*.html，CSP 是 script-src 'none'
+# （共享目录可写，页面里能跑脚本就等于能偷 token）。
+# 自动播放/循环全靠 <video> 的原生属性 muted + autoplay + loop + playsinline。
+# 早先这里有一段 JS 去做同样的事，被 CSP 拦掉后视频连加载都不发生 ——
+# 用户看到的就是「链接视频看不了」。
 
 
 def probe(p: Path) -> dict:
@@ -159,7 +155,7 @@ def build() -> str:
             A(f"<div class='hd'>{label}"
               f"<span class='badge'>评分 {score} · {dims} · "
               f"{pr['bytes']/1024:.0f} KB</span></div>")
-            A(f"<video src='verdict/{c['key']}-{side}.mp4' controls muted loop "
+            A(f"<video src='verdict/{c['key']}-{side}.mp4' controls muted loop autoplay "
               f"playsinline preload='metadata'></video>")
             A(f"<div class='spec'><b>{dims}</b> · {pr['frames']} 帧</div>")
             A("</div>")
@@ -219,7 +215,7 @@ def build() -> str:
       "评分是按边缘能量 + 运动量 + 覆盖率自动算的，不是人工打分 —— "
       "它只能说明「没严重出错」，好不好看你自己的眼睛。</div>")
 
-    A(f"<script>{JS}</script></body></html>")
+    A("</body></html>")
     return "\n".join(L)
 
 
