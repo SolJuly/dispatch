@@ -333,6 +333,11 @@ def list_jobs(limit: int = 20, *, offset: int = 0, state_prefix: str = "", workf
         return []
     rows = []
     for d in root.iterdir():
+        # 跳过 `.trash/`（jobctl rm 的回收站）和任何隐藏目录。
+        # 2026-11-15：清理 dry-run 空壳作业后，`.trash/<jid>/job.json` 仍然存在，
+        # 不排除就会被继续列进控制台 —— 用户看到"删了还在"。
+        if d.name.startswith("."):
+            continue
         f = d / "job.json"
         if not f.exists():
             continue

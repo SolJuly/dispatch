@@ -73,6 +73,21 @@ class TestListGet(unittest.TestCase):
         self.assertEqual(rows[0]["artifacts"], 1)
         self.assertTrue(rows[0]["first_artifact_url"].endswith("01-a.png"))
 
+    def test_trash_dir_is_not_listed(self):
+        """`.trash/` 里的作业不能被列进控制台。
+
+        2026-11-15：清理 dry-run 留下的空壳作业时，`jobctl rm` 会把它移到
+        `jobs/.trash/<jid>/`，但 job.json 还在。不排除隐藏目录的话，
+        用户会看到「删了还挂在列表里」，而且那些作业永远停在 CREATED，
+        白占并发槽位。
+        """
+        trash = self.root / ".trash"
+        _mk_job(trash, "p1-20260101T0003-dddddd", "CREATED")
+        rows = api.list_jobs(jobs_dir=self.root)
+        self.assertEqual(len(rows), 3, "trash 里的作业不该出现在列表里")
+        ids = {r["job_id"] for r in rows}
+        self.assertNotIn("p1-20260101T0003-dddddd", ids)
+
     def test_filter_failed_prefix(self):
         rows = api.list_jobs(state_prefix="FAILED", jobs_dir=self.root)
         self.assertEqual([r["state"] for r in rows], ["FAILED_RUN"])
