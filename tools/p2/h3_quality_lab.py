@@ -209,6 +209,31 @@ def drop_lora(graph: dict) -> None:
     graph.pop("lora", None)
 
 
+def apply_savevideo_crf(graph: dict, crf: float) -> None:
+    """把 SaveVideo 切到「显式重编码 + 指定 crf」。
+
+    为什么这么写（2026-11-15 从 object_info 挖出来的）：
+    `format` / `codec` 都是 COMFY_DYNAMICCOMBO_V3 —— 选了某个 key 之后，
+    它的**子参数**是平铺在 inputs 里的（不是点号路径）：
+
+        format="mp4" → 需要 codec
+        codec="h264" → 需要 encoding
+        encoding="re-encode" → 需要 crf
+
+    原来的写法是 `format=mp4 codec=h264`（没有 encoding），
+    等于走 auto 保留上游流 —— 实测码率只有 37–2187 kb/s。
+    显式 re-encode + crf=12 才能拿到接近视觉无损的码率。
+    """
+    for n in graph.values():
+        if n.get("class_type") != "SaveVideo":
+            continue
+        ins = n["inputs"]
+        ins["format"] = "mp4"
+        ins["codec"] = "h264"
+        ins["encoding"] = "re-encode"
+        ins["crf"] = float(crf)
+
+
 def apply_cfg(graph: dict, cfg: float) -> None:
     for n in graph.values():
         if n.get("class_type") == "KSampler":
@@ -230,15 +255,31 @@ def apply_vae(graph: dict, name: str) -> None:
 # ---- 变体表 -------------------------------------------------------------
 # 每个变体 = 一组图/参数改动。baseline 是改动前的原始配置，
 # 用来和修好之后的版本并排看。
+
 # 变体对 **params** 的覆盖。必须同时改 params 和 graph：
 # render 的 apply_params 会按卡上 schema 把 params 写进图，
-# 只改 graph 会被这一步覆盖回去（实测设 8 步跑成 20 步）。
+# 只改 graph 会被这一步覆盖回去。
+# 2026-11-15 实测两次踩到：想跑 8 步实际跑 20 步；想跑 crf=2 实际 crf=12。
 VARIANTS_PARAMS = {
-    "pdd8": {"steps": 8},
+    "pdd8":    {"steps": 8},
     "pdd8off": {"steps": 8},
-    "pdd4": {"steps": 4},
+    "pdd4":    {"steps": 4},
     "steps32": {"steps": 32},
+    "crf2":    {"steps": 8, "crf": 2.0},
+    "crf12":   {"steps": 8, "crf": 12.0},
+    "res1024": {"steps": 8},
 }
+
+
+def _pdd(g, steps: int, crf: float | None = None):
+    """PDD LoRA + 指定步数（+ 可选 crf）。多数变体都基于这个组合。"""
+    apply_shift(g, 12.0, 3.0)
+    apply_sampler(g, "res_multistep", "simple")
+    apply_vae(g, "minimax_h3_video_vae_fp16.safetensors")
+    apply_lora(g, PDD_LORA_FL2VA, 1.0)
+    apply_steps(g, steps)
+    if crf is not None:
+        apply_savevideo_crf(g, crf)
 
 
 VARIANTS = {
@@ -258,52 +299,52 @@ VARIANTS = {
     },
     "shift12": {
         "note": "只改 shift 12/3（其余同 baseline）",
-        "graph": lambda g: (apply_shift(g, 12.0, 3.0),
+        "graph": lambda g: (drop_lora(g),
+                            apply_shift(g, 12.0, 3.0),
                             apply_sampler(g, "euler", "simple"),
                             apply_vae(g, "minimax_h3_video_vae_int8_convrot-v2.safetensors")),
     },
     "vae16": {
         "note": "只改 fp16 VAE（其余同 baseline）",
-        "graph": lambda g: (apply_shift(g, 5.0, 1.0),
+        "graph": lambda g: (drop_lora(g),
+                            apply_shift(g, 5.0, 1.0),
                             apply_sampler(g, "euler", "simple"),
                             apply_vae(g, "minimax_h3_video_vae_fp16.safetensors")),
     },
+    "resmulti": {
+        "note": "只改 res_multistep（其余同 baseline）",
+        "graph": lambda g: (drop_lora(g),
+                            apply_shift(g, 5.0, 1.0),
+                            apply_sampler(g, "res_multistep", "simple"),
+                            apply_vae(g, "minimax_h3_video_vae_int8_convrot-v2.safetensors")),
+    },
     "steps32": {
         "note": "改动后 + 32 步（社区：32 步音质/运动更好，只多 15-20% 时间）",
-        "graph": lambda g: (apply_shift(g, 12.0, 3.0),
+        "graph": lambda g: (drop_lora(g),
+                            apply_shift(g, 12.0, 3.0),
                             apply_sampler(g, "res_multistep", "simple"),
                             apply_vae(g, "minimax_h3_video_vae_fp16.safetensors"),
                             apply_steps(g, 32)),
     },
     "pdd8off": {
-        "note": "官方 FL2VA int8 + PDD Acc-8Step LoRA（8 步，保质提速）",
-        "graph": lambda g: (apply_shift(g, 12.0, 3.0),
-                            apply_sampler(g, "res_multistep", "simple"),
-                            apply_vae(g, "minimax_h3_video_vae_fp16.safetensors"),
-                            apply_lora(g, PDD_LORA_FL2VA, 1.0),
-                            apply_steps(g, 8)),
+        "note": "PDD Acc-8Step LoRA + 8 步（保质提速，当前默认）",
+        "graph": lambda g: _pdd(g, 8),
     },
     "pdd4": {
         "note": "PDD LoRA + 4 步（极限提速，看画质掉多少）",
-        "graph": lambda g: (apply_shift(g, 12.0, 3.0),
-                            apply_sampler(g, "res_multistep", "simple"),
-                            apply_vae(g, "minimax_h3_video_vae_fp16.safetensors"),
-                            apply_lora(g, PDD_LORA_FL2VA, 1.0),
-                            apply_steps(g, 4)),
+        "graph": lambda g: _pdd(g, 4),
     },
-    "pdd8": {
-        "note": "改动后 + PDD Acc-8Step LoRA（并行解码蒸馏，8 步出片）",
-        "graph": lambda g: (apply_shift(g, 12.0, 3.0),
-                            apply_sampler(g, "res_multistep", "simple"),
-                            apply_vae(g, "minimax_h3_video_vae_fp16.safetensors"),
-                            apply_lora(g, PDD_LORA_FL2VA),
-                            apply_steps(g, 8)),
+    "crf12": {
+        "note": "PDD 8 步 + crf=12（近视觉无损，默认）",
+        "graph": lambda g: _pdd(g, 8, 12),
     },
-    "resmulti": {
-        "note": "只改 res_multistep（其余同 baseline）",
-        "graph": lambda g: (apply_shift(g, 5.0, 1.0),
-                            apply_sampler(g, "res_multistep", "simple"),
-                            apply_vae(g, "minimax_h3_video_vae_int8_convrot-v2.safetensors")),
+    "crf2": {
+        "note": "PDD 8 步 + crf=2（接近无损，验证码率上限）",
+        "graph": lambda g: _pdd(g, 8, 2),
+    },
+    "res1024": {
+        "note": "PDD 8 步 + crf12 @ 1024×1024（短边超 768，验证是否掉画质）",
+        "graph": lambda g: _pdd(g, 8, 12),
     },
 }
 
@@ -334,6 +375,10 @@ def fit_resolution(ref_w: int, ref_h: int, mode: str, wf: int, hf: int) -> tuple
         return wf, hf
     if mode == "square768":
         return 768, 768
+    if mode == "square1024":
+        # 故意越过短边 768 的限制：验证"H3 是 768p 模型、超了会掉画质"
+        # 这个社区说法在我们这套管线里成不成立。
+        return 1024, 1024
     if mode == "hd":
         return 1024, 768
     if mode == "same":
@@ -368,6 +413,9 @@ def _ref_size() -> tuple[int, int]:
     return 1024, 1024
 
 
+_SPEED_MODE = ""
+
+
 def make_spec(wf_key: str, prompt: str, variant: str, wf: int, hf: int):
     from tools.p2 import lifecycle
     from tools.p20 import p20ctl as p20cli
@@ -397,9 +445,17 @@ def make_spec(wf_key: str, prompt: str, variant: str, wf: int, hf: int):
     # steps/cfg 都是卡上 schema 的字段，resolve 会按 schema 校验并生成 spec，
     # 之后再改 params 不会进 spec；只改 graph 又会被 render 的 apply_params
     # 覆盖回去（2026-11-15 实测：想跑 8 步，实际跑了 20 步）。
-    for _k, _v in (VARIANTS_PARAMS.get(variant) or {}).items():
-        if _k in (registry.get_workflow(wf_key).get("params") or {}):
-            params[_k] = _v
+    # 优先级：--speed 显式指定 > 变体自带的 params 覆盖 > 卡默认值。
+    # --speed 走的是卡的 presets 展开（render.expand_presets），
+    # 所以这里**不能**再塞 steps/lora_strength —— 会被展开前的显式值盖住。
+    if _SPEED_MODE:
+        params["speed_mode"] = _SPEED_MODE
+        params.pop("steps", None)
+        params.pop("lora_strength", None)
+    else:
+        for _k, _v in (VARIANTS_PARAMS.get(variant) or {}).items():
+            if _k in (registry.get_workflow(wf_key).get("params") or {}):
+                params[_k] = _v
 
     res = registry.resolve(wf_key, params=params, allow_experimental=True)
     spec = p20cli._make_spec(res, job_key=wf_key, task_ref="H3-画质实验")
@@ -435,8 +491,11 @@ def main(argv=None) -> int:
     ap.add_argument("--width", type=int, default=0,
                     help="留空则按参考图比例算（i2v 保持首帧比例）")
     ap.add_argument("--height", type=int, default=0)
+    ap.add_argument("--speed", default="",
+                    help="直接指定 speed_mode（quality/balanced/fast），"
+                         "优先于 --variant 的 steps/lora 设定")
     ap.add_argument("--res", default="max",
-                    choices=["max", "square768", "same", "hd"],
+                    choices=["max", "square768", "square1024", "same", "hd"],
                     help="分辨率档：max=保持原比例的最高合规档；"
                          "square768=768×768；same=参考图原始尺寸（可能超限）；"
                          "hd=1024×768（横版）")
@@ -451,6 +510,8 @@ def main(argv=None) -> int:
         print("\n提示词：", ", ".join(sorted(PROMPTS)))
         return 0
 
+    global _SPEED_MODE
+    _SPEED_MODE = a.speed
     if a.variant not in VARIANTS:
         print(f"✗ 没有变体 {a.variant}", file=sys.stderr)
         return 1

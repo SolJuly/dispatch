@@ -79,8 +79,64 @@ def apply_constants(graph: dict, wf: dict) -> dict:
     return graph
 
 
+def expand_presets(wf: dict, params: dict) -> dict:
+    """把「档位型」枚举参数展开成它声明的其他参数值。
+
+    ## 为什么需要（2026-11-15）
+
+    H3 的加速 LoRA 要同时改**两个**东西：采样步数 + LoRA 强度。
+    这两件事对用户是同一个决定（"我要快还是要好"），但 registry 的参数
+    一个只能绑一个输入。让用户分别填 steps 和 strength 有两个问题：
+
+      · 容易配错组合（8 步 + strength 0 = 又快又没加速，纯浪费）
+      · 用户不该知道"PDD 是 8 步档"这种实现细节
+
+    所以加 `presets` 声明：
+
+        "speed_mode": {
+          "type": "enum", "default": "balanced",
+          "values": ["quality", "balanced", "fast"],
+          "presets": {
+            "quality":  {"steps": 20, "speed_mode": 0.0},
+            "balanced": {"steps": 8,  "speed_mode": 1.0},
+            "fast":     {"steps": 4,  "speed_mode": 1.0}
+          }
+        }
+
+    选中的档位会把 presets 里的键值**写进 params**（覆盖用户显式给的同名值），
+    之后走正常的 bindings 通道。
+
+    ## 顺序为什么重要
+
+    用户显式填 `steps=30` 又选 `balanced` 时，谁赢？
+    **档位赢** —— 因为档位是一个促狭的物理约束（PDD LoRA 就是 8 步训的），
+    步数偏离会让加速失效或画质崩。但 `steps` 仍然保留在 schema 里，
+    给 `quality` 档做细调（quality 的 preset 就是 20，用户改 25 也合理）。
+
+    实现上：先把用户值放进 out，再用 preset 覆盖。
+    """
+    out = dict(params)
+    schema = wf.get("params") or {}
+    for name, spec in schema.items():
+        if not isinstance(spec, dict):
+            continue
+        presets = spec.get("presets")
+        if not isinstance(presets, dict):
+            continue
+        chosen = out.get(name)
+        if chosen is None:
+            continue
+        vals = presets.get(str(chosen))
+        if not isinstance(vals, dict):
+            continue
+        for k, v in vals.items():
+            out[k] = v
+    return out
+
+
 def apply_params(graph: dict, wf: dict, params: dict) -> dict:
     schema = wf.get("params") or {}
+    params = expand_presets(wf, params)
     for name, spec in schema.items():
         if name not in params:
             continue

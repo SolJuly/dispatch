@@ -673,6 +673,34 @@ def resolve(workflow_key: str, *, model_key: str | None = None, params: dict | N
             continue
         errors += _validate_value(name, spec, val, model=model, model_key=mk)
         resolved[name] = val
+
+    # ---- 档位展开（presets）----
+    # 选了 speed_mode=balanced 之后，steps 和 lora_strength 必须跟着变成 8 / 1.0。
+    # 这一步放在"填完默认值"之后、"校验多余键"之前：
+    #   · 放之前 → 默认值会把 preset 覆盖回去（实测 steps 永远是 20）
+    #   · 用户显式给的 steps 仍然被 preset 覆盖：档位是物理约束
+    #     （PDD LoRA 就是 8 步训的），步数偏离会让加速失效
+    for name, spec in schema.items():
+        if not isinstance(spec, dict):
+            continue
+        presets = spec.get("presets")
+        if not isinstance(presets, dict):
+            continue
+        chosen = resolved.get(name)
+        if chosen is None:
+            continue
+        vals = presets.get(str(chosen))
+        if not isinstance(vals, dict):
+            continue
+        for k, v in vals.items():
+            if k not in schema:
+                errors.append(f"params.{name} 的 preset 想写不存在的参数 {k!r}")
+                continue
+            if k in resolved and resolved[k] == v:
+                continue
+            errors += _validate_value(k, schema[k], v, model=model, model_key=mk)
+            resolved[k] = v
+
     for name in given:
         if name not in schema:
             errors.append(f"params.{name} 不在工作流 {workflow_key} 的参数契约里")

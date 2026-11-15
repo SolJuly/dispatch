@@ -162,7 +162,7 @@
     }
    ],
    "default": 8,
-   "description": "采样步数。**默认 8 步**：配 PDD Acc-8Step 蒸馏 LoRA（阿里 PAI 的并行解码蒸馏）实测 220s vs 20 步 409s，提速 46%，画质肉眼无差异（2026-11-15 实测，同 seed 同提示词同 768×768 对比）。去掉 LoRA 的话要改回 20 步以上。",
+   "description": "采样步数。**默认 8 步**：配 PDD Acc-8Step 蒸馏 LoRA（阿里 PAI 的并行解码蒸馏）实测 220s vs 20 步 409s，提速 46%，画质肉眼无差异（2026-11-15 实测，同 seed 同提示词同 768×768 对比）。去掉 LoRA 的话要改回 20 步以上。 **注意：speed_mode 会覆盖这个值** —— balanced 档固定 8 步、fast 档固定 4 步。想手动指定步数请把 speed_mode 设为 quality。",
    "max": 50,
    "min": 1,
    "type": "int"
@@ -184,6 +184,61 @@
    "min": 256,
    "multiple": 16,
    "type": "int"
+  },
+  "crf": {
+   "type": "float",
+   "required": false,
+   "default": 12.0,
+   "min": 0.0,
+   "max": 51.0,
+   "description": "H.264 恒定质量系数（越小画质越高、文件越大）。**默认 12 ≈ 视觉无损**；实测同一提示词：auto 保留上游流只有 600-900 kb/s，显式 crf=12 能到 3-8 Mb/s。文件太大想小一点就调到 18-20。注意：这个参数只有在 format=mp4 + codec=h264 + encoding=re-encode 三者都设上时才生效 —— 卡里已固化为常量。",
+   "bindings": [
+    {
+     "node": "save",
+     "input": "crf"
+    }
+   ]
+  },
+  "speed_mode": {
+   "type": "enum",
+   "required": false,
+   "default": "balanced",
+   "values": [
+    "quality",
+    "balanced",
+    "fast"
+   ],
+   "presets": {
+    "quality": {
+     "steps": 20,
+     "lora_strength": 0.0
+    },
+    "balanced": {
+     "steps": 8,
+     "lora_strength": 1.0
+    },
+    "fast": {
+     "steps": 4,
+     "lora_strength": 1.0
+    }
+   },
+   "description": "加速档位 —— 按你的需要选。\n\n· **quality**：20 步，关闭加速 LoRA。最高画质，最慢（实测 ~409s）\n· **balanced**：8 步 + PDD Acc-8Step LoRA。实测 225s，提速 46%，肉眼无画质损失。**默认推荐**\n· **fast**：4 步 + 同一 LoRA。最快（~120s），画质会掉\n\nPDD = 阿里 PAI 的并行解码蒸馏权重，专为 8 步训练。选 quality 时 LoRA 强度自动设 0（等价直通），输出与不加 LoRA 一致。\n选了档位后，下面的 steps 会被档位覆盖 —— 档位是物理约束（LoRA 就是 8 步训的）。想手调步数请选 quality 档。",
+   "bindings": [],
+   "virtual": true
+  },
+  "lora_strength": {
+   "type": "float",
+   "required": false,
+   "default": 1.0,
+   "min": 0.0,
+   "max": 2.0,
+   "description": "PDD 加速 LoRA 的强度。**一般不用手动改** —— speed_mode 会自动设：quality=0（关闭）、balanced/fast=1.0。调到 0 等价于完全不用 LoRA。",
+   "bindings": [
+    {
+     "node": "lora",
+     "input": "strength_model"
+    }
+   ]
   }
  },
  "required_gpu": [
@@ -191,5 +246,22 @@
   "4090"
  ],
  "schema": "p20.workflow/v1",
- "version": 1
+ "version": 1,
+ "constants": [
+  {
+   "node": "save",
+   "input": "format",
+   "value": "mp4"
+  },
+  {
+   "node": "save",
+   "input": "codec",
+   "value": "h264"
+  },
+  {
+   "node": "save",
+   "input": "encoding",
+   "value": "re-encode"
+  }
+ ]
 }

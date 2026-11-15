@@ -47,6 +47,11 @@ VARIANT_NOTE = {
     "steps32": ("32 步", "改动后 + 32 步"),
     "pdd8": ("PDD 8 步", "PDD Acc-8Step LoRA（第三方模型直挂，未验证）"),
     "pdd8off": ("PDD 8 步 · 官方模型", "官方 FL2VA int8 + PDD Acc-8Step LoRA，8 步"),
+    "quality": ("档位 quality", "20 步 · LoRA 强度 0（最高画质）"),
+    "balanced": ("档位 balanced", "8 步 · PDD LoRA（默认）"),
+    "fast": ("档位 fast", "4 步 · PDD LoRA（最快）"),
+    "crf2": ("crf=2", "接近无损重编码（验证码率上限）"),
+    "res1024": ("1024×1024", "短边超 768，验证是否掉画质"),
     "pdd4": ("PDD 4 步", "PDD LoRA + 4 步（极限提速）"),
 }
 KIND_NOTE = {

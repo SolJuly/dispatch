@@ -127,7 +127,23 @@ def apply_links(model: dict, ssh_run, *, timeout: int = 60) -> list[dict]:
         link, target = ln.get("link"), ln.get("target")
         if not link or not target:
             continue
-        cmd = f"mkdir -p {shlex.quote(str(link.rsplit('/', 1)[0]))} && ln -sf {shlex.quote(target)} {shlex.quote(link)} && echo LINK_OK"
+        # **先判 link 本身是否已经是对的**，再决定要不要 mkdir。
+        #
+        # 2026-11-15 实测踩到：`link=/root/ComfyUI/models/loras/minimax`，
+        # 这条软链已存在（指向 /model/... 的目录）时，
+        # `mkdir -p <parent>` 正常，但 `ln -sf target link` 会因为 link 是个
+        # **已存在的目录软链**而把 `target` 塞进去，变成 `.../minimax/minimax`，
+        # 再往下一层就是只读的 /model，报 Read-only file system，整单失败。
+        #
+        # 正确做法：已经是正确软链就跳过；否则用 `ln -sfn`（-n 把目录软链当文件处理，
+        # 不会钻进去），并且只在父目录确实缺失时才 mkdir。
+        cmd = (
+            f'if [ -L {shlex.quote(str(link))} ] && '
+            f'[ "$(readlink {shlex.quote(str(link))})" = {shlex.quote(str(target))} ]; then '
+            f'echo LINK_OK; else '
+            f'mkdir -p {shlex.quote(str(link).rsplit("/", 1)[0])} && '
+            f'ln -sfn {shlex.quote(str(target))} {shlex.quote(str(link))} && echo LINK_OK; fi'
+        )
         rc, txt = ssh_run(cmd, timeout=timeout)
         out.append({"link": link, "target": target, "ok": rc == 0 and "LINK_OK" in (txt or ""),
                     "out": (txt or "")[-160:]})
