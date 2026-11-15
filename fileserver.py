@@ -28,6 +28,22 @@ TOKEN_FILE = Path(os.environ.get("SHARE_TOKEN_FILE", ROOT.parent / ".share_token
 BIND = os.environ.get("SHARE_BIND", "127.0.0.1")
 MAX_UPLOAD = int(os.environ.get("SHARE_MAX_UPLOAD_MB", "200")) * 1024 * 1024
 
+def _verdict_link() -> str:
+    """拆解报告页（reports/lab/verdict.html）的导航按钮。
+
+    这个页放的是「修前 vs 修后」并排对比，是判断某次改动到底有没有用的
+    主要依据 —— 和全量实测页不同，它只针对被拆过的个别工作流。
+    """
+    try:
+        f = Path(__file__).resolve().parent / "reports" / "lab" / "verdict.html"
+        if not f.is_file():
+            return ""
+        return (f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/verdict.html'>"
+                "🔍 拆解对比</a>")
+    except Exception:
+        return ""
+
+
 def _sweep_link() -> str:
     """最新一次全量实测结果页的导航按钮（没有就返回空串）。
 
@@ -722,6 +738,7 @@ class Handler(BaseHTTPRequestHandler):
             f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/gallery-inline.html'>🖼️ 画廊</a>"
             # 全量实测结果页（2026-11-14）：37 个产物一页看完，含 17 条不可用的根因。
             # 用通配取最新的一个，而不是写死日期 —— 下次再跑 sweep 不用改这里。
+            + (_verdict_link() or "")
             + (_sweep_link() or "")
             + f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/REPORT.md'>📋 数据表</a>"
             "</div>" + ("".join(rows) or "<p class='hint'>空目录</p>")
