@@ -373,12 +373,28 @@ class TestCreate(unittest.TestCase):
                            jobs_dir=self.jobs, spec_dir=self.specs, jobctl=self.fake)
 
     def test_experimental_rejected(self):
-        with self.assertRaises(api.ApiError) as cm:
-            api.create_job("pack_video_wan_vace_14b_ref2v",
-                           {"prompt": "x", "seed": 1, "image": "a.png", "width": 768,
-                            "height": 512, "frames": 121, "steps": 20, "cfg": 1.0},
-                           jobs_dir=self.jobs, spec_dir=self.specs, jobctl=self.fake)
-        self.assertEqual(cm.exception.code, 409)
+        """experimental 组合必须回 409，不能放行。
+
+        2026-11-16：工作流从 54 精简到 29，全部 verified —— registry 里
+        已经没有 experimental 卡片可当夹具了。这条路径仍必须有用
+        （以后加新卡还是先 experimental），所以改成直接注入状态，
+        而不是依赖某张具体的卡存在。
+        """
+        from tools.p20 import registry as _reg
+        orig = _reg.resolve
+
+        def fake_resolve(*a, **kw):
+            raise _reg.RegistryError(
+                "兼容性未验证：x（status=experimental，basis=auto）")
+
+        _reg.resolve = fake_resolve
+        try:
+            with self.assertRaises(api.ApiError) as cm:
+                api.create_job("qwen_image_t2i", {"prompt": "x", "seed": 1},
+                               jobs_dir=self.jobs, spec_dir=self.specs, jobctl=self.fake)
+            self.assertEqual(cm.exception.code, 409)
+        finally:
+            _reg.resolve = orig
 
     def test_duplicate_done_returns_409(self):
         """jobctl 报「同参数已完成」时，webui 应回 409 而不是笼统的 500。"""
@@ -520,15 +536,20 @@ class TestVideoParamBinding(unittest.TestCase):
         2026-11-10 前端统一到 web/dist 后，这条改测 B 套的 mediaCtl()。
         原来测的是 `webui/components.py`（A 套服务端渲染），那套已删除。
 
-        为什么这条必须留着：`image_2` 这个**参数名**看起来是图片，
-        实际语义是"驱动视频"。只按名字推断就会给成 `accept="image/*"`，
-        用户选了 mp4 也被拒 —— 历史上这正是动作迁移跑不起来的第一个坑。
+        为什么这条必须留着：`image` 这个**参数名**看起来是图片，
+        在 scail2 里实际语义是"驱动视频"。只按名字推断就会给成
+        `accept="image/*"`，用户选了 mp4 也被拒 —— 历史上这正是
+        动作迁移跑不起来的第一个坑。
+
+        （2026-11-16 夹具从 animate2 的 image_2 换成 scail2 的 image：
+        animate2 蒸馏版已删，正式版把驱动视频改名叫了 video，
+        「名字像图、实为视频」这个陷阱现在只剩 scail2 这一处。）
         """
         from tools.p20 import registry
-        wf = registry.get_workflow("pack_video_wan_animate2_distilled")
-        spec = wf["params"]["image_2"]
+        wf = registry.get_workflow("pack_video_wan21_scail2_character_replacement")
+        spec = wf["params"]["image"]
         self.assertEqual(spec.get("type"), "video",
-                         "image_2 在 animate2 里语义是驱动视频，类型必须声明为 video")
+                         "image 在 scail2 里语义是驱动视频，类型必须声明为 video")
 
         # 源码层面确认 mediaCtl 按 spec.type 分派 accept，且视频分支含 mp4
         src = (Path(__file__).resolve().parents[3] / "web" / "dist" / "app.js").read_text(

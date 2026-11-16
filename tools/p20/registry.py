@@ -620,10 +620,22 @@ def _validate_value(name: str, spec: dict, value, *, model: dict | None = None,
             e.append(f"params.{name}={value} > 上限 {hi}")
         mult = spec.get("multiple") if spec.get("multiple") is not None else con.get("multiple")
         if mult and value % mult != 0:
-            # 帧数惯例是 4n+1（Wan/LTX 的 latent 长度），默认值 81/77 本来就带 +1；
-            # 只按 "能被 4 整除" 校验会把模板自己的默认值判成非法（3 个工作流踩中）。
-            if not (name == "frames" and mult > 1 and (value - 1) % mult == 0):
-                e.append(f"params.{name}={value} 不是 {mult} 的倍数（帧数需满足 {mult}n+1）")
+            # 帧数不是「能被 mult 整除」，而是落在 mult·k + offset 的网格上：
+            #   Wan / LTX : 4n+1   (offset=1)
+            #   H3        : 17k+5  (offset=5)   ← 2026-11-16 补
+            # 只按「能被 4 整除」校验会把模板自己的默认值判成非法（3 个工作流踩中）；
+            # 只认 offset=1 又会把 H3 的 124 判成非法（改成 multiple=17 后立刻踩到）。
+            # offset 缺省为 1 —— 保持历史行为，老卡片不用改。
+            if name == "frames" and mult > 1:
+                off = spec.get("offset")
+                off = off if isinstance(off, int) and not isinstance(off, bool) else 1
+                if off >= mult:
+                    off = 1
+                if (value - off) % mult != 0:
+                    e.append(f"params.{name}={value} 不在帧数网格上"
+                             f"（需满足 {mult}n+{off}）")
+            else:
+                e.append(f"params.{name}={value} 不是 {mult} 的倍数")
     if typ == "image" and isinstance(value, str) and ("{{" in value or "\n" in value):
         e.append(f"params.{name} 不是合法图片文件名")
     return e

@@ -80,6 +80,20 @@ function originOf() {
   if (!S.baseSel) return location.origin;
   try { return new URL(S.baseSel).origin; } catch (e) { return location.origin; }
 }
+/* 下载链接：必须显式带 dl=1。
+ *
+ * 为什么要它（2026-11-16 用户反馈「下载只得到 html」）：
+ *   原来写的是 href="${url}" download，url 是 /f/...（没有 dl=1）。
+ *   后端对不带 dl=1 的媒体请求返回 Content-Disposition: inline（这是对的，
+ *   在线播放要靠它）。浏览器看 href 是 inline + 带 download 属性时，
+ *   有的实现会先跟随/解析，遇到同源下载策略差异就把页面存成 .mp4.html。
+ *   显式 dl=1 让后端返回 attachment + filename，浏览器直接落盘，不靠猜。
+ */
+function dlUrl(u) {
+  const full = artUrl(u);
+  return full + (full.includes('?') ? '&' : '?') + 'dl=1';
+}
+
 function artUrl(u) {
   if (!u) return '';
   if (/^https?:/.test(u)) return u;
@@ -1167,7 +1181,7 @@ function artifactCard(a, jobId, index = 0) {
     <div class="cap"><span>${esc(a.name)} · ${bytes(a.bytes)}${a.width ? ` · ${a.width}×${a.height}` : ''}
       ${a.published === false ? ' · <span style="color:var(--amber)">发布中</span>' : ''}</span>
       <span class="r"><a class="btn tiny" href="${url}" target="_blank" rel="noopener">原文件</a>
-      <a class="btn tiny p" href="${url}" download>下载</a></span></div></div>`;
+      <a class="btn tiny p" href="${dlUrl(url)}" download>下载</a></span></div></div>`;
 }
 
 async function cancelJob(id) {

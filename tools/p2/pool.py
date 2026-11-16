@@ -176,8 +176,60 @@ def _wait_ready(host: str, port: str, pwd: str, timeout=150) -> bool:
 
 
 # ------------------------------------------------------------------ 创建/补齐
+class _PoolOpts:
+    """给 run._pick_image 用的最小 opts。
+
+    `_pick_image` 只看 `opts.image`（CLI --image 覆盖）。池没有这个概念，
+    给个空值让它走 image.json 的 D2 分层逻辑。
+    用类而不是 SimpleNamespace：这里只有这一个字段，不值得引入额外 import。
+    """
+
+    image = None
+
+
+def _target_image_id(cs: CS, image_id: str) -> str:
+    """池实例应当使用的镜像 ID（空串 = 解析失败，不做漂移判定）。"""
+    try:
+        from tools.p1 import run as runmod
+        img = (cs.resolve_image(image_id) if image_id
+               else runmod._pick_image(cs, _PoolOpts(), {"kind": "video"}))
+        return str(img.get("CompShareImageId") or "")
+    except Exception as e:
+        _say(f"⚠ 解析目标镜像失败（{type(e).__name__}），跳过镜像漂移检查")
+        return ""
+
+
+def _recycle(cs: CS, uid: str) -> None:
+    """把一个镜像过期的池实例删掉，让 ensure 重新建。
+
+    只删不建：ensure 后面的补位循环会按 need 算好数量，
+    这里再建一次会多出台数、白占配额。
+    """
+    try:
+        _terminate_with_retry(cs, uid)
+    except Exception as e:
+        _say(f"⚠ 回收 {uid} 失败：{type(e).__name__} {str(e)[:80]}")
+
+
 def _create_one(cs: CS, gpu: str, image_id: str, idx: int) -> str | None:
-    img = cs.resolve_image(image_id) if image_id else cs.resolve_image(p2cfg.BASE_IMAGE_KEYWORD)
+    # 没显式指定镜像时，走 run.py 的同一套 D2 选镜像逻辑，**不要**自己回落到
+    # BASE_IMAGE_KEYWORD（0.36.0 纯净版）。
+    #
+    # 为什么（2026-11-16 用户实测踩到）：池里两台实例是 0.36.0 建的，而作业
+    # 新建机走 image.json → v4。同一个工作流落到池机还是新机，运行时不同：
+    #   · 0.36.0 缺 v4 的 10 个自定义节点
+    #   · 没有 /root/.p2_image.json，start 后 setup 只能走慢路径（每次多 30-60s）
+    # 池存在的意义是省那 70 秒建机时间，结果镜像不对反而把省下的时间吃掉。
+    #
+    # 复用 run.py 的 _pick_image 而不是复制那段逻辑：镜像选择是同一件事
+    # （两层 + 回落），两处各写一份必然会再次漂移 —— 这次漂移就是这么来的。
+    # 延迟导入：run.py 在函数内 import pool（见 run.py acquire 分支），
+    # 模块级互相 import 会成环。
+    if image_id:
+        img = cs.resolve_image(image_id)
+    else:
+        from tools.p1 import run as runmod
+        img = runmod._pick_image(cs, _PoolOpts(), {"kind": "video"})
     cpu_n, mem_gb = p2cfg.GPU_SPEC.get(gpu, (16, 64))
     try:
         ids = cs.create(image_id=img["CompShareImageId"], gpu_type=gpu, gpu=1, cpu=cpu_n,
@@ -198,18 +250,35 @@ def ensure(size: int, gpu: str | None = None, image_id: str | None = None,
     cs = CS()
     d = load()
     gpu = gpu or d.get("gpu") or config_default_gpu()
+    # image_id 留空 = 跟随 image.json（见 _create_one）。这里**不要**再塞一个
+    # 具体值进去：一旦写死，pool.json 就成了第二份镜像真相，将来换 v5 时
+    # 又会出现「池跟在跑作业用不同镜像」的老问题。
     image_id = image_id or d.get("image_id") or ""
     d.update({"gpu": gpu, "size": size, "image_id": image_id, "max_total": max_total})
 
-    # 清理已不存在的
+    # 目标镜像：池内实例的镜像必须和它对上，否则复用时运行时和作业不一致。
+    want_image = _target_image_id(cs, image_id)
+
+    # 清理已不存在的 / 镜像过期的
+    #
+    # 为什么要在 ensure 里做（2026-11-16）：池里的实例可能建于旧镜像时代
+    # （实测两台是 0.36.0，而 image.json 早就指向 v4）。没人重建的话，
+    # 它们会一直躺在池里被复用 —— 复用到旧运行时的作业既不报错也不对，
+    # 是最难查的那种问题。这里主动比对，不一致就回收。
     alive = []
     for it in d["instances"]:
         try:
-            st = (cs.get(it["uid"]).get("State") or "").lower()
-            it["cloud_state"] = st
-            alive.append(it)
+            inst = cs.get(it["uid"])
         except Exception:
             _say(f"池内 {it['uid']} 已不存在，移除")
+            continue
+        it["cloud_state"] = (inst.get("State") or "").lower()
+        got_image = str(inst.get("CompShareImageId") or "")
+        if want_image and got_image and got_image != want_image:
+            _say(f"池内 {it['uid']} 镜像不合（{inst.get('CompShareImageName') or got_image}），回收重建")
+            _recycle(cs, it["uid"])
+            continue
+        alive.append(it)
     d["instances"] = alive
 
     idle = [i for i in d["instances"] if i.get("state") in ("idle", "stopped")]

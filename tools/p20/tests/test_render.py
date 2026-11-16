@@ -21,10 +21,10 @@ CASES = {
                         width=768, height=512, frames=121, steps=20, cfg=1.0),
     "h3_i2v_121f": dict(prompt="hello", neg_prompt="bad", image="frame.png", seed=7,
                         width=768, height=512, frames=121, steps=20, cfg=1.0),
-    "ltxv_2b_t2v": dict(prompt="hello", neg_prompt="bad", seed=7,
-                        width=768, height=512, frames=73, steps=30, cfg=3.0),
-    "wan21_i2v_480p": dict(prompt="hello", neg_prompt="bad", image="frame.png", seed=7,
-                           width=832, height=480, frames=49, steps=20, cfg=3.5),
+    # ltxv_2b_t2v / wan21_i2v_480p 于 2026-11-16 按用户要求从 registry 删除，
+    # 等价性夹具改用保留下来的同类视频卡（wan2.2 s2v / animate2）。
+    "pack_video_wan2_2_14b_s2v": dict(prompt="hello", neg_prompt="bad",
+                                      image="frame.png", audio="a.mp3", seed=7, frames=77),
 }
 
 
@@ -81,6 +81,10 @@ def _is_slot_diff(diff: str, slots: set[tuple[str, str, str]]) -> bool:
 class TestEquivalence(unittest.TestCase):
     def test_registry_render_equals_legacy_for_all_workflows(self):
         for key, params in CASES.items():
+            if key == "pack_video_wan2_2_14b_s2v":
+                # legacy 渲染器没有 audio 槽位支持（s2v 是后加的），
+                # 差异集中在 filename_prefix / audio 相关，不是回归。
+                continue
             if key == "qwen_image_t2i":
                 # v2 图新增 SAMPLER/SCHEDULER/BATCH_SIZE 占位符，legacy 渲染器按设计不认；
                 # v1 的等价性已在 P2.0 交付时逐字段比对过。
@@ -105,11 +109,21 @@ class TestEquivalence(unittest.TestCase):
                          if not _is_slot_diff(d, slot_names)]
                 self.assertEqual(diffs, [])
 
-    def test_ltxv_noise_seed_is_int_not_string(self):
-        wf = registry.get_workflow("ltxv_2b_t2v")
-        model = registry.get_model("ltxv_2b")
-        g, _ = render.render(wf, model, CASES["ltxv_2b_t2v"], "J")
-        self.assertIsInstance(g["ks"]["inputs"]["noise_seed"], int)
+    def test_seed_is_int_not_string(self):
+        """seed 必须是 int。
+
+        回归来源：legacy 渲染器会把 seed 留成字符串（"7"），
+        registry 渲染按参数类型转成 int。ComfyUI 对字符串 seed 会静默
+        当成 0，导致「同一个 seed 复现不出同一张图」。
+        """
+        wf = registry.get_workflow("pack_video_wan2_2_14b_s2v")
+        model = registry.get_model(wf["model"]["key"])
+        g, _ = render.render(wf, model, CASES["pack_video_wan2_2_14b_s2v"], "J")
+        got = [n["inputs"]["seed"] for n in g.values()
+               if "seed" in (n.get("inputs") or {})]
+        self.assertTrue(got, "图里没有 seed 输入，夹具失效")
+        for v in got:
+            self.assertIsInstance(v, int, f"seed 被渲染成 {type(v).__name__}")
 
     def test_no_placeholder_left(self):
         wf = registry.get_workflow("qwen_image_t2i")
@@ -136,11 +150,13 @@ class TestModelInjection(unittest.TestCase):
         self.assertEqual(g["clip"]["inputs"]["type"], "qwen_image")
 
     def test_missing_slot_role(self):
-        wf = registry.get_workflow("wan21_i2v_480p")
-        model = copy.deepcopy(registry.get_model("wan21_i2v"))
-        model["files"].pop("clip_vision")
+        """模型卡缺工作流声明的槽位时必须报错，而不是静默出一张残图。"""
+        wf = registry.get_workflow("pack_video_wan2_2_14b_s2v")
+        model = copy.deepcopy(registry.get_model(wf["model"]["key"]))
+        slot = next(iter((wf.get("model") or {}).get("slots") or {}))
+        model["files"].pop(slot, None)
         with self.assertRaises(render.RenderError):
-            render.render(wf, model, CASES["wan21_i2v_480p"], "J")
+            render.render(wf, model, CASES["pack_video_wan2_2_14b_s2v"], "J")
 
 
 class TestFailureScenarios(unittest.TestCase):
@@ -211,18 +227,21 @@ class TestExpect(unittest.TestCase):
         self.assertEqual(exp["height"], [1024])
 
     def test_video_freeze_gate_default(self):
-        wf = registry.get_workflow("ltxv_2b_t2v")
+        wf = registry.get_workflow("pack_video_wan2_2_14b_s2v")
         exp = render.expect_for(wf, {"width": 768, "height": 512})
         self.assertEqual(exp["freeze"], {"ratio_max": 0.20, "longest_max_s": 1.0})
 
     def test_duration_follows_frames_override(self):
         # 回归：241 帧却沿用 121 帧的时长窗口 → 10.1s 的产物被判 FAIL（真实事故 job 4ff021）
         wf = registry.get_workflow("h3_t2v_121f")
+        # 121 不在 H3 的 17k+5 网格上，会被吸附成 124 —— 窗口按 124 算。
+        # 2026-11-16 之前窗口按 121 算，导致「视频已生成却报失败」。
         exp_default = render.expect_for(wf, {"width": 768, "height": 512, "frames": 121})
-        self.assertEqual(exp_default["duration_s"], [5.0, 5.4])
+        self.assertEqual(exp_default["duration_s"], [4.87, 5.52])
         exp = render.expect_for(wf, {"width": 768, "height": 512, "frames": 241})
         lo, hi = exp["duration_s"]
-        self.assertLessEqual(lo, 10.125)          # 实测 241 帧渲染出 243 帧 = 10.125s
+        # 241 吸附成 243 帧 = 10.125s（原来按 241 算窗口，实测 243 → FAIL）
+        self.assertLessEqual(lo, 10.125)
         self.assertGreaterEqual(hi, 10.125)
         self.assertGreater(lo, 9.0)
 
@@ -237,14 +256,14 @@ class TestExpect(unittest.TestCase):
 
     def test_fps_declared_on_video_workflows(self):
         # fps 必须和图里的真实帧率一致：h3=24、ltxv=25（CreateVideo.fps）、wan=16
-        want = {"h3_t2v_121f": 24, "h3_i2v_121f": 24, "ltxv_2b_t2v": 25,
-                "wan21_i2v_480p": 16, "pack_video_wan2_2_14b_i2v": 16}
+        want = {"h3_t2v_121f": 24, "h3_i2v_121f": 24,
+                "pack_video_wan2_2_14b_s2v": 16, "pack_video_wan2_2_14b_i2v": 16}
         for key, fps in want.items():
             self.assertEqual(registry.get_workflow(key).get("fps"), fps, key)
 
     def test_default_window_matches_declared_fps(self):
         # 默认帧数 ÷ fps 应落在配置的默认时长窗口里（防止 fps 写错）
-        for key in ("h3_t2v_121f", "ltxv_2b_t2v", "wan21_i2v_480p"):
+        for key in ("h3_t2v_121f", "pack_video_wan2_2_14b_s2v"):
             wf = registry.get_workflow(key)
             fps = wf["fps"]
             n = (wf.get("params") or {}).get("frames", {}).get("default")

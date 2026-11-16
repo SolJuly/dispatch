@@ -41,7 +41,9 @@ class TestImport(RegistryBase):
         self.assertEqual(s["workflows"], len(list(WF_DIR.glob("*.json"))))
         self.assertEqual(s["models"], len(list(MODEL_DIR.glob("*.json"))))
         self.assertGreaterEqual(s["compat"]["verified"], 11)
-        self.assertGreaterEqual(s["compat"]["experimental"], 1)
+        # 2026-11-16：工作流精简到 29 条，全部 verified，experimental 归零。
+        # 不写死数字 —— 以后加新卡又会有 experimental。
+        self.assertGreaterEqual(s["compat"].get("experimental", 0), 0)
 
     def test_idempotent(self):
         before = registry.stats(self.db)
@@ -55,7 +57,9 @@ class TestImport(RegistryBase):
         wfs = {w["key"]: w for w in registry.list_workflows(self.db)}
         self.assertEqual(len(wfs), len(list(WF_DIR.glob("*.json"))))
         self.assertEqual(wfs["qwen_image_t2i"]["compat"]["status"], "verified")
-        self.assertEqual(wfs["pack_video_wan_vace_14b_ref2v"]["compat"]["status"], "experimental")
+        # 全部 verified：随便抽两条确认状态字段被正确写回
+        for k in ("h3_t2v_121f", "pack_video_wan2_2_14b_i2v"):
+            self.assertEqual(wfs[k]["compat"]["status"], "verified", k)
         w = registry.get_workflow("qwen_image_t2i", db_path=self.db)
         self.assertEqual(w["model"]["key"], "qwen_image")
         self.assertEqual(len(w["graph_obj"]), 9)
@@ -109,14 +113,56 @@ class TestResolve(RegistryBase):
         self.assertIn("上限", str(cm.exception))
 
     def test_experimental_gate(self):
-        with self.assertRaises(registry.RegistryError) as cm:
-            registry.resolve("pack_video_wan_vace_14b_ref2v", params={"prompt": "hi", "seed": 1,
-                                                    "image": "f.png"}, db_path=self.db)
-        self.assertIn("兼容性未验证", str(cm.exception))
-        r = registry.resolve("pack_video_wan_vace_14b_ref2v", params={"prompt": "hi", "seed": 1,
-                                                    "image": "f.png"},
-                             allow_experimental=True, db_path=self.db)
-        self.assertEqual(r["compat"]["status"], "experimental")
+        """未验证组合必须默认拒绝，allow_experimental=True 才放行。
+
+        2026-11-16：registry 里已经没有 experimental 卡片了，所以改成
+        用一张**临时卡**（磁盘上的 json 副本，不碰真实卡片）来验证闸门 ——
+        覆盖率不能因为「暂时没有未验证的卡」就丢掉。
+
+        compat.json 只允许显式写 verified/incompatible，experimental 由
+        结构推导（缺记录 = 未验证），所以做法是：新卡 + 不给它兼容性记录。
+        """
+        import json
+        import shutil
+        import tempfile
+        from pathlib import Path
+
+        tmpdir = Path(tempfile.mkdtemp())
+        try:
+            wfdir = tmpdir / "workflows"
+            wfdir.mkdir()
+            for f in WF_DIR.glob("*.json"):
+                shutil.copy2(f, wfdir / f.name)
+            # 用一条**结构上唯一**的副本：若和某张现存卡结构一致，
+            # registry 会按 structure-equal 推出 equivalent，闸门就测不到了。
+            # 用一条**结构上唯一**的副本：若和某张现存卡结构一致，
+            # registry 会按 structure-equal 推出 equivalent，闸门就测不到。
+            # 做法：把图复制一份并加一个孤立节点，卡指向新图。
+            src = json.load(open(WF_DIR / "h3_t2v_121f.json"))
+            g = json.load(open(ROOT / src["graph"]))
+            g["zz_gate_marker"] = {"class_type": "Note",
+                                   "inputs": {"text": "gate fixture"}}
+            gpath = tmpdir / "gate_graph.api.json"
+            json.dump(g, open(gpath, "w"), ensure_ascii=False, indent=1)
+            src["key"] = "zz_gate_fixture"
+            src["name"] = "gate fixture"
+            src["graph"] = str(gpath)
+            src.pop("graph_sha256", None)
+            json.dump(src, open(wfdir / "zz_gate_fixture.json", "w"),
+                      ensure_ascii=False, indent=1)
+            db = tmpdir / "r.db"
+            registry.import_all(db, workflow_dir=wfdir, model_dir=MODEL_DIR,
+                                compat_path=self.compat, quiet=True)
+            with self.assertRaises(registry.RegistryError) as cm:
+                registry.resolve("zz_gate_fixture",
+                                 params={"prompt": "hi", "seed": 1}, db_path=db)
+            self.assertIn("兼容性未验证", str(cm.exception))
+            r = registry.resolve("zz_gate_fixture",
+                                 params={"prompt": "hi", "seed": 1},
+                                 allow_experimental=True, db_path=db)
+            self.assertNotEqual((r.get("compat") or {}).get("status"), "verified")
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
     def test_int_type(self):
         with self.assertRaises(registry.RegistryError) as cm:

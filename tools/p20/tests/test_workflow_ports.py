@@ -410,7 +410,7 @@ class TestTrimSecondsGuidance(unittest.TestCase):
     """
 
     WF = ["pack_video_wan21_scail2_character_replacement",
-          "pack_video_wan_animate2_distilled"]
+          "pack_video_wan_animate2"]
 
     def setUp(self):
         from tools.p20 import registry

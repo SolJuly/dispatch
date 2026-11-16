@@ -171,23 +171,19 @@ class TestTargetWorkflows(unittest.TestCase):
     花 ¥0.10/条 才发现。
     """
 
-    NINE = [
+    SEVEN = [
         "pack_image_flux2_klein_image_edit_4b_distilled",
         "pack_image_qwen_image_edit_2511_int8",
         "pack_image_qwen_image_layered",
-        "pack_video_fasth3_ominiref_r2v",
-        "pack_video_ltx2_3_flf2v",
-        "pack_video_ltx2_5_flf2v",
         "pack_video_minimax_h3_r2v",
         "pack_video_wan21_scail2_character_replacement",
-        "pack_video_wan21_scail2_character_replacement_int8",
     ]
 
     def setUp(self):
         self.oi = G.load_object_info()
 
     def test_no_hard_missing(self):
-        for key in self.NINE:
+        for key in self.SEVEN:
             with self.subTest(workflow=key):
                 r = G.check(key, self.oi)
                 self.assertEqual(
@@ -200,7 +196,7 @@ class TestTargetWorkflows(unittest.TestCase):
         """夹具前提：这 9 条都得在 registry 里，否则测的是空气。"""
         from tools.p20 import registry
         have = {w["key"] for w in registry.list_workflows()}
-        for key in self.NINE:
+        for key in self.SEVEN:
             self.assertIn(key, have)
 
     def test_dynamiccombo_flat_subkeys_required(self):
