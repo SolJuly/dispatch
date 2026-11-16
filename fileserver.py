@@ -28,6 +28,18 @@ TOKEN_FILE = Path(os.environ.get("SHARE_TOKEN_FILE", ROOT.parent / ".share_token
 BIND = os.environ.get("SHARE_BIND", "127.0.0.1")
 MAX_UPLOAD = int(os.environ.get("SHARE_MAX_UPLOAD_MB", "200")) * 1024 * 1024
 
+def _ui_shot_link() -> str:
+    """控制台界面截图页（reports/lab/ui.html）的导航按钮。"""
+    try:
+        f = Path(__file__).resolve().parent / "reports" / "lab" / "ui.html"
+        if not f.is_file():
+            return ""
+        return (f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/ui.html'>"
+                "🖥 界面截图</a>")
+    except Exception:
+        return ""
+
+
 def _verdict_link() -> str:
     """拆解报告页（reports/lab/verdict.html）的导航按钮。
 
@@ -760,6 +772,7 @@ class Handler(BaseHTTPRequestHandler):
             f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/gallery-inline.html'>🖼️ 画廊</a>"
             # 全量实测结果页（2026-11-14）：37 个产物一页看完，含 17 条不可用的根因。
             # 用通配取最新的一个，而不是写死日期 —— 下次再跑 sweep 不用改这里。
+            + (_ui_shot_link() or "")
             + (_verdict_link() or "")
             + (_sweep_link() or "")
             + f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/REPORT.md'>📋 数据表</a>"

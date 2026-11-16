@@ -35,6 +35,8 @@ reports/lab/sweep-*.html
 reports/lab/h3-quality.html
 reports/lab/h3lab/
 reports/lab/verdict.html
+reports/lab/ui.html
+reports/lab/ui/
 reports/lab/.h3lab-thumbs/
 reports/lab/.sweep-thumbs/
 
