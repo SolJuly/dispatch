@@ -24,7 +24,9 @@ class FakeCS:
     def create(self, **kw):
         self.n += 1
         uid = f"uhost-fake{self.n}"
-        self.insts[uid] = {"UHostId": uid, "State": "Running", "Name": kw.get("name")}
+        self.insts[uid] = {"UHostId": uid, "State": "Running", "Name": kw.get("name"),
+                           "CompShareImageId": kw.get("image_id"),
+                           "CompShareImageName": kw.get("image_id")}
         self.calls.append(f"create:{uid}")
         return [uid]
 
@@ -85,6 +87,57 @@ class PoolTest(unittest.TestCase):
         self.assertEqual(st["total"], 2)
         self.assertEqual(st["by_state"].get("idle"), 2)
         self.assertEqual([c for c in self.cs.calls if c.startswith("stop:")].__len__(), 2)
+
+    def test_ensure_creates_with_v4_not_base_keyword(self):
+        """池实例必须用 image.json 的镜像，不能回落到 BASE_IMAGE_KEYWORD。
+
+        回归（2026-11-16 实测）：pool.py 原来在 image_id 为空时
+        直接 `cs.resolve_image(p2cfg.BASE_IMAGE_KEYWORD)`，于是池里躺的是
+        0.36.0 纯净版，而作业新建机走 image.json → v4。
+        同一个工作流落到池机还是新机，运行时不一样 —— 最难查的那类问题。
+        """
+        from tools.p2 import config as p2cfg
+        import json as _json
+        want = _json.loads(p2cfg.IMAGE_JSON.read_text(encoding="utf-8"))["layers"]["media"]["image_id"]
+        pool.ensure(1, gpu="4090", max_total=4)
+        created = [v for v in self.cs.insts.values()]
+        self.assertEqual(len(created), 1)
+        self.assertEqual(created[0].get("CompShareImageId"), want,
+                         "池实例没用 image.json 的镜像")
+
+    def test_ensure_recycles_wrong_image(self):
+        """池里已有镜像不对的实例时，ensure 应删掉它重建。"""
+        from tools.p2 import config as p2cfg
+        import json as _json
+        want = _json.loads(p2cfg.IMAGE_JSON.read_text(encoding="utf-8"))["layers"]["media"]["image_id"]
+        # 造一台「旧镜像」实例
+        self.cs.insts["uhost-old"] = {
+            "UHostId": "uhost-old", "State": "Stopped", "Name": "p2-pool-1",
+            "CompShareImageId": "compshareImage-old036",
+            "CompShareImageName": "ComfyUI基础镜像纯净版0.36.0"}
+        pool.POOL_JSON.write_text(_json.dumps({
+            "schema": "p2.pool/v1", "gpu": "4090", "size": 1, "image_id": "",
+            "max_total": 4,
+            "instances": [{"uid": "uhost-old", "state": "idle", "job_id": None,
+                           "created_at": 0, "last_used": 0}]}), encoding="utf-8")
+
+        pool.ensure(1, gpu="4090", max_total=4)
+        self.assertIn("terminate:uhost-old", self.cs.calls, "旧镜像实例没被回收")
+        d = pool.load()
+        for it in d["instances"]:
+            self.assertEqual(self.cs.insts[it["uid"]].get("CompShareImageId"), want)
+
+    def test_ensure_keeps_matching_image(self):
+        """镜像本来就对的实例不该被无谓重建（否则每次 ensure 都烧钱）。"""
+        from tools.p2 import config as p2cfg
+        import json as _json
+        want = _json.loads(p2cfg.IMAGE_JSON.read_text(encoding="utf-8"))["layers"]["media"]["image_id"]
+        pool.ensure(1, gpu="4090", max_total=4)
+        uid = pool.load()["instances"][0]["uid"]
+        n_term = sum(1 for c in self.cs.calls if c.startswith("terminate:"))
+        pool.ensure(1, gpu="4090", max_total=4)
+        self.assertEqual(sum(1 for c in self.cs.calls if c.startswith("terminate:")), n_term,
+                         "镜像一致的实例被误回收")
 
     def test_ensure_respects_max_total(self):
         self.cs.create(name="busy-1")          # 已占 1 台
