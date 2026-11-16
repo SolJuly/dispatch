@@ -1,313 +1,338 @@
 {
- "description": "纯文本生成 121 帧视频。输入：提示词；输出：MP4。（✅ 可使用）",
- "engine": "comfyui",
- "expect_defaults": {
-  "black_ratio_max": 0.5,
-  "duration_s": [
-   5.0,
-   5.4
-  ],
-  "ext": "mp4",
-  "freeze": {
-   "longest_max_s": 1.0,
-   "ratio_max": 0.2
+  "description": "纯文本生成 121 帧视频。输入：提示词；输出：MP4。（✅ 可使用）",
+  "engine": "comfyui",
+  "expect_defaults": {
+    "black_ratio_max": 0.5,
+    "duration_s": [
+      5.0,
+      5.4
+    ],
+    "ext": "mp4",
+    "freeze": {
+      "longest_max_s": 1.0,
+      "ratio_max": 0.2
+    },
+    "height": [
+      512
+    ],
+    "min_bytes": 100000,
+    "width": [
+      768
+    ]
   },
-  "height": [
-   512
-  ],
-  "min_bytes": 100000,
-  "width": [
-   768
-  ]
- },
- "fps": 24,
- "graph": "workflows/h3_t2v_121f.api.json",
- "key": "h3_t2v_121f",
- "kind": "video",
- "limits": {
-  "max_cost": 3.0,
-  "max_minutes": 45
- },
- "model": {
-  "key": "h3",
-  "slots": {
-   "clip": {
-    "input": "clip_name",
-    "node": "clip"
-   },
-   "unet": {
-    "input": "unet_name",
-    "node": "unet"
-   },
-   "vae": {
-    "input": "vae_name",
-    "node": "vae"
-   },
-   "lora": {
-    "node": "lora",
-    "input": "lora_name"
-   }
-  }
- },
- "name": "文生视频 · MiniMax H3（121 帧）",
- "notes": "121 帧实测稳定；提示词与负提示词分别绑 cond/neg 两个 MiniMaxH3ImageToVideo 节点。",
- "output": {
-  "ext": "mp4",
-  "input": "filename_prefix",
+  "fps": 24,
+  "graph": "workflows/h3_t2v_121f.api.json",
+  "key": "h3_t2v_121f",
   "kind": "video",
-  "node": "save",
-  "pick": [
-   "videos",
-   "gifs"
+  "limits": {
+    "max_cost": 3.0,
+    "max_minutes": 45
+  },
+  "model": {
+    "key": "h3",
+    "slots": {
+      "clip": {
+        "input": "clip_name",
+        "node": "clip"
+      },
+      "unet": {
+        "input": "unet_name",
+        "node": "unet"
+      },
+      "vae": {
+        "input": "vae_name",
+        "node": "vae"
+      },
+      "lora": {
+        "node": "lora",
+        "input": "lora_name"
+      }
+    }
+  },
+  "name": "文生视频 · MiniMax H3（121 帧）",
+  "notes": "121 帧实测稳定；提示词与负提示词分别绑 cond/neg 两个 MiniMaxH3ImageToVideo 节点。",
+  "output": {
+    "ext": "mp4",
+    "input": "filename_prefix",
+    "kind": "video",
+    "node": "save",
+    "pick": [
+      "videos",
+      "gifs"
+    ]
+  },
+  "params": {
+    "cfg": {
+      "bindings": [
+        {
+          "input": "cfg",
+          "node": "ks"
+        }
+      ],
+      "default": 2.0,
+      "description": "提示词遵从度（CFG scale）。**这个工作流必须 >= 2.0**：H3 是 distilled 模型，cfg=1.0 时负向分支不参与计算，而 MinimaxH3ImageToVideo 的 negative 节点仍要吃一个 prompt，喂长文本会把条件张量带偏 → 解码出全黑视频（2026-11-15 实测：cfg=1.0 + 中文负向词 → 124 帧全黑，YMIN=YAVG=YMAX=16）。实测可用值 2.0；调高到 3-4 会更贴提示词但可能过饱和。",
+      "max": 30.0,
+      "min": 0.0,
+      "type": "float"
+    },
+    "frames": {
+      "bindings": [
+        {
+          "input": "length",
+          "node": "cond"
+        },
+        {
+          "input": "length",
+          "node": "neg"
+        }
+      ],
+      "default": 121,
+      "description": "帧数（length）；121 帧 ≈ 5.17s @24fps",
+      "max": 241,
+      "min": 1,
+      "type": "int"
+    },
+    "height": {
+      "bindings": [
+        {
+          "input": "height",
+          "node": "cond"
+        },
+        {
+          "input": "height",
+          "node": "neg"
+        }
+      ],
+      "description": "输出高度。**一般不用手填** —— 由「分辨率」和「画面比例」自动算。\n只在需要精确控制时才手动改；你填了就以你为准。\n\n（以前这里写「与宽度配套调整」，但两个值是各自独立的，根本不会联动 —— 改宽度画面就被拉变形。2026-11-16 修成真联动。）",
+      "max": 1280,
+      "min": 256,
+      "multiple": 16,
+      "type": "int",
+      "placeholder": "自动"
+    },
+    "neg_prompt": {
+      "bindings": [
+        {
+          "input": "prompt",
+          "node": "neg"
+        }
+      ],
+      "default": "",
+      "description": "负向提示词。**建议留空**：H3 的 cfg 在 1.0-2.0 区间对负向词的响应不稳定，喂长中文会把条件带偏（实测出全黑）。确实要用就写短英文，且先把 cfg 提到 3.0 以上。",
+      "type": "string"
+    },
+    "prompt": {
+      "bindings": [
+        {
+          "input": "prompt",
+          "node": "cond"
+        }
+      ],
+      "description": "正向提示词",
+      "required": true,
+      "type": "string"
+    },
+    "seed": {
+      "bindings": [
+        {
+          "input": "seed",
+          "node": "ks"
+        }
+      ],
+      "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
+      "required": true,
+      "type": "int"
+    },
+    "steps": {
+      "bindings": [
+        {
+          "input": "steps",
+          "node": "ks"
+        }
+      ],
+      "default": 8,
+      "description": "采样步数。**默认 8 步**：配 PDD Acc-8Step 蒸馏 LoRA（阿里 PAI 的并行解码蒸馏）实测 220s vs 20 步 409s，提速 46%，画质肉眼无差异（2026-11-15 实测，同 seed 同提示词同 768×768 对比）。去掉 LoRA 的话要改回 20 步以上。 **注意：speed_mode 会覆盖这个值** —— balanced 档固定 8 步、fast 档固定 4 步。想手动指定步数请把 speed_mode 设为 quality。",
+      "max": 50,
+      "min": 1,
+      "type": "int"
+    },
+    "resolution": {
+      "type": "enum",
+      "default": "768",
+      "values": [
+        "512",
+        "640",
+        "768",
+        "1024"
+      ],
+      "description": "短边像素 —— 决定清晰度的就是这个量。\n\n· 512 —— 草稿档，约 60% 时间。先用它试提示词，成了再换 768 重跑\n· 640 —— 折中\n· 768（默认）—— H3 官方原生档（官方节点默认 1344×768，短边就是 768）\n· 1024 —— 高清，显存吃紧，约 1.9 倍时间\n\n以前默认 768×512 是横屏、短边只有 512 —— 只用了官方 38% 的像素。\n选完这个，宽高会按「画面比例」自动算，不用再手填 width/height。",
+      "virtual": true
+    },
+    "aspect": {
+      "type": "enum",
+      "default": "16:9",
+      "values": [
+        "16:9",
+        "9:16",
+        "1:1",
+        "3:4",
+        "4:3"
+      ],
+      "description": "画面比例。文生视频没有素材可参考，所以必须显式选。\n\n· 16:9（默认）—— 横屏，适合大多数展示\n· 9:16 —— 竖屏（抖音/手机）\n· 1:1 / 3:4 / 4:3 —— 其他构图",
+      "virtual": true
+    },
+    "width": {
+      "bindings": [
+        {
+          "input": "width",
+          "node": "cond"
+        },
+        {
+          "input": "width",
+          "node": "neg"
+        }
+      ],
+      "description": "输出宽度。**一般不用手填** —— 由「分辨率」和「画面比例」自动算。\n只在需要精确控制时才手动改；你填了就以你为准。",
+      "max": 1280,
+      "min": 256,
+      "multiple": 16,
+      "type": "int",
+      "placeholder": "自动"
+    },
+    "crf": {
+      "type": "float",
+      "required": false,
+      "default": 12.0,
+      "min": 0.0,
+      "max": 51.0,
+      "description": "H.264 恒定质量系数（越小画质越高、文件越大）。**默认 12 ≈ 视觉无损**；实测同一提示词：auto 保留上游流只有 600-900 kb/s，显式 crf=12 能到 3-8 Mb/s。文件太大想小一点就调到 18-20。注意：这个参数只有在 format=mp4 + codec=h264 + encoding=re-encode 三者都设上时才生效 —— 卡里已固化为常量。",
+      "bindings": [
+        {
+          "node": "save",
+          "input": "crf"
+        }
+      ]
+    },
+    "speed_mode": {
+      "type": "enum",
+      "required": false,
+      "default": "balanced",
+      "values": [
+        "quality",
+        "balanced",
+        "fast"
+      ],
+      "presets": {
+        "quality": {
+          "steps": 20,
+          "lora_strength": 0.0
+        },
+        "balanced": {
+          "steps": 8,
+          "lora_strength": 1.0
+        },
+        "fast": {
+          "steps": 4,
+          "lora_strength": 1.0
+        }
+      },
+      "description": "加速档位 —— 按你的需要选。\n\n· **quality**：20 步，关闭加速 LoRA。最高画质，最慢（实测 ~409s）\n· **balanced**：8 步 + PDD Acc-8Step LoRA。实测 225s，提速 46%，肉眼无画质损失。**默认推荐**\n· **fast**：4 步 + 同一 LoRA。最快（~120s），画质会掉\n\nPDD = 阿里 PAI 的并行解码蒸馏权重，专为 8 步训练。选 quality 时 LoRA 强度自动设 0（等价直通），输出与不加 LoRA 一致。\n选了档位后，下面的 steps 会被档位覆盖 —— 档位是物理约束（LoRA 就是 8 步训的）。想手调步数请选 quality 档。",
+      "bindings": [],
+      "virtual": true
+    },
+    "lora_strength": {
+      "type": "float",
+      "required": false,
+      "default": 1.0,
+      "min": 0.0,
+      "max": 2.0,
+      "description": "PDD 加速 LoRA 的强度。**一般不用手动改** —— speed_mode 会自动设：quality=0（关闭）、balanced/fast=1.0。调到 0 等价于完全不用 LoRA。",
+      "bindings": [
+        {
+          "node": "lora",
+          "input": "strength_model"
+        }
+      ]
+    },
+    "style": {
+      "type": "enum",
+      "required": false,
+      "default": "none",
+      "values": [
+        "none",
+        "realism",
+        "cinema",
+        "davham"
+      ],
+      "presets": {
+        "none": {
+          "style_lora": "minimax/h3-realism-people-t2v-i2v-r2v-触发词r34l1sm.safetensors",
+          "style_strength": 0.0
+        },
+        "realism": {
+          "style_lora": "minimax/h3-realism-people-t2v-i2v-r2v-触发词r34l1sm.safetensors",
+          "style_strength": 1.0
+        },
+        "cinema": {
+          "style_lora": "minimax/电影感H3-loraV1.0正式版.safetensors",
+          "style_strength": 1.0
+        },
+        "davham": {
+          "style_lora": "minimax/davham_cinema-h3-Euler-simple-0.8.safetensors",
+          "style_strength": 0.8
+        }
+      },
+      "virtual": true,
+      "description": "画面风格（用户自选）。**只对 H3 有效** —— LoRA 的权重形状由基础模型的层结构决定，H3 的 LoRA 不能用于 Wan/LTX/Qwen 等其他模型族。\n\n· **none**：不加风格 LoRA（默认）。中性写实，招牌文字不会变乱码\n· **realism**：`h3-realism-people`（触发词 r34l1sm）。低角度仰拍、动作更猛、复古霓虹，偏\"打斗片\"质感\n· **cinema**：`电影感H3-loraV1.0`。冷调强对比、青绿霓虹、电影调色。画面信息量最大（实测体积 +30%），但会让招牌文字变乱码\n· **davham**：`davham_cinema-h3`（强度 0.8，作者建议）。偏暖，改动最小，最接近 none\n\n实测依据：2026-11-15 用大幅动作提示词（夜雨天台冲刺/起跳/落地）对比四条，同 seed 同参数。静态画面的片子里这几个 LoRA 肉眼几乎无差别 —— 差异体现在运动模糊、布料褶皱、光影随动。"
+    },
+    "style_lora": {
+      "type": "string",
+      "required": false,
+      "default": "minimax/h3-realism-people-t2v-i2v-r2v-触发词r34l1sm.safetensors",
+      "description": "风格 LoRA 文件名。**一般不用手改** —— style 档会自动设。",
+      "bindings": [
+        {
+          "node": "lora_style",
+          "input": "lora_name"
+        }
+      ]
+    },
+    "style_strength": {
+      "type": "float",
+      "required": false,
+      "default": 0.0,
+      "min": 0.0,
+      "max": 2.0,
+      "description": "风格 LoRA 强度。**一般不用手改** —— style 档会自动设（none=0 关闭、realism/cinema=1.0、davham=0.8）。强度 0 时节点仍在图里但不生效（等价直通）。",
+      "bindings": [
+        {
+          "node": "lora_style",
+          "input": "strength_model"
+        }
+      ]
+    }
+  },
+  "required_gpu": [
+    "4090_48G",
+    "4090"
+  ],
+  "schema": "p20.workflow/v1",
+  "version": 3,
+  "constants": [
+    {
+      "node": "save",
+      "input": "format",
+      "value": "mp4"
+    },
+    {
+      "node": "save",
+      "input": "codec",
+      "value": "h264"
+    },
+    {
+      "node": "save",
+      "input": "encoding",
+      "value": "re-encode"
+    }
   ]
- },
- "params": {
-  "cfg": {
-   "bindings": [
-    {
-     "input": "cfg",
-     "node": "ks"
-    }
-   ],
-   "default": 2.0,
-   "description": "提示词遵从度（CFG scale）。**这个工作流必须 >= 2.0**：H3 是 distilled 模型，cfg=1.0 时负向分支不参与计算，而 MinimaxH3ImageToVideo 的 negative 节点仍要吃一个 prompt，喂长文本会把条件张量带偏 → 解码出全黑视频（2026-11-15 实测：cfg=1.0 + 中文负向词 → 124 帧全黑，YMIN=YAVG=YMAX=16）。实测可用值 2.0；调高到 3-4 会更贴提示词但可能过饱和。",
-   "max": 30.0,
-   "min": 0.0,
-   "type": "float"
-  },
-  "frames": {
-   "bindings": [
-    {
-     "input": "length",
-     "node": "cond"
-    },
-    {
-     "input": "length",
-     "node": "neg"
-    }
-   ],
-   "default": 121,
-   "description": "帧数（length）；121 帧 ≈ 5.17s @24fps",
-   "max": 241,
-   "min": 1,
-   "type": "int"
-  },
-  "height": {
-   "bindings": [
-    {
-     "input": "height",
-     "node": "cond"
-    },
-    {
-     "input": "height",
-     "node": "neg"
-    }
-   ],
-   "default": 512,
-   "description": "输出高度（像素）。与宽度配套调整，保持原始素材的宽高比。",
-   "max": 1280,
-   "min": 256,
-   "multiple": 16,
-   "type": "int"
-  },
-  "neg_prompt": {
-   "bindings": [
-    {
-     "input": "prompt",
-     "node": "neg"
-    }
-   ],
-   "default": "",
-   "description": "负向提示词。**建议留空**：H3 的 cfg 在 1.0-2.0 区间对负向词的响应不稳定，喂长中文会把条件带偏（实测出全黑）。确实要用就写短英文，且先把 cfg 提到 3.0 以上。",
-   "type": "string"
-  },
-  "prompt": {
-   "bindings": [
-    {
-     "input": "prompt",
-     "node": "cond"
-    }
-   ],
-   "description": "正向提示词",
-   "required": true,
-   "type": "string"
-  },
-  "seed": {
-   "bindings": [
-    {
-     "input": "seed",
-     "node": "ks"
-    }
-   ],
-   "description": "随机种子。同一个种子 + 同一组参数能得到完全相同的结果；想复现某次出图就记下它。点「随机」换一个。",
-   "required": true,
-   "type": "int"
-  },
-  "steps": {
-   "bindings": [
-    {
-     "input": "steps",
-     "node": "ks"
-    }
-   ],
-   "default": 8,
-   "description": "采样步数。**默认 8 步**：配 PDD Acc-8Step 蒸馏 LoRA（阿里 PAI 的并行解码蒸馏）实测 220s vs 20 步 409s，提速 46%，画质肉眼无差异（2026-11-15 实测，同 seed 同提示词同 768×768 对比）。去掉 LoRA 的话要改回 20 步以上。 **注意：speed_mode 会覆盖这个值** —— balanced 档固定 8 步、fast 档固定 4 步。想手动指定步数请把 speed_mode 设为 quality。",
-   "max": 50,
-   "min": 1,
-   "type": "int"
-  },
-  "width": {
-   "bindings": [
-    {
-     "input": "width",
-     "node": "cond"
-    },
-    {
-     "input": "width",
-     "node": "neg"
-    }
-   ],
-   "default": 768,
-   "description": "输出宽度（像素）。越大越清晰但越慢越贵；改完后高度要按同样的比例缩放，否则画面会被拉变形。",
-   "max": 1280,
-   "min": 256,
-   "multiple": 16,
-   "type": "int"
-  },
-  "crf": {
-   "type": "float",
-   "required": false,
-   "default": 12.0,
-   "min": 0.0,
-   "max": 51.0,
-   "description": "H.264 恒定质量系数（越小画质越高、文件越大）。**默认 12 ≈ 视觉无损**；实测同一提示词：auto 保留上游流只有 600-900 kb/s，显式 crf=12 能到 3-8 Mb/s。文件太大想小一点就调到 18-20。注意：这个参数只有在 format=mp4 + codec=h264 + encoding=re-encode 三者都设上时才生效 —— 卡里已固化为常量。",
-   "bindings": [
-    {
-     "node": "save",
-     "input": "crf"
-    }
-   ]
-  },
-  "speed_mode": {
-   "type": "enum",
-   "required": false,
-   "default": "balanced",
-   "values": [
-    "quality",
-    "balanced",
-    "fast"
-   ],
-   "presets": {
-    "quality": {
-     "steps": 20,
-     "lora_strength": 0.0
-    },
-    "balanced": {
-     "steps": 8,
-     "lora_strength": 1.0
-    },
-    "fast": {
-     "steps": 4,
-     "lora_strength": 1.0
-    }
-   },
-   "description": "加速档位 —— 按你的需要选。\n\n· **quality**：20 步，关闭加速 LoRA。最高画质，最慢（实测 ~409s）\n· **balanced**：8 步 + PDD Acc-8Step LoRA。实测 225s，提速 46%，肉眼无画质损失。**默认推荐**\n· **fast**：4 步 + 同一 LoRA。最快（~120s），画质会掉\n\nPDD = 阿里 PAI 的并行解码蒸馏权重，专为 8 步训练。选 quality 时 LoRA 强度自动设 0（等价直通），输出与不加 LoRA 一致。\n选了档位后，下面的 steps 会被档位覆盖 —— 档位是物理约束（LoRA 就是 8 步训的）。想手调步数请选 quality 档。",
-   "bindings": [],
-   "virtual": true
-  },
-  "lora_strength": {
-   "type": "float",
-   "required": false,
-   "default": 1.0,
-   "min": 0.0,
-   "max": 2.0,
-   "description": "PDD 加速 LoRA 的强度。**一般不用手动改** —— speed_mode 会自动设：quality=0（关闭）、balanced/fast=1.0。调到 0 等价于完全不用 LoRA。",
-   "bindings": [
-    {
-     "node": "lora",
-     "input": "strength_model"
-    }
-   ]
-  },
-  "style": {
-   "type": "enum",
-   "required": false,
-   "default": "none",
-   "values": [
-    "none",
-    "realism",
-    "cinema",
-    "davham"
-   ],
-   "presets": {
-    "none": {
-     "style_lora": "minimax/h3-realism-people-t2v-i2v-r2v-触发词r34l1sm.safetensors",
-     "style_strength": 0.0
-    },
-    "realism": {
-     "style_lora": "minimax/h3-realism-people-t2v-i2v-r2v-触发词r34l1sm.safetensors",
-     "style_strength": 1.0
-    },
-    "cinema": {
-     "style_lora": "minimax/电影感H3-loraV1.0正式版.safetensors",
-     "style_strength": 1.0
-    },
-    "davham": {
-     "style_lora": "minimax/davham_cinema-h3-Euler-simple-0.8.safetensors",
-     "style_strength": 0.8
-    }
-   },
-   "virtual": true,
-   "description": "画面风格（用户自选）。**只对 H3 有效** —— LoRA 的权重形状由基础模型的层结构决定，H3 的 LoRA 不能用于 Wan/LTX/Qwen 等其他模型族。\n\n· **none**：不加风格 LoRA（默认）。中性写实，招牌文字不会变乱码\n· **realism**：`h3-realism-people`（触发词 r34l1sm）。低角度仰拍、动作更猛、复古霓虹，偏\"打斗片\"质感\n· **cinema**：`电影感H3-loraV1.0`。冷调强对比、青绿霓虹、电影调色。画面信息量最大（实测体积 +30%），但会让招牌文字变乱码\n· **davham**：`davham_cinema-h3`（强度 0.8，作者建议）。偏暖，改动最小，最接近 none\n\n实测依据：2026-11-15 用大幅动作提示词（夜雨天台冲刺/起跳/落地）对比四条，同 seed 同参数。静态画面的片子里这几个 LoRA 肉眼几乎无差别 —— 差异体现在运动模糊、布料褶皱、光影随动。"
-  },
-  "style_lora": {
-   "type": "string",
-   "required": false,
-   "default": "minimax/h3-realism-people-t2v-i2v-r2v-触发词r34l1sm.safetensors",
-   "description": "风格 LoRA 文件名。**一般不用手改** —— style 档会自动设。",
-   "bindings": [
-    {
-     "node": "lora_style",
-     "input": "lora_name"
-    }
-   ]
-  },
-  "style_strength": {
-   "type": "float",
-   "required": false,
-   "default": 0.0,
-   "min": 0.0,
-   "max": 2.0,
-   "description": "风格 LoRA 强度。**一般不用手改** —— style 档会自动设（none=0 关闭、realism/cinema=1.0、davham=0.8）。强度 0 时节点仍在图里但不生效（等价直通）。",
-   "bindings": [
-    {
-     "node": "lora_style",
-     "input": "strength_model"
-    }
-   ]
-  }
- },
- "required_gpu": [
-  "4090_48G",
-  "4090"
- ],
- "schema": "p20.workflow/v1",
- "version": 1,
- "constants": [
-  {
-   "node": "save",
-   "input": "format",
-   "value": "mp4"
-  },
-  {
-   "node": "save",
-   "input": "codec",
-   "value": "h264"
-  },
-  {
-   "node": "save",
-   "input": "encoding",
-   "value": "re-encode"
-  }
- ]
 }

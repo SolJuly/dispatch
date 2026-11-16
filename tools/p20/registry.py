@@ -25,6 +25,7 @@ import time
 from pathlib import Path
 
 from . import config_schema as cs
+from . import sizing
 
 ROOT = Path(__file__).resolve().parents[2]
 REG_DIR = ROOT / "registry"
@@ -32,6 +33,8 @@ WORKFLOW_DIR = REG_DIR / "workflows"
 MODEL_DIR = REG_DIR / "models"
 COMPAT_JSON = REG_DIR / "compat.json"
 DB_PATH = REG_DIR / "registry.db"
+# 上传素材落的目录。尺寸推导要读素材真尺寸，必须能找到它们。
+INPUTS_DIR = ROOT / "reports" / "p2" / "p21" / "inputs"
 
 SCHEMA_VERSION = 1
 ACTIVE_STATUS = ("verified", "equivalent")
@@ -700,6 +703,29 @@ def resolve(workflow_key: str, *, model_key: str | None = None, params: dict | N
                 continue
             errors += _validate_value(k, schema[k], v, model=model, model_key=mk)
             resolved[k] = v
+
+    # ---- 尺寸推导（resolution / aspect → width, height）----
+    # 放在 presets 之后、多余键校验之前。
+    #
+    # 为什么需要：H3 卡的 width/height 是两个独立字面量（默认 768×512），
+    # height 的说明却写着「与宽度配套调整，保持原始素材的宽高比」——
+    # 实际不联动，改 width 画面就被拉变形。而且 768×512 的短边只有 512，
+    # 官方 H3 节点是 1344×768（短边 768），我们只用了 38% 的像素。
+    #
+    # 只在卡里声明了 `resolution` 参数时才生效（目前是 H3 两张卡），
+    # 其它 52 个工作流行为完全不变。
+    if "resolution" in schema:
+        resolved = sizing.apply(
+            wf, resolved, provided=given, defaults_applied=applied,
+            inputs_dir=INPUTS_DIR)
+        # 推导出来的键要标进 defaults_applied，否则回读校验会当成「用户没给」的缺失项
+        for k in ("width", "height"):
+            if k in resolved and k not in given and k not in applied:
+                applied.append(k)
+        for k in ("width", "height"):
+            if k in resolved and k not in given:
+                errors += _validate_value(k, schema[k], resolved[k],
+                                          model=model, model_key=mk)
 
     for name in given:
         if name not in schema:
