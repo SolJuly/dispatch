@@ -324,5 +324,98 @@ class ImageRangeTest(unittest.TestCase):
             os.unlink(name)
 
 
+class InlineDispositionTest(unittest.TestCase):
+    """`_file()` 的分支选择：视频必须 inline，下载必须 attachment。
+
+    ## 为什么必须测这一层（2026-11-16 用户反馈「链接视频看不了」）
+
+    上面 RangeTest 全部直接调 `_send_media(..., inline=True)` ——
+    那只是发送函数，**跳过了「谁决定 inline」这一段**。而 bug 恰恰在这里：
+
+        if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT):
+            ...  # mp4 落进来，贴 attachment
+        if ext in MEDIA_EXT and not force_dl:
+            ...  # 死代码，永远到不了
+
+    结果：轮子（Range/流式）全对，页面也能开，但浏览器拿到
+    `Content-Disposition: attachment` 就直接下载而不是内联播放，
+    `<video>` 一直是空的。把最内层函数测得再细，也测不到这个。
+
+    教训：测「行为」要用户实际触发的那个入口，不是它内部调用的那一层。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "dsh_fileserver_disp", _ROOT / "fileserver.py")
+        cls.mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.mod)
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.root = Path(self.tmpdir)
+        self._orig_root = self.mod.ROOT
+        self.mod.ROOT = self.root
+
+    def tearDown(self):
+        import shutil
+        self.mod.ROOT = self._orig_root
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _run_file(self, name: str, force_dl: bool = False) -> dict:
+        p = self.root / name
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(b"\x00" * 4096)
+
+        H = self.mod.Handler
+        inst = H.__new__(H)
+        cap = {"status": None, "headers": {}}
+
+        class W:
+            def write(self, b):
+                pass
+
+            def flush(self):
+                pass
+
+        inst.wfile = W()
+        inst.command = "GET"
+        inst.headers = {"Range": "bytes=0-1023"}
+        inst.send_response = lambda c, m=None: cap.__setitem__("status", c)
+        inst.send_header = lambda k, v: cap["headers"].__setitem__(k, v)
+        inst.end_headers = lambda: None
+        inst._err = lambda code, msg: cap.__setitem__("status", code)
+        inst._file(name, inline=not force_dl, force_dl=force_dl)
+        return cap
+
+    def test_video_is_inline_not_attachment(self):
+        """视频必须内联 —— 这是「点开就能播」的前提。"""
+        r = self._run_file("clip.mp4")
+        self.assertEqual(r["status"], 206)
+        self.assertEqual(
+            (r["headers"].get("Content-Disposition") or "").lower(), "inline",
+            "mp4 被贴了 attachment —— 浏览器会改成下载，<video> 拿不到流")
+
+    def test_video_download_still_attaches(self):
+        """?dl=1 仍然要能下载（别为了修播放把下载弄丢）。"""
+        r = self._run_file("clip.mp4", force_dl=True)
+        self.assertEqual(r["status"], 200)
+        self.assertIn("attachment",
+                      (r["headers"].get("Content-Disposition") or "").lower())
+
+    def test_image_is_inline(self):
+        r = self._run_file("shot.png")
+        self.assertEqual(r["status"], 206)
+        self.assertEqual(
+            (r["headers"].get("Content-Disposition") or "").lower(), "inline")
+
+    def test_binary_still_attaches(self):
+        """非媒体二进制（比如 ckpt）默认按下载处理。"""
+        r = self._run_file("model.ckpt")
+        self.assertIn("attachment",
+                      (r["headers"].get("Content-Disposition") or "").lower())
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

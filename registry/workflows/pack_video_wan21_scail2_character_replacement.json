@@ -80,6 +80,24 @@
       "required": true,
       "type": "image"
     },
+    "long_side": {
+      "type": "int",
+      "default": 896,
+      "min": 384,
+      "max": 1024,
+      "multiple": 8,
+      "bindings": [
+        {
+          "node": "1323",
+          "input": "resize_type.longer_size"
+        },
+        {
+          "node": "1365",
+          "input": "resize_type.longer_size"
+        }
+      ],
+      "description": "成片长边像素（默认 896，保持原视频比例不变形）。\n\n唯一需要你决定的画质开关：\n· 896（默认）—— 竖屏出 896×1600 左右，等于 720p 竖屏，¥0.27/条\n· 640 —— 约 15% 更快更便宜，细节开始发软\n· 1024 —— 更清晰，但显存吃紧；4090 上约慢 2 倍\n\n⚠ 这个值只定长边，另一边按驱动视频比例自动算，所以不会裁掉画面。\n   以前这条工作流把分辨率写死成 896×512（横屏），竖屏素材会被拦腰裁掉。"
+    },
     "neg_prompt": {
       "bindings": [
         {
@@ -143,5 +161,5 @@
     "4090_48G"
   ],
   "schema": "p20.workflow/v1",
-  "version": 3
+  "version": 4
 }

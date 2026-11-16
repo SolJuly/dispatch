@@ -1,0 +1,54 @@
+{
+  "kind": "video",
+  "task_ref": "拆解-Animate2-修裁剪",
+  "model": {
+    "key": "wan_animate_2_int8_convrot",
+    "workflow": "workflows/pack/video_wan_animate2.api.json",
+    "checkpoint": "wan_animate_2_int8_convrot.safetensors",
+    "workflow_sha256": "35422c2316ccf9697a57a4119965dc3a07acdd0141c62e4b4a57bca32e04a45e",
+    "registry": {
+      "workflow_key": "pack_video_wan_animate2",
+      "workflow_version": 2,
+      "model_key": "wan_animate_2_int8_convrot",
+      "model_version": 1,
+      "compat": "verified",
+      "compat_basis": "manual",
+      "setup_need": "all",
+      "graph_sha256": "35422c2316ccf9697a57a4119965dc3a07acdd0141c62e4b4a57bca32e04a45e"
+    }
+  },
+  "params": {
+    "image": "in-d9b9cba6.png",
+    "long_side": 896,
+    "neg_prompt": "blurry, low quality, watermark, distorted, deformed",
+    "prompt": "Character Description: a young woman in a white dress with a blue sash\nBackground description: a quiet creek bank at golden hour",
+    "prompt_2": "A girl doing energetic street dance with rhythmic steps and dynamic arm gestures, background stationary",
+    "seed": 20261114,
+    "trim_seconds": 4,
+    "video": "in-f8472380-t4-16fps.mp4"
+  },
+  "expect": {
+    "duration_s": [
+      1.0,
+      120.0
+    ],
+    "ext": "mp4",
+    "min_bytes": 50000,
+    "freeze": {
+      "mode": "full_freeze_only",
+      "ratio_max": 0.2,
+      "longest_max_s": 1.0
+    }
+  },
+  "budget": {
+    "max_minutes": 40,
+    "max_cost": 2.66
+  },
+  "instance": {
+    "required_gpu": [
+      "4090",
+      "4090_48G"
+    ]
+  },
+  "oom_policy": "auto"
+}

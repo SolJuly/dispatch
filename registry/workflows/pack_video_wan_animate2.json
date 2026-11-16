@@ -61,6 +61,20 @@
       "required": true,
       "type": "image"
     },
+    "long_side": {
+      "type": "int",
+      "default": 896,
+      "min": 384,
+      "max": 1024,
+      "multiple": 8,
+      "bindings": [
+        {
+          "node": "1695",
+          "input": "resize_type.longer_size"
+        }
+      ],
+      "description": "成片长边像素（默认 896，按驱动视频原始比例自动算另一边，不变形）。\n\n· 896（默认）—— 竖屏素材出 896×1600 左右\n· 640 —— 更快更便宜\n· 1024 —— 更清晰，显存吃紧\n\n以前这条工作流把分辨率写死成 482×854，虽然比例接近但不随素材变化。"
+    },
     "neg_prompt": {
       "bindings": [
         {
@@ -135,5 +149,5 @@
     "4090_48G"
   ],
   "schema": "p20.workflow/v1",
-  "version": 1
+  "version": 2
 }

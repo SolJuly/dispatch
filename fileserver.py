@@ -28,6 +28,34 @@ TOKEN_FILE = Path(os.environ.get("SHARE_TOKEN_FILE", ROOT.parent / ".share_token
 BIND = os.environ.get("SHARE_BIND", "127.0.0.1")
 MAX_UPLOAD = int(os.environ.get("SHARE_MAX_UPLOAD_MB", "200")) * 1024 * 1024
 
+def _ui_shot_link() -> str:
+    """控制台界面截图页（reports/lab/ui.html）的导航按钮。"""
+    try:
+        f = Path(__file__).resolve().parent / "reports" / "lab" / "ui.html"
+        if not f.is_file():
+            return ""
+        return (f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/ui.html'>"
+                "🖥 界面截图</a>")
+    except Exception:
+        return ""
+
+
+def _verdict_link() -> str:
+    """拆解报告页（reports/lab/verdict.html）的导航按钮。
+
+    这个页放的是「修前 vs 修后」并排对比，是判断某次改动到底有没有用的
+    主要依据 —— 和全量实测页不同，它只针对被拆过的个别工作流。
+    """
+    try:
+        f = Path(__file__).resolve().parent / "reports" / "lab" / "verdict.html"
+        if not f.is_file():
+            return ""
+        return (f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/verdict.html'>"
+                "🔍 拆解对比</a>")
+    except Exception:
+        return ""
+
+
 def _sweep_link() -> str:
     """最新一次全量实测结果页的导航按钮（没有就返回空串）。
 
@@ -85,6 +113,28 @@ UI_ROOT = Path(os.environ.get("UI_ROOT", PROJ / "web" / "dist")).resolve()
 UI_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
           "img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; "
           "font-src 'self' data:; base-uri 'self'; form-action 'self'")
+
+# 共享目录里「报告类 HTML」的 CSP。
+#
+# 关键点：script-src 必须保持 'none'，但 media-src 得放开 'self'。
+#
+# 为什么 script-src 不能松（2026-11-16 复核）：
+#   share/ 是用户可写目录。谁往里面放一个 .html，就能在本站 token 上下文里执行脚本，
+#   读 location.pathname 拿到 token 再外传 —— 等于直接交出文件窗口的钥匙。
+#
+# 为什么 media-src 必须放开（2026-11-16 用户反馈「链接视频看不了」）：
+#   报告页全部用 <video src='相对路径'> 内嵌产物。原来的
+#   `default-src 'none'; style-src ...; img-src ...` 里没有 media-src，
+#   media 回落到 default-src 'none' → 视频一律被拦，只剩一个破图标。
+#   这不是某一次改动引入的：sweep-20261114.html / h3-quality.html 里
+#   24 个 <video> 一直全是坏的，只是没人点开过。
+#
+#   放行 media-src 'self' 不带新风险：视频是站内静态文件，
+#   播放不需要脚本参与，也不给页面任何读取能力。
+#   report 页因此**不允许写 <script>**，自动播放靠 muted/autoplay/loop 这些原生属性。
+REPORT_CSP = ("default-src 'none'; style-src 'unsafe-inline'; "
+              "img-src 'self' data:; media-src 'self'; "
+              "object-src 'none'; base-uri 'none'; form-action 'none'")
 
 
 def load_token() -> str:
@@ -722,6 +772,8 @@ class Handler(BaseHTTPRequestHandler):
             f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/gallery-inline.html'>🖼️ 画廊</a>"
             # 全量实测结果页（2026-11-14）：37 个产物一页看完，含 17 条不可用的根因。
             # 用通配取最新的一个，而不是写死日期 —— 下次再跑 sweep 不用改这里。
+            + (_ui_shot_link() or "")
+            + (_verdict_link() or "")
             + (_sweep_link() or "")
             + f"<a class='btn' href='{BASE}/{TOKEN}/f/reports/lab/REPORT.md'>📋 数据表</a>"
             "</div>" + ("".join(rows) or "<p class='hint'>空目录</p>")
@@ -796,30 +848,35 @@ class Handler(BaseHTTPRequestHandler):
             if b"{TOKEN}" in raw:
                 raw = raw.replace(b"{TOKEN}", TOKEN.encode())
             return self._send(200, raw, "text/html; charset=utf-8", {
-                "Content-Security-Policy":
-                    "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:",
+                "Content-Security-Policy": REPORT_CSP,
                 "X-Content-Type-Options": "nosniff",
             })
-        if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT):
-            if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT):
-                # 媒体在下载时也走流式：几百 MB 的片子 read_bytes() 会直接把内存打满
-                ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
-                fn = p.name
-                disp = ("attachment; filename=\"%s\"; filename*=UTF-8''%s"
-                        % (fn.encode("ascii", "ignore").decode() or "file",
-                           urllib.parse.quote(fn)))
-                if ext in MEDIA_EXT:
-                    return self._send_media(p, ctype,
-                                            {"Content-Disposition": disp}, inline=False)
-                return self._send(200, p.read_bytes(), ctype, {"Content-Disposition": disp})
-        # 媒体在线预览（inline）：Range + 流式，浏览器可边下边播、可拖进度条
+        # 媒体/图片在线预览：Range + 流式。
+        #
+        # 顺序很重要（2026-11-16 修）：原来这两个分支写在
+        #   `if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT):`
+        # **之后**，而 mp4 既不在 TEXT_EXT 也不在 IMG_EXT —— 于是视频永远
+        # 走进那条分支，被贴上 `Content-Disposition: attachment`，
+        # 浏览器收到就直接下载，`<video>` 永远拿不到可播的流。
+        # 下面那两行 inline 是死代码，一次都没执行过。
+        #
+        # 症状就是用户说的「链接视频看不了」：页面打开了，视频框是空的。
+        # 图片之所以看起来正常，是因为 IMG_EXT 在条件里被排除了。
         if ext in MEDIA_EXT and not force_dl:
             ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
             return self._send_media(p, ctype, inline=True)
-        # 图片同理：大 PNG 全量读内存会让平板白屏很久
         if ext in IMG_EXT and not force_dl:
             ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
             return self._send_media(p, ctype, inline=True)
+
+        if force_dl or (ext not in TEXT_EXT and ext not in IMG_EXT):
+            # 走到这里的是「非媒体、非图片」的二进制（zip/pdf/ckpt…）：一律按下载处理。
+            ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
+            fn = p.name
+            disp = ("attachment; filename=\"%s\"; filename*=UTF-8''%s"
+                    % (fn.encode("ascii", "ignore").decode() or "file",
+                       urllib.parse.quote(fn)))
+            return self._send(200, p.read_bytes(), ctype, {"Content-Disposition": disp})
         if ext in IMG_EXT or inline:
             data = p.read_bytes()
             ctype = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
