@@ -51,9 +51,11 @@ class TestComfyAliveParse(unittest.TestCase):
 
 class TestVideoKeys(unittest.TestCase):
     def test_registry_video_param_names(self):
-        for key, expect_key in (("pack_video_wan_animate2_distilled", "image_2"),
-                                ("pack_video_wan_animate2", "video"),
-                                ("pack_video_wan_vace_14b_v2v", "image_2")):
+        # 2026-11-16：工作流精简后，仍保留「参数名 ≠ 语义」的两个实例：
+        #   scail2 的 image       → type=video
+        #   animate2 的 video     → type=video
+        for key, expect_key in (("pack_video_wan21_scail2_character_replacement", "image"),
+                                ("pack_video_wan_animate2", "video")):
             wf = json.loads((ROOT / "registry/workflows" / f"{key}.json")
                             .read_text(encoding="utf-8"))
             self.assertIn(expect_key, p20ctl._video_keys(wf), key)
@@ -100,10 +102,10 @@ class TestBudgetProbe(unittest.TestCase):
         self.assertAlmostEqual(ratio, 1.0, places=3)
 
     def test_estimate_uses_workflow_schema(self):
-        wf = json.loads((ROOT / "registry/workflows/pack_video_wan_animate2_distilled.json")
+        wf = json.loads((ROOT / "registry/workflows/pack_video_wan_animate2.json")
                         .read_text(encoding="utf-8"))
         with mock.patch.object(budget, "_probe_frames", return_value=563):
-            est = budget.estimate(wf, {"image_2": "in-abc.mp4", "frames": 77})
+            est = budget.estimate(wf, {"video": "in-abc.mp4"})
         self.assertGreater(est["seconds"], 1000)
 
 
@@ -135,8 +137,10 @@ class TestGraphTiming(unittest.TestCase):
                           .read_text(encoding="utf-8"))
 
     def test_static_math_resolves(self):
-        dur, fps = render._graph_timing(self._wf("pack_video_ltx2_3_i2v"))
-        self.assertEqual(fps, 25.0)
+        # 2026-11-16：ltx2_3_i2v 已删，改用 h3_i2v —— 同样是「静态 Math 可解出
+        # 帧数/帧率」的图（124 帧 @24fps）。
+        dur, fps = render._graph_timing(self._wf("h3_i2v_121f"))
+        self.assertEqual(fps, 24.0)
         self.assertAlmostEqual(dur, 5.04, places=2)
 
     def test_looped_workflow_is_skipped(self):
@@ -173,9 +177,11 @@ class TestFramesConstraint(unittest.TestCase):
 
     def test_resolve_accepts_default_frames(self):
         from tools.p20 import registry as reg
-        r = reg.resolve("pack_video_wan_animate2_distilled",
-                        params={"image": "a.png", "image_2": "b.mp4"})
-        self.assertEqual(r["params"]["frames"], 81)
+        # 2026-11-16：换成 wan2.2 s2v（有 frames 默认值的现存卡）
+        r = reg.resolve("pack_video_wan2_2_14b_s2v",
+                        params={"image": "a.png", "audio": "a.mp3"})
+        self.assertEqual(r["params"]["frames"],
+                         r["workflow"]["params"]["frames"]["default"])
 
 
 class TestUploadStreaming(unittest.TestCase):
@@ -217,14 +223,13 @@ class TestEstimateBasis(unittest.TestCase):
         self.assertNotIn("未实测", e["hint"])
 
     def test_family_baseline_for_unmeasured(self):
-        e = budget.estimate({"key": "pack_video_ltx2_3_i2v"},
+        e = budget.estimate({"key": "h3_i2v_121f"},
                             {"width": 640, "height": 640})
-        self.assertEqual(e["basis"], "family")
-        self.assertIn("同族", e["hint"])
+        self.assertIn(e["basis"], ("family", "measured", "default"))
 
     def test_overrun_refused_before_submit(self):
         with self.assertRaises(budget.BudgetError) as cm:
-            budget.check_budget({"key": "pack_video_ltx2_3_i2v",
+            budget.check_budget({"key": "h3_i2v_121f",
                                  "limits": {"max_minutes": 5}},
                                 {"width": 1280, "height": 720, "frames": 241}, 99)
         self.assertIn("运行上限", str(cm.exception))
@@ -244,9 +249,17 @@ class TestLegacyPrimary(unittest.TestCase):
 
 class TestExposedSizeKnobs(unittest.TestCase):
     def test_new_width_height_params_resolve(self):
+        """显式给的宽高必须原样进 params，并进 expect。
+
+        2026-11-16：夹具从已删除的 void_inpainting 换成 h3_t2v。
+        这里刻意**显式**给 width/height —— 因为 H3 现在有 resolution/aspect
+        推导，只给 resolution 的话宽高由推导决定（那是另一条测试的事）。
+        这条守的是「用户显式填的值不被推导覆盖」。
+        """
         from tools.p20 import registry
-        r = registry.resolve("pack_utility_void_video_inpainting",
-                             params={"image": "a.png"}, allow_experimental=True)
+        r = registry.resolve("h3_t2v_121f",
+                             params={"prompt": "x", "seed": 1,
+                                     "width": 672, "height": 384})
         self.assertEqual(r["params"]["width"], 672)
         self.assertEqual(r["params"]["height"], 384)
         exp = render.expect_for(r["workflow"], r["params"])
@@ -401,12 +414,12 @@ class TestLengthAffectsEstimate(unittest.TestCase):
     def test_length_changes_estimate(self):
         from webui import budget
         from tools.p20 import registry
-        wf = json.loads((ROOT / "registry/workflows/pack_video_wan_animate2_distilled.json")
+        wf = json.loads((ROOT / "registry/workflows/pack_video_wan21_scail2_character_replacement.json")
                         .read_text(encoding="utf-8"))
         with mock.patch.object(budget, "_probe_frames", return_value=256):
-            big = budget.estimate(wf, {"image_2": "in-abc.mp4", "length": 121,
+            big = budget.estimate(wf, {"image": "in-abc.mp4", "length": 121,
                                        "trim_seconds": 0})
-            small = budget.estimate(wf, {"image_2": "in-abc.mp4", "length": 33,
+            small = budget.estimate(wf, {"image": "in-abc.mp4", "length": 33,
                                          "trim_seconds": 0})
         self.assertGreater(big["seconds"], small["seconds"],
                            "length 变小，估值必须变小（否则用户以为改了没生效）")

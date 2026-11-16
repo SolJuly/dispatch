@@ -159,8 +159,10 @@ class MaterialDrivenTest(unittest.TestCase):
         from tools.p20 import render
         wf_dir = _ROOT / "registry/workflows"
         # 素材驱动：有 type=video 输入 / LoadVideo
-        for key in ("pack_video_wan_animate2_distilled", "seedvr2_3b_upscale_video",
-                    "pack_video_wan_vace_14b_v2v"):
+        # 2026-11-16：工作流精简后，素材驱动类只剩这两条
+        # （蒸馏 animate2 / seedvr2_video / vace 都已删除）。
+        for key in ("pack_video_wan_animate2",
+                    "pack_video_wan21_scail2_character_replacement"):
             wf = json.loads((wf_dir / f"{key}.json").read_text(encoding="utf-8"))
             self.assertTrue(render._is_material_driven(wf), key)
             self.assertEqual(render.expect_for(wf, {})["freeze"]["mode"],

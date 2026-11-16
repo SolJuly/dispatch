@@ -384,7 +384,18 @@ class TestLintOnRealCards(unittest.TestCase):
         cls.rep = L.lint_all()
 
     def test_checked_count(self):
-        self.assertGreaterEqual(len(self.rep.checked), 50)
+        """防的是「lint 静默漏查」，不是数字本身。
+
+        2026-11-16 工作流从 54 精简到 29（用户要求只留 H3 三条 + Wan2.2 两条
+        + 角色替换 + 动作迁移，图片只留已验证的）。这里跟着实际卡片数走，
+        用「至少和 registry 里现存的一样多」来表达意图。
+        """
+        from tools.p20 import registry
+        try:
+            n = len(registry.stats()['workflows'])
+        except Exception:
+            n = 29
+        self.assertGreaterEqual(len(self.rep.checked), n)
 
     def test_no_unknown_rule(self):
         for f in self.rep.findings:
@@ -397,12 +408,10 @@ class TestLintOnRealCards(unittest.TestCase):
     def test_verified_cards_are_mostly_clean(self):
         """verified 的卡里，报错的应当只有历史上已知的那几条。"""
         bad = {f.workflow for f in self.rep.errors
-               if f.workflow in {"pack_video_ltx2_3_i2v", "pack_video_ltx2_3_flf2v",
-                                 "pack_video_wan21_scail2_character_replacement",
-                                 "pack_video_wan21_scail2_character_replacement_int8",
+               if f.workflow in {"pack_video_wan21_scail2_character_replacement",
                                  "pack_image_qwen_image_layered"}}
         # 允许的就是这 5 条 —— 多一条说明规则出新误报了
-        self.assertLessEqual(len(bad), 5, f"多报了：{bad}")
+        self.assertLessEqual(len(bad), 2, f"多报了：{bad}")
 
 
 class TestInfer(unittest.TestCase):

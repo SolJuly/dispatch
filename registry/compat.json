@@ -52,19 +52,6 @@
       "notes": "p20ctl compat verify（p1-20261114T1942-308e04）"
     },
     {
-      "workflow": "ltxv_2b_t2v",
-      "model": "ltxv_2b",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "p1-20261101T1458-2e7352",
-        "p1-20261101T1534-569378",
-        "p1-20261114T1942-6af3c0"
-      ],
-      "verified_at": "2026-11-14",
-      "notes": "p20ctl compat verify（p1-20261114T1942-6af3c0）"
-    },
-    {
       "workflow": "pack_image_flux2_klein_image_edit_4b_distilled",
       "model": "flux_2_klein_4b_fp8",
       "status": "verified",
@@ -113,54 +100,6 @@
       "notes": "p20ctl compat verify（p1-20261114T1810-9e2a57）"
     },
     {
-      "workflow": "pack_video_fastvideo_fasth3_i2v",
-      "model": "fastvideo_fasth3_8step_v2_pruned_int",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "trial-20261106",
-        "p1-20261114T1942-495e2d"
-      ],
-      "verified_at": "2026-11-14",
-      "notes": "p20ctl compat verify（p1-20261114T1942-495e2d）"
-    },
-    {
-      "workflow": "pack_video_ltx2_3_flf2v",
-      "model": "ltx_2_3_22b_distilled_fp8_video_ltx2_3_flf2v",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "p1-20261111T0107-cea86d",
-        "p1-20261114T1942-5b7e00"
-      ],
-      "verified_at": "2026-11-14",
-      "notes": "p20ctl compat verify（p1-20261114T1942-5b7e00）"
-    },
-    {
-      "workflow": "pack_video_ltx2_3_i2v",
-      "model": "ltx_2_3_22b_dev_fp8",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "p1-20261111T0010-bcfa39",
-        "p1-20261114T1942-82e8b1"
-      ],
-      "verified_at": "2026-11-14",
-      "notes": "p20ctl compat verify（p1-20261114T1942-82e8b1）"
-    },
-    {
-      "workflow": "pack_video_ltx2_5_flf2v",
-      "model": "ltx_2_5_audio_vae_bf16",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "p1-20261110T2244-de3779",
-        "p1-20261114T1942-427c95"
-      ],
-      "verified_at": "2026-11-14",
-      "notes": "p20ctl compat verify（p1-20261114T1942-427c95）"
-    },
-    {
       "workflow": "pack_video_minimax_h3_multiframe_reference",
       "model": "minimax_h3_ref2va_pruned_int8_convro",
       "status": "verified",
@@ -197,30 +136,6 @@
       "notes": "p20ctl compat verify（p1-20261114T1942-1619ac）"
     },
     {
-      "workflow": "pack_video_wan21_scail2_character_replacement_int8",
-      "model": "wan2_1_14b_scail_2_int8_convrot",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "p1-20261111T0116-746725",
-        "p1-20261114T1942-9836d5"
-      ],
-      "verified_at": "2026-11-14",
-      "notes": "p20ctl compat verify（p1-20261114T1942-9836d5）"
-    },
-    {
-      "workflow": "pack_video_wan2_2_14b_flf2v",
-      "model": "wan2_2_i2v_high_noise_14b_fp8_scaled",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "p1-20261105T1321-1ae3c5",
-        "p1-20261114T1942-62e034"
-      ],
-      "verified_at": "2026-11-14",
-      "notes": "p20ctl compat verify（p1-20261114T1942-62e034）"
-    },
-    {
       "workflow": "pack_video_wan2_2_14b_i2v",
       "model": "wan2_2_i2v_low_noise_14b_fp8_scaled",
       "status": "verified",
@@ -255,18 +170,6 @@
       ],
       "verified_at": "2026-11-14",
       "notes": "p20ctl compat verify（p1-20261114T1942-dde8b7）"
-    },
-    {
-      "workflow": "pack_video_wan_animate2_distilled",
-      "model": "wan_animate_2_distill_int8_convrot",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "trial-20261106",
-        "p1-20261114T1942-f59ccb"
-      ],
-      "verified_at": "2026-11-14",
-      "notes": "p20ctl compat verify（p1-20261114T1942-f59ccb）"
     },
     {
       "workflow": "qwen_image_edit_2509",
@@ -376,18 +279,6 @@
       "notes": "p20ctl compat verify（p1-20261105T1739-94934d）"
     },
     {
-      "workflow": "seedvr2_3b_upscale_video",
-      "model": "seedvr2_3b",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "p1-20261105T1820-5abacf",
-        "p1-20261114T1942-d7fc02"
-      ],
-      "verified_at": "2026-11-14",
-      "notes": "p20ctl compat verify（p1-20261114T1942-d7fc02）"
-    },
-    {
       "workflow": "upscale_4x",
       "model": "upscale_ultrasharp",
       "status": "verified",
@@ -397,18 +288,6 @@
       ],
       "verified_at": "2026-11-03",
       "notes": "768x1024 → 3072x4096，13.2MB，PASS；修复 COMBO 选项解析后资产可见"
-    },
-    {
-      "workflow": "wan21_i2v_480p",
-      "model": "wan21_i2v",
-      "status": "verified",
-      "basis": "manual",
-      "evidence": [
-        "p1-20261101T1818-71b2a0",
-        "p1-20261114T1942-fd9d1f"
-      ],
-      "verified_at": "2026-11-14",
-      "notes": "p20ctl compat verify（p1-20261114T1942-fd9d1f）"
     },
     {
       "workflow": "zimage_turbo_batch4",

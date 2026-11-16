@@ -647,9 +647,20 @@ class TestPreflightRealRegistry(unittest.TestCase):
         probe = PF.Probe.from_object_info(json.loads(oi.read_text(encoding="utf-8")))
         rows = PF.check_all(probe=probe)
         s = PF.summarize(rows)
-        # 0.36 镜像缺 QwenImage21Cache 等，至少要抓到几条 no_node
-        self.assertGreaterEqual(s["counts"].get("no_node", 0), 1,
-                                "0.36 镜像应至少缺一个节点类")
+        # 2026-11-16：工作流精简到 29 条（全部真机验证过），原来靠
+        # 「0.36 镜像缺 QwenImage21Cache」制造的 no_node 场景已不存在。
+        # 这条改成验证**分类能力本身**：每行必须有明确的 ready/blocked 判定，
+        # 且 blocked 必须带原因 —— 而不是要求某个特定的缺节点计数。
+        self.assertEqual(s["total"], len(rows))
+        for r in rows:
+            self.assertIn(r.status, PF.STATUSES if hasattr(PF, "STATUSES")
+                          else ("ready", "no_node", "no_weight", "bad_graph", "no_model",
+                                "no_asset", "no_audio"), r.workflow)
+            if r.status != "ready":
+                self.assertTrue(
+                    bool(r.missing_nodes or r.missing_weights
+                         or r.graph_errors or r.notes),
+                    f"{r.workflow} 被判 {r.status} 但没有任何原因字段")
 
     def test_drift_report_shape(self):
         rows = PF.check_all()

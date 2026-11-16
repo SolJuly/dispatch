@@ -289,15 +289,17 @@ class TestSlots(unittest.TestCase):
             self.assertIsNotNone(got, f"{wk} 应该复用：{why}")
 
     def test_missing_image_node_rejected(self):
-        """镜像里真缺节点的（Qwen 2.1 缺 QwenImage21Cache）必须拒绝。
+        """镜像里真缺节点类时必须拒绝 —— 换机器也没用。
 
-        这类换了机器也没用 —— 是镜像问题，不是实例问题。
+        2026-11-16：原来用 qwen_image_2_1 + QwenImage21Cache 当夹具，
+        那套卡片已按用户要求删除。改用 h3_t2v_121f：把它的节点需求
+        喂给一个「镜像能力为空」的槽位，语义完全一样（节点 ⊄ 镜像能力）。
         """
-        S.upsert(S.Slot(uid="u-q21", model_key="qwen_image_2_1_int8_convrot",
-                        state="running"))
-        got, why = S.find_compatible("qwen_image_2_1_int8_convrot",
-                                     "pack_image_qwen_image_2_1_image_edit")
-        self.assertIsNone(got)
+        n, _a = S.workflow_needs("h3_t2v_121f", "h3")
+        self.assertTrue(n, "夹具前提：h3_t2v_121f 必须有节点需求")
+        slot = S.Slot(uid="u-h3", model_key="h3", state="running")
+        ok, why = slot.accepts(set(n), set(), image_nodes={"NotARealNode"})
+        self.assertFalse(ok)
         self.assertIn("镜像缺节点", why)
 
     def test_cold_start_slot_accepts(self):

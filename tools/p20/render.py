@@ -645,8 +645,54 @@ def _recalibrate_duration(wf: dict, params: dict, exp: dict) -> None:
     n = _frames_of(wf, params, fps)
     if not n:
         return
+    n = _snap_frames(wf, n)
     dur = n / fps
     exp["duration_s"] = [round(max(0.2, dur - 0.3), 2), round(dur + 0.35, 2)]
+
+
+def _snap_frames(wf: dict, n: int) -> int:
+    """把请求的帧数吸附到模型的实际网格上。
+
+    ## 为什么需要（2026-11-16 真机踩到）
+
+    H3 的 `MiniMaxH3ImageToVideo.length` 是 `step: 17`，官方 tooltip 写着
+    "snapped up to the model's 17k+5 grid"。用户填 200 帧，模型实际出
+    **209 帧**（= 17×12 + 5）。
+
+    而期望窗口按 200/24 = 8.33s 算成 [8.03, 8.68]，实测 209/24 = 8.71s
+    —— 超出上界 0.03s，整条作业被判 FAIL。
+
+    用户看到的就是：**视频明明生成了、能播，界面却显示「作业失败」**。
+    那条片子本身完全正常（1280×768 / 8.7s / 4MB）。
+
+    ## 网格的两种形态
+
+    Wan/LTX 这类是「4n+1」（offset=1, step=4）；H3 是「17k+5」
+    （offset=5, step=17）。卡里用两个字段描述：
+
+        "frames": { "multiple": 17, "offset": 5 }     H3
+        "frames": { "multiple": 4,  "offset": 1 }     Wan/LTX
+
+    只给了 multiple 没给 offset 时按 offset=1 处理（历史行为，
+    那条 `(n-1) % step` 的写法正是 offset=1 的特例）。
+
+    吸附方向向上：模型的 length 语义就是「至少这么多帧」。
+    """
+    spec = (wf.get("params") or {}).get("frames") or {}
+    step = 0
+    for key in ("multiple", "step"):
+        v = spec.get(key)
+        if isinstance(v, int) and not isinstance(v, bool) and v > 1:
+            step = v
+            break
+    if not step:
+        return n
+    off = spec.get("offset")
+    off = off if isinstance(off, int) and not isinstance(off, bool) else 1
+    if n <= off:
+        return max(1, off)
+    rem = (n - off) % step
+    return n if rem == 0 else n + (step - rem)
 
 
 def expect_for(wf: dict, params: dict) -> dict:
