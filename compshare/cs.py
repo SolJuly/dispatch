@@ -225,8 +225,18 @@ class CS:
             time.sleep(interval)
 
     def settle(self, ident: str, timeout: int = 900) -> dict:
-        """等实例从瞬态（Stopping/Starting/Rebooting/Install）落定，避免 "UHost is in the task"。"""
-        transient = {"stopping", "starting", "rebooting", "install"}
+        """等实例从瞬态落定，避免 "UHost is in the task"。
+
+        瞬态白名单。**漏一个就是一类 8903**：
+          stopping / starting / rebooting / install   原白名单
+          initializing                               2026-11-18 补
+
+        `initializing` 是新建实例的第一态（创建 → Initializing → Running）。
+        漏掉它时，create 后立刻 stop/terminate 会拿到
+        「UHost is in the task」（8903），而调用方要么重试要么当成失败 ——
+        这正是 U2 那个反复失败的根因。
+        """
+        transient = {"stopping", "starting", "rebooting", "install", "initializing"}
         t0 = time.time()
         while True:
             inst = self.get(ident)

@@ -165,6 +165,10 @@ class InstanceState:
     task_class: str = ""             # 最后一条作业的类型（short/long）
     stopped_since: float = 0.0       # 停机起点（0=不知道）
     stopped_remaining_min: float | None = None   # 停机保留期还剩几分钟（None=不可判）
+    # 是否属于预热池。池实例是**刻意保持停机**的，不能被「停机超时销毁」规则误杀。
+    # 2026-11-18 审计现场抓到过：reaper 按 2 小时 TTL 把池里一台干掉了，
+    # 而 pool.json 还留着鬼影 —— 池的实际保温期变成 2 小时，不是设计里的 24 小时。
+    pooled: bool = False
 
     @property
     def idle_min(self) -> float:
@@ -304,6 +308,13 @@ def assess(instances: list[dict] | None = None, *,
     by_job = jobs_by_instance(jobs_dir)
     by_queue = queue_by_instance()
     qgroups = queued_groups()
+    # 预热池成员：这些机器停机是**刻意**的，不能按停机 TTL 销毁。
+    # 池自己按 STALE_HOURS 管理寿命，reaper 只负责别误杀。
+    try:
+        from tools.p2 import pool as poolmod
+        pooled_uids = {str(it.get("uid")) for it in (poolmod.load().get("instances") or [])}
+    except Exception:
+        pooled_uids = set()
 
     out: list[InstanceState] = []
     for i in insts:
@@ -322,6 +333,7 @@ def assess(instances: list[dict] | None = None, *,
             name=name,
             cloud_state=str(i.get("State") or ""),
             start_time=float(i.get("StartTime") or 0),
+            pooled=(uid in pooled_uids),
         )
 
         # ① 作业（job.json）
@@ -413,6 +425,15 @@ def _decide(st: InstanceState, *, now: float, lifecycle) -> None:
         if cloud in ("stopping", "starting", "rebooting", "restarting"):
             st.action = "keep"
             st.action_reason = f"云端状态 {st.cloud_state}，过渡中不处理"
+            return
+        # 已停机。池实例优先判：它**本来就该是停的**，任何停机规则都不该动它。
+        # 池自己的寿命由 pool.STALE_HOURS 管（24h），reaper 只负责别误杀。
+        # 这一条必须在「保留期」判定之前 —— 无停机记录的池实例不该落到
+        # “停机时长未知”那句通用理由上，否则看不出是被谁管的。
+        if st.pooled:
+            st.action = "keep"
+            st.action_reason = ("预热池实例，停机是刻意状态；"
+                                "寿命由 pool.STALE_HOURS 管，不按停机 TTL 销毁")
             return
         # 已停机：看保留期
         if st.stopped_remaining_min is None:

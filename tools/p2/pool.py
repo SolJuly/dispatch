@@ -240,6 +240,17 @@ def _create_one(cs: CS, gpu: str, image_id: str, idx: int) -> str | None:
         return None
     uid = ids[0]
     _say(f"创建 {uid}，等 Running…")
+    # 池建机也要记账（2026-11-18 成本审计）：
+    # 账本里 27 条 create 全部来自 csctl up，池建的 2 台一条都没有 ——
+    # 于是「这笔钱是谁花的」在账本上完全查不到。复用 csctl 已有的 ledger()，
+    # 不新写一份写账逻辑（两份必然漂移）。
+    try:
+        import csctl
+        csctl.ledger("create", uhost=uid, name=f"{NAME_PREFIX}-{idx}",
+                     gpu=gpu, image=img.get("CompShareImageId"),
+                     image_name=img.get("Name"), source="pool")
+    except Exception as e:
+        _say(f"  ⚠ 建机未记账（{type(e).__name__}: {str(e)[:80]}）")
     cs.wait_state(uid, {"running"}, timeout=900)
     return uid
 

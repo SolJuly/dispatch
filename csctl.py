@@ -710,7 +710,21 @@ def cmd_status(cs: CS, a) -> None:
     print(f"账户余额 : ¥{b.get('AmountAvailable', '?')}  (冻结 ¥{b.get('AmountFreeze', 0)})")
     print(f"实例     : {len(ins)} 台，运行中 {len(run)} 台")
     print(f"算力 burn: {money(burn)}/小时  ≈ {money(burn*24)}/天")
-    print(f"磁盘 burn: {money(disk)}/小时（≤100G 系统盘免费，长期不用请删除实例）")
+    # 磁盘价不能用 DiskPrice 字段判：实测该接口对停机实例返回 None，
+    # 于是 sum() 得 0，看上去「磁盘免费」—— 这就是账本里那笔"查不到来源"的钱。
+    # 2026-11-18 审计：零实例（2 台停机 100GB）实测仍以 ¥0.99/天掉余额，
+    # 扣掉已知的 70GB v4 镜像存储 ¥0.55/天，剩下 ¥0.44 与「2 × 100GB 停机盘
+    # ≈ ¥0.22/台/天」吻合。所以：拿不到单价时**说不知道**，不要报 ¥0.00。
+    unknown_disk = [i for i in ins
+                    if (i.get("State") or "") != "Running"
+                    and i.get("DiskPrice") is None]
+    if disk:
+        print(f"磁盘 burn: {money(disk)}/小时（≥100G 或数据盘才计费）")
+    elif unknown_disk:
+        print(f"磁盘 burn: 未知（{len(unknown_disk)} 台停机实例未返回磁盘单价）"
+              f" —— 实测约 ¥0.22/台/天，2 台≈¥0.44/天，别当成 0")
+    else:
+        print("磁盘 burn: ¥0.00/小时（≤100G 系统盘免费）")
     if burn and b.get("AmountAvailable"):
         print(f"续航     : 约 {float(b['AmountAvailable'])/burn:.1f} 小时（满负荷）")
     if ins:

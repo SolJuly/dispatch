@@ -181,16 +181,51 @@ def _note_instance(uid: str | None) -> None:
     _ORPHAN_UID = uid
 
 
-def _ledger(job_id: str, cost: float, **kw) -> None:
+def _ledger(job_id: str, cost: float | None = None, **kw) -> None:
+    """写一条作业成本记录。
+
+    `cost=None` 时按「实例开机到现在的机时」现场估算 —— 这是给**失败路径**用的。
+
+    为什么要有这个分支（2026-11-18 成本审计）：
+    成功路径的成本来自 manifest.cost.amount，而失败路径压根不生成 manifest，
+    于是 60 条 FAILED + 7 条 ABORTED 一条成本记录都没有。
+    结果是账本里 67%（¥71.68）的扣费没有任何作业认领 —— 想追「钱花在哪个
+    工作流上」时数据是断的。
+    """
+    if cost is None:
+        cost = _cost_so_far(job_id)
     rec = {"ts": int(time.time()),
            "at": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-           "event": "job", "job": job_id, "cost": round(cost, 4), **kw}
+           "event": "job", "job": job_id, "cost": round(float(cost or 0), 4), **kw}
     try:
         store.LEDGER.parent.mkdir(parents=True, exist_ok=True)
         with open(store.LEDGER, "a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     except OSError as e:
         _say(f"  ⚠ 账本写入失败：{e}")
+
+
+def _cost_so_far(job_id: str) -> float:
+    """按 job.json 里记的「开机时刻 + 时价」估当前机时成本。
+
+    数据源就是作业自己已经写下的字段（instance.up_at、steps.provision.hourly），
+    不查云端、不猜。拿不到就返回 0，宁可少记也不要编造数字。
+    """
+    try:
+        job = state.load_job(job_id)
+    except Exception:
+        return 0.0
+    inst = job.get("instance") or {}
+    up_at = inst.get("up_at")
+    hourly = ((job.get("steps") or {}).get("provision") or {}).get("hourly")
+    if not up_at or not hourly:
+        return 0.0
+    try:
+        t0 = dt.datetime.fromisoformat(str(up_at)).timestamp()
+    except (TypeError, ValueError):
+        return 0.0
+    minutes = max(0.0, (time.time() - t0) / 60.0)
+    return round(float(hourly) * minutes / 60.0, 4)
 
 
 def _mark_step(job_id: str, name: str, **detail) -> None:
@@ -2472,10 +2507,17 @@ def _run_inner(job_id: str, opts) -> int:
                         ctx.pop("force_release", None)
                         ctx.pop("force_release_reason", None)
                     _say("  已按 oom_policy=destroy 销毁实例（不留停机实例，不可续跑）")
+                    _ledger(job_id, None, uhost=ctx.get("uhost_id"),
+                            model=job["model"]["key"], result="failed")
                     return 1
                 # 断点续跑：失败时**保留实例**，靠定时关机兜底，等 --resume 或 --abort
                 kept = _keep_instance(job_id, ctx, opts)
                 if kept:
+                    # 失败也记账：manifest 不会生成，成本只能按机时现场估。
+                    # 不记的话这段花费在账本里没有任何作业认领。
+                    _ledger(job_id, None, uhost=ctx.get("uhost_id"),
+                            model=job["model"]["key"], result="failed",
+                            kept_instance=True)
                     return 1
                 # 未保留（例如建机都没成功）→ 走原有清理路径
                 cur = state.load_job(job_id).get("state")
@@ -2486,6 +2528,8 @@ def _run_inner(job_id: str, opts) -> int:
                         state.transition(job_id, state.FAILED, reason="失败收尾")
                     except Exception as e3:
                         _say(f"  清理失败：{e3}")
+                _ledger(job_id, None, uhost=ctx.get("uhost_id"),
+                        model=job["model"]["key"], result="failed")
                 return 1
             except Exception as e:
                 from compshare.cs import CompShareError
@@ -2500,6 +2544,8 @@ def _run_inner(job_id: str, opts) -> int:
                             state.transition(job_id, state.FAILED, reason="失败收尾")
                         except Exception as e2:
                             _say(f"  失败收尾异常：{e2}")
+                    _ledger(job_id, None, uhost=ctx.get("uhost_id"),
+                            model=job["model"]["key"], result="failed")
                     return 1
                 _say(f"✗ 未预期异常：{type(e).__name__}: {e}")
                 try:

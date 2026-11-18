@@ -71,6 +71,11 @@ class PoolTest(unittest.TestCase):
         self.cs = FakeCS()
         self._orig_cs = pool.CS
         pool.CS = lambda: self.cs
+        # 池建机会写 csctl 的账本。测试必须把它指到临时文件，
+        # 否则 FakeCS 的 uhost-fake* 会混进真实 ledger（2026-11-18 踩到过）。
+        import csctl
+        self._orig_ledger = csctl.LEDGER
+        csctl.LEDGER = Path(self._td.name) / "ledger.jsonl"
         # 不真连 ssh
         self._orig_sshd, self._orig_ready = pool._wait_sshd, pool._wait_ready
         pool._wait_sshd = lambda *a, **k: True
@@ -79,6 +84,8 @@ class PoolTest(unittest.TestCase):
     def tearDown(self):
         pool.POOL_JSON = self._orig_db
         pool.CS = self._orig_cs
+        import csctl
+        csctl.LEDGER = self._orig_ledger
         pool._wait_sshd, pool._wait_ready = self._orig_sshd, self._orig_ready
         self._td.cleanup()
 

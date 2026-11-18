@@ -81,6 +81,44 @@ def c_balance(cs):
     return "ok", f"¥{v:.2f}", "余额充足", ""
 
 
+def c_idle_burn(cs, insts):
+    """零实例仍在掉钱：镜像存储 + 停机盘。
+
+    2026-11-18 成本审计：0 台运行、0 条作业，今天照样扣 ¥0.99。
+      · ¥0.55 = 70GB v4 自定义镜像存储（¥0.236/GB/月）
+      · ¥0.44 ≈ 2 台停机 100GB 系统盘（接口不返回 DiskPrice，所以
+        csctl 一直报 ¥0.00，这条盲区没有任何规则看着）
+    这两项都不受「关机省钱」影响 —— 只要实例/镜像还在就一直扣。
+
+    判据用实测口径，不猜：Running=0 时按 ¥0.55/天（镜像）+ ¥0.22/台/天（停机盘）
+    估；Running>0 时算力费已经占大头，这里只报提示。
+    """
+    running = [i for i in insts if i.get("State") == "Running"]
+    stopped = [i for i in insts if (i.get("State") or "") != "Running"]
+    if running:
+        return "ok", f"{len(running)} 台运行中", "算力费是主项，静默费占比小", ""
+
+    # 镜像存储：image.json 里登记的自定义层，按 70GB 估
+    img_gb = 0
+    try:
+        d = json.loads((ROOT / "reports" / "p2" / "image.json").read_text(encoding="utf-8"))
+        img_gb = int(((d.get("layers") or {}).get("media") or {}).get("size_gb") or 0)
+    except Exception:
+        pass
+    img_daily = img_gb * 0.236 / 30 if img_gb else 0.0
+    disk_daily = len(stopped) * 0.22
+    total = img_daily + disk_daily
+
+    detail = (f"镜像 {img_gb}GB≈¥{img_daily:.2f}/天 · "
+              f"停机盘 {len(stopped)} 台≈¥{disk_daily:.2f}/天")
+    if total >= 0.8:
+        return ("medium", f"¥{total:.2f}/天", detail,
+                "关机能省算力但省不掉这项；要降就先减池台数或弃用自定义镜像")
+    if total > 0:
+        return "info", f"¥{total:.2f}/天", detail, ""
+    return "ok", "¥0.00/天", "无静默扣费来源", ""
+
+
 def c_running_unbounded(cs, insts, stop_map):
     bad = [i for i in insts if i.get("State") == "Running" and not stop_map.get(i["UHostId"])]
     if bad:
@@ -449,6 +487,7 @@ def run_checks(deep: bool = False) -> dict:
     add("R15", "销毁前漏归档", c_archive_gap)
     add("R17", "队列终态失败/回收", c_queue_terminal)
     add("R18", "队列心跳超时", c_queue_heartbeat)
+    add("R19", "零实例静默扣费", c_idle_burn, insts)
     if deep:
         add("R16", "实例内部健康", c_deep)
 

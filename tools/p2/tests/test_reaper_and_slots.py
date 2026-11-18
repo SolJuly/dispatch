@@ -394,3 +394,50 @@ class TestRunBorrowWiring(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPooledInstancesExempt(unittest.TestCase):
+    """预热池实例不能被「停机超时销毁」误杀。
+
+    2026-11-18 审计现场抓到：reaper 按 2 小时停机 TTL 把池里一台干掉了，
+    同时 pool.json 还留着鬼影。池的实际保温期被压到 2 小时，
+    而设计里是 pool.STALE_HOURS = 24 —— 两套寿命规则抢管辖权。
+
+    语义边界：池实例**停机是常态**，reaper 只管「别误杀」；
+    它自己的寿命由 pool.py 按 STALE_HOURS 判，两边不重复管。
+    """
+
+    def setUp(self):
+        self._td = tempfile.TemporaryDirectory()
+        self.root = Path(self._td.name)
+        self._orig_pool = R.poolmod if hasattr(R, "poolmod") else None
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _patch_pool(self, uids):
+        # 直接 patch 真模块的 load()：reaper 里是 `from tools.p2 import pool`，
+        # 走包属性而不是 sys.modules，所以 patch.dict 不生效。
+        from tools.p2 import pool as real_pool
+        return mock.patch.object(real_pool, "load",
+                                 return_value={"instances": [{"uid": u} for u in uids]})
+
+    def test_pooled_stopped_beyond_ttl_is_kept(self):
+        """停机超过 TTL 的池实例：保留，理由说明由 pool 管寿命。"""
+        with self._patch_pool({"u-pool"}):
+            rows = R.assess([_mk_inst("u-pool", state="Stopped", age_min=600)],
+                            jobs_dir=self.root)
+        self.assertEqual(len(rows), 1)
+        self.assertTrue(rows[0].pooled, "没认出这是池实例")
+        self.assertEqual(rows[0].action, "keep", "池实例被停机 TTL 误杀了")
+        self.assertIn("预热池", rows[0].action_reason)
+
+    def test_non_pooled_stopped_beyond_ttl_still_terminated(self):
+        """非池实例的停机 TTL 行为不变（别为了修池把这个规则弄坏）。"""
+        with self._patch_pool(set()):
+            rows = R.assess([_mk_inst("u-normal", state="Stopped", age_min=600)],
+                            jobs_dir=self.root)
+        self.assertFalse(rows[0].pooled)
+        # 没有停机记录时保留（既有保守规则），有记录且过期才销毁；
+        # 这里至少确认它没被当成池实例走例外分支。
+        self.assertNotIn("预热池", rows[0].action_reason)

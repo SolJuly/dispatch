@@ -15,6 +15,7 @@
 """
 from __future__ import annotations
 
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -272,3 +273,29 @@ class CloudOrphanScanTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class SettleTransientTest(unittest.TestCase):
+    """`CS.settle()` 的瞬态白名单必须覆盖「新建实例的第一态」。
+
+    2026-11-18 审计：白名单里漏了 `initializing`，于是 create 之后立刻
+    stop/terminate 会撞 8903「UHost is in the task」。列表本身很容易漏项，
+    所以这里把每个已知瞬态都钉一条，加状态时测试会提醒。
+    """
+
+    def _settle_states(self):
+        import inspect
+        from compshare.cs import CS
+        src = inspect.getsource(CS.settle)
+        m = re.search(r"transient = \{(.+?)\}", src, re.S)
+        self.assertIsNotNone(m, "settle() 里找不到 transient 白名单")
+        return m.group(1)
+
+    def test_includes_initializing(self):
+        """新建实例的第一态。漏了它就是 U2 那个 8903 的根因。"""
+        self.assertIn("initializing", self._settle_states())
+
+    def test_includes_all_known_transients(self):
+        blob = self._settle_states()
+        for st in ("stopping", "starting", "rebooting", "install", "initializing"):
+            self.assertIn(st, blob, f"瞬态白名单缺 {st}")
