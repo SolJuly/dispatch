@@ -86,8 +86,8 @@ def c_idle_burn(cs, insts):
 
     2026-11-18 成本审计：0 台运行、0 条作业，今天照样扣 ¥0.99。
       · ¥0.55 = 70GB v4 自定义镜像存储（¥0.236/GB/月）
-      · ¥0.44 ≈ 2 台停机 100GB 系统盘（接口不返回 DiskPrice，所以
-        csctl 一直报 ¥0.00，这条盲区没有任何规则看着）
+      · 剩下 ≈ N 台 × ¥0.257/天：停机实例的保留费（实测值，见下）
+        接口不返回 DiskPrice，所以 csctl 一直报 ¥0.00，没有任何规则看着
     这两项都不受「关机省钱」影响 —— 只要实例/镜像还在就一直扣。
 
     判据用实测口径，不猜：Running=0 时按 ¥0.55/天（镜像）+ ¥0.22/台/天（停机盘）
@@ -106,7 +106,8 @@ def c_idle_burn(cs, insts):
     except Exception:
         pass
     img_daily = img_gb * 0.236 / 30 if img_gb else 0.0
-    disk_daily = len(stopped) * 0.22
+    # 实测口径：11-09 受控实验（Stopped + others_running=[]，21.5h Δ¥0.23）
+    disk_daily = len(stopped) * 0.257
     total = img_daily + disk_daily
 
     detail = (f"镜像 {img_gb}GB≈¥{img_daily:.2f}/天 · "

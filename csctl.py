@@ -722,7 +722,7 @@ def cmd_status(cs: CS, a) -> None:
         print(f"磁盘 burn: {money(disk)}/小时（≥100G 或数据盘才计费）")
     elif unknown_disk:
         print(f"磁盘 burn: 未知（{len(unknown_disk)} 台停机实例未返回磁盘单价）"
-              f" —— 实测约 ¥0.22/台/天，2 台≈¥0.44/天，别当成 0")
+              f" —— 实测约 ¥0.257/台/天，别当成 0")
     else:
         print("磁盘 burn: ¥0.00/小时（≤100G 系统盘免费）")
     if burn and b.get("AmountAvailable"):
